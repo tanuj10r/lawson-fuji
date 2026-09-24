@@ -72,6 +72,15 @@
   .coords .d { color: #8f88a8; }
   .coords .s { color: #5d6f96; font-size: 11px; }
 
+  /* ---------- reference overlay (dev only, R) ----------
+   * Fitted by height and centred, like the hero lens. */
+  .ref-overlay {
+    position: fixed; top: 0; left: 50%; height: 100vh; width: auto;
+    transform: translateX(-50%);
+    opacity: 0; pointer-events: none; z-index: 5;
+  }
+  .ref-overlay.on { opacity: .5; }
+
   /* ---------- start / pause card ----------
    * A plain placeholder until the real title screen (SPEC M7). */
   .overlay {

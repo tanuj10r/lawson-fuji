@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { clamp } from './util.js';
-import { SPAWN, HERO } from '../config.js';
+import { SPAWN, PLAYER } from '../config.js';
 
 /* ------------------------------------------------------------------ *
  * First-person walker.
@@ -14,7 +14,7 @@ import { SPAWN, HERO } from '../config.js';
  * above the player's feet.
  * ------------------------------------------------------------------ */
 
-const EYE = HERO.eye;
+const EYE = PLAYER.eye;
 const RADIUS = 0.34;
 const STEP = 0.38;
 
@@ -44,6 +44,12 @@ export class Player {
     this.hovered = null;
     this.onInteract = null;
     this.onLockChange = null;
+    /* While `holdLook` is set (a hero camera is framed), small mouse motion is
+     * ignored, so taking the pointer lock does not knock the framing.  A
+     * deliberate look clears it and calls `onReleaseLook`. */
+    this.holdLook = false;
+    this.onReleaseLook = null;
+    this._slack = 0;
 
     this._bind();
     this.applyCamera(0);
@@ -52,6 +58,12 @@ export class Player {
   _bind() {
     const onMove = (e) => {
       if (!this.locked) return;
+      if (this.holdLook) {
+        this._slack += Math.abs(e.movementX) + Math.abs(e.movementY);
+        if (this._slack < 60) return;
+        this.holdLook = false;
+        this.onReleaseLook?.();
+      }
       this.yaw -= e.movementX * this.sensitivity;
       this.pitch -= e.movementY * this.sensitivity;
       this.pitch = clamp(this.pitch, -1.15, 1.05);
@@ -73,6 +85,12 @@ export class Player {
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());
+  }
+
+  /** Freeze the view against small mouse motion (see `holdLook`). */
+  hold() {
+    this.holdLook = true;
+    this._slack = 0;
   }
 
   lock() {

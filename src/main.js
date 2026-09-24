@@ -8,6 +8,7 @@ import { createHud } from './core/hud.js';
 import { createMusic } from './core/audio.js';
 import { buildTown } from './world/town.js';
 import { STRINGS } from './data/strings.js';
+import { PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI } from './config.js';
 
 /* ------------------------------------------------------------------ *
  * Lawson Fuji -- entry point.  Rendering is inherited from Sakura Crossing (MIT).
@@ -37,18 +38,19 @@ renderer.setClearColor(new THREE.Color(PAL.fog), 1);
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(PAL.fog, 44, 205);
 
-const camera = new THREE.PerspectiveCamera(46, 1, 0.25, 600);
+// far enough for Mt. Fuji (drawn ~1.4 km out) and the sky dome behind it
+const camera = new THREE.PerspectiveCamera(PLAYER_VFOV, 1, 0.25, 3200);
 camera.rotation.order = 'YXZ';
 
 /* --------------------------------- light --------------------------------- */
 const sun = new THREE.DirectionalLight(PAL.sun, 2.25);
 sun.position.set(-52, 62, 56);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.left = -34;
-sun.shadow.camera.right = 34;
-sun.shadow.camera.top = 34;
-sun.shadow.camera.bottom = -34;
+sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.camera.left = -40;
+sun.shadow.camera.right = 40;
+sun.shadow.camera.top = 40;
+sun.shadow.camera.bottom = -40;
 sun.shadow.camera.near = 1;
 sun.shadow.camera.far = 200;
 sun.shadow.bias = -0.0004;
@@ -74,7 +76,7 @@ const hemi = new THREE.HemisphereLight(PAL.hemiSky, PAL.hemiGround, 1.12);
 scene.add(hemi);
 
 /* --------------------------------- world --------------------------------- */
-const sky = buildSky(scene, 500);
+const sky = buildSky(scene, 2900, { avoidYaw: FUJI.bearing });
 const world = buildTown(scene);
 
 const player = new Player(camera, canvas, world);
@@ -119,11 +121,126 @@ player.onInteract = (target) => {
 /* ------------------------------- pipeline ------------------------------- */
 const pipeline = new Pipeline(renderer, scene, camera);
 
+/* --------------------------------- looks --------------------------------- *
+ * One look per time of day (config.js LOOKS): sky, fog, lights, grade, Fuji
+ * and the store's glow.  M6 blends between them; M1 switches. */
+/** Light directions, fixed in world space: the world is flat. */
+const SUN_DIR = new THREE.Vector3(-52, 62, 56);
+const FILL_DIR = new THREE.Vector3(48, 26, -44);
+const BOUNCE_DIR = new THREE.Vector3(10, -18, 40);
+let lookName = null;
+
+function applyLook(name) {
+  const look = LOOKS[name];
+  lookName = name;
+  sky.setLook(look);
+  world.setLook(look);
+  scene.fog.color.set(look.fog.color);
+  scene.fog.near = look.fog.near;
+  scene.fog.far = look.fog.far;
+  renderer.setClearColor(look.fog.color, 1);
+  sun.color.set(look.sun.color);
+  sun.intensity = look.sun.intensity;
+  SUN_DIR.set(...look.sun.dir);
+  fill.color.set(look.fill.color);
+  fill.intensity = look.fill.intensity;
+  bounce.intensity = look.bounce;
+  hemi.color.set(look.hemi.sky);
+  hemi.groundColor.set(look.hemi.ground);
+  hemi.intensity = look.hemi.intensity;
+  const g = pipeline.grade.mat.uniforms;
+  g.uShadowTint.value.set(look.grade.shadow);
+  g.uLightTint.value.set(look.grade.light);
+  g.uSaturation.value = look.grade.saturation;
+  g.uLift.value = look.grade.lift;
+  g.uVignette.value = look.grade.vignette;
+  g.uWarmth.value = look.grade.warmth;
+}
+
+/* ------------------------------ hero views ------------------------------ *
+ * Keys 1, 2, 3 (and the spawn) stand the player on a famous view
+ * (config.js HERO_VIEWS[].play) in the ordinary gameplay lens, and set its
+ * look.  Fuji is magnified in that lens to keep hero camera 1's on-screen
+ * size (FUJI.gameplaySize), so the view reads as the photo and walking off
+ * it changes nothing but where you stand: no lens change, no zoom.
+ *
+ * Dev only: with the R overlay on, the view uses the exact photo camera
+ * instead (narrow, shifted lens, true-size Fuji) so the composition can be
+ * checked against the photo.  Moving off it eases back to the gameplay lens. */
+const HERO_DAY = HERO_VIEWS.morning;
+const FUJI_GAMEPLAY = FUJI.gameplaySize
+  * Math.tan(THREE.MathUtils.degToRad(PLAYER_VFOV / 2))
+  / Math.tan(THREE.MathUtils.degToRad(HERO_DAY.vfov / 2));
+let hero = null;          // the photo camera, while it holds (dev overlay)
+let lastView = SPAWN.view;
+let heroBlend = 0;        // 1 = photo lens, 0 = gameplay lens
+const heroAt = { x: 0, z: 0, yaw: 0, pitch: 0 };
+
+function updateProjection() {
+  const v = HERO_VIEWS[lastView];
+  const t = heroBlend * heroBlend * (3 - 2 * heroBlend);
+  camera.fov = PLAYER_VFOV + (v.vfov - PLAYER_VFOV) * t;
+  camera.updateProjectionMatrix();
+  world.fuji.magnify(1 + (FUJI_GAMEPLAY - 1) * (1 - t));
+  if (t > 0) {
+    // lens shift: slide the frame, keep the camera level (verticals stay straight)
+    const e = camera.projectionMatrix.elements;
+    e[8] = (v.shift[0] * t) / camera.aspect;
+    e[9] = v.shift[1] * t;
+    camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+  }
+}
+
+/** Stand on a famous view.  `photo` uses the exact photo camera (dev overlay). */
+function enterHero(name, { photo = refOn } = {}) {
+  const v = HERO_VIEWS[name];
+  lastView = name;
+  applyLook(v.look);
+  const spot = photo ? { pos: v.pos, yaw: v.yaw, pitch: 0 } : v.play;
+  hero = photo ? v : null;
+  heroBlend = photo ? 1 : 0;
+  player.pos.set(spot.pos[0], world.heightAt(spot.pos[0], spot.pos[2]), spot.pos[2]);
+  player.vel.set(0, 0, 0);
+  player.yaw = spot.yaw;
+  player.pitch = spot.pitch;
+  player.bob = 0;
+  if (photo) player.hold();
+  else player.holdLook = false;
+  Object.assign(heroAt, { x: player.pos.x, z: player.pos.z, yaw: player.yaw, pitch: player.pitch });
+  player.applyCamera(0);
+  updateProjection();
+  refOverlay?.show(refOn);
+}
+
+function leaveHero() {
+  hero = null;
+  player.holdLook = false;
+}
+player.onReleaseLook = leaveHero;
+
+/* Dev only: R lays the matching reference photo over the frame at 50%,
+ * fitted by height like the photo lens, and switches to that lens.  Photos load from reference/ through
+ * the dev server and never reach the build. */
+let refOn = false;
+const refOverlay = import.meta.env.DEV ? (() => {
+  const img = document.createElement('img');
+  img.className = 'ref-overlay';
+  img.alt = '';
+  document.body.appendChild(img);
+  return {
+    img,
+    show(on) {
+      img.src = `./reference/${HERO_VIEWS[lastView].ref}`;
+      img.classList.toggle('on', on);
+    },
+  };
+})() : null;
+
 function resize() {
   const w = window.innerWidth;
   const h = window.innerHeight;
   camera.aspect = w / h;
-  camera.updateProjectionMatrix();
+  updateProjection();
   pipeline.setSize(w, h);
   setOutlineResolution(pipeline.size.x, pipeline.size.y);
 }
@@ -133,10 +250,6 @@ resize();
 /* --------------------------------- loop --------------------------------- */
 const clock = new THREE.Clock();
 const shadowTarget = new THREE.Vector3();
-/** Light directions, fixed in world space: the world is flat. */
-const SUN_DIR = new THREE.Vector3(-52, 62, 56);
-const FILL_DIR = new THREE.Vector3(48, 26, -44);
-const BOUNCE_DIR = new THREE.Vector3(10, -18, 40);
 
 /** Aim a light at `origin` from a fixed direction. */
 function seatLight(light, dir, origin) {
@@ -144,9 +257,11 @@ function seatLight(light, dir, origin) {
   light.position.copy(origin).add(dir);
 }
 
-/* The shadow camera follows the player so cast shadows stay crisp near them. */
+/* The shadow camera follows the player so cast shadows stay crisp near them.
+ * It centres a little ahead, so a hero camera's storefront 30 m out is in it. */
 function seatLights() {
-  shadowTarget.set(player.pos.x, 0, player.pos.z);
+  shadowTarget.set(
+    player.pos.x - Math.sin(player.yaw) * 16, 0, player.pos.z - Math.cos(player.yaw) * 16);
   seatLight(sun, SUN_DIR, shadowTarget);
   seatLight(fill, FILL_DIR, shadowTarget);
   seatLight(bounce, BOUNCE_DIR, shadowTarget);
@@ -164,13 +279,32 @@ window.addEventListener('keydown', (e) => {
   // two quiet toggles, handy for seeing what the ink and grade passes do
   if (e.code === 'KeyO') pipeline.enabled.ink = !pipeline.enabled.ink;
   if (e.code === 'KeyG') pipeline.enabled.grade = !pipeline.enabled.grade;
+  for (const [name, v] of Object.entries(HERO_VIEWS)) {
+    if (e.code === v.key) {
+      enterHero(name);
+      hud.flash(STRINGS.heroViews[name]);
+    }
+  }
+  if (e.code === 'KeyR' && refOverlay) {
+    refOn = !refOn;
+    enterHero(lastView);   // on: the exact photo camera; off: back to the view in play
+    hud.flash(refOn ? STRINGS.refOn : STRINGS.refOff, 900);
+  }
 });
 
 function frame() {
   const dt = Math.min(clock.getDelta(), 1 / 20);
 
   player.update(dt);
-  world.update(dt);
+  // walking off the spot hands the lens back to the player
+  if (hero && (Math.abs(player.pos.x - heroAt.x) > 0.01 || Math.abs(player.pos.z - heroAt.z) > 0.01)) {
+    leaveHero();
+  }
+  if (!hero && heroBlend > 0) {
+    heroBlend = Math.max(0, heroBlend - dt / 1.6);
+    updateProjection();
+  }
+  world.update(dt, camera);
   seatLights();
 
   // the sky dome is centred on the flat origin, so it has to trail the camera
@@ -185,10 +319,14 @@ function frame() {
   pipeline.render();
   requestAnimationFrame(frame);
 }
+enterHero(SPAWN.view);
 frame();
 
 // expose a little for tuning from the console
-window.__scene = { scene, camera, renderer, pipeline, world, player, music, hud, sun, fill, bounce, hemi, THREE };
+window.__scene = {
+  scene, camera, renderer, pipeline, world, player, music, hud, sun, fill, bounce, hemi, THREE,
+  applyLook, enterHero,
+};
 window.__setOutlineRes = setOutlineResolution;
 
 if (import.meta.env?.DEV) {
@@ -211,9 +349,10 @@ if (import.meta.env?.DEV) {
     pipeline.forceScale = opts.scale || 1;
 
     camera.aspect = W / H;
-    camera.updateProjectionMatrix();
+    updateProjection();
     pipeline.setSize(W, H);
     setOutlineResolution(pipeline.size.x, pipeline.size.y);
+    world.update(0, camera);
     seatLights();
     sky.dome.position.copy(camera.position);
     sky.clouds.position.copy(camera.position);
@@ -223,13 +362,58 @@ if (import.meta.env?.DEV) {
     const outW = opts.outW || W;
     off.width = outW;
     off.height = Math.round((outW * H) / W);
-    off.getContext('2d').drawImage(canvas, 0, 0, off.width, off.height);
+    const ctx = off.getContext('2d');
+    ctx.drawImage(canvas, 0, 0, off.width, off.height);
+    if (opts.overlay) {
+      // the reference photo at 50%, fitted by height as the R overlay is
+      const img = new Image();
+      img.src = opts.overlay;
+      await img.decode();
+      const h = off.height, w = (img.width * h) / img.height;
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(img, (off.width - w) / 2, 0, w, h);
+      ctx.globalAlpha = 1;
+    }
     const data = off.toDataURL('image/jpeg', opts.quality || 0.86);
     const r = await fetch('/__shot', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name, data }),
+      body: JSON.stringify({ name, data, dir: opts.dir }),
     });
     return r.json();
   };
+
+  /* ?lookdev: frame each hero camera once Fuji has loaded, save it to
+   * reference/lookdev/, and save a copy with the reference photo laid over
+   * it to .shots/ (those carry the third-party photo, so they stay local). */
+  const params = new URLSearchParams(location.search);
+  if (params.has('lookdev')) {
+    world.fuji.ready.then(async () => {
+      const W = Number(params.get('w')) || 1920;
+      const H = Number(params.get('h')) || 1080;
+      for (const name of Object.keys(HERO_VIEWS)) {
+        // what keys 1, 2, 3 show in play
+        refOn = false;
+        enterHero(name);
+        await window.__shot(`hero-${name}`, W, H, { dir: 'lookdev', quality: 0.92 });
+        // the exact photo camera, alone and under the reference photo
+        refOn = true;
+        enterHero(name);
+        await window.__shot(`hero-${name}-photo-lens`, W, H, { dir: 'lookdev', quality: 0.92 });
+        await window.__shot(`hero-${name}-vs-ref`, W, H,
+          { overlay: `./reference/${HERO_VIEWS[name].ref}`, quality: 0.88 });
+        // the play view under the reference photo, to judge how close it reads
+        refOn = false;
+        enterHero(name);
+        await window.__shot(`hero-${name}-play-vs-ref`, W, H,
+          { overlay: `./reference/${HERO_VIEWS[name].ref}`, quality: 0.88 });
+      }
+      refOverlay.show(false);
+      // a few steps on from the spawn, to check nothing jumps
+      enterHero('golden');
+      await window.__shot('play-golden-walk', W, H, { pos: [0, 0, 13], yaw: 0, pitch: 0.16 });
+      document.title = 'lookdev done';
+      console.log('lookdev done');
+    });
+  }
 }

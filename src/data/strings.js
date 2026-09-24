@@ -14,6 +14,7 @@ export const STRINGS = {
     ['Mouse', 'Look'],
     ['Shift', 'Run'],
     ['E', 'Interact'],
+    ['1 2 3', 'Famous view'],
     ['M', 'Sound'],
     ['Esc', 'Pause'],
   ],
@@ -22,4 +23,11 @@ export const STRINGS = {
   coordsOn: 'coordinates on',
   coordsOff: 'coordinates off',
   copied: 'copied',
+  heroViews: {
+    morning: '1 · 朝  Morning',
+    golden: '2 · 夕方  Golden hour',
+    night: '3 · 夜  Night',
+  },
+  refOn: 'reference overlay on',
+  refOff: 'reference overlay off',
 };

@@ -1,0 +1,412 @@
+import * as THREE from 'three';
+
+/* ------------------------------------------------------------------ *
+ * Canvas2D signage and painted surfaces for the Lawson (AGENTS.md: all
+ * signage is drawn in code).  Lawson branding appears only on the store's
+ * own signs here; posters and banners advertise generic, fictional goods.
+ *
+ * Canvases are sized in pixels per metre so type stays crisp through the
+ * hero cameras' telephoto framing.
+ * ------------------------------------------------------------------ */
+
+const JP = `'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', sans-serif`;
+/* The wordmark is a heavy slab serif.  Rockwell and Clarendon where the system
+ * has them; Georgia is the everywhere fallback. */
+const SLAB = `'Rockwell', 'Rockwell Extra Bold', 'Clarendon', 'Clarendon BT', 'Georgia', serif`;
+
+export const LAWSON_BLUE = '#0068b7';
+const BLUE_DEEP = '#00509a';
+
+const cache = new Map();
+
+function make(key, w, h, draw, { srgb = true, repeat = null } = {}) {
+  if (cache.has(key)) return cache.get(key);
+  const cv = document.createElement('canvas');
+  cv.width = w;
+  cv.height = h;
+  const c = cv.getContext('2d');
+  draw(c, w, h);
+  const tex = new THREE.CanvasTexture(cv);
+  if (srgb) tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  if (repeat) {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(repeat[0], repeat[1]);
+  }
+  tex.needsUpdate = true;
+  cache.set(key, tex);
+  return tex;
+}
+
+function fit(c, text, maxW, size, font, weight = 'bold') {
+  let s = size;
+  do {
+    c.font = `${weight} ${s}px ${font}`;
+    if (c.measureText(text).width <= maxW) break;
+    s -= 1;
+  } while (s > 6);
+  return s;
+}
+
+function text(c, str, x, y, maxW, size, color, { font = JP, weight = 'bold', spacing = 0 } = {}) {
+  fit(c, str, maxW - spacing * str.length, size, font, weight);
+  c.fillStyle = color;
+  c.textBaseline = 'middle';
+  if (!spacing) {
+    c.textAlign = 'center';
+    c.fillText(str, x, y);
+    return;
+  }
+  c.textAlign = 'left';
+  const chars = [...str];
+  const total = chars.reduce((a, ch) => a + c.measureText(ch).width + spacing, -spacing);
+  let cx = x - total / 2;
+  for (const ch of chars) {
+    c.fillText(ch, cx, y);
+    cx += c.measureText(ch).width + spacing;
+  }
+}
+
+function vertical(c, str, x, y0, step, size, color) {
+  c.font = `bold ${size}px ${JP}`;
+  c.fillStyle = color;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  [...str].forEach((ch, i) => c.fillText(ch, x, y0 + i * step));
+}
+
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+/** The milk can, white on whatever is under it.  (cx, cy) centre, s = height. */
+function milkCan(c, cx, cy, s, color = '#ffffff') {
+  c.save();
+  c.translate(cx, cy);
+  c.scale(s / 100, s / 100);
+  c.fillStyle = color;
+  c.beginPath();
+  // lid and neck
+  c.rect(-16, -50, 32, 8);
+  c.rect(-11, -42, 22, 12);
+  // shoulders out to the body
+  c.moveTo(-11, -30);
+  c.bezierCurveTo(-14, -22, -30, -20, -30, -10);
+  c.lineTo(-30, 42);
+  c.quadraticCurveTo(-30, 50, -22, 50);
+  c.lineTo(22, 50);
+  c.quadraticCurveTo(30, 50, 30, 42);
+  c.lineTo(30, -10);
+  c.bezierCurveTo(30, -20, 14, -22, 11, -30);
+  c.closePath();
+  c.fill();
+  // the two handles
+  c.lineWidth = 5;
+  c.strokeStyle = color;
+  c.beginPath();
+  c.arc(-30, 2, 9, Math.PI * 0.5, Math.PI * 1.5);
+  c.stroke();
+  c.beginPath();
+  c.arc(30, 2, 9, -Math.PI * 0.5, Math.PI * 0.5);
+  c.stroke();
+  c.restore();
+}
+
+/**
+ * The blue sign band along the whole front.  `widthM` metres wide; panels are
+ * placed in metres from the band's left end.
+ */
+export const signBand = (widthM, heightM, panels) =>
+  make('signBand', 4096, Math.round((4096 / widthM) * heightM), (c, w, h) => {
+    const ppm = w / widthM;
+    const blueEnd = panels.blueEnd * ppm;
+
+    // pale end cap where the band runs out before the tiled wing
+    c.fillStyle = '#e4e8ee';
+    c.fillRect(0, 0, w, h);
+
+    // the blue band, a little lighter toward the top like a lit acrylic face
+    const g = c.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#1a86d4');
+    g.addColorStop(0.22, LAWSON_BLUE);
+    g.addColorStop(1, BLUE_DEEP);
+    c.fillStyle = g;
+    c.fillRect(0, 0, blueEnd, h);
+
+    // the thin white rule along the top and the pale lip below
+    c.fillStyle = '#f4f8fc';
+    c.fillRect(0, 0, blueEnd, h * 0.07);
+    c.fillRect(0, h * 0.93, blueEnd, h * 0.07);
+
+    // the joints between acrylic segments
+    c.fillStyle = 'rgba(240,246,252,0.9)';
+    for (let x = panels.segment; x < panels.blueEnd; x += panels.segment) {
+      c.fillRect(x * ppm - 3, h * 0.07, 6, h * 0.86);
+    }
+
+    const panel = (x0, x1) => {
+      const px = x0 * ppm, pw = (x1 - x0) * ppm;
+      c.fillStyle = '#ffffff';
+      c.fillRect(px, h * 0.1, pw, h * 0.8);
+      c.strokeStyle = LAWSON_BLUE;
+      c.lineWidth = h * 0.03;
+      c.strokeRect(px + h * 0.05, h * 0.15, pw - h * 0.1, h * 0.7);
+      return { px, pw };
+    };
+
+    // LAWSON wordmark panel
+    {
+      const { px, pw } = panel(...panels.wordmark);
+      text(c, 'LAWSON', px + pw / 2, h * 0.52, pw * 0.9, h * 0.56, LAWSON_BLUE,
+        { font: SLAB, weight: '900', spacing: h * 0.05 });
+    }
+    // two small category panels, as on the real fascia
+    const small = (range, dot, label) => {
+      const { px, pw } = panel(...range);
+      c.fillStyle = dot;
+      c.beginPath();
+      c.arc(px + pw * 0.2, h * 0.5, h * 0.17, 0, Math.PI * 2);
+      c.fill();
+      text(c, label, px + pw * 0.6, h * 0.52, pw * 0.62, h * 0.4, LAWSON_BLUE);
+    };
+    small(panels.yasai, '#3aa25a', '野菜');
+    small(panels.kudamono, '#ef7a2a', 'くだもの');
+  });
+
+/** Side sign: the band's return round the left end, with ローソン. */
+export const sideBand = (widthM, heightM) =>
+  make('sideBand', 1024, Math.round((1024 / widthM) * heightM), (c, w, h) => {
+    c.fillStyle = LAWSON_BLUE;
+    c.fillRect(0, 0, w, h);
+    c.fillStyle = '#f4f8fc';
+    c.fillRect(0, 0, w, h * 0.07);
+    c.fillRect(0, h * 0.93, w, h * 0.07);
+    milkCan(c, h * 0.62, h * 0.5, h * 0.62);
+    text(c, 'ローソン', w * 0.55, h * 0.52, w * 0.6, h * 0.5, '#ffffff', { spacing: h * 0.06 });
+  });
+
+/** Small square logo plate above the door: milk can over the wordmark. */
+export const logoPlate = () =>
+  make('logoPlate', 256, 256, (c, w, h) => {
+    c.fillStyle = LAWSON_BLUE;
+    c.fillRect(0, 0, w, h);
+    c.strokeStyle = '#ffffff';
+    c.lineWidth = 6;
+    c.strokeRect(10, 10, w - 20, h - 20);
+    milkCan(c, w / 2, h * 0.42, h * 0.46);
+    text(c, 'LAWSON', w / 2, h * 0.8, w * 0.78, 40, '#ffffff', { font: SLAB, weight: '900', spacing: 2 });
+  });
+
+/** Window posters (SPEC section 3), generic goods only. */
+const POSTERS = {
+  onigiri: { bg: '#fff4d6', band: '#e0453f', title: 'おにぎり', sub: '100円セール', art: '#f7f3ea' },
+  shinhatsubai: { bg: '#ffe34a', band: '#e0453f', title: '新発売', sub: 'できたて', art: '#fff9d8' },
+  coffee: { bg: '#f6efe6', band: '#6b4430', title: 'ホットコーヒー', sub: '100円', art: '#c89266' },
+};
+export const poster = (kind) =>
+  make('poster-' + kind, 384, 512, (c, w, h) => {
+    const p = POSTERS[kind];
+    c.fillStyle = p.bg;
+    c.fillRect(0, 0, w, h);
+    c.fillStyle = p.band;
+    c.fillRect(0, 0, w, h * 0.2);
+    text(c, p.title, w / 2, h * 0.1, w * 0.9, 76, '#ffffff');
+    // a flat illustration block: onigiri triangle, star burst or cup
+    c.fillStyle = p.art;
+    c.beginPath();
+    if (kind === 'onigiri') {
+      c.moveTo(w * 0.5, h * 0.28); c.lineTo(w * 0.8, h * 0.66); c.lineTo(w * 0.2, h * 0.66);
+      c.closePath(); c.fill();
+      c.fillStyle = '#2f3640';
+      c.fillRect(w * 0.38, h * 0.52, w * 0.24, h * 0.14);
+    } else if (kind === 'coffee') {
+      roundRect(c, w * 0.3, h * 0.32, w * 0.4, h * 0.34, 18); c.fill();
+      c.fillStyle = '#ffffff';
+      c.fillRect(w * 0.3, h * 0.4, w * 0.4, h * 0.08);
+    } else {
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * Math.PI * 2, r = i % 2 ? w * 0.18 : w * 0.3;
+        c.lineTo(w * 0.5 + Math.cos(a) * r, h * 0.47 + Math.sin(a) * r);
+      }
+      c.closePath(); c.fill();
+    }
+    text(c, p.sub, w / 2, h * 0.82, w * 0.86, 64, p.band);
+  });
+
+/** Wide paper banner hung inside the glass over the entrance. */
+export const doorBanner = () =>
+  make('doorBanner', 1024, 160, (c, w, h) => {
+    c.fillStyle = '#ffd23a';
+    c.fillRect(0, 0, w, h);
+    c.fillStyle = '#e0453f';
+    c.fillRect(0, 0, h, h);
+    text(c, '新', h / 2, h / 2, h * 0.8, 110, '#ffffff');
+    text(c, 'おにぎり 100円セール', w * 0.57, h * 0.52, w * 0.78, 96, '#3a2a1a');
+  });
+
+/** のぼり flags on stands (SPEC: generic goods). */
+const NOBORI = [
+  { bg: '#ffffff', edge: '#2a78c8', fg: '#2a78c8', t: 'カフェラテ', dot: '#a8744a' },
+  { bg: '#ffe23c', edge: '#2a78c8', fg: '#1d4f9a', t: '新発売', dot: '#e0453f' },
+  { bg: '#ffffff', edge: '#e0453f', fg: '#c83a34', t: 'ホットコーヒー', dot: '#6b4430' },
+  { bg: '#fff3c8', edge: '#3aa25a', fg: '#2f7a46', t: 'おにぎり', dot: '#3aa25a' },
+];
+export const nobori = (i) =>
+  make('nobori-' + i, 160, 640, (c, w, h) => {
+    const n = NOBORI[i % NOBORI.length];
+    c.fillStyle = n.bg;
+    c.fillRect(0, 0, w, h);
+    c.fillStyle = n.edge;
+    c.fillRect(0, 0, w, 26);
+    c.fillRect(0, 0, 14, h);
+    c.fillStyle = n.dot;
+    c.beginPath();
+    c.arc(w * 0.55, h * 0.84, w * 0.26, 0, Math.PI * 2);
+    c.fill();
+    const chars = [...n.t];
+    const step = Math.min(92, (h * 0.66) / chars.length);
+    vertical(c, n.t, w * 0.56, 70 + step / 2, step, Math.min(84, step * 0.92), n.fg);
+  });
+
+/** Pale blue-white square tiles for the wall at the right end. */
+export const tileTex = (repeatX, repeatY) => {
+  const t = make('tiles', 128, 128, (c, w, h) => {
+    c.fillStyle = '#e3eaf1';
+    c.fillRect(0, 0, w, h);
+    c.fillStyle = '#b9c6d6';
+    c.fillRect(0, 0, w, 5);
+    c.fillRect(0, 0, 5, h);
+  });
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(repeatX, repeatY);
+  return t;
+};
+
+/**
+ * The store interior as seen through the glass, painted.  M3 replaces this
+ * card with the real interior.  Width `widthM`, height `heightM`.
+ */
+export const interiorCard = (widthM, heightM) =>
+  make('interior', 4096, Math.round((4096 / widthM) * heightM), (c, w, h) => {
+    const ppm = w / widthM;
+    // back wall: warm white, a cooler ceiling zone with the light rows
+    c.fillStyle = '#e4dfd6';
+    c.fillRect(0, 0, w, h);
+    c.fillStyle = '#eef0f4';
+    c.fillRect(0, 0, w, h * 0.2);
+    c.fillStyle = '#ffffff';
+    for (let x = 0.4; x < widthM; x += 2.2) c.fillRect(x * ppm, h * 0.04, 1.6 * ppm, h * 0.035);
+
+    // the drinks wall: lit fridge bays with rows of bottle colours
+    const bottle = ['#e0453f', '#3aa25a', '#2a78c8', '#f4c033', '#f7f3ea', '#ef7a2a', '#8f6fb5', '#6ac0d8'];
+    let seed = 11;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let bx = 0.2; bx < widthM - 0.4; bx += 1.3) {
+      const x = bx * ppm, bw = 1.2 * ppm;
+      c.fillStyle = '#d6e4f0';
+      c.fillRect(x, h * 0.24, bw, h * 0.52);
+      c.fillStyle = '#c0ccd8';
+      c.fillRect(x, h * 0.24, bw, h * 0.012);
+      for (let row = 0; row < 5; row++) {
+        const y = h * (0.28 + row * 0.095);
+        for (let k = 0; k < 9; k++) {
+          c.fillStyle = bottle[Math.floor(rnd() * bottle.length)];
+          c.fillRect(x + (k + 0.15) * (bw / 9), y, (bw / 9) * 0.7, h * 0.06);
+        }
+        c.fillStyle = '#b7c0cc';
+        c.fillRect(x, y + h * 0.065, bw, h * 0.008);
+      }
+    }
+    // gondola shelves in front of it, cut off at 1.6 m: see over them
+    const shelfTop = h * (1 - 1.6 / heightM);
+    for (let sx = 0.6; sx < widthM - 1; sx += 3.1) {
+      const x = sx * ppm, sw = 2.5 * ppm;
+      c.fillStyle = '#c9ced8';
+      c.fillRect(x, shelfTop, sw, h - shelfTop);
+      for (let row = 0; row < 4; row++) {
+        const y = shelfTop + (row + 0.2) * ((h - shelfTop) / 4.3);
+        for (let k = 0; k < 12; k++) {
+          c.fillStyle = bottle[Math.floor(rnd() * bottle.length)];
+          c.globalAlpha = 0.85;
+          c.fillRect(x + (k + 0.1) * (sw / 12), y, (sw / 12) * 0.8, (h - shelfTop) / 7);
+        }
+        c.globalAlpha = 1;
+        c.fillStyle = '#9aa4b2';
+        c.fillRect(x, y + (h - shelfTop) / 6.4, sw, h * 0.01);
+      }
+    }
+    // a pale floor strip
+    c.fillStyle = '#e8e6e0';
+    c.fillRect(0, h * 0.97, w, h * 0.03);
+  });
+
+/** Ceiling seen through the upper glass: rows of flush light panels. */
+export const ceilingTex = (widthM, depthM) =>
+  make('ceiling', 1024, 512, (c, w, h) => {
+    c.fillStyle = '#d8dce4';
+    c.fillRect(0, 0, w, h);
+    c.fillStyle = '#ffffff';
+    const ppmX = w / widthM, ppmZ = h / depthM;
+    for (let z = 0.8; z < depthM; z += 2.2) {
+      for (let x = 0.6; x < widthM - 0.6; x += 2.4) {
+        c.fillRect(x * ppmX, z * ppmZ, 1.8 * ppmX, 0.35 * ppmZ);
+      }
+    }
+  });
+
+/** Diagonal shine streaks for the glass: white on transparent. */
+export const glassShine = () =>
+  make('glassShine', 512, 256, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    c.fillStyle = 'rgba(255,255,255,0.55)';
+    const streak = (x, wd) => {
+      c.beginPath();
+      c.moveTo(x, h); c.lineTo(x + wd, h); c.lineTo(x + wd + h * 0.55, 0); c.lineTo(x + h * 0.55, 0);
+      c.closePath(); c.fill();
+    };
+    streak(w * 0.08, 18); streak(w * 0.13, 7);
+    streak(w * 0.46, 26); streak(w * 0.53, 9);
+    streak(w * 0.8, 14);
+  }, { srgb: false });
+
+/** The hard-edged painted pool of window light on the forecourt. */
+export const spillTex = (bays) =>
+  make('spill', 1024, 256, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    c.fillStyle = '#ffffff';
+    // one trapezoid per glass bay, fanning out slightly toward the road
+    for (const [a, b] of bays) {
+      const x0 = a * w, x1 = b * w;
+      c.beginPath();
+      c.moveTo(x0 + 3, 0); c.lineTo(x1 - 3, 0);
+      c.lineTo(x1 + (x1 - w / 2) * 0.08, h); c.lineTo(x0 + (x0 - w / 2) * 0.08, h);
+      c.closePath();
+      c.fill();
+    }
+    // fade the far edge so the pool ends softly on the asphalt
+    c.globalCompositeOperation = 'destination-out';
+    const g = c.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.55, 'rgba(0,0,0,0.1)');
+    g.addColorStop(1, 'rgba(0,0,0,1)');
+    c.fillStyle = g;
+    c.fillRect(0, 0, w, h);
+    c.globalCompositeOperation = 'source-over';
+  }, { srgb: false });
+
+/** Small red notice on the tiled wall. */
+export const redNotice = () =>
+  make('redNotice', 128, 256, (c, w, h) => {
+    c.fillStyle = '#ffffff';
+    c.fillRect(0, 0, w, h);
+    c.fillStyle = '#d8342f';
+    c.fillRect(0, 0, w, h * 0.42);
+    text(c, '24時間', w / 2, h * 0.21, w * 0.86, 36, '#ffffff');
+    text(c, '営業中', w / 2, h * 0.62, w * 0.86, 34, '#d8342f');
+  });

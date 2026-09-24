@@ -84,14 +84,36 @@ export function makePole(o = {}) {
    * has to clear the pole at that height (the taper runs 0.19 -> 0.11, so a
    * 0.16 plate only shows as slivers), and it has to face the road -- which is
    * +X for a pole on the left kerb and -X for one on the right. */
-  const plate = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.205, 0.21, 0.62, 12, 1, true, -1.0, 2.0),
-    flat({ color: 0xffffff, map: warningPlate(rng.int(0, 2)), cache: false, side: THREE.DoubleSide })
-  );
-  plate.position.set(0, 2.45, 0);
-  plate.rotation.y = o.plateFace ?? (armDir > 0 ? Math.PI / 2 : -Math.PI / 2);
-  plate.castShadow = true;
-  g.add(plate);
+  const face = o.plateFace ?? (armDir > 0 ? Math.PI / 2 : -Math.PI / 2);
+  /* The pole's radius at height y, so a strapped plate clears the taper. */
+  const rAt = (y) => 0.19 - (0.08 * y) / H;
+  // `litPlates`: the kit's plates take the light (and the dark) like the pole
+  const lit = !!o.litPlates;
+  const wrap = (map, y, h, arc = 2.0, rot = face, radii = null) => {
+    const [r1, r0] = radii ?? [rAt(y + h / 2) + 0.018, rAt(y - h / 2) + 0.018];
+    const plate = new THREE.Mesh(
+      new THREE.CylinderGeometry(r1, r0, h, 12, 1, true, -arc / 2, arc),
+      lit
+        ? cel({ color: 0xffffff, map, bands: 3, tint: 0x6a6288, cache: false, side: THREE.DoubleSide })
+        : flat({ color: 0xffffff, map, cache: false, side: THREE.DoubleSide })
+    );
+    plate.position.set(0, y, 0);
+    plate.rotation.y = rot;
+    plate.castShadow = true;
+    g.add(plate);
+  };
+  if (o.warning !== false) wrap(warningPlate(rng.int(0, 2)), 2.45, 0.62, 2.0, face, [0.205, 0.21]);
+  // extra plates (kit/signs.js): { map, y, h, arc, face }
+  for (const p of o.plates ?? []) wrap(p.map, p.y, p.h, p.arc, p.face ?? face);
+  // the yellow-and-black guard round the pole foot, facing the road
+  if (o.guard) wrap(o.guard, 0.95, 1.9, Math.PI * 2, 0);
+
+  // telecom cables clamp to the pole below the power lines
+  if (o.telecom) {
+    for (const ty of [H - 4.4, H - 4.95]) {
+      push('dark', new THREE.BoxGeometry(0.1, 0.12, 0.34), trs(0, ty, 0.16));
+    }
+  }
 
   // street lamp arm
   if (o.lamp) {
@@ -115,6 +137,21 @@ export function makePole(o = {}) {
 
   g.position.set(o.x, o.y ?? 0, o.z);
   g.userData.top = (o.y ?? 0) + H;
+  /* Where wires attach, in the pole's own frame: the insulator tops on each
+   * arm (power), the telecom clamps, and a service-drop point. */
+  const anchors = [];
+  armYs.forEach((y, ai) => {
+    const len = ai === 0 ? 2.1 : 1.7;
+    for (let i = -1; i <= 1; i++) {
+      if (i === 0 && ai === 1) continue;
+      anchors.push(new THREE.Vector3(0, y + 0.2, (i * len) / 2.4));
+    }
+  });
+  if (o.telecom) {
+    anchors.push(new THREE.Vector3(0, H - 4.4, 0.3), new THREE.Vector3(0, H - 4.95, 0.3));
+  }
+  g.userData.anchors = anchors;
+  g.userData.drop = new THREE.Vector3(0, H - 1.5, 0);
   return g;
 }
 

@@ -7,6 +7,7 @@ import { Player } from './core/player.js';
 import { createHud } from './core/hud.js';
 import { createMusic } from './core/audio.js';
 import { buildTown } from './world/town.js';
+import { buildKitTest } from './world/kit-test.js';
 import { STRINGS } from './data/strings.js';
 import { PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI } from './config.js';
 
@@ -77,7 +78,12 @@ scene.add(hemi);
 
 /* --------------------------------- world --------------------------------- */
 const sky = buildSky(scene, 2900, { avoidYaw: FUJI.bearing });
-const world = buildTown(scene);
+/* Dev only: ?kit swaps the town for the M2a kit test street, and ?shots
+ * (scripts/shots.mjs) freezes time so every frame it takes repeats exactly. */
+const devParams = new URLSearchParams(location.search);
+const KIT = import.meta.env.DEV && devParams.has('kit');
+const FROZEN = import.meta.env.DEV && devParams.has('shots');
+const world = KIT ? buildKitTest(scene) : buildTown(scene);
 
 const player = new Player(camera, canvas, world);
 const VOLUME_STORAGE_KEY = 'lawson-fuji-volume';
@@ -293,7 +299,7 @@ window.addEventListener('keydown', (e) => {
 });
 
 function frame() {
-  const dt = Math.min(clock.getDelta(), 1 / 20);
+  const dt = FROZEN ? 0 : Math.min(clock.getDelta(), 1 / 20);
 
   player.update(dt);
   // walking off the spot hands the lens back to the player
@@ -335,6 +341,9 @@ if (import.meta.env?.DEV) {
    * server, so framing and colour can be reviewed outside the browser.
    */
   window.__shot = async (name = 'shot', W = 1600, H = 900, opts = {}) => {
+    refOn = false;
+    if (opts.hero) enterHero(opts.hero);
+    if (opts.look) applyLook(opts.look);
     if (opts.pos) player.pos.set(opts.pos[0], player.pos.y, opts.pos[2]);
     if (opts.y !== undefined) player.pos.y = opts.y;
     if (opts.yaw !== undefined) player.yaw = opts.yaw;
@@ -364,6 +373,18 @@ if (import.meta.env?.DEV) {
     pipeline.render();
     window.__frameInfo = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
     renderer.info.autoReset = true;
+    if (opts.time) {
+      // average frame time over `time` frames, GPU work included (readPixels waits for it)
+      const gl = renderer.getContext();
+      const px = new Uint8Array(4);
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      const t0 = performance.now();
+      for (let k = 0; k < opts.time; k++) pipeline.render();
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      window.__frameInfo.ms = (performance.now() - t0) / opts.time;
+      window.__frameInfo.internal = [pipeline.size.x, pipeline.size.y];
+      if (!opts.returnData && !opts.dir) return window.__frameInfo;
+    }
 
     const off = document.createElement('canvas');
     const outW = opts.outW || W;
@@ -382,6 +403,7 @@ if (import.meta.env?.DEV) {
       ctx.globalAlpha = 1;
     }
     const data = opts.png ? off.toDataURL('image/png') : off.toDataURL('image/jpeg', opts.quality || 0.86);
+    if (opts.returnData) return { data, ...window.__frameInfo };
     const r = await fetch('/__shot', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -393,7 +415,9 @@ if (import.meta.env?.DEV) {
   /* ?lookdev: frame each hero camera once Fuji has loaded, save it to
    * reference/lookdev/, and save a copy with the reference photo laid over
    * it to .shots/ (those carry the third-party photo, so they stay local). */
-  const params = new URLSearchParams(location.search);
+  const params = devParams;
+  window.__lastView = () => lastView;
+  world.fuji.ready.then(() => { window.__ready = true; });
 
   /* ?tour: frames round the town (M2 review), with draw-call and triangle
    * counts in the console. */
@@ -473,46 +497,6 @@ if (import.meta.env?.DEV) {
    *   fuji   share of walkable sample points with a clear line of sight from
    *          eye height to Fuji's peak
    *   perf   average frame time at 2560 x 1440, GPU work included */
-  /* ?screenshots: a set of town frames, lossless, at the game's own render
-   * scale, into screenshots/. */
-  if (params.has('screenshots')) {
-    world.fuji.ready.then(async () => {
-      const W = 1920, H = 1080;
-      const shots = [
-        ['01-famous-view-morning', 'morning', {}],
-        ['02-famous-view-golden-hour', 'golden', {}],
-        ['03-famous-view-night', 'night', {}],
-        ['04-lawson-forecourt-morning', 'morning', { pos: [6, 0, 9], yaw: 0.35, pitch: 0.12 }],
-        ['05-lawson-side-night', 'night', { pos: [-8, 0, 19], yaw: -0.5, pitch: 0.06 }],
-        ['06-main-road-signals-morning', 'morning', { pos: [-60, 0, 14], yaw: -1.35, pitch: 0.05 }],
-        ['07-main-road-poles-golden-hour', 'golden', { pos: [70, 0, 19], yaw: 1.45, pitch: 0.06 }],
-        ['08-shopping-street-golden-hour', 'golden', { pos: [-40, 0, 40], yaw: 1.57, pitch: 0.05 }],
-        ['09-shopping-street-night', 'night', { pos: [-100, 0, 40], yaw: -1.57, pitch: 0.05 }],
-        ['10-residential-lane-morning', 'morning', { pos: [-22, 0, -41], yaw: 1.57, pitch: 0.05 }],
-        ['11-park-and-fuji-morning', 'morning', { pos: [46, 0, 4], yaw: 0, pitch: 0.08 }],
-        ['12-level-crossing-train-golden-hour', 'golden', { pos: [30, 0, 46], yaw: Math.PI, pitch: 0.04, train: -12 }],
-        ['13-side-road-to-crossing-morning', 'morning', { pos: [30, 0, 24], yaw: Math.PI, pitch: 0.02 }],
-        ['14-station-platform-morning', 'morning', { pos: [40, 0, 55], yaw: -1.6, pitch: 0.03 }],
-        ['15-fields-and-fuji-golden-hour', 'golden', { pos: [95, 0, 12], yaw: -0.12, pitch: 0.1 }],
-        ['16-town-overview-golden-hour', 'golden', { pos: [0, 0, 150], yaw: 0, pitch: -0.42, lift: 95 }],
-      ];
-      for (const [name, view, opts] of shots) {
-        enterHero(view);
-        if (opts.train !== undefined) {
-          const { train, crossing } = world.rail;
-          train.x = opts.train;
-          train.group.position.x = train.x;
-          train.group.visible = true;
-          crossing.setArms(1);
-          crossing.setLamps(true, 0.2);
-        }
-        await window.__shot(name, W, H, { ...opts, png: true, dir: 'screenshots', scale: 2 });
-        console.log('shot ' + name);
-      }
-      console.log('tour done');
-    });
-  }
-
   if (params.has('m2check')) {
     world.fuji.ready.then(async (fujiMesh) => {
       const log = (...a) => console.log('m2check ' + a.join(' '));

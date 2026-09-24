@@ -10,6 +10,7 @@ assets/audio/
 # Reference images stay local (third-party photos and art).
 # reference/lookdev/ (our own screenshots) is still tracked.
 /reference/*.png
+/reference/density/
 
 # Town screenshots: regenerate with ?screenshots on the dev server.
 screenshots/

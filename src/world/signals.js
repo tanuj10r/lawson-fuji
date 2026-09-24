@@ -37,8 +37,9 @@ export function buildSignals(ctx, o) {
   };
   for (const m of Object.values(lamps)) m.userData.live = true;
 
-  /* Zebra: bars 0.45 m wide, running with the traffic, 0.45 m apart. */
-  {
+  /* Zebra: bars 0.45 m wide, running with the traffic, 0.45 m apart.
+   * `zebra: false` when the road kit paints its own (M2a). */
+  if (o.zebra !== false) {
     const paint = cel({ color: 0xf2f2f5, bands: 3 });
     const w = o.width ?? 4;
     for (let z = o.zNear + 0.5; z < o.zFar - 0.5; z += 0.9) {

@@ -12,12 +12,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "play": "vite build && vite preview --port 5179 --open"
+    "play": "vite build && vite preview --port 5179 --open",
+    "shots": "node scripts/shots.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"
   },
   "devDependencies": {
+    "playwright": "^1.63.0",
     "vite": "^6.0.0"
   }
 }

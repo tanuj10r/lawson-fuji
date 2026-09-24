@@ -29,3 +29,27 @@ export const SHOP_SIGNS = {
 
 /** The barricades where the main road leaves town. */
 export const ROAD_CLOSED = '通行止め';
+
+/* ---- town kit (M2a): poles, signs ---- */
+
+/** The town's address: 富士見町 一丁目 ... 四丁目. */
+export const AREA = { name: '富士見町', chome: ['一丁目', '二丁目', '三丁目', '四丁目'] };
+
+/** Pole advertisements: fictional clinics, an estate agent, a driving school. */
+export const POLE_ADS = [
+  { kind: '内科', t: 'ふもと内科', s: 'この先 80m', tel: '0555-21-4410', bar: 0x2a6fb8 },
+  { kind: '歯科', t: 'こだま歯科', s: '左折 30m', tel: '0555-22-8148', bar: 0x2e9a78 },
+  { kind: '不動産', t: '富士見不動産', s: '賃貸・売買', tel: '0555-23-0770', bar: 0xd0602a },
+  { kind: '整骨院', t: 'すずかけ整骨院', s: '駅前通り', tel: '0555-24-5151', bar: 0x7a4fb0 },
+  { kind: '眼科', t: 'あおば眼科', s: '右折 50m', tel: '0555-25-1033', bar: 0x2a8ab8 },
+  { kind: '教習所', t: '富士見自動車学校', s: '送迎あり', tel: '0555-26-3300', bar: 0xc8342c },
+].map((a) => ({ ...a, bar: '#' + a.bar.toString(16).padStart(6, '0') }));
+
+/** Blue direction boards: [left, ahead, right] and the route line. */
+export const DIRECTIONS = [
+  { to: ['駅', '河口湖', '富士吉田'], route: '富士見通り' },
+  { to: ['富士吉田', '駅', '河口湖'], route: '富士見通り' },
+];
+
+/** The bus stop in the town. */
+export const BUS_STOP = '富士見町';

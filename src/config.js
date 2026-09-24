@@ -208,3 +208,66 @@ export const WORLD = {
   groundColor: 0xc4c4b6,
   bounds: TOWN.bounds,
 };
+
+/* ------------------------------------------------------------------ *
+ * The town kit (SPEC section 3, M2a): roads, markings, poles and wires,
+ * signs.  Widths are metres across the whole road; see world/kit/.
+ * ------------------------------------------------------------------ */
+
+/** Road classes.  `asphalt` is the full paved width between kerbs (or
+ * between the side gutters on a lane); `walk` is each pavement. */
+export const ROADS = {
+  lane: { asphalt: 4.6, walk: 0, gutter: 0.36, speed: 30, rank: 0 },
+  shopping: { asphalt: 6.0, walk: 1.6, gutter: 0, speed: 30, rank: 1 },
+  main: { asphalt: 10.0, carriage: 7.0, cycle: 1.5, walk: 2.0, gutter: 0, speed: 40, rank: 2 },
+  kerbH: 0.15,      // pavement top above the asphalt
+  asphaltY: 0.02,   // asphalt top above the ground plane
+};
+
+export const MARKINGS = {
+  dash: [3, 3],             // white dashed centreline: paint, gap
+  edgeInset: 0.25,          // lane edge lines, in from the gutter
+  diamondAhead: [30, 50],   // ◇ before a zebra, metres
+  manholeEvery: [14, 26],
+  drainEvery: [8, 12],
+  gutterLid: 0.6,           // lane gutter lid length
+  gratingEvery: 5,          // one lid in N is a grating
+  patchesPer100m: 9,
+  cracksPer100m: 14,
+  petalsPer100m: 7,
+  schoolZoneChance: 0.5,
+  pedPriorityChance: 0.5,
+};
+
+export const POLES = {
+  spacing: [20, 30],
+  height: [8.8, 10.2],
+  transformerEvery: 3,
+  lampEvery: 2,
+  adChance: 0.45,
+  hydrantEvery: 3,          // a 消火栓 plate on one pole in N
+  sag: 0.55,
+  wireR: 0.022,
+  dropR: 0.016,
+};
+
+/* Named camera spots for scripts/shots.mjs (SPEC M2 working method).
+ *   scene  'town' or 'kit' (the ?kit test street)
+ *   hero   stand on a hero view instead of pos/yaw/pitch
+ *   looks  LOOKS keys to shoot the spot in
+ *   ref    the frame in reference/density/ it is judged against */
+export const SHOT_SPOTS = [
+  { name: 'hero-1', scene: 'town', hero: 'morning', looks: ['day'], guard: true },
+  { name: 'hero-2', scene: 'town', hero: 'golden', looks: ['golden'], guard: true },
+  { name: 'hero-3', scene: 'town', hero: 'night', looks: ['blue'], guard: true },
+  { name: 'town-road', scene: 'town', pos: [-60, 0, 14], yaw: -1.35, pitch: 0.05, looks: ['day'], ref: '02-main-road-van-poles.png' },
+  { name: 'town-shotengai', scene: 'town', pos: [-40, 0, 40], yaw: 1.57, pitch: 0.05, looks: ['golden'], ref: '05-shopping-street-petals.png' },
+
+  { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
+  { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },
+  { name: 'kit-junction', scene: 'kit', pos: [-21, 0, -27], yaw: 3.1416, pitch: -0.02, looks: ['day'], ref: '09-konbini-corner-tomare.png' },
+  { name: 'kit-zebra-cycle', scene: 'kit', pos: [-4, 0, -5.6], yaw: -1.4, pitch: -0.04, looks: ['day'], ref: '07-florist-konbini-cycle-lane.png' },
+  { name: 'kit-bus-stop', scene: 'kit', pos: [40, 0, -6.1], yaw: -1.62, pitch: -0.03, looks: ['golden'], ref: '10-bus-stop-road.png' },
+  { name: 'kit-lane-signs', scene: 'kit', pos: [-6, 0, -35.5], yaw: -1.5708, pitch: 0.03, looks: ['day', 'blue'], ref: '02-main-road-van-poles.png' },
+  { name: 'kit-overview', scene: 'kit', pos: [0, 0, 70], yaw: 0, pitch: -0.5, lift: 60, looks: ['golden'] },
+];

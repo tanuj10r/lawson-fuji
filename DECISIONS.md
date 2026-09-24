@@ -240,3 +240,67 @@ Judgement calls, newest milestone last.
   Pedestrians.
 - **Status:** built and checked, pending Tan's sign-off. Tan's first read:
   "kind of okay". Needs a review pass before M3.
+
+## M2a: Town kit and screenshot script
+
+- **Render-check loop** (`scripts/shots.mjs`, `npm run shots`).
+  - Runs the Vite dev server through its API and drives headless system
+    Chrome (`channel: 'chrome'`, Metal). It uses the system Chrome because
+    the cached Playwright Chromium didn't match Playwright 1.63, and this
+    way nothing is downloaded.
+  - `?shots` freezes game time (dt = 0), so frames repeat exactly. Two runs
+    of the heroes diff at 0.000%.
+  - Heroes 1/2/3 are diffed against `screenshots/baseline/` (taken before
+    any kit code landed). Over 0.5% of pixels changed is a FAIL.
+  - Frame time: 30 frames at 2560×1440, render scale 1.5, with readPixels
+    fencing, the same method as M2's `?m2check`.
+  - The old `?screenshots` mode is gone; `?tour` and `?m2check` stay.
+- **Reference frames renamed** to `reference/density/NN-what-it-shows.png`
+  so spots in `SHOT_SPOTS` can name them. Still untracked, like every
+  third-party reference image.
+- **Kit shown on a dev-only test street (`?kit`)**, not in the town. M2a is
+  the kit; M2b replaces the town plan, and a kit applied to today's zoned
+  town would be thrown away. `kit-test.js` is tree-shaken out of the build.
+- **Network model.** Axis-aligned edges on a grid (SPEC asks for a tight
+  grid). Junction rules: x roads carry their pavement round a corner, z
+  roads butt against it, and a lane mouth cuts through a pavement. So
+  slabs never overlap and corners are never bare.
+- **Road classes (config.js ROADS).**
+  - Lane: 4.6 m, 0.36 m gutters with lids.
+  - Shopping street: 6 m, 1.6 m pavements.
+  - Main road: 7 m carriageway, 1.5 m green cycle lanes inside the kerb,
+    2 m pavements.
+- **Decals.** Everything flush with the ground comes from one Canvas2D atlas
+  in one static mesh: paint, manholes (sewer, water, fire, telecom, and
+  the town's own sakura-over-mountain lid), grates, gutter lids, patches,
+  cracks, stains, grit, petal drifts and tactile tiles. Decals write no
+  depth, so the ink pass never outlines paint.
+- **Marking rules.**
+  - At a junction, the lower-rank road stops; between equal ranks, the z
+    road stops.
+  - 止まれ is skipped where a zebra already fills the approach.
+  - ◇ is painted 30 m and 50 m before a zebra.
+  - Speed numerals: 40 on the main road, 30 elsewhere.
+  - About half the lanes are school zones (with green side strips) or
+    歩行者優先.
+- **Poles.**
+  - One side per street, every 20–30 m.
+  - A transformer on every 3rd pole, a lamp on every 2nd, a 消火栓 plate
+    (with a yellow lid in the road) on every 3rd, an address plate on
+    every 2nd, and ads on about 45% of the rest.
+  - Guards on every pole: the reference frames show nearly all poles
+    guarded.
+  - Wires: 5 power and 2 telecom lines per street (SPEC: 4–8). Straight
+    on, all of them span a junction; round a corner, three power lines
+    and one telecom line do. Service drops go to every facade.
+  - `makePole` gained options (plates, guard, telecom, anchors, lit
+    plates). Its defaults are unchanged, so the M2 town and the hero view
+    are byte-identical.
+- **Lit plates.** Kit signs and pole plates use toon materials, not unlit
+  ones, so they go dark at blue hour like everything else. Only lamps glow.
+- **Names.** Ads, the address (富士見町), direction boards and the bus stop
+  are ours, in `src/data/town.js`.
+- **Measured.**
+  - Kit spots: 103–203 calls, ~280k triangles, 5.0–5.9 ms per frame at
+    1440p on an Apple M2.
+  - Heroes: unchanged (0.000%), 5.6–5.8 ms.

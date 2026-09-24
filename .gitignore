@@ -2,13 +2,11 @@ node_modules/
 dist/
 .shots/
 
-# Music.
-#
-# The old rule here was `/*.mp3`, which only matches the repository root -- so
-# nothing in public/audio/ was ever ignored, and a playlist of commercial
-# tracks went into the first commit and stayed in every clone of it.  This
-# ignores the whole folder and un-ignores only the track this project ships,
-# so a personal collection dropped in beside it cannot be committed by
-# accident.
-public/audio/*
-!public/audio/bfcmusic-divine-sakura-garden-fairytale-music-283353.mp3
+# Audio files are never committed (AGENTS.md, SPEC section 9).
+public/audio/
+assets/audio/
+.DS_Store
+
+# Reference images stay local (third-party photos and art).
+# reference/lookdev/ (our own screenshots) is still tracked.
+/reference/*.png

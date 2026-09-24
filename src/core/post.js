@@ -10,9 +10,9 @@ import { PAL } from './palette.js';
  *          ->  grade pass    : anime colour grade + linear->sRGB
  *          ->  fxaa pass     : clean up the line work, straight to screen
  *
- * Lines come from a *second difference* of linearised depth.  A first
+ * Lines come from a *second difference* of reciprocal depth.  A first
  * difference would smear ink across the road wherever the surface is
- * grazing the camera; the second difference is flat across any planar
+ * grazing the camera; the second difference of 1/z is flat across any planar
  * surface no matter how oblique, so it only fires on real silhouettes and
  * real creases.  Positive curvature (the near side of a silhouette, a
  * convex ridge) inks strongly; negative curvature (inside corners) inks
@@ -76,9 +76,13 @@ const INK_SHADER = {
       float du = linearDepth( vUv + vec2( 0.0, t.y ) );
       float dd = linearDepth( vUv - vec2( 0.0, t.y ) );
 
-      // second difference of linear depth, normalised by distance
-      float sx = ( dl + dr - 2.0 * dc ) / dc;
-      float sy = ( du + dd - 2.0 * dc ) / dc;
+      // second difference of *reciprocal* depth, normalised by distance.
+      // 1/z is what varies linearly across a plane in screen space, so this is
+      // exactly zero on any flat surface; z itself is not, and on the flat
+      // world's ground near the horizon it inked a solid band.  For small
+      // steps it matches ( dl + dr - 2dc ) / dc, so creases ink as before.
+      float sx = 2.0 - dc / dl - dc / dr;
+      float sy = 2.0 - dc / du - dc / dd;
 
       float convex  = max( 0.0,  sx ) + max( 0.0,  sy );
       float concave = max( 0.0, -sx ) + max( 0.0, -sy );

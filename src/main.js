@@ -2,16 +2,15 @@ import * as THREE from 'three';
 import { PAL } from './core/palette.js';
 import { Pipeline } from './core/post.js';
 import { buildSky } from './core/sky.js';
-import { R, CENTER, basisAt, positionAt } from './world/planet.js';
 import { setOutlineResolution } from './core/outline.js';
 import { Player } from './core/player.js';
 import { createHud } from './core/hud.js';
 import { createMusic } from './core/audio.js';
-import { buildWorld } from './world/index.js';
-import { createEbike } from './world/ebike.js';
+import { buildTown } from './world/town.js';
+import { STRINGS } from './data/strings.js';
 
 /* ------------------------------------------------------------------ *
- * Sakura Crossing -- entry point.
+ * Lawson Fuji -- entry point.  Rendering is inherited from Sakura Crossing (MIT).
  *
  * Lighting is the classic two-light anime setup: one warm quantised key
  * for the sun, one cool bounce fill from the opposite side, and a
@@ -76,10 +75,10 @@ scene.add(hemi);
 
 /* --------------------------------- world --------------------------------- */
 const sky = buildSky(scene, 500);
-const world = buildWorld(scene);
+const world = buildTown(scene);
 
 const player = new Player(camera, canvas, world);
-const VOLUME_STORAGE_KEY = 'sakura-crossing-volume';
+const VOLUME_STORAGE_KEY = 'lawson-fuji-volume';
 let initialVolume = 0.34;
 try {
   const savedValue = localStorage.getItem(VOLUME_STORAGE_KEY);
@@ -113,13 +112,7 @@ canvas.addEventListener('click', () => {
   if (!player.locked) player.lock();
 });
 
-/* The one machine you can ride.  Built here rather than in `buildWorld`
- * because it is placed *after* the planet bake -- see the note in the file. */
-const ebike = createEbike({ scene, world, player, hud });
-
 player.onInteract = (target) => {
-  // on the machine, E is the way off it, whatever you happen to be looking at
-  if (ebike.riding) { ebike.dismount(); return; }
   if (target) target.action?.();
 };
 
@@ -140,40 +133,23 @@ resize();
 /* --------------------------------- loop --------------------------------- */
 const clock = new THREE.Clock();
 const shadowTarget = new THREE.Vector3();
-const sunOffset = new THREE.Vector3();
-/** Sun direction, expressed in the player's local surface frame. */
-const SUN_LOCAL = new THREE.Vector3(-52, 62, 56);
-const FILL_LOCAL = new THREE.Vector3(48, 26, -44);
-const BOUNCE_LOCAL = new THREE.Vector3(10, -18, 40);
+/** Light directions, fixed in world space: the world is flat. */
+const SUN_DIR = new THREE.Vector3(-52, 62, 56);
+const FILL_DIR = new THREE.Vector3(48, 26, -44);
+const BOUNCE_DIR = new THREE.Vector3(10, -18, 40);
 
-/** Move a light so its direction stays fixed relative to the local surface. */
-function seatLight(light, local, basis, origin) {
-  sunOffset.set(0, 0, 0)
-    .addScaledVector(basis.east, local.x)
-    .addScaledVector(basis.up, local.y)
-    .addScaledVector(basis.north, local.z);
+/** Aim a light at `origin` from a fixed direction. */
+function seatLight(light, dir, origin) {
   light.target.position.copy(origin);
-  light.position.copy(origin).add(sunOffset);
+  light.position.copy(origin).add(dir);
 }
 
-/* ------------------------------ planet view ------------------------------ */
-let planetView = false;
-let orbit = 0.6;
-const orbitDir = new THREE.Vector3();
-const savedFog = scene.fog;
-const savedFar = camera.far;
-
-function setPlanetView(on) {
-  planetView = on;
-  scene.fog = on ? null : savedFog;
-  camera.far = on ? 1600 : savedFar;
-  camera.updateProjectionMatrix();
-  const s = sun.shadow.camera;
-  const half = on ? R * 1.15 : 34;
-  s.left = -half; s.right = half; s.top = half; s.bottom = -half;
-  s.far = on ? R * 6 : 200;
-  s.updateProjectionMatrix();
-  hud.setPlanetView(on);
+/* The shadow camera follows the player so cast shadows stay crisp near them. */
+function seatLights() {
+  shadowTarget.set(player.pos.x, 0, player.pos.z);
+  seatLight(sun, SUN_DIR, shadowTarget);
+  seatLight(fill, FILL_DIR, shadowTarget);
+  seatLight(bounce, BOUNCE_DIR, shadowTarget);
 }
 
 window.addEventListener('keydown', (e) => {
@@ -183,21 +159,7 @@ window.addEventListener('keydown', (e) => {
     hud.setMuted(off);
     hud.setVolume(music.volume);
     rememberVolume();
-    if (music.available) hud.flash(off ? '♪  music off' : '♪  music on');
-  }
-  /* V summons the e-bike.  The orbit view moved to P to make room for it --
-   * it is a thing you look at once, and this is a thing you use. */
-  if (e.code === 'KeyV') {
-    if (planetView) {
-      setPlanetView(false);
-      hud.flash('back on the ground');
-    } else {
-      ebike.toggle();
-    }
-  }
-  if (e.code === 'KeyP') {
-    setPlanetView(!planetView);
-    hud.flash(planetView ? 'orbit view  ·  P to return' : 'back on the ground');
+    if (music.available) hud.flash(off ? STRINGS.soundOff : STRINGS.soundOn);
   }
   // two quiet toggles, handy for seeing what the ink and grade passes do
   if (e.code === 'KeyO') pipeline.enabled.ink = !pipeline.enabled.ink;
@@ -208,43 +170,15 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 1 / 20);
 
   player.update(dt);
-  ebike.update(dt);
   world.update(dt);
-
-  if (planetView) {
-    orbit += dt * 0.09;
-    // biased toward +Y so the district (which sits at the flat origin, the
-    // top of the globe) stays in view while the camera drifts around it
-    orbitDir.set(Math.sin(orbit) * 0.8, 1.0, Math.cos(orbit) * 0.8).normalize();
-    camera.position.copy(CENTER).addScaledVector(orbitDir, R * 3.3);
-    camera.up.set(0, 1, 0);
-    camera.lookAt(CENTER);
-    // a fixed sun so the whole globe is lit coherently from outside
-    sun.target.position.copy(CENTER);
-    sun.position.copy(CENTER).add(new THREE.Vector3(-1.05, 0.95, 0.75).multiplyScalar(R * 2.2));
-    hemi.position.set(0, 1, 0);
-    seatLight(fill, FILL_LOCAL, { east: new THREE.Vector3(1, 0, 0), up: new THREE.Vector3(0, 1, 0), north: new THREE.Vector3(0, 0, 1) }, CENTER);
-    bounce.visible = false;
-  } else {
-    bounce.visible = true;
-    // Lighting is pinned to the local surface frame rather than to world
-    // space: physically a cheat, but it keeps the district lit the same way
-    // no matter how far round the planet you have walked.
-    const b = basisAt(player.pos.x, player.pos.z);
-    positionAt(player.pos.x, 0, player.pos.z, shadowTarget);
-    seatLight(sun, SUN_LOCAL, b, shadowTarget);
-    seatLight(fill, FILL_LOCAL, b, shadowTarget);
-    seatLight(bounce, BOUNCE_LOCAL, b, shadowTarget);
-    hemi.position.copy(b.up);
-  }
+  seatLights();
 
   // the sky dome is centred on the flat origin, so it has to trail the camera
   sky.dome.position.copy(camera.position);
   sky.clouds.position.copy(camera.position);
 
-  const hovered = !planetView && player.locked ? player.pick(world.interactables) : null;
+  const hovered = player.locked ? player.pick(world.interactables) : null;
   hud.setPrompt(hovered ? `E  ·  ${hovered.label.replace(/^.*?·\s*/, '')}` : '');
-  hud.update(dt, player.locked);
   // flat authoring coordinates, so what the readout says is what the code uses
   hud.setCoords(player.pos, player.yaw, player.pitch, dt);
 
@@ -254,7 +188,7 @@ function frame() {
 frame();
 
 // expose a little for tuning from the console
-window.__scene = { scene, camera, renderer, pipeline, world, player, ebike, music, hud, sun, fill, bounce, hemi, THREE };
+window.__scene = { scene, camera, renderer, pipeline, world, player, music, hud, sun, fill, bounce, hemi, THREE };
 window.__setOutlineRes = setOutlineResolution;
 
 if (import.meta.env?.DEV) {
@@ -267,27 +201,11 @@ if (import.meta.env?.DEV) {
     if (opts.y !== undefined) player.pos.y = opts.y;
     if (opts.yaw !== undefined) player.yaw = opts.yaw;
     if (opts.pitch !== undefined) player.pitch = opts.pitch;
-    if (opts.orbit !== undefined) {
-      // external view of the whole planet
-      if (!planetView) setPlanetView(true);
-      orbit = opts.orbit;
-      orbitDir.set(Math.sin(orbit) * (opts.tilt ?? 0.8), 1.0, Math.cos(orbit) * (opts.tilt ?? 0.8)).normalize();
-      camera.position.copy(CENTER).addScaledVector(orbitDir, R * (opts.dist ?? 3.3));
-      camera.up.set(0, 1, 0);
-      camera.lookAt(CENTER);
-      sun.target.position.copy(CENTER);
-      sun.position.copy(CENTER).add(new THREE.Vector3(-1.05, 0.95, 0.75).multiplyScalar(R * 2.2));
-      hemi.position.set(0, 1, 0);
-      bounce.visible = false;
-    } else {
-      if (planetView) setPlanetView(false);
-      bounce.visible = true;
-      // always resync the camera: the rAF loop is throttled when the page is
-      // not compositing, so the camera cannot be assumed to match the player
-      player.pos.y = world.heightAt(player.pos.x, player.pos.z);
-      player.bob = 0;
-      player.applyCamera(0);
-    }
+    // always resync the camera: the rAF loop is throttled when the page is
+    // not compositing, so the camera cannot be assumed to match the player
+    player.pos.y = world.heightAt(player.pos.x, player.pos.z);
+    player.bob = 0;
+    player.applyCamera(0);
     if (opts.ink !== undefined) pipeline.enabled.ink = opts.ink;
     if (opts.grade !== undefined) pipeline.enabled.grade = opts.grade;
     pipeline.forceScale = opts.scale || 1;
@@ -296,22 +214,9 @@ if (import.meta.env?.DEV) {
     camera.updateProjectionMatrix();
     pipeline.setSize(W, H);
     setOutlineResolution(pipeline.size.x, pipeline.size.y);
-    if (opts.orbit === undefined) {
-      const b = basisAt(player.pos.x, player.pos.z);
-      positionAt(player.pos.x, 0, player.pos.z, shadowTarget);
-      seatLight(sun, SUN_LOCAL, b, shadowTarget);
-      seatLight(fill, FILL_LOCAL, b, shadowTarget);
-      seatLight(bounce, BOUNCE_LOCAL, b, shadowTarget);
-      hemi.position.copy(b.up);
-    }
-    // in orbit the dome stays put so its gradient reads as a real sky
-    if (!planetView) {
-      sky.dome.position.copy(camera.position);
-      sky.clouds.position.copy(camera.position);
-    } else {
-      sky.dome.position.set(0, 0, 0);
-      sky.clouds.position.set(0, 0, 0);
-    }
+    seatLights();
+    sky.dome.position.copy(camera.position);
+    sky.clouds.position.copy(camera.position);
     pipeline.render();
 
     const off = document.createElement('canvas');

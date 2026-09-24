@@ -13,8 +13,7 @@
  *
  * Add your own by dropping files into `public/audio/` and listing the
  * filenames here -- `.gitignore` keeps everything in that folder out of the
- * repository except the one track this project ships with, so a local
- * collection can never be committed by accident.
+ * repository, so a local collection can never be committed by accident.
  *
  * The list may be empty. Everything below tolerates that: `available` comes
  * back false, `main.js` skips the on/off toast, and the HUD's volume control
@@ -25,7 +24,8 @@
  * where a built page may be opened from a subdirectory.
  */
 const TRACKS = [
-  'bfcmusic-divine-sakura-garden-fairytale-music-283353.mp3',
+  // Empty: the Sakura Crossing stock track was not MIT and is gone. Game audio
+  // comes from assets/audio/ in M4 (SPEC section 9).
 ].map((file) => import.meta.env.BASE_URL + `audio/${file}`);
 
 export function createMusic({ volume = 0.34, fadeIn = 2.6 } = {}) {

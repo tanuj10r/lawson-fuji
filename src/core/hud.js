@@ -1,7 +1,8 @@
+import { STRINGS } from '../data/strings.js';
+
 /* ------------------------------------------------------------------ *
- * Minimal HUD: a start card, a small crosshair, an interaction prompt
- * and a hint line that fades itself out.  Nothing else -- the frame is
- * the point.
+ * Minimal HUD: a start card, a small crosshair and an interaction
+ * prompt.  Nothing else -- the frame is the point.
  * ------------------------------------------------------------------ */
 
 export function createHud({ volume = 0.34 } = {}) {
@@ -18,82 +19,39 @@ export function createHud({ volume = 0.34 } = {}) {
   const crosshair = el('div', 'crosshair', root);
   const prompt = el('div', 'prompt', root, '');
   const toast = el('div', 'toast', root, '');
-  const hint = el('div', 'hint', root,
-    `<b>WASD</b> walk &nbsp;·&nbsp; <b>Shift</b> run &nbsp;·&nbsp; <b>Mouse</b> look
-     &nbsp;·&nbsp; <b>E</b> interact &nbsp;·&nbsp; <b>V</b> e-bike
-     &nbsp;·&nbsp; <b>P</b> see the planet &nbsp;·&nbsp; <b>M</b> music
-     &nbsp;·&nbsp; <b>C</b> coordinates &nbsp;·&nbsp; <b>R</b> opening view
-     &nbsp;·&nbsp; <b>Esc</b> release`);
-
   /* Coordinate readout, off by default and toggled with C.
    *
-   * It reports the *flat authoring* position, not the position on the sphere,
-   * because that is the only coordinate system any of the builders, colliders
-   * or camera calls use -- the planet projection is applied after everything is
-   * placed.  The third line is a ready-made `__shot` argument, so a spot can be
+   * It reports world coordinates, the same ones every builder, collider and
+   * camera call uses.  The third line is a ready-made `__shot` argument, so a spot can be
    * quoted straight into a camera call or a bug report. */
   const coords = el('div', 'coords', root, '');
   let lastLine = '';
 
   const overlay = el('div', 'overlay', root);
   overlay.dataset.mode = 'start';
+  const controls = STRINGS.controls
+    .map(([key, what]) => `<span><b>${key}</b>${what}</span>`).join('');
   overlay.innerHTML = `
     <section class="menu-panel" role="dialog" aria-labelledby="menu-title">
-      <div class="menu-art" aria-hidden="true">
-        <div class="art-index">Nihonmachi · 05:42 PM</div>
-        <div class="art-kanji">春の日本街</div>
-        <div class="crossing-mark">
-          <i class="bar"></i><i class="bar"></i>
-          <span class="signal"><i></i><i></i></span>
-        </div>
-        <div class="art-caption">
-          <span>Walk slowly</span>
-          <strong>桜の季節</strong>
-        </div>
-      </div>
-      <div class="menu-copy">
-        <div class="menu-kicker">
-          <span class="start-only">A quiet spring walk</span>
-          <span class="pause-only">Intermission · Paused</span>
-        </div>
-        <h1 id="menu-title">Sakura <span>Crossing</span></h1>
-        <div class="menu-jp">桜踏切 <small>SAKURA CROSSING</small></div>
-        <p class="menu-description start-only">
-          沿着樱花盛开的日本街慢慢散步。穿过铁道、商店街与河岸，
-          看一座三渲二小镇在黄昏里醒来。
-        </p>
-        <p class="menu-description pause-only">
-          The scene is waiting where you left it. Adjust the music volume,
-          then continue your walk when you're ready.
-        </p>
-        <div class="control-strip">
-          <span><b>WASD</b> Move</span>
-          <span><b>Mouse</b> Look</span>
-          <span><b>E</b> Interact</span>
-          <span><b>Shift</b> Run</span>
-          <span><b>V</b> E-Bike</span>
-          <span><b>M</b> Music</span>
-          <span><b>C</b> Coordinates</span>
-        </div>
-        <label class="audio-control pause-only pause-stack">
-          <span class="audio-head">
-            <span>Background Music</span>
-            <output for="music-volume">34%</output>
-          </span>
-          <input id="music-volume" class="volume-slider" type="range"
-            min="0" max="100" step="1" value="34" aria-label="Background music volume" />
-        </label>
-        <button class="menu-action" type="button">
-          <span class="start-only">进入日本街</span>
-          <span class="pause-only">Resume Walk</span>
-          <i aria-hidden="true">→</i>
-        </button>
-        <div class="menu-foot">
-          <span>3D scene · 2D animation spirit</span>
-          <span class="start-only">CLICK TO BEGIN</span>
-          <span class="pause-only">ESC TO PAUSE</span>
-        </div>
-      </div>
+      <h1 id="menu-title">${STRINGS.title}</h1>
+      <div class="menu-jp">${STRINGS.titleJp}</div>
+      <p class="menu-description">
+        <span class="start-only">${STRINGS.intro}</span>
+        <span class="pause-only">${STRINGS.paused}</span>
+      </p>
+      <div class="control-strip">${controls}</div>
+      <label class="audio-control pause-only pause-stack">
+        <span class="audio-head">
+          <span>${STRINGS.volume}</span>
+          <output for="music-volume">34%</output>
+        </span>
+        <input id="music-volume" class="volume-slider" type="range"
+          min="0" max="100" step="1" value="34" aria-label="${STRINGS.volumeAria}" />
+      </label>
+      <button class="menu-action" type="button">
+        <span class="start-only">${STRINGS.start}</span>
+        <span class="pause-only">${STRINGS.resume}</span>
+      </button>
     </section>`;
 
   const actionButton = overlay.querySelector('.menu-action');
@@ -110,8 +68,6 @@ export function createHud({ volume = 0.34 } = {}) {
   };
   setVolumeReadout(volume);
 
-  let hintTimer = 0;
-  let hintVisible = true;
   let toastTimer = null;
   let coordsOn = false;
   let coordsAcc = 0;
@@ -137,33 +93,19 @@ export function createHud({ volume = 0.34 } = {}) {
         prompt.classList.remove('on');
       }
     },
-    setPlanetView(on) {
-      crosshair.classList.toggle('hidden', on);
-    },
     setLocked(locked) {
       if (locked) startedOnce = true;
       overlay.dataset.mode = startedOnce ? 'paused' : 'start';
       overlay.classList.toggle('hidden', locked);
       overlay.setAttribute('aria-hidden', locked ? 'true' : 'false');
       crosshair.classList.toggle('on', locked);
-      if (locked) {
-        hintTimer = 0;
-        hintVisible = true;
-        hint.classList.remove('faded');
-      } else {
-        requestAnimationFrame(() => actionButton.focus({ preventScroll: true }));
-      }
+      if (!locked) requestAnimationFrame(() => actionButton.focus({ preventScroll: true }));
     },
     setVolume(value) {
       setVolumeReadout(value);
     },
     setMuted(muted) {
       audioControl.classList.toggle('muted', muted);
-    },
-    toggleHint() {
-      hintVisible = !hintVisible;
-      hint.classList.toggle('faded', !hintVisible);
-      hintTimer = hintVisible ? 0 : 1e9;
     },
     toggleCoords() {
       coordsOn = !coordsOn;
@@ -214,7 +156,7 @@ export function createHud({ volume = 0.34 } = {}) {
      */
     copyCoords() {
       if (!lastLine) return false;
-      const done = () => { api.flash('copied  ·  ' + lastLine, 2200); return true; };
+      const done = () => { api.flash(`${STRINGS.copied}  ·  ${lastLine}`, 2200); return true; };
       try {
         if (navigator.clipboard?.writeText) {
           navigator.clipboard.writeText(lastLine).then(done, () => api.copyFallback(lastLine));
@@ -234,14 +176,6 @@ export function createHud({ volume = 0.34 } = {}) {
       try { ok = document.execCommand('copy'); } catch { ok = false; }
       ta.remove();
       return ok;
-    },
-    update(dt, locked) {
-      if (!locked || !hintVisible) return;
-      hintTimer += dt;
-      if (hintTimer > 11) {
-        hint.classList.add('faded');
-        hintVisible = false;
-      }
     },
   };
 
@@ -263,13 +197,12 @@ export function createHud({ volume = 0.34 } = {}) {
   });
 
   window.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyH') api.toggleHint();
     if (e.code === 'KeyC') {
       // Shift+C copies the position; plain C toggles the readout
       if (e.shiftKey) {
         if (coordsOn) api.copyCoords();
       } else {
-        api.flash(api.toggleCoords() ? 'coordinates on' : 'coordinates off', 900);
+        api.flash(api.toggleCoords() ? STRINGS.coordsOn : STRINGS.coordsOff, 900);
       }
     }
   });

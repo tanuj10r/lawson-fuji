@@ -4,8 +4,7 @@ import { cel, flat } from '../core/toon.js';
 import { trainDest, trainNumber } from '../core/textures.js';
 import { box, cyl, bake, trs, rngKit } from '../core/util.js';
 import { hullOutline } from '../core/outline.js';
-import { RAIL_TOP } from './railway.js';
-import { R, CENTER, wrapX, wrapDelta } from './planet.js';
+import { RAIL_TOP, X_MIN, X_MAX } from './railway.js';
 
 /* ------------------------------------------------------------------ *
  * A three-car suburban EMU: cream body, blue waist stripe, dark strip
@@ -305,23 +304,8 @@ function buildCar({ cab = false, tail = false, rng }) {
   }
 
   /* -------------------------------- wheels --------------------------------
-   * Two nested groups per wheel, and the nesting is the whole fix.
-   *
-   * These used to be bare meshes carrying their position on `position` and
-   * their spin on `rotation.z`.  The planet bake folds a mesh's transform into
-   * its geometry -- the geometry ends up in root space and `position` is reset
-   * to the origin -- so after the bake `rotation.z` was no longer spinning each
-   * wheel about its own axle: it was swinging root-space geometry about the
-   * *world origin*, on a radius of about 7.4 m, at nine revolutions a second.
-   * Twenty-four dark 0.86 m discs flying in circles and travelling with the
-   * train, which is exactly how it was reported.
-   *
-   * So the hub is marked `planetRigid`: the bake re-seats it on the surface and
-   * leaves the rig intact rather than baking its position away.  The axle
-   * inside it is what spins, because writing `rotation.z` on the re-seated hub
-   * would throw the seating away -- the same trap as the cloth in `details.js`.
-   * The wheel is 0.86 m across, so leaving its geometry unbent costs nothing;
-   * that is what `planetRigid` is for. */
+   * The hub carries the position and the axle inside it spins, so each wheel
+   * turns about its own centre. */
   const wheels = [];
   const wheelGeo = new THREE.CylinderGeometry(0.43, 0.43, 0.14, 12);
   wheelGeo.rotateX(Math.PI / 2);
@@ -330,7 +314,6 @@ function buildCar({ cab = false, tail = false, rng }) {
       for (const wz of [-0.72, 0.72]) {
         const hub = new THREE.Group();
         hub.position.set(bx + wx, RAIL_TOP + 0.43, wz);
-        hub.userData.planetRigid = true;
         const axle = new THREE.Group();
         hub.add(axle);
         const w = new THREE.Mesh(wheelGeo, M.wheel);
@@ -370,7 +353,6 @@ export function buildTrain(ctx) {
   const rng = rngKit(5150);
   const group = new THREE.Group();
   group.name = 'train';
-  group.visible = false;
   ctx.add(group);
 
   const wheels = [];
@@ -383,12 +365,11 @@ export function buildTrain(ctx) {
     wheels.push(...w);
   }
 
-  /* The track is the equator, a circle in the XY plane centred on the planet
-   * centre. So travelling along it is exactly a rotation about the planet's Z
-   * axis -- which means the cars can be bent onto the rail once at bake time
-   * and then simply spun, with no per-frame re-projection and no sag. */
-  const tC = new THREE.Matrix4().makeTranslation(CENTER.x, CENTER.y, CENTER.z);
-  const tNegC = new THREE.Matrix4().makeTranslation(-CENTER.x, -CENTER.y, -CENTER.z);
+  /* The line is straight, so the train only ever slides along x.  It runs
+   * off the far end in the fog and comes back in at the other, far enough out
+   * (`LOOP_END`) that the jump is never on screen. */
+  const LOOP_END = X_MAX - 40;
+  const LOOP_START = X_MIN + 40;
 
   const api = {
     group,
@@ -396,29 +377,18 @@ export function buildTrain(ctx) {
     wheels,
     length: PITCH * 3,
     dir: 1,
-    x: 0,
+    x: LOOP_START,
     speed: 23.5,
     /** normalised progress, used by the petal wind */
     gust: 0,
-    /** distance along the track from the crossing, signed, shortest way round */
-    get offset() { return wrapDelta(this.x, 0); },
-
-    /** Called once after the world is projected onto the planet. */
-    planetize() {
-      group.visible = true;
-      group.matrixAutoUpdate = false;
-      this.update(0);
-    },
+    /** distance along the track from the crossing, signed */
+    get offset() { return this.x; },
 
     update(dt) {
-      this.x = wrapX(this.x + this.dir * this.speed * dt);
-
-      // spin about the planet axis: T(C) · Rz(-x/R) · T(-C)
-      group.matrix
-        .makeRotationZ(-this.x / R)
-        .premultiply(tC)
-        .multiply(tNegC);
-      group.matrixWorldNeedsUpdate = true;
+      this.x += this.dir * this.speed * dt;
+      if (this.dir > 0 && this.x > LOOP_END) this.x = LOOP_START;
+      if (this.dir < 0 && this.x < LOOP_START) this.x = LOOP_END;
+      group.position.x = this.x;
 
       const spin = (this.speed * dt) / 0.43;
       for (const w of this.wheels) w.rotation.z -= spin * this.dir;

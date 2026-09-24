@@ -61,7 +61,6 @@ export function makeVendingMachine(variant = 0, seed = 1) {
   const g = new THREE.Group();
   g.name = 'vending';
   // holds the animated dispensed can, so it is re-seated rather than bent
-  g.userData.planetRigid = true;
 
   const matBody = cel({ color: V.body, bands: 3, tint: 0x6f6790 });
   const matAccent = cel({ color: V.accent, bands: 3, tint: 0x6f6790 });

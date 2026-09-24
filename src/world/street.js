@@ -3,7 +3,6 @@ import { PAL } from '../core/palette.js';
 import { cel, flat } from '../core/toon.js';
 import { tactileTex, drainTex, alleyPlate, noParking, roadPaint } from '../core/textures.js';
 import { sstep, rngKit, box, cyl } from '../core/util.js';
-import { cutTrench } from './landform.js';
 
 /* ------------------------------------------------------------------ *
  * The street.
@@ -34,21 +33,13 @@ export const WALK_H = 0.135;
  * road looked fine.  Nothing in the world is authored *against the terrain
  * surface*; everything is authored against `groundY`.  So the terrain sitting
  * 75 mm below `groundY` was simply wrong rather than a convention, and two
- * other modules had quietly grown numbers to match it (`canal.js`'s road
- * bridge, the planet sphere).  Both now derive from this constant.
+ * other modules had quietly grown numbers to match it.  Anything that
+ * sits under the grid (the flat outer ground) derives from this constant.
  *
  * 15 mm is the entire budget now, and the grid is precompensated below so that
  * its *interpolated* surface stays under the plane rather than only its
  * vertices.  That leaves ~18 mm under the lowest paved surface in the world
- * (the gutter, at +0.004) even after the planet bake sags that one down -- two
- * surfaces that get within about 7 mm of each other z-fight once the bake bends
- * them, which is what the green belt in `approach.js` was moved for.
- *
- * What is left under a prop on bare ground is 15 mm plus the terrain's own bake
- * sag, so 15-21 mm, which is the same order as the 7-12 mm a prop on the
- * carriageway is buried by and has never been visible.  Driving it to zero
- * means killing the sag, and that costs tessellation on the largest mesh in the
- * world for something under a millimetre of screen space at walking distance.
+ * (the gutter, at +0.004).
  */
 export const TERRAIN_DROP = 0.015;
 /* The road runs the length of the district.  Z_MIN was extended when the
@@ -171,12 +162,7 @@ export function buildStreet(ctx) {
 
   /* --- terrain: one displaced grid so the whole valley follows the slope --- */
   {
-    /* 160 rather than 128, and it is *cheaper*: at 2.5 m the cell diagonal is
-     * 3.54 m, so `subdivideLongEdges` bisects every triangle in the grid on the
-     * way to the sphere and 32k becomes 65k.  At 2.0 m the diagonal is 2.83 m,
-     * under the 3.0 m limit, so nothing is split and the mesh arrives as the
-     * 51k it was authored as.  The shorter chord also sags 6 mm on the sphere
-     * instead of 10 mm, and that sag is most of what is left under a prop. */
+    // 2.0 m rows: fine enough that chords across the climbs stay under the plane
     const w = 320, d = 320, seg = 160;
     const OFF = -20;
     const ROW = d / seg;                          // 2.0 m between grid rows in z
@@ -203,14 +189,45 @@ export function buildStreet(ctx) {
       // the mesh is offset in z, so the slope must be sampled in world space
       p.setY(i, rowY(p.getZ(i) + OFF));
     }
-    // the drainage channel is cut out of the graded ground, not pressed into
-    // it -- see landform.js for why
     g.translate(0, 0, OFF);
-    cutTrench(g);
     g.computeVertexNormals();
     const m = new THREE.Mesh(g, matTerrain);
     m.receiveShadow = true;
     m.name = 'terrain';
+    ctx.add(m);
+  }
+
+  /* --- outer ground: the flat plane out to the horizon ---
+   * Replaces the planet sphere, which used to be the ground everywhere past
+   * the terrain grid.  It follows the same `groundY` profile (constant beyond
+   * the two climbs) 65 mm under the grid, so inside the grid it is hidden and
+   * outside it the ground just carries on, flat, into the fog. */
+  {
+    const HALF = 1200;
+    const xs = [-HALF, -160, 160, HALF];
+    const zs = [-HALF];
+    for (let z = -200; z <= 160; z += 2) zs.push(z);
+    zs.push(HALF);
+    const pos = [];
+    const idx = [];
+    for (const z of zs) {
+      for (const x of xs) pos.push(x, groundY(z) - TERRAIN_DROP - 0.065, z);
+    }
+    const nx = xs.length;
+    for (let j = 0; j < zs.length - 1; j++) {
+      for (let i = 0; i < nx - 1; i++) {
+        const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
+        idx.push(a, c, b, b, c, d);
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, matTerrain);
+    m.receiveShadow = true;
+    m.frustumCulled = false;
+    m.name = 'outerGround';
     ctx.add(m);
   }
 

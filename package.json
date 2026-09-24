@@ -1,9 +1,9 @@
 {
-  "name": "sakura-crossing",
+  "name": "lawson-fuji",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "An explorable Japanese suburban railway-crossing street rendered 3D-to-2D in a cel-shaded anime style.",
+  "description": "First-person anime-style konbini game at the foot of Mt. Fuji. Fork of Sakura Crossing (MIT).",
   "license": "MIT",
   "engines": {
     "node": ">=18"

@@ -597,7 +597,6 @@ export function makeShrine(o = {}) {
 
 export function makeCat(o = {}) {
   const g = new THREE.Group();
-  g.userData.planetRigid = true;   // idle animation drives its head and tail
   const fur = cel({ color: PAL.cat, bands: 3, tint: 0x7a6f96 });
   const furDark = cel({ color: PAL.catDark, bands: 3, tint: 0x6a5f86 });
 

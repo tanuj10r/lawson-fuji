@@ -153,7 +153,6 @@ export function buildDetails(ctx) {
       }
       g.position.set(o.x, o.y, o.z);
       g.rotation.y = o.ry ?? 0;
-      g.userData.planetRigid = true;
       ctx.add(g);
       cloths.push({ obj: piv, base: 0, amp: o.amp ?? 0.09, rate: o.rate ?? 0.7, phase: o.phase ?? 0 });
       return g;

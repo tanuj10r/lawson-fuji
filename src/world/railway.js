@@ -5,17 +5,6 @@ import { crossingSign, stationSign, warningPlate, tactileTex } from '../core/tex
 import { box, cyl, rngKit, bake, trs, sagCurve } from '../core/util.js';
 import { hullOutline, hullOutlineTree } from '../core/outline.js';
 import { centerX, groundY, ROAD_HALF, WALK_W, WALK_H, GATE_Z, TRACK_HALF, CROSS_BAND } from './street.js';
-import { CIRCUMFERENCE } from './planet.js';
-/* Only for the tunnels' longitudes: the lineside fence, the masking walls and
- * the catenary masts all have to get out of the way of every bore, and the one
- * place that knows where the bores are is `hills.js`.
- *
- * **All three of these take the union over `TUNNELS` now.**  They were written
- * against a single `TUNNEL` object, and the mast test in particular is silent
- * when it is wrong: a 6.6 m mast standing inside a lining cannot be seen from
- * anywhere outside the mountain, so a second bore added without touching this
- * import would have looked perfect and been wrong. */
-import { TUNNELS } from './hills.js';
 
 /* ------------------------------------------------------------------ *
  * The railway: single track running along X, crossing the street at
@@ -27,13 +16,13 @@ export const RAIL_GAUGE = 1.44;
 export const RAIL_TOP = 0.30;
 
 /**
- * The track spans exactly one circumference, so once the world is wrapped
- * onto the planet its two ends meet on the equator and the loop closes with
- * no seam. Lineside dressing (fence, walls, station) stays local to the
- * district -- the rest of the ring is bare graded ground.
+ * The track is a straight line across the flat world, long enough that both
+ * ends are deep in the fog.  The train runs off one end and comes back in at
+ * the other (`train.js`).  Lineside dressing (fence, walls, station) stays
+ * local to the town -- the rest of the line is bare ballast.
  */
-export const X_MIN = -CIRCUMFERENCE / 2;
-export const X_MAX = CIRCUMFERENCE / 2;
+export const X_MIN = -400;
+export const X_MAX = 400;
 export const LOCAL_MIN = -150;
 export const LOCAL_MAX = 150;
 
@@ -189,40 +178,11 @@ export function buildRailway(ctx) {
     const railGeoH = new THREE.BoxGeometry(1, 0.06, 0.06);
     const postGeo = new THREE.BoxGeometry(0.07, 1.12, 0.07);
     const barGeo = new THREE.BoxGeometry(0.035, 0.5, 0.035);
-    /* The far side breaks for the station platform.
-     *
-     * **And every run is cut by every bore, and by every maintenance gate.**
-     * Written by hand it was `[FENCE_Z, TUNNEL.x1, -GAP]` -- one bore, one
-     * subtraction, done in the head -- and `LOCAL_MIN + 22` (-128) had already
-     * been left standing *inside* the west bore once.  Two bores and two gates
-     * is four openings in five runs, so it is a function now: `trimRun` takes
-     * the raw span and returns what is left of it after the mountains and the
-     * gates have been taken out.  The run either side of a portal belongs to the
-     * cutting, which fences its own crest; `tunnel.js` adds the run on each
-     * bore's *outer* approach, which `railway.js` never had. */
-    const trimRun = (zf, a, b) => {
-      let segs = [[a, b]];
-      const cuts = [];
-      for (const t of TUNNELS) {
-        cuts.push([t.x0, t.x1]);
-        // the 1.8 m maintenance gate, on whichever side that bore's walkway is
-        if (Math.sign(zf) === t.walk) cuts.push([t.gateX - 0.9, t.gateX + 0.9]);
-      }
-      for (const [c0, c1] of cuts) {
-        const next = [];
-        for (const [s0, s1] of segs) {
-          if (c1 <= s0 || c0 >= s1) { next.push([s0, s1]); continue; }
-          if (c0 - s0 > 0.6) next.push([s0, c0]);
-          if (s1 - c1 > 0.6) next.push([c1, s1]);
-        }
-        segs = next;
-      }
-      return segs.map(([s0, s1]) => [zf, s0, s1]);
-    };
+    // the far side breaks for the station platform
     const runs = [
-      ...trimRun(FENCE_Z, LOCAL_MIN + 22, -GAP), ...trimRun(FENCE_Z, GAP, LOCAL_MAX - 22),
-      ...trimRun(-FENCE_Z, LOCAL_MIN + 22, -GAP), ...trimRun(-FENCE_Z, GAP, 13.5),
-      ...trimRun(-FENCE_Z, 39.5, LOCAL_MAX - 22),
+      [FENCE_Z, LOCAL_MIN + 22, -GAP], [FENCE_Z, GAP, LOCAL_MAX - 22],
+      [-FENCE_Z, LOCAL_MIN + 22, -GAP], [-FENCE_Z, GAP, 13.5],
+      [-FENCE_Z, 39.5, LOCAL_MAX - 22],
     ];
     for (const [zf, x0, x1] of runs) {
       const len = x1 - x0;
@@ -250,17 +210,10 @@ export function buildRailway(ctx) {
   {
     const mastMat = matMetalDark();
     const parts = [];
-    const MAST_STEP = CIRCUMFERENCE / Math.round(CIRCUMFERENCE / 19);
+    const MAST_STEP = 19;
     const WIRE_Z = 0.02;
     for (let x = X_MIN + MAST_STEP; x <= X_MAX - MAST_STEP * 0.5; x += MAST_STEP) {
       if (Math.abs(x) < 8) continue;
-      /* No masts through either tunnel or any of their four approach cuttings.
-       * A 6.6 m mast at z = -3.65 inside a bore is a mast inside the lining, and
-       * in a cutting it would stand in the retaining kerb.  Each bore carries
-       * cantilever brackets off its own arch instead (`tunnel.js`); the contact
-       * and messenger wires themselves run straight through, because they circle
-       * the planet and there is nowhere for them to stop. */
-      if (TUNNELS.some((t) => x > t.x0 - 16 && x < t.x1 + 16)) continue;
       const zf = -(TRACK_HALF + 1.45);
       parts.push({ geometry: new THREE.CylinderGeometry(0.09, 0.13, 6.6, 6), matrix: trs(x, 3.3, zf) });
       parts.push({
@@ -274,7 +227,7 @@ export function buildRailway(ctx) {
     m.castShadow = true;
     g.add(m);
 
-    // contact wire + messenger wire, carried the whole way round the equator
+    // contact wire + messenger wire, the full length of the line
     const wireMat = cel({ color: PAL.metalDark, bands: 2, tint: 0x4a4468 });
     for (const [y, r] of [[4.88, 0.022], [5.95, 0.026]]) {
       const pts = [];
@@ -283,7 +236,7 @@ export function buildRailway(ctx) {
         pts.push(new THREE.Vector3(x + MAST_STEP * 0.5, y, WIRE_Z));
       }
       const curve = new THREE.CatmullRomCurve3(pts);
-      const segs = Math.round(CIRCUMFERENCE / 2.5);
+      const segs = Math.round((X_MAX - X_MIN) / 2.5);
       const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, segs, r, 4, false), wireMat);
       tube.name = 'catenaryWire';
       g.add(tube);
@@ -299,25 +252,7 @@ export function buildRailway(ctx) {
   /* ------ walls further down the line, masking where the train enters ------ */
   {
     const wallMat = cel({ color: PAL.concreteMid, bands: 3, tint: 0x6a6288 });
-    /* **The west runs stop at -80 instead of -118**, because ひばり山 is west of
-     * them now and a mountain masks the line better than 2.2 m of concrete does.
-     * They also cannot stay: at -118 the run passes straight through the tunnel's
-     * west cutting and out the far side of the portal.  -80 clears the east
-     * cutting's retaining kerb (which reaches -81) by a metre, so the two
-     * structures read as one continuous lineside rather than as two overlapping
-     * ones.
-     *
-     * **And the east runs stop at 80 instead of 118.**  92 was tried first, on
-     * the same reasoning as the west end -- it leaves a metre before 東山's west
-     * cutting starts at x = 93 -- and it is wrong, because unlike the west end
-     * there is now something *on* that stretch: the bore's 保守用通路 gate is at
-     * x = 85 and its railside viewing spot at x = 91, and both of them ended up
-     * on the far side of 2.2 m of concrete.  From the spot the wall was 1.6 m
-     * away and filled the frame; and the only way to the gate was a one-metre
-     * gap between the wall's end and the cutting's kerb, which the flood fill
-     * found and no human would.  80 puts both walls exactly along the town's own
-     * frontage (the built world reaches x -78 to 79.5) and leaves the whole
-     * approach to the tunnel open, which is what a lineside is. */
+    // concrete runs either side of the town frontage (x -80 to 80)
     const runs = [
       [TRACK_HALF + 2.6, -80, -30], [TRACK_HALF + 2.6, 46, 80],
       [-(TRACK_HALF + 2.6), -80, -30], [-(TRACK_HALF + 2.6), 44, 80],
@@ -330,19 +265,7 @@ export function buildRailway(ctx) {
       g.add(m);
       ctx.collide(x0, zf - 0.2, x1, zf + 0.2, 2.2);
 
-      /* A pier on **both** ends now.
-       *
-       * These runs stop dead where the district begins, and the near-side one
-       * stops exactly where the lineside footpath to the shrine runs out -- so
-       * looking west along that path you got 2.2 m of wall terminating in
-       * nothing, which at this tonal range reads as a grey card standing on
-       * the paving rather than as the end of a wall.  A wall ends in a pier.
-       *
-       * The far ends used to get away without one because both of them stood a
-       * metre from a tunnel cutting's retaining kerb, which continued the line.
-       * Pulling the east runs back to x = 80 puts their ends thirteen metres
-       * short of anything, in open ground, in full view of the walk out to
-       * 東山's portal -- which is the same grey card again. */
+      // a wall ends in a pier, never a bare card edge
       for (const ex of [x0, x1]) {
         const inward = ex === x0 ? 1 : -1;
         const px = ex - inward * 0.22;
@@ -429,8 +352,6 @@ function buildCrossing(ctx, parent) {
     const x = cx + sx * (ROAD_HALF + 0.42);
     const z = sz * GATE_Z;
     grp.position.set(x, groundY(0), z);
-    // the boom pivots have to outlive the planet bake
-    grp.userData.planetRigid = true;
 
     const base = box(0.66, 0.2, 0.62, matConcrete(), 0, 0.1, 0);
     base.receiveShadow = base.castShadow = true;

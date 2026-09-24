@@ -90,7 +90,6 @@ export function buildShop(ctx) {
     const slat = box(0.07, SH, w, shutterMat, 0, 0, 0);
     slat.castShadow = slat.receiveShadow = true;
     shutterGroup.add(slat);
-    shutterGroup.userData.planetRigid = true;   // animated: keep its own pivot
     shutterGroup.position.set(xFront - 0.055, y0 + SH / 2, zc);
     g.add(shutterGroup);
     hullOutline(slat, { thickness: 0.003 });

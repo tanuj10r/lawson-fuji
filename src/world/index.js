@@ -10,52 +10,8 @@ import { buildRailway } from './railway.js';
 import { buildTrain } from './train.js';
 import { buildShop } from './shop.js';
 import { makeHouse, makeWall, makeTimberFence, makeBlockFence } from './buildings.js';
-import { buildSakura, buildShrubs, buildGrove, buildBamboo, buildCedar } from './trees.js';
-import { buildPetals, buildFallenPatches } from './petals.js';
-import { buildPlanet, bakeToPlanet, wrapX, reliefAt, CIRCUMFERENCE } from './planet.js';
-/* The hills are a *third* ground surface, over both the graded terrain grid and
- * the planet sphere, and they are added to the height queries here rather than
- * folded into `reliefAt` -- `buildPlanet` samples that one, and the sphere has to
- * stay flat.  See the long note at the top of `hills.js`. */
-import { hillAt, buildHills } from './hills.js';
-import { buildTunnel } from './tunnel.js';
-import { buildUrayama } from './urayama.js';
-/* ひばり湖.  Three modules for one district, split the same way the hills are:
- * `lake.js` is the water (a surface generated from the depth field), `lakeroad.js`
- * is the civil engineering that makes it reachable, and `kohan.js` is the eight
- * places on its shores.  The *shape* of the basin lives in `lakeform.js` and is
- * read by `hills.js` while it builds its lattice, so it is not a district at all. */
-import { buildLake } from './lake.js';
-import { buildLakeRoad } from './lakeroad.js';
-import { buildKohan } from './kohan.js';
-import { buildSchool } from './school.js';
-import { buildApproach } from './approach.js';
-import { buildShrine } from './shrine.js';
-import { buildShotengai } from './shotengai.js';
-import { buildCanal } from './canal.js';
-import { buildDistrict } from './district.js';
-import { buildOverbridge } from './overbridge.js';
-import { buildRestCorner } from './restcorner.js';
-import { buildLibrary } from './library.js';
-import { buildNorthBlock } from './northblock.js';
-import { buildAlleys } from './alleys.js';
-import { buildMatsuri } from './matsuri.js';
-import { buildOnsen } from './onsen.js';
-/* The six residential blocks.  These are not set pieces -- they are the land
- * *between* the set pieces, and their whole job is to make the district read as
- * somewhere people live rather than as a row of places to look at. */
-import { buildIchome } from './ichome.js';
-import { buildNichome } from './nichome.js';
-import { buildYonchome } from './yonchome.js';
-import { buildKoenmae } from './koenmae.js';
-import { buildTsugakuro } from './tsugakuro.js';
-import { buildUramachi } from './uramachi.js';
-import { buildGakkomae } from './gakkomae.js';
-import { buildKawabata } from './kawabata.js';
-import { buildRokuchome } from './rokuchome.js';
-import { buildNanachome } from './nanachome.js';
-import { buildTraffic } from './traffic.js';
-import { buildDetails } from './details.js';
+import { buildSakura, buildShrubs } from './trees.js';
+import { buildPetals } from './petals.js';
 import {
   makePole, makeWires, makeKeiTruck, makeBicycle, makeMirror, makePostBox,
   makeShrine, makeCat, makeCone, makeBarrier, makeGuardrail, makePlanter,
@@ -63,6 +19,11 @@ import {
 } from './props.js';
 
 /* ------------------------------------------------------------------ *
+ * PARTS LIBRARY -- NOT IMPORTED.  This is Sakura Crossing's own world
+ * assembly (their crossing, train, houses and props), kept only as a
+ * reference for how the parts fit together.  Our world is placed by
+ * `town.js`; do not import this file.
+ *
  * World assembly.
  *
  * Placement here is composition work, not simulation: every object is
@@ -124,7 +85,7 @@ export function buildWorld(scene) {
      * metre in the air.  Only meaningful once whatever laid that surface has
      * run, which is why the housing sweep is last but one. */
     groundAt: (x, z) => {
-      let h = streetHeight(x, z) + reliefAt(x, z) + hillAt(x, z);
+      let h = streetHeight(x, z);
       for (const c of cuts) if (x > c.x0 && x < c.x1 && z > c.z0 && z < c.z1) h = Math.min(h, c.top);
       for (const p of platforms) if (x > p.x0 && x < p.x1 && z > p.z0 && z < p.z1) h = Math.max(h, p.top);
       return h;
@@ -134,7 +95,6 @@ export function buildWorld(scene) {
   };
 
   /* ------------------------------ base layers ------------------------------ */
-  const planet = buildPlanet(scene);
   buildStreet(ctx);
   const crossing = buildRailway(ctx);
   const train = buildTrain(ctx);
@@ -196,13 +156,6 @@ export function buildWorld(scene) {
      * of the footway with their leaves just under the wall's coping -- which is
      * where a house with no front garden actually keeps them. */
     { x: -8.2, z: -16.4, w: 6.6, d: 7.0, face: 'x+', floors: 2, seed: 29, wall: 4, roof: 1, roofKind: 'hip', postBoxOut: 0.35, planterAlong: -2.8, planterOut: 0.30 },
-    /* The two plots at z ~ -26 are gone: the drainage channel runs the whole
-     * way round the planet now, and at z = -24 that puts twelve metres of made
-     * ground straight through both of them.  The gap they leave in each column
-     * is not a hole in the composition -- it is the canal, which is a far
-     * better reason for a break in a frontage than a coincidence.  One of them
-     * is rebuilt below, turned to face the water; the other's density went into
-     * the new north block.  (Was: x -6.4 z -27.4, and x 12.4 z -26.0.) */
     { x: -15.2, z: -34.6, w: 7.4, d: 7.0, face: 'z+', floors: 2, seed: 30, wall: 2, roof: 2, roofKind: 'gable' },
     // this one turns to face back up the street, closing off the far view
     { x: -5.4, z: -33.5, w: 8.0, d: 7.4, face: 'z+', floors: 2, seed: 44, wall: 0, roof: 1, roofKind: 'gable', bikeLift: 0.03 },
@@ -238,107 +191,9 @@ export function buildWorld(scene) {
       y + 2.72 * d.floors);
   }
 
-  /* ---------------------------- outlying districts ----------------------------
-   * Each of these builds its own ground, buildings and clutter, and hands
-   * back the trees, shrubs and fallen blossom it wants rather than planting
-   * them: the sakura builder merges every tree in the world into one mesh
-   * plus three instanced canopies, so it has to run once, at the end.
-   *
-   * `buildDistrict` is last because it also dresses the housing above, and it
-   * needs the same definitions the house generator was given. */
-  const districts = [
-    /* 裏山 first, because it is *ground*: the only module other than `street.js`
-     * that produces a walkable surface rather than things standing on one.  The
-     * height field itself is a pure function and needs no ordering at all -- it
-     * is available to every builder from module load, which is what lets the
-     * back-hill district and the tunnel measure the slope they are building on --
-     * so what this position actually buys is that the file reads in the order the
-     * world is made in.  Its planting is handed back like every other
-     * district's. */
-    buildHills(ctx),
-    /* The tunnel builds the mountain over the railway, which is the one piece of
-     * ground `hills.js` deliberately cut out of itself -- so it runs immediately
-     * after it, and it reads `hillAt` along the notch's two lattice edges to meet
-     * the hillside exactly. */
-    buildTunnel(ctx),
-    buildSchool(ctx),
-    /* 裏山 runs after the school and before everything else it touches: its
-     * hill-foot road comes off the 通学路's old dead end (`approach.js` opens it),
-     * runs behind the school's new north wall and up its new east side, so both
-     * of those have to exist before it measures anything off them. */
-    buildUrayama(ctx),
-    /* ひばり湖 runs immediately after 裏山, and the order is load-bearing in one
-     * direction: `lakeroad.js`'s road leaves the *top of the school's outer road*,
-     * so `urayama.js` has to have laid that surface before this measures the
-     * junction off `ctx.groundAt`.  Nothing downstream depends on the lake, which
-     * is why it can sit this early -- everything else in the district is on the
-     * far side of a hill from the rest of the world.
-     *
-     * The water goes in before the shores because `kohan.js` reads
-     * `SHORE_GAPS` from it: four places the shore barrier is broken, each of which
-     * has to have something to step onto.  A gap with nothing at it is a hole. */
-    buildLake(ctx),
-    buildLakeRoad(ctx),
-    buildKohan(ctx),
-    buildApproach(ctx),
-    buildShrine(ctx),
-    buildShotengai(ctx),
-    buildCanal(ctx, train),
-    buildOverbridge(ctx),
-    buildRestCorner(ctx),
-    buildLibrary(ctx),
-    buildNorthBlock(ctx),
-    buildMatsuri(ctx),
-    buildOnsen(ctx),
-    buildAlleys(ctx),
-    /* The residential blocks run after every district whose surfaces they sit
-     * against -- 一丁目 wants the canal's verge pad to derive its step rises
-     * from, 四丁目 arrives off the library's corner pad, 公園前 measures itself
-     * off the overbridge -- and before `buildDistrict`, so the housing sweep
-     * seats its clutter on the lanes these lay rather than on the bare grade. */
-    buildIchome(ctx),
-    buildNichome(ctx),
-    buildYonchome(ctx),
-    buildKoenmae(ctx),
-    buildTsugakuro(ctx),
-    buildUramachi(ctx),
-    buildGakkomae(ctx),
-    buildKawabata(ctx),
-    /* ひばり台六丁目 runs after 二丁目 and 三丁目 and it has to: every surface
-     * in it is paved to the height of the north T those two lay between them,
-     * and it reads that height off `ctx.groundAt` rather than assuming it. */
-    buildRokuchome(ctx),
-    /* ひばり台七丁目 runs after 湯の坂 (it builds against the terrace's north
-     * retaining wall and puts a flight through the gap in it) and after
-     * 桜守裏町 (its footpath east lands on that block's arm), and before
-     * `buildDistrict` like every other block. */
-    buildNanachome(ctx),
-    buildDistrict(ctx, { houses: houseDefs }),
-    /* The motor vehicles run after every surface in the world is laid, because
-     * a car is seated with `ctx.groundAt` and half of them stand on a lane, an
-     * apron or a bay that a district module put down -- and it runs after the
-     * housing sweep for the same reason `buildDistrict` runs last but one: it
-     * has to see the clutter it is parking between.  `traffic.js` is one file
-     * on purpose; what has to be right about it is the distribution over the
-     * whole map, and a distribution cannot be reviewed thirty lines at a time
-     * in twenty-two modules. */
-    buildTraffic(ctx),
-    buildDetails(ctx),
-  ];
-  for (const d of districts) if (d.update) ctx.update(d.update);
-  const extraSakura = districts.flatMap((d) => d.sakura ?? []);
-  const extraShrubs = districts.flatMap((d) => d.shrubs ?? []);
-  buildGrove(ctx, districts.flatMap((d) => d.grove ?? []));
-  /* The 杉林 merges the same way the grove does -- one baked stem mesh and three
-   * instanced crowns for every plantation in the world -- so it has to run here
-   * and not inside `hills.js`, which is also where its spots come from. */
-  buildCedar(ctx, districts.flatMap((d) => d.cedar ?? []));
-  buildBamboo(ctx, districts.flatMap((d) => d.bamboo ?? []));
-  buildFallenPatches(ctx, districts.flatMap((d) => d.petals ?? []));
-
-  /* The distant town, hills and far tree line are gone: on a 160 m planet
-   * anything that used to sit 60-330 m away is now over the horizon or on
-   * the far side of the world. The curvature does that job instead.       */
+  /* The Sakura Crossing districts are gone (M0).  The grove, cedar, bamboo and
+   * fallen-petal builders only ever planted what the districts handed back, so
+   * they go with them; the town's own planting arrives in M2. */
 
   /* ------------------------- garden walls and fences -------------------------
    * Three types, scattered rather than alternated.  Every house here already
@@ -504,8 +359,7 @@ export function buildWorld(scene) {
     { x: -52.0, z: 6.0, scale: 1.25, seed: 126, lean: 0.05 },
     { x: 54.0, z: 5.5, scale: 1.22, seed: 127, lean: 0.08 },
   ]
-    .map((s) => ({ ...s, y: groundY(s.z) }))
-    .concat(extraSakura);
+    .map((s) => ({ ...s, y: groundY(s.z) }));
   buildSakura(ctx, sakuraSpots);
 
   /* -------------------------------- shrubbery -------------------------------- */
@@ -522,7 +376,7 @@ export function buildWorld(scene) {
     { x: 30.0, z: -9.0, r: 0.6, count: 5, spread: 2.2, seed: 208, y: 0 },
     { x: -16.0, z: 6.0, r: 0.55, count: 4, spread: 1.8, seed: 209, y: 0 },
     { x: 24.0, z: 6.5, r: 0.55, count: 4, spread: 1.8, seed: 210, y: 0 },
-  ].concat(extraShrubs));
+  ]);
 
   /* ------------------------------ utility poles ------------------------------ */
   const poleDefs = [
@@ -692,16 +546,16 @@ export function buildWorld(scene) {
   /* ------------------------------------------------------------------ *
    * Crossing sequence.
    *
-   * The train never stops now -- it circles the planet forever -- so the
-   * gates are driven by where it actually is on the ring rather than by a
-   * timer. One lap is one crossing cycle, for free.
+   * The train never stops -- it runs the length of the line and loops back
+   * in the fog -- so the gates are driven by where it actually is on the
+   * track rather than by a timer. One pass is one crossing cycle.
    * ------------------------------------------------------------------ */
   const APPROACH = 165;   // metres of track before the crossing that trips the bells
   const CLEAR = 62;       // metres past it before the booms lift again
   const seq = { blink: 0, armT: 0 };
 
   // the relay box now fetches the train instead of scheduling one
-  crossing.request = () => { train.x = wrapX(-(APPROACH - 12) * train.dir); };
+  crossing.request = () => { train.x = -(APPROACH - 12) * train.dir; };
 
   /* Two colliders that only exist while the booms are down, so the player is
    * held back at the barrier instead of standing inside a passing train. */
@@ -731,12 +585,6 @@ export function buildWorld(scene) {
     boomBlocks[1].top = down;
   }
 
-  /* ------------------------- project onto the planet -------------------------
-   * Runs last, once every builder has finished. Everything above this line is
-   * still authored on a flat plane and has no idea the planet exists.       */
-  const bakeStats = bakeToPlanet(root, { maxEdge: 4.0 });
-  train.planetize();
-
   /* ------------------------------- world api ------------------------------- */
   const world = {
     root,
@@ -751,10 +599,8 @@ export function buildWorld(scene) {
     crossing,
     shop,
     petals,
-    planet,
-    bakeStats,
-    // the world wraps in x, so only latitude is bounded (short of the poles)
-    bounds: { z0: -CIRCUMFERENCE * 0.24, z1: CIRCUMFERENCE * 0.24 },
+    // walkable box, inside the graded terrain grid (the soft town edge is M2)
+    bounds: { x0: -150, x1: 150, z0: -170, z1: 130 },
     /**
      * Ground height at a flat point.
      *
@@ -771,13 +617,7 @@ export function buildWorld(scene) {
      * what the builders want when they are seating props on the ground.
      */
     heightAt(x, z, fromY) {
-      /* Relief is suppressed across the district and the rail corridor, so
-       * adding it here is a no-op where the built geometry is -- and `RELIEF` is
-       * 0, so it is a no-op everywhere.  `hillAt` is the live one: it is exactly
-       * zero over every square metre of built ground (checked by `hillSafety`)
-       * and it is what makes the back hills walkable without a single platform,
-       * which is the only way a slope can be walkable at all here. */
-      let h = streetHeight(x, z) + reliefAt(x, z) + hillAt(x, z);
+      let h = streetHeight(x, z);
       /* Cuts first, then platforms: the excavated bank is lowered to the made
        * level and the path slab laid on it then raises it the 60 mm it is
        * actually thick. */

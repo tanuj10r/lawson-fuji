@@ -1,0 +1,52 @@
+# Lawson Fuji: agent rules
+
+First-person, anime-style browser game: a compact Japanese town at the foot
+of Mt. Fuji built around the famous Lawson. The player walks in, shops, pays,
+microwaves a bento and leaves. Full design: SPEC.md. Read only the sections
+the current milestone needs.
+
+## Base
+- Fork of Sakura Crossing (MIT). Keep LICENSE and credit it in the game.
+- Reuse src/core (toon, post, outline, sky, palette, textures, player, hud)
+  for all rendering. Its technique wins over SPEC.md; SPEC.md and reference/
+  win on colour, mood and anything specific to the Lawson and Fuji.
+- The world is flat. Never reintroduce the planet or spherical placement.
+- Sakura Crossing's world modules are a parts library. Place nothing from
+  them unless the current milestone in SPEC.md says so, and always in our
+  layout with our own signs. The first thing players see is ours.
+
+## Hard rules
+- Desktop only. No touch or mobile fallbacks. Never lower visual quality
+  for weak devices.
+- Visuals are built in code: no downloaded models or images. Signage is
+  drawn with Canvas2D.
+- Sound files live in assets/audio/ (SPEC section 9 audio list). Never
+  commit them; never add a soundboard or sound gallery; fall back to the
+  procedural recipes when a file is missing. No chain jingles or station
+  departure melodies.
+- Lawson branding only on the store, signs, uniform, receipt and bags.
+  Products and packaging are generic and fictional.
+- No requests to other domains at runtime. Fuji elevation is baked by
+  scripts/fetch-fuji-dem.mjs.
+- No bloom by default.
+- Repurpose, don't copy: reused Sakura Crossing buildings get our own
+  names, signage and placement. No Sakura Crossing place or shop names
+  in the game.
+- UI text in src/data/strings.js, products in src/data/catalog.js,
+  tunables in src/config.js.
+
+## Reference images
+- reference/real-day.png, reference/real-bluehour.png: exact hero-view
+  composition.
+- reference/mood.png, reference/mood-day.png: colour and mood.
+
+## Workflow
+- One milestone per session (SPEC section 12). Propose a short plan, wait
+  for OK, implement, then check every acceptance item and report pass/fail.
+- Log judgement calls in DECISIONS.md.
+- Keep this file under 80 lines.
+
+## Commands
+- npm install
+- npm run dev     (dev server)
+- npm run build   (static dist/)

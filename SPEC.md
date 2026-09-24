@@ -166,33 +166,79 @@ lawson-fuji/              (fork of sakura-crossing)
 
 ## 3. World layout
 
-A compact town of about 250 m x 200 m, walkable end to end in about 3 minutes, built around the famous view. Units are metres, +Y is up, the Lawson's front faces +Z toward the main road, and Fuji lies behind it to the −Z side.
+A dense, lived-in, mixed-use town built around the famous view: a tight grid with a walkable core of about 180 m x 150 m. Units are metres, +Y is up, the Lawson's front faces +Z toward the main road, and Fuji lies behind it to the −Z side. There are no separate zones: shops, homes and small lots are interleaved along every street.
 
-```
-                 (Mt. Fuji, far behind)
-  hills/trees  ---------------------------------  hills/trees
-     residential lane    |  LAWSON + forecourt  |  small park
-  -----------------------+----- MAIN ROAD ------+--------------
-     shopping street     |  hero-view sidewalk  |  station
-  ==========  RAILWAY + LEVEL CROSSING  ======================
-                  tree line / cutting (town edge)
-```
+**Quality bar**
 
-| Zone | What is there | Built from |
-| --- | --- | --- |
-| The Lawson and forecourt | Store, painted parking bays, 3 to 4 parked kei cars, bins, 2 vending machines; Fuji rising behind the roof | New (`lawson.js`) |
-| Main road | Two-lane road past the store, pedestrian crossing, traffic signals, tactile paving, dense poles and wires; the hero-view spot on the far sidewalk | Sakura Crossing street props, new layout |
-| Railway and level crossing | One straight line across town, \~60 m from the store; crossbucks, lamps, barriers, bells; a green-and-cream 2-car train every 3 min | Sakura Crossing train and railway, recoloured, straightened |
-| Small station | One platform, shelter, fictional name board 「さくら富士」 | Sakura Crossing details |
-| Shopping street (商店街) | \~80 m street with 8 to 10 shopfronts (soba, bookshop, bakery, florist, a couple of closed shutters), hanging lanterns | Sakura Crossing shotengai and shops, trimmed |
-| Residential lane | 10 to 14 houses with gardens, bikes, laundry, potted plants | Sakura Crossing housing |
-| Small park | Sakura trees, bench, drinking fountain, drifting petals | Sakura Crossing trees and petals |
+- `reference/density/` holds frames from a newer Sakura Crossing build. They set the bar for density and finish.
+- Match their density and polish, not their designs. Never copy their names, shops, signs or train livery (桜ヶ丘, ひだまりマート, 桜川電鉄, 春風 and so on). Everything stays ours.
+- Those frames come from a newer build than our fork. The station interior, ticket gates, people, bus stop, cycle lanes and shop interiors are NOT in our parts library. Build them.
+- The M1 hero views must not change. Press 1, 2, 3 after every change to check.
+- Build systems, not one-offs: seeded generators for lots, houses, shopfronts, the pole-and-wire network, road markings and prop scatter. Density comes from rules, not hand placement.
+
+**Town plan: structure**
+
+- Station at one end, then a station plaza, then a shopping spine toward the main road, with residential lanes branching off everywhere.
+- The railway runs along one edge with the level crossing.
+- The Lawson stays on the main road at the open edge facing Fuji. The hero-view side stays open; density goes on the frame edges and behind the camera.
+
+**Town plan: scale**
+
+- Residential lanes: 4 to 5 m, no sidewalk, white edge lines only.
+- Shopping street: about 6 m, with a narrow pavement.
+- Main road: 2 lanes (about 7 m), 2 m pavements, painted cycle lanes.
+- Buildings sit 0 to 1 m from the lot edge, are 2 to 3 storeys, with 7 to 12 m frontage and 0.5 to 1.5 m gaps between them.
+
+**Town plan: mixing**
+
+- Shops on the ground floor with homes above; shops interleaved with houses along every street.
+- One small inari shrine with a torii, lanterns and banners.
+- A coin-parking lot, a small 2-floor apartment block (external steel stairs, numbered doors, AC units), a weedy vacant lot, a tiny park.
+
+**Density budget**
+
+- From any walkable spot, the view within 25 m contains at least: 2 detailed buildings (windows, gutters, AC units, balconies, laundry, nameplates), 1 pole with wires, 5 small props, and road markings.
+- No stretch of bare wall, pavement or asphalt longer than about 8 m without something on it.
+
+**Roads kit**
+
+- Asphalt: 2 to 3 tone patches, crack lines, several manhole types, drain grates, side gutters (側溝) with grate lids, kerbs, tactile paving at crossings and the station.
+- Markings (canvas decals, Japanese): yellow centreline on the main road, white dashed lines elsewhere, edge lines, stop lines with 止まれ, zebra crossings, ◇ crossing-ahead diamonds, 30 and 40 speed numerals, スクールゾーン, 歩行者優先, green or blue cycle lanes with bike symbols and arrows, a バス stop box.
+- Sakura petals collecting along kerbs and under trees.
+
+**Poles, wires and signs kit**
+
+- Concrete poles every 20 to 30 m on every street: crossarms, transformers, insulators, yellow-and-black base guards, street-lamp arms.
+- A continuous wire network: 4 to 8 lines along each street with sagging catenaries, service drops to every building, and spans across the street at intersections.
+- Signs: blue direction signs, speed limits, 止まれ triangles, yellow school-zone diamonds, no parking, pedestrian crossing, convex mirrors at corners, 消火栓 signs, pole advertisements for fictional clinics and estate agents, house address plates, a bus-stop pole with timetable.
+
+**Buildings**
+
+- House generator: 2-storey siding, mortar, old tiled-roof, modern box. Variants for colour, roof and window layout. Block walls (ブロック塀) with gates, hedges, mailboxes, potted plants, bikes, AC units, gas meters, laundry poles, TV antennas.
+- Shopfronts: 8 to 10 types, e.g. ramen, 喫茶, bakery, florist, 和菓子, general store, barber with a pole, laundromat, dentist, closed shutter. Each has an awning, fascia sign, noren or nobori flags, a visible interior (shelves, counter, lights) and outside clutter (A-frame board, crates, bench, planters, a vending machine).
+- All names fictional and ours.
+
+**Station and trains**
+
+- Station building: our station name board, clock, ticket machines, fare map, staffed window, ticket gates, departure board, posters.
+- Station plaza: clock pole, bus stop with shelter, taxi, bike racks full of bicycles, phone booth, area map, bins, planters, benches ringing a big sakura.
+- Platforms: two, with canopies, name boards, timetable, benches, bins, platform numbers, yellow tactile lines, fences, overhead catenary gantries along the line, and a footbridge or level crossing within the station.
+- Train cycle: a train arrives and stops at the platform, doors open, it waits 60 s, a door chime plays, doors close, it departs. The next train arrives about 60 s later. Alternate directions on the two tracks. The level-crossing bells and barriers are driven by the real train position.
+- Train: our green-and-cream livery; lit interior with seats and a few silhouette passengers.
+- Original chimes only; no real station departure melodies.
+
+**Trees, light and life**
+
+- Sakura: much fuller canopies (many overlapping painted clusters, dark branches visible), a few large hero trees, petal fall plus petal drifts on the ground, dappled shadows.
+- Night: warm lit windows, glowing shop interiors, lit lanterns and street lamps against the cool sky. Night streets must never be one flat blue.
+- Birds on wires, a cat, sparrows on the ground.
+- Optional, last: a few idle people (students at the station, a shopper). Only after everything else passes.
 
 **Rules**
 
 - Fuji is visible from most of the town, and from the hero-view spot nothing blocks it or the store sign.
 - The town edge is soft: tree lines, low hills and fences, with the painted hillside and Fuji beyond. No invisible walls in open road.
-- The railway runs straight across and disappears into a tree-lined cutting at each end (no planet loop).
+- The railway runs straight and disappears into a tree-lined cutting at each end (no planet loop).
 - Keep it compact. Extra districts from Sakura Crossing are not added unless Tan asks.
 
 **Mt. Fuji and sky**
@@ -668,6 +714,7 @@ The game targets desktop browsers only, so quality comes first: every visual fea
 
 - `InstancedMesh` for every repeated product, with an instanced outline hull per product type. Hide a picked unit by scaling its instance matrix to 0.
 - Merge static geometry per material with `BufferGeometryUtils.mergeGeometries`; freeze matrices on static objects.
+- Town: instance every repeated prop (poles, signs, bikes, AC units, planters), merge static town geometry per material, and use distance-based detail for far buildings.
 - Auto quality: only ever steps Ultra → High, if average frame time is above 17 ms over 5 s. Never lower. Manual override in settings.
 - No allocations in the render loop; dispose geometries and textures properly; pause rendering and suspend audio when the tab is hidden.
 
@@ -680,13 +727,16 @@ The game targets desktop browsers only, so quality comes first: every visual fea
 
 ## 12. Build milestones
 
-Build in 8 milestones, starting from the Sakura Crossing fork and proving the famous view before anything else. Each ends with a playable build checked against its acceptance list.
+Build in 8 milestones (M2 in four parts, M2a to M2d), starting from the Sakura Crossing fork and proving the famous view before anything else. Each ends with a playable build checked against its acceptance list.
 
 | # | Milestone | Scope |
 | --- | --- | --- |
 | M0 | Fork and strip | Fork Sakura Crossing, remove its CLAUDE.md, NEXT.md and stock track, flatten the planet, remove every placed Sakura Crossing district, building and prop, keeping their modules as a parts library only. Result: an empty flat world with the sky, spawning at the hero-view spot |
 | M1 | Look-dev: the hero view | Lawson exterior and forecourt, GSI Fuji, sky re-tune; hero cameras for day, golden hour and blue hour; reference overlay. Tan signs off before M2 |
-| M2 | Compact town | Main road, railway, crossing and station, shopping street, residential lane, park; sakura, poles and wires, vending machines; colliders |
+| M2a | Town kit | Roads and markings, poles and wires, signs, plus the screenshot script (`scripts/shots.mjs`) |
+| M2b | Town | New town plan (section 3), house and shopfront generators, dressing; colliders |
+| M2c | Station and trains | Station building and plaza, two platforms, train cycle, level crossing driven by the train |
+| M2d | Town polish | Trees, petals, clutter pass, night lighting, performance |
 | M3 | Store interior + products | Automatic door, interior fixtures, 30 products, targeting and pickup, basket |
 | M4 | Audio | Audio engine, all SFX, ambience loops, inside/outside mix, door chime, footsteps |
 | M5 | Clerk + checkout | Clerk look, state machine and animations; greeting, scanning, dialogue choices, payment, receipt, voice lines and subtitles |
@@ -713,12 +763,43 @@ M1 (Tan signs off before M2 starts)
 - [ ] Nothing is washed out: sky, walls and Fuji keep their colour.
 - [ ] Screenshots of all three views saved to `reference/lookdev/`.
 
-M2
+M2 (four sub-milestones; Tan signs off each before the next starts)
 
-- [ ] The whole town can be walked end to end in about 3 minutes.
-- [ ] Fuji is visible from most of the town.
-- [ ] The train passes about every 3 minutes, with bells, lamps and barriers first.
-- [ ] Nothing can be walked through, and there are no invisible walls on open road. No Sakura Crossing place or shop names remain on any sign.
+**Working method**
+
+- Plan mode first for each sub-milestone; wait for Tan's OK. Commit after each sub-milestone.
+- Render-check loop (mandatory): `scripts/shots.mjs` (Playwright, headless Chromium) runs the dev build, visits a fixed list of named camera spots from `config.js`, sets the time of day, and saves PNGs to `screenshots/<date>/`. After every meaningful change: run it, look at each image next to the matching reference frame, list what is still weaker, fix it, and repeat. Never report a sub-milestone done without having looked at its screenshots.
+- Each sub-milestone ends with screenshots from the fixed spots and a short written comparison against `reference/density/`.
+
+**Every sub-milestone**
+
+- [ ] The M1 hero views (keys 1, 2, 3) are unchanged.
+- [ ] Screenshots from every fixed spot were taken, looked at, and compared in writing against `reference/density/`.
+- [ ] No Sakura Crossing place, shop or line names, signs or livery anywhere; all names are fictional and ours.
+- [ ] 60 fps at 1440p.
+
+M2a
+
+- [ ] `scripts/shots.mjs` runs headless and writes one PNG per named spot and time of day to `screenshots/<date>/`.
+- [ ] Roads kit, markings, poles and wires and signs kit (section 3) exist as seeded generators, shown on a test street.
+
+M2b
+
+- [ ] The town follows the section 3 plan and scale: station, plaza, shopping spine, main road, residential lanes, railway on one edge, the Lawson on the open edge facing Fuji.
+- [ ] The density budget passes from every fixed spot: within 25 m, 2 detailed buildings, 1 pole with wires, 5 small props, road markings; no bare stretch over about 8 m.
+- [ ] Shrine, coin parking, apartment block, vacant lot and tiny park are in.
+- [ ] Fuji is visible from most of the town. Nothing can be walked through, and there are no invisible walls on open road.
+
+M2c
+
+- [ ] Station building, plaza and two platforms are dressed as in section 3.
+- [ ] The train cycle runs: arrive, doors open, 60 s wait, chime, doors close, depart; next train about 60 s later, alternating tracks.
+- [ ] Level-crossing bells, lamps and barriers follow the real train position.
+
+M2d
+
+- [ ] Fuller sakura with petal fall and drifts; night streets with warm windows, lit shops, lanterns and lamps, never one flat blue.
+- [ ] Birds on wires, a cat, sparrows.
 - [ ] 60 fps at 1440p with the whole town loaded.
 
 M3

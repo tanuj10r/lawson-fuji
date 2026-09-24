@@ -553,6 +553,12 @@ Tan listens and picks each sound on 効果音ラボ using the search terms below
 
 The store hum, fluorescent buzz and fridge compressor stay procedural; they are quiet beds that the recipes below already cover.
 
+**In-store music:** `assets/audio/store-bgm.mp3` loops only while the player
+is inside the Lawson. It fades in over 1.5 s on entering and out over 1.5 s
+on leaving, and ducks under voice lines. Use Sakura Crossing's `audio.js`
+playback as the base. Like every file in `assets/audio/`, it is never
+committed; its source and any credit it needs go in the README.
+
 **Licence rules for 効果音ラボ sounds**
 
 - Free for any use, including commercial; a credit is optional, but the game credits the site anyway.

@@ -215,8 +215,13 @@ const GREEN_TONES = [0x8cb884, 0x5f9470, PAL.cedar, PAL.willow];
 /**
  * @param spots [{ x, z, y, scale, seed, lean, leanDir, spread, tone }]
  */
-export function buildGrove(ctx, spots) {
+/**
+ * @param opts.far   distant tree line: fewer, coarser blobs (a background
+ *                   mass seen at 50 m and more), no shadows
+ */
+export function buildGrove(ctx, spots, opts = {}) {
   if (!spots.length) return null;
+  const far = opts.far ?? false;
   const woodParts = [];
   const blobs = [[], [], [], []];
   const trunkGeo = new THREE.CylinderGeometry(0.62, 1.0, 1, 7, 1);
@@ -326,7 +331,7 @@ export function buildGrove(ctx, spots) {
      * 120 is what it takes; it costs nothing, because every one of them is an
      * instance in a mesh that already exists.
      */
-    const count = (willow ? 120 : 30) + Math.floor(rng.next() * 12);
+    const count = far ? 14 + Math.floor(rng.next() * 5) : (willow ? 120 : 30) + Math.floor(rng.next() * 12);
     let yMin = Infinity, yMax = -Infinity;
     for (const c of centers) {
       yMin = Math.min(yMin, c.y);
@@ -379,17 +384,36 @@ export function buildGrove(ctx, spots) {
   }
 
   const wood = new THREE.Mesh(bake(woodParts), cel({ color: PAL.trunkDark, bands: 3, tint: 0x6f5a80 }));
-  wood.castShadow = wood.receiveShadow = true;
+  wood.castShadow = !far;
+  wood.receiveShadow = true;
   wood.name = 'groveWood';
   ctx.add(wood);
 
-  const blobGeo = new THREE.IcosahedronGeometry(1, 1);
+  const blobGeo = new THREE.IcosahedronGeometry(1, far ? 0 : 1);
+  if (far) {
+    /* A far tree line is one draw: the three tones ride as instance colours
+     * on a white material rather than as three meshes. */
+    const all = blobs.flatMap((list, i) => list.map((mx) => [mx, i]));
+    const inst = new THREE.InstancedMesh(blobGeo, cel({ color: 0xffffff, bands: 3, tint: 0x5b6f8c }), all.length);
+    const col = new THREE.Color();
+    all.forEach(([mx, i], k) => {
+      inst.setMatrixAt(k, mx);
+      inst.setColorAt(k, col.set(GREEN_TONES[i]));
+    });
+    inst.castShadow = false;
+    inst.receiveShadow = false;
+    inst.name = 'groveCanopyFar';
+    inst.computeBoundingSphere();
+    ctx.add(inst);
+    [trunkGeo, branchGeo].forEach((g) => g.dispose());
+    return null;
+  }
   blobs.forEach((list, i) => {
     if (!list.length) return;
     const inst = new THREE.InstancedMesh(
       blobGeo, cel({ color: GREEN_TONES[i], bands: 3, tint: 0x5b6f8c }), list.length);
     list.forEach((mx, k) => inst.setMatrixAt(k, mx));
-    inst.castShadow = true;
+    inst.castShadow = !far;
     /* Green canopies do not receive shadow either -- and this is the one that
      * was actually causing the black circles in the sky.
      *

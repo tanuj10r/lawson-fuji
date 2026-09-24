@@ -41,6 +41,7 @@ export function gradientMap(bands = 3) {
   tex.magFilter = THREE.NearestFilter;
   tex.generateMipmaps = false;
   tex.needsUpdate = true;
+  tex.userData.bands = key;   // lets batching rebuild an equivalent material
   rampCache.set(key, tex);
   return tex;
 }
@@ -54,12 +55,30 @@ const TOON_PATCH = `
 
 let patchAvailable = false;
 let patchedChunk = '';
+let patchedChunkAttr = '';
 {
   const src = THREE.ShaderChunk[TOON_CHUNK];
   if (src && src.includes(TOON_LINE)) {
     patchedChunk = 'uniform vec3 uShadowTint;\n' + src.replace(TOON_LINE, TOON_PATCH);
+    // the same, with the tint per vertex (static batching, world/merge.js)
+    patchedChunkAttr = 'varying vec3 vTint;\n'
+      + src.replace(TOON_LINE, TOON_PATCH.replace('uShadowTint', 'vTint'));
     patchAvailable = true;
   }
+}
+
+/** Shadow tint read from a per-vertex `aTint` attribute instead of a uniform,
+ * so batched geometry from many parts can keep each part's tint. */
+function applyTintAttribute(mat) {
+  if (!patchAvailable) return mat;
+  mat.onBeforeCompile = (shader) => {
+    shader.vertexShader = 'attribute vec3 aTint;\nvarying vec3 vTint;\n'
+      + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvTint = aTint;');
+    shader.fragmentShader = shader.fragmentShader.replace(`#include <${TOON_CHUNK}>`, patchedChunkAttr);
+  };
+  mat.customProgramCacheKey = () => 'celTintAttr';
+  mat.userData.tintAttr = true;
+  return mat;
 }
 
 /** Tint the shadow side of a toon material toward a cool hue. */
@@ -102,6 +121,7 @@ export function cel(opts = {}) {
     fog = true,
     alphaMap = null,
     vertexColors = false,
+    tintAttr = false,
     cache = true,
   } = opts;
 
@@ -127,7 +147,8 @@ export function cel(opts = {}) {
     emissiveIntensity,
   });
   if (depthWrite !== null) mat.depthWrite = depthWrite;
-  applyShadowTint(mat, tint);
+  if (tintAttr) applyTintAttribute(mat);
+  else applyShadowTint(mat, tint);
   if (key) matCache.set(key, mat);
   return mat;
 }

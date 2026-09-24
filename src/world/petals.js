@@ -14,13 +14,27 @@ import { centerX, groundY } from './street.js';
  * whole field takes a sideways shove when the train goes past.
  * ------------------------------------------------------------------ */
 
-const COUNT = 980;
+const COUNT_DEFAULT = 980;
 const TOP = 6.8;
-const Z0 = -30;
-const Z1 = 34;
-const HALF = 9.5;
+const Z0_DEFAULT = -30;
+const Z1_DEFAULT = 34;
+const HALF_DEFAULT = 9.5;
 
-export function buildPetals(ctx) {
+/**
+ * @param opts.count   petals in the air (default Sakura Crossing's 980)
+ * @param opts.half    half-size of the square field (default: the street band)
+ * @param opts.follow  () => {x, z}: the field is centred there every frame
+ *                     and petals wrap round it (Lawson Fuji: the player), on
+ *                     flat ground at y = 0
+ * @param opts.trackZ  z of the railway, for the lift a passing train gives
+ */
+export function buildPetals(ctx, opts = {}) {
+  const COUNT = opts.count ?? COUNT_DEFAULT;
+  const follow = opts.follow ?? null;
+  const HALF = opts.half ?? HALF_DEFAULT;
+  const Z0 = follow ? -HALF : Z0_DEFAULT;
+  const Z1 = follow ? HALF : Z1_DEFAULT;
+  const trackZ = opts.trackZ ?? 0;
   const rng = rngKit(8123);
   const tex = petalTex();
 
@@ -70,15 +84,21 @@ export function buildPetals(ctx) {
   const scaleV = new THREE.Vector3();
   let t = 0;
 
+  let cxF = 0, czF = 0;
   function respawn(p) {
-    p.x = rng.range(-HALF, HALF);
-    p.z = rng.range(Z0, Z1);
+    p.x = cxF + rng.range(-HALF, HALF);
+    p.z = czF + rng.range(Z0, Z1);
     p.y = TOP + rng.range(0, 1.4);
     p.phase = rng.range(0, 10);
   }
 
   function update(dt, gust, gustDir) {
     t += dt;
+    if (follow) {
+      const c = follow();
+      cxF = c.x;
+      czF = c.z;
+    }
     const wind = gust * 5.4 * gustDir;
     const lift = gust * 1.5;
     for (let i = 0; i < P.length; i++) {
@@ -89,15 +109,16 @@ export function buildPetals(ctx) {
       p.y -= (p.fall + gust * 0.4) * dt;
       p.x += (p.swayAmp * s * 0.55 + p.drift + wind * 0.24) * dt;
       p.z += (p.swayAmp * s2 * 0.32 + wind * 0.05) * dt;
-      p.y += lift * Math.max(0, 1 - Math.abs(p.z) / 8) * dt;
+      p.y += lift * Math.max(0, 1 - Math.abs(p.z - trackZ) / 8) * dt;
       p.angle += p.spinRate * dt * (1 + gust);
 
-      const cx = centerX(p.z);
-      if (p.x < cx - HALF) p.x = cx + HALF;
-      if (p.x > cx + HALF) p.x = cx - HALF;
-      if (p.z < Z0) p.z = Z1;
-      if (p.z > Z1) p.z = Z0;
-      if (p.y < groundY(p.z) + 0.04) respawn(p);
+      const cx = follow ? cxF : centerX(p.z);
+      // `while`, so a teleport (the famous-view keys) re-centres at once
+      while (p.x < cx - HALF) p.x += 2 * HALF;
+      while (p.x > cx + HALF) p.x -= 2 * HALF;
+      while (p.z < czF + Z0) p.z += Z1 - Z0;
+      while (p.z > czF + Z1) p.z -= Z1 - Z0;
+      if (p.y < (follow ? 0 : groundY(p.z)) + 0.04) respawn(p);
 
       q.setFromAxisAngle(p.spin, p.angle);
       dummy.position.set(p.x, p.y, p.z);
@@ -113,7 +134,7 @@ export function buildPetals(ctx) {
   // settle the field so the very first frame already has petals mid-air
   for (let i = 0; i < 40; i++) update(0.1, 0, 1);
 
-  buildFallenPetals(ctx, tex);
+  if (!follow) buildFallenPetals(ctx, tex);
   return { update, meshes };
 }
 

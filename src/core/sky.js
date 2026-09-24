@@ -3,6 +3,7 @@ import { PAL } from './palette.js';
 import { flat } from './toon.js';
 import { cloudTex } from './textures.js';
 import { rngKit } from './util.js';
+import { mergeStatic } from '../world/merge.js';
 
 /**
  * A three-stop painted gradient dome plus a handful of flat cel clouds.
@@ -108,6 +109,9 @@ export function buildSky(scene, radius = 2900, { avoidYaw = 0 } = {}) {
   }
   clouds.frustumCulled = false;
   scene.add(clouds);
+  // the ring moves as one (it trails the camera), so it batches to two draws
+  mergeStatic(clouds);
+  clouds.traverse((o) => { o.frustumCulled = false; });
 
   return {
     dome,

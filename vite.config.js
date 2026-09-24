@@ -6,7 +6,7 @@ import path from 'node:path';
  * Dev-only helper: lets the page POST a rendered frame to disk so the scene
  * can be reviewed while iterating.  Not part of the build.
  */
-function frameGrabber(outDir, lookdevDir) {
+function frameGrabber(outDir, lookdevDir, screenshotDir) {
   return {
     name: 'frame-grabber',
     apply: 'serve',
@@ -26,8 +26,12 @@ function frameGrabber(outDir, lookdevDir) {
             const name = (body.name || 'shot').replace(/[^\w.-]/g, '_');
             const data = String(body.data || '').replace(/^data:image\/\w+;base64,/, '');
             // `dir: 'lookdev'` files the look-dev screenshots (SPEC M1) in reference/lookdev
-            const dir = body.dir === 'lookdev' ? lookdevDir : outDir;
-            const file = path.join(dir, name.endsWith('.jpg') ? name : name + '.jpg');
+            // `dir: 'screenshots'` files the town screenshots in screenshots/
+            const dir = body.dir === 'lookdev' ? lookdevDir
+              : body.dir === 'screenshots' ? screenshotDir : outDir;
+            fs.mkdirSync(dir, { recursive: true });
+            const ext = String(body.data || '').startsWith('data:image/png') ? '.png' : '.jpg';
+            const file = path.join(dir, name.endsWith(ext) ? name : name + ext);
             fs.writeFileSync(file, Buffer.from(data, 'base64'));
             res.setHeader('content-type', 'application/json');
             res.end(JSON.stringify({ ok: true, file, bytes: data.length }));
@@ -43,12 +47,13 @@ function frameGrabber(outDir, lookdevDir) {
 
 const SHOT_DIR = path.resolve(process.cwd(), '.shots');
 const LOOKDEV_DIR = path.resolve(process.cwd(), 'reference/lookdev');
+const SCREENSHOT_DIR = path.resolve(process.cwd(), 'screenshots');
 
 export default defineConfig({
   /* Relative asset URLs, so a build runs from any subdirectory -- opened off
    * the filesystem, served from a GitHub Pages project path, anywhere. */
   base: './',
-  plugins: [frameGrabber(SHOT_DIR, LOOKDEV_DIR)],
+  plugins: [frameGrabber(SHOT_DIR, LOOKDEV_DIR, SCREENSHOT_DIR)],
   server: {
     port: 5178,
     host: '127.0.0.1',

@@ -43,8 +43,15 @@ export const STREET = {
   tactileZ: 17.55, // centre of the yellow tactile strip
   sidewalkZ: 20.5, // far sidewalk ends, a paved lot begins
   lotZ: 36,
-  x0: -40,
+  x0: -40,         // forecourt
   x1: 40,
+  roadX0: -125,    // the main road runs the width of the town (M2)
+  roadX1: 125,
+  lotX0: -40,      // the paved lot where the photographers stand
+  lotX1: 24,
+  bayX0: -20,      // painted bays and wheel stops, out past the hero frame
+  bayX1: 22,
+  gap: [25.3, 34.7], // the far sidewalk breaks for the side road
 };
 
 /* Hero views (SPEC section 1).
@@ -177,9 +184,27 @@ export const LOOKS = {
   },
 };
 
-/* Empty world around the Lawson until M2 places the town. */
+/* The compact town around the Lawson (SPEC section 3, M2).  About 245 x 190 m.
+ *
+ *   north (-z)  tree line; residential lane (left), the Lawson, park (right)
+ *   z 10.5-17.2 the main road, barricaded where it leaves town at x ±118
+ *   south (+z)  the photographers' lot, shopping street (left), side road
+ *               to the level crossing and station (right), the railway at
+ *               z = 60, tree line beyond */
+export const TOWN = {
+  bounds: { x0: -122, x1: 122, z0: -97, z1: 92 },
+  rail: { crossX: 30, z: 60, interval: 180 },   // a train every 3 minutes
+  sideRoad: { x: 30, z0: 17.2, z1: 86 },        // carriageway ±3.15, walks 1.55
+  crosswalk: { x: -35, width: 4 },              // zebra and signals on the main road
+  residential: { laneZ: -41, laneX0: -110, sideLaneX: -21.5 },
+  shotengai: { laneZ: 40, x0: -108, x1: -38 },
+  park: { x0: 22, x1: 70, z0: -58, z1: -12 },
+  petals: 150,                                    // SPEC section 1: 150 on High
+};
+
+/* The flat ground plane under everything. */
 export const WORLD = {
   groundHalf: 1200,          // flat ground plane, well past the fog
   groundColor: 0xc4c4b6,
-  bounds: { x0: -150, x1: 150, z0: -150, z1: 150 },
+  bounds: TOWN.bounds,
 };

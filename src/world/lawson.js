@@ -136,6 +136,8 @@ export function buildLawson(parent) {
     root.add(shine);
     root.userData.glass = glass.material;
     root.userData.shine = shine.material;
+    // setLook changes their opacity: keep them out of static batching
+    glass.material.userData.live = shine.material.userData.live = true;
   }
 
   /* --------------------- the painted interior (M3 replaces) --------------------- */
@@ -164,6 +166,7 @@ export function buildLawson(parent) {
     inside.traverse((o) => { if (o.isMesh) o.userData.noOutline = true; });
     root.add(inside);
     lit.push(card.material, ceilMat, floorMat, sideMat);
+    floorMat.userData.live = sideMat.userData.live = true;   // setLook drives these
 
     // posters and the banner hung just inside the glass
     const inner = -0.05;
@@ -201,6 +204,7 @@ export function buildLawson(parent) {
     side.userData.noOutline = true;
     root.add(side);
     lit.push(bandMat, sideMat);
+    for (const m of lit) m.userData.live = true;   // setLook drives all of these
     root.userData.sign = [bandMat, sideMat];
   }
 
@@ -244,6 +248,7 @@ export function buildLawson(parent) {
       flag.userData.noOutline = true;
       g.add(p, bar, b, flag);
       props.add(g);
+      colliders.push({ x0: x - 0.46, x1: x - 0.02, z0: 0.33, z1: 0.77 });
     });
   }
 
@@ -261,18 +266,22 @@ export function buildLawson(parent) {
 
   ground.add(patch(S.x0, S.x1, 0, S.forecourtZ, 0.004, asphalt));
   ground.add(patch(-hw - 0.6, wingX1 + 0.2, 0, S.apron, 0.008, apron));
-  ground.add(patch(S.x0, S.x1, S.forecourtZ, S.roadZ, 0.004, road));
-  ground.add(patch(S.x0, S.x1, S.sidewalkZ, S.lotZ, 0.004, lot));
-  // the far sidewalk, raised on its kerb, with the tactile strip along it
-  ground.add(shadowify(slab(S.x0, S.x1, 0, kerbH, S.roadZ, S.sidewalkZ, paving), false, true));
-  ground.add(shadowify(slab(S.x0, S.x1, 0, kerbH + 0.01, S.roadZ - 0.02, S.roadZ + 0.14, cel({ color: 0xd2d3da, bands: 3 })), false, true));
-  {
-    const len = S.x1 - S.x0;
+  ground.add(patch(S.roadX0, S.roadX1, S.forecourtZ, S.roadZ, 0.004, road));
+  ground.add(patch(S.lotX0, S.lotX1, S.sidewalkZ, S.lotZ, 0.004, lot));
+  // the far sidewalk, raised on its kerb, with the tactile strip along it;
+  // it breaks for the side road to the level crossing, whose asphalt runs on
+  const platforms = [];
+  ground.add(patch(S.gap[0], S.gap[1], S.roadZ, S.sidewalkZ, 0.004, road));
+  const kerbMat = cel({ color: 0xd2d3da, bands: 3 });
+  for (const [x0, x1] of [[S.roadX0, S.gap[0]], [S.gap[1], S.roadX1]]) {
+    ground.add(shadowify(slab(x0, x1, 0, kerbH, S.roadZ, S.sidewalkZ, paving), false, true));
+    ground.add(shadowify(slab(x0, x1, 0, kerbH + 0.01, S.roadZ - 0.02, S.roadZ + 0.14, kerbMat), false, true));
+    platforms.push({ x0, x1, z0: S.roadZ, z1: S.sidewalkZ, top: kerbH });
     const t = tactileTex(false).clone();
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(len / 0.3, 1);
+    t.repeat.set((x1 - x0) / 0.3, 1);
     t.needsUpdate = true;
-    ground.add(patch(S.x0, S.x1, S.tactileZ - 0.15, S.tactileZ + 0.15, kerbH + 0.004, cel({ color: 0xffffff, bands: 3, map: t })));
+    ground.add(patch(x0, x1, S.tactileZ - 0.15, S.tactileZ + 0.15, kerbH + 0.004, cel({ color: 0xffffff, bands: 3, map: t })));
   }
 
   // painted lines, baked into one mesh
@@ -286,7 +295,8 @@ export function buildLawson(parent) {
     const lw = 0.2;       // wide enough to hold at the hero cameras' grazing angle
     const zebra = [L.doorX - 1.15, L.doorX + 1.15];
     // bay dividers: narrow double lines closed at the store end
-    for (let x = S.bayFirstX - S.bayWidth; x < wingX1 + 1.5; x += S.bayWidth) {
+    const firstBay = S.bayFirstX - Math.floor((S.bayFirstX - S.bayX0) / S.bayWidth) * S.bayWidth;
+    for (let x = firstBay; x <= S.bayX1; x += S.bayWidth) {
       if (x > zebra[0] - 0.4 && x < zebra[1] + 0.4) continue;
       line(x - 0.17 - lw / 2, x - 0.17 + lw / 2, S.bayZ0, S.bayZ1);
       line(x + 0.17 - lw / 2, x + 0.17 + lw / 2, S.bayZ0, S.bayZ1);
@@ -295,10 +305,11 @@ export function buildLawson(parent) {
     // the zebra walk from the door out to the road
     for (let z = S.apron + 0.2; z < S.forecourtZ - 0.3; z += 0.95) line(zebra[0], zebra[1], z, z + 0.55);
     // road: edge lines and a dashed centre line
-    line(S.x0, S.x1, S.forecourtZ + 0.3, S.forecourtZ + 0.3 + lw);
-    line(S.x0, S.x1, S.roadZ - 0.5, S.roadZ - 0.5 + lw);
+    line(S.roadX0, S.roadX1, S.forecourtZ + 0.3, S.forecourtZ + 0.3 + lw);
+    line(S.roadX0, S.gap[0] - 2, S.roadZ - 0.5, S.roadZ - 0.5 + lw);
+    line(S.gap[1] + 2, S.roadX1, S.roadZ - 0.5, S.roadZ - 0.5 + lw);
     const mid = (S.forecourtZ + S.roadZ) / 2;
-    for (let x = S.x0; x < S.x1; x += 10) line(x, x + 5, mid - lw / 2, mid + lw / 2);
+    for (let x = S.roadX0; x < S.roadX1; x += 10) line(x, x + 5, mid - lw / 2, mid + lw / 2);
     const paint = new THREE.Mesh(bake(parts), cel({ color: PAINT, bands: 3 }));
     paint.receiveShadow = true;
     paint.name = 'lawson-paint';
@@ -308,9 +319,12 @@ export function buildLawson(parent) {
   // concrete wheel stops in each bay but the zebra
   {
     const stopMat = cel({ color: 0xe9eaee, bands: 3 });
-    for (let x = S.bayFirstX - S.bayWidth; x < wingX1 + 1.5; x += S.bayWidth) {
+    const firstBay = S.bayFirstX - Math.floor((S.bayFirstX - S.bayX0) / S.bayWidth) * S.bayWidth;
+    for (let x = firstBay; x + S.bayWidth <= S.bayX1 + 0.01; x += S.bayWidth) {
       const cx = x + S.bayWidth / 2;
-      if (Math.abs(cx - L.doorX) < 1.0 || cx > wingX1) continue;
+      if (Math.abs(cx - L.doorX) < 1.0) continue;
+      // the stop at -10.15 would edge into the famous view's bottom-left corner
+      if (cx > -11 && cx < -9) continue;
       ground.add(slab(cx - 0.8, cx + 0.8, 0, 0.13, S.stopZ - 0.08, S.stopZ + 0.08, stopMat));
     }
   }
@@ -321,6 +335,7 @@ export function buildLawson(parent) {
     map: spillTex([[0.0, 0.12], [0.12, 0.24], [0.33, 0.44], [0.47, 0.6], [0.6, 0.72], [0.72, 0.84], [0.84, 1.0]]),
     transparent: true, opacity: 0, depthWrite: false, cache: false,
   });
+  spillMat.userData.live = true;
   const spill = patch(gx0, gx1, 0.02, 6.5, 0.016, spillMat);
   spill.receiveShadow = false;
   spill.renderOrder = 1;
@@ -339,10 +354,8 @@ export function buildLawson(parent) {
     root,
     ground,
     colliders,
-    /** Ground height: the far sidewalk stands on its kerb. */
-    heightAt(x, z) {
-      return z > S.roadZ && z < S.sidewalkZ && x > S.x0 && x < S.x1 ? kerbH : 0;
-    },
+    /** Raised walkable surfaces: the far sidewalk stands on its kerb. */
+    platforms,
     setLook(look) {
       const s = look.store;
       for (const m of lit) m.color.setScalar(s.interior);

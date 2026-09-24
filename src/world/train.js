@@ -7,7 +7,9 @@ import { hullOutline } from '../core/outline.js';
 import { RAIL_TOP, X_MIN, X_MAX } from './railway.js';
 
 /* ------------------------------------------------------------------ *
- * A three-car suburban EMU: cream body, blue waist stripe, dark strip
+ * A suburban EMU: by default Sakura Crossing's three-car cream-and-blue
+ * set; Lawson Fuji runs it as a two-car green-and-cream local (`livery`,
+ * `cars`) that comes through every few minutes (`interval`).  Dark strip
  * windows.  Interiors are painted rather than modelled -- flat silhouette
  * blocks and a soft highlight sit directly on the glass, which is how a
  * background artist would draw a train going past.
@@ -22,17 +24,19 @@ const ROOF = 3.96;
 const CONTACT_WIRE_Y = 4.88;
 
 const M = {};
-function initMaterials() {
+function initMaterials(livery = {}) {
   if (M.body) return;
-  M.body = cel({ color: PAL.trainBody, bands: 3, tint: 0x6f6796 });
+  M.body = cel({ color: livery.body ?? PAL.trainBody, bands: 3, tint: 0x6f6796 });
+  // the window band: only drawn when a livery asks for one
+  M.band = livery.band ? cel({ color: livery.band, bands: 3, tint: 0x6f6796 }) : null;
   M.bodyShade = cel({ color: PAL.trainBodyShade, bands: 3, tint: 0x6f6796 });
-  M.stripe = cel({ color: PAL.trainStripe, bands: 3, tint: 0x4a4a92 });
+  M.stripe = cel({ color: livery.stripe ?? PAL.trainStripe, bands: 3, tint: 0x4a4a92 });
   M.stripe2 = cel({ color: PAL.trainStripe2, bands: 3, tint: 0x3f5a8a });
   M.roof = cel({ color: PAL.trainRoof, bands: 3, tint: 0x60597f });
   M.skirt = cel({ color: PAL.trainSkirt, bands: 3, tint: 0x5b5480 });
   M.window = flat({ color: PAL.trainWindow });
   M.windowLit = flat({ color: PAL.trainWindowLit });
-  M.door = cel({ color: PAL.trainDoor, bands: 3, tint: 0x6f6796 });
+  M.door = cel({ color: livery.door ?? PAL.trainDoor, bands: 3, tint: 0x6f6796 });
   M.dark = cel({ color: PAL.black, bands: 2, tint: 0x4b4560 });
   M.metal = cel({ color: PAL.metalDark, bands: 3, tint: 0x5c5680 });
   M.wheel = cel({ color: 0x4a4552, bands: 2, tint: 0x4b4560 });
@@ -108,9 +112,16 @@ function addGlass(group, cx, w, sz, rng) {
 
 function buildCar({ cab = false, tail = false, rng }) {
   const car = new THREE.Group();
-  const parts = { body: [], stripe: [], roof: [], skirt: [], door: [], dark: [], metal: [] };
+  const parts = { body: [], band: [], stripe: [], roof: [], skirt: [], door: [], dark: [], metal: [] };
 
   const bodyH = TOP - FLOOR;
+  if (M.band) {
+    // two-tone: a pale band round the windows, proud of the body by 10 mm
+    parts.band.push({
+      geometry: new THREE.BoxGeometry(L + 0.01, 1.42, W + 0.02),
+      matrix: trs(0, 2.66, 0),
+    });
+  }
   parts.body.push({
     geometry: new THREE.BoxGeometry(L, bodyH, W),
     matrix: trs(0, (FLOOR + TOP) / 2, 0),
@@ -289,7 +300,7 @@ function buildCar({ cab = false, tail = false, rng }) {
 
   /* ----------------------------- merged meshes ----------------------------- */
   const matFor = {
-    body: M.body, stripe: M.stripe, roof: M.roof,
+    body: M.body, band: M.band, stripe: M.stripe, roof: M.roof,
     skirt: M.skirt, door: M.door, dark: M.dark, metal: M.metal,
   };
   for (const key of Object.keys(parts)) {
@@ -348,8 +359,15 @@ function buildCar({ cab = false, tail = false, rng }) {
   return { car, wheels };
 }
 
-export function buildTrain(ctx) {
-  initMaterials();
+/**
+ * @param opts.cars      number of cars (default 3)
+ * @param opts.livery    { body, band, stripe, door } colours
+ * @param opts.interval  seconds between passes; the set waits off-scene at
+ *                       the far end of the line in between (default: none)
+ */
+export function buildTrain(ctx, opts = {}) {
+  initMaterials(opts.livery);
+  const nCars = opts.cars ?? 3;
   const rng = rngKit(5150);
   const group = new THREE.Group();
   group.name = 'train';
@@ -357,9 +375,9 @@ export function buildTrain(ctx) {
 
   const wheels = [];
   const cars = [];
-  for (let i = 0; i < 3; i++) {
-    const { car, wheels: w } = buildCar({ cab: i === 0, tail: i === 2, rng });
-    car.position.x = (i - 1) * PITCH;
+  for (let i = 0; i < nCars; i++) {
+    const { car, wheels: w } = buildCar({ cab: i === 0, tail: i === nCars - 1, rng });
+    car.position.x = (i - (nCars - 1) / 2) * PITCH;
     group.add(car);
     cars.push(car);
     wheels.push(...w);
@@ -375,19 +393,39 @@ export function buildTrain(ctx) {
     group,
     cars,
     wheels,
-    length: PITCH * 3,
+    length: PITCH * nCars,
     dir: 1,
     x: LOOP_START,
     speed: 23.5,
+    interval: opts.interval ?? 0,
+    /** seconds since the last departure from LOOP_START */
+    clock: 0,
     /** normalised progress, used by the petal wind */
     gust: 0,
     /** distance along the track from the crossing, signed */
     get offset() { return this.x; },
 
     update(dt) {
+      this.clock += dt;
+      const waiting = this.interval > 0 && (this.dir > 0 ? this.x >= LOOP_END : this.x <= LOOP_START);
+      if (waiting) {
+        // parked off-scene until the next departure
+        if (this.clock >= this.interval) {
+          this.clock = 0;
+          this.x = this.dir > 0 ? LOOP_START : LOOP_END;
+        }
+        group.visible = false;
+        this.gust *= Math.exp(-dt * 1.4);
+        return;
+      }
+      group.visible = true;
       this.x += this.dir * this.speed * dt;
-      if (this.dir > 0 && this.x > LOOP_END) this.x = LOOP_START;
-      if (this.dir < 0 && this.x < LOOP_START) this.x = LOOP_END;
+      if (this.interval > 0) {
+        this.x = this.dir > 0 ? Math.min(this.x, LOOP_END) : Math.max(this.x, LOOP_START);
+      } else {
+        if (this.dir > 0 && this.x > LOOP_END) this.x = LOOP_START;
+        if (this.dir < 0 && this.x < LOOP_START) this.x = LOOP_END;
+      }
       group.position.x = this.x;
 
       const spin = (this.speed * dt) / 0.43;

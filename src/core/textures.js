@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PAL } from './palette.js';
+import { SHOP_SIGNS, STATION, TRAIN_DEST, LANTERN_TEXT } from '../data/town.js';
 
 /* ------------------------------------------------------------------ *
  * Procedural canvas textures.
@@ -121,7 +122,7 @@ export const poster = (variant = 0) =>
       const sets = [
         { bg: '#fdf7e8', bar: PAL.red, t: 'さくら祭', s: '四月五日' },
         { bg: '#eef6fd', bar: PAL.blue, t: '町内会', s: 'そうじ当番' },
-        { bg: '#fdeef1', bar: PAL.purple, t: '春の便り', s: 'ひばり台' },
+        { bg: '#fdeef1', bar: PAL.purple, t: '春の便り', s: 'さくら富士' },
         { bg: '#f4fbef', bar: PAL.leafDeep, t: '野菜市', s: '毎週日曜' },
       ];
       const st = sets[variant % sets.length];
@@ -266,11 +267,11 @@ export const stationSign = () =>
       c.fillRect(0, 0, w, h);
       c.fillStyle = hex(PAL.teal);
       c.fillRect(0, h - 22, w, 22);
-      centered(c, 'ひばり台', w / 2, h * 0.42, w * 0.7, 104, '#2b3346', 'bold', 12);
+      centered(c, STATION.jp, w / 2, h * 0.42, w * 0.7, 104, '#2b3346', 'bold', 12);
       c.font = `600 34px ${JP_FONT}`;
       c.fillStyle = '#8a8fa0';
       c.textAlign = 'center';
-      c.fillText('HIBARIDAI', w / 2, h * 0.82);
+      c.fillText(STATION.en, w / 2, h * 0.82);
     })
   );
 
@@ -304,8 +305,8 @@ export const trainDest = () =>
       c.fillRect(0, 0, w, h);
       c.fillStyle = '#f2e6b0';
       c.fillRect(10, 22, 110, 84);
-      centered(c, '各停', 65, 64, 96, 56, '#1d2230');
-      centered(c, 'ひばり台', w * 0.62, h / 2, w * 0.55, 78, '#f2e6b0', 'bold', 6);
+      centered(c, TRAIN_DEST.kind, 65, 64, 96, 56, '#1d2230');
+      centered(c, TRAIN_DEST.jp, w * 0.62, h / 2, w * 0.55, 78, '#f2e6b0', 'bold', 6);
     })
   );
 
@@ -753,72 +754,15 @@ export const gateNotice = () =>
 
 /* --------------------------------- shop fronts --------------------------------- */
 
-const SHOPS = {
-  conbini: { bg: '#fcfbf6', bar: PAL.teal, fg: '#1f6f6d', t: 'ひばりマート', s: '２４じかん', en: 'HIBARI MART' },
-  ramen: { bg: '#b5322f', bar: PAL.yellow, fg: '#fdf6ec', t: 'らーめん 一心', s: 'しお しょうゆ みそ', en: 'ISSHIN' },
-  wagashi: { bg: '#f7ede1', bar: PAL.blossomDeep, fg: '#8a4a62', t: '和菓子 さくら堂', s: 'だいふく どらやき', en: 'SAKURADO' },
-  hana: { bg: '#f2f7ee', bar: PAL.leafDeep, fg: '#37684b', t: '花の店 みどり', s: 'きりばな はちうえ', en: 'MIDORI' },
-  kosho: { bg: '#eae3d0', bar: PAL.roofBrown, fg: '#5b4335', t: '古本 つばめ書房', s: 'こしょ かいとり', en: 'TSUBAME BOOKS' },
-  cleaning: { bg: '#eef4fb', bar: PAL.blue, fg: '#2a4f97', t: 'クリーニング しらゆき', s: 'あさだし ゆうがた', en: 'SHIRAYUKI' },
-  bunbo: { bg: '#fdf3e0', bar: PAL.orange, fg: '#a3531c', t: '文具とゲーム ほしの', s: 'ガチャ ノート カード', en: 'HOSHINO' },
-  bakery: { bg: '#fdf1dc', bar: 0xd8a03c, fg: '#8a5a20', t: 'パン工房 こむぎ', s: 'やきたて まいあさ', en: 'KOMUGI' },
-  sento: { bg: '#f6f3ea', bar: PAL.blue, fg: '#20509e', t: '松 の 湯', s: 'あさ六時 - よる十一時', en: 'MATSU-NO-YU' },
-  sozai: { bg: '#fdf4e2', bar: PAL.teal, fg: '#1d6a58', t: 'そうざい ひなた', s: 'おべんとう からあげ', en: 'HINATA' },
-  /* The two Showa units.  Both fascias are deliberately *low contrast* -- a
-   * forty-year-old painted sign has gone chalky and its ground has yellowed, and
-   * that faded pair of tones next to the crisp modern shopfronts either side is
-   * the whole reason they read as old.  No people on either, which rules out the
-   * portrait window a photo studio would have wanted. */
-  record: { bg: '#e6dcc4', bar: 0x9c4a3f, fg: '#7a3f38', t: 'レコード ほしぞら', s: 'えるぴー ・ どうなつばん', en: 'HOSHIZORA RECORD' },
-  denki: { bg: '#dfe4dc', bar: 0x36527f, fg: '#2c4a72', t: '電器 たかの', s: 'しゅうり ・ でんきゅう', en: 'TAKANO DENKI' },
-  // and the corner shop-house up on the north lane
-  kokuya: { bg: '#f2ead2', bar: PAL.leafDeep, fg: '#4a5f35', t: '米 ・ 酒 なかの', s: 'こめ さけ たばこ', en: 'NAKANO' },
-  /* The four services a residential block has and a shopping street does not:
-   * nobody travels to any of them, so none of them advertises.  Every one of
-   * these four is a near-white ground with a single thin bar and the type in
-   * the bar's own hue -- no saturated field, no second accent, nothing that
-   * would pull the eye off さくら坂 two streets away.  A clinic that shouts is
-   * a clinic nobody trusts, and that is the reason as much as the composition
-   * is. */
-  /* `shopFascia` starts the right-hand column at 0.76 w and the board is 1024
-   * wide, so `en` and `s` have 246 px: about thirteen Latin characters at 34 px
-   * and eight full-width ones at 28 px.  Longer strings are simply cut off at
-   * the edge of the board -- which is what 松の湯's 'あさ六時 - よる十一時' and
-   * ほしの's 'ガチャ ノート カード' already do.  Hence the short romanisations
-   * here, which is also what most of the row above uses. */
-  clinic: { bg: '#f4f7fa', bar: PAL.blue, fg: '#23508f', t: 'ひばり台内科', s: 'ないか しょうにか', en: 'CLINIC' },
-  yakkyoku: { bg: '#fbf7ec', bar: PAL.leafDeep, fg: '#37684b', t: 'くすり さかい', s: 'ちょうざい', en: 'SAKAI' },
-  laundry: { bg: '#edf2f5', bar: PAL.teal, fg: '#1f6f6d', t: 'コインランドリー ひばり', s: '六時 - よる十二時', en: 'LAUNDRY' },
-  fudosan: { bg: '#fbf6e6', bar: PAL.orange, fg: '#a3531c', t: 'ひばり不動産', s: 'あきま ちゅうしゃ', en: 'ESTATE' },
-  /* The two on the school route.  They exist because reusing ほしの's and
-   * たかの's fascias for them -- the nearest thing the table already had to a
-   * stationer and a repair shop -- put さくら坂's two shops a second time on a
-   * street four hundred metres away, which is the one thing this round's brief
-   * ruled out. A town has one of each.
-   *
-   * Both are warmer and plainer than the さくら坂 row: a school stationer and a
-   * bicycle shop are the two shops in a suburb that never had a sign designed
-   * for them, they just painted the name on the board. */
-  bungu: { bg: '#fdf6e4', bar: 0xc08a3e, fg: '#8a5a20', t: '文具 ひばり堂', s: 'ノート えんぴつ', en: 'HIBARIDO' },
-  ringyo: { bg: '#eef2ec', bar: 0x4a6f58, fg: '#37684b', t: 'ひばり輪業', s: 'しゅうり ・ ぱんく', en: 'RINGYO' },
-  /* The two on ひばり台六丁目, at the bus turnaround.  The table already had a
-   * pharmacy, a coin laundry, a dry cleaner and a rice-and-sake shop, and the
-   * whole point of six丁目 is that it is somebody's *ordinary* week -- so
-   * reusing any of those would have put the same shop twice in one town, which
-   * is the mistake `bungu` and `ringyo` were added to avoid one round ago.
-   *
-   * Both are deliberately the quietest fascias in the table.  They stand at the
-   * end of a bus route on the edge of the estate, thirty metres from a hillside,
-   * and the loudest thing in that frame has to be the bus. */
-  bento: { bg: '#fdf2e0', bar: 0xc4713a, fg: '#a3531c', t: 'お弁当 のはら', s: 'できたて まいにち', en: 'NOHARA' },
-  zakka: { bg: '#f4f1e6', bar: PAL.purple, fg: '#5c5480', t: '雑貨 まるみ', s: 'にちようひん', en: 'MARUMI' },
-};
+/* Lawson Fuji: the tenants and their names live in src/data/town.js (our own
+ * names; none of Sakura Crossing's). */
+const SHOPS = SHOP_SIGNS;
 
 /** Horizontal shop fascia. One layout, nine tenants. */
 export const shopFascia = (kind = 'conbini') =>
   cached('fascia' + kind, () =>
     make(1024, 224, (c, w, h) => {
-      const st = SHOPS[kind] ?? SHOPS.conbini;
+      const st = SHOPS[kind] ?? SHOPS.soba;
       c.fillStyle = st.bg;
       c.fillRect(0, 0, w, h);
       rule(c, 0, h - 16, w, 16, st.bar);
@@ -841,7 +785,7 @@ export const shopFascia = (kind = 'conbini') =>
 export const shopBlade = (kind = 'ramen') =>
   cached('blade' + kind, () =>
     make(192, 768, (c, w, h) => {
-      const st = SHOPS[kind] ?? SHOPS.ramen;
+      const st = SHOPS[kind] ?? SHOPS.soba;
       c.fillStyle = st.bg;
       c.fillRect(0, 0, w, h);
       rule(c, 0, 0, w, 12, st.bar);
@@ -919,7 +863,7 @@ export const lanternTex = (variant = 0) =>
       // ribs
       c.fillStyle = 'rgba(180,160,124,0.5)';
       for (let i = 0; i < 9; i++) c.fillRect(0, 12 + i * 28, w, 3);
-      const t = ['桜坂', '商店街', 'ゆ', '祭', '奉納'][variant % 5];
+      const t = LANTERN_TEXT[variant % LANTERN_TEXT.length];
       centered(c, t, w / 2, h / 2, w - 70, variant >= 3 ? 128 : 92,
         variant === 2 ? '#20509e' : '#b5322f', 'bold', 6);
     })

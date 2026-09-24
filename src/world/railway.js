@@ -522,7 +522,10 @@ function buildCrossing(ctx, parent) {
   const lampA = lamps.filter((l) => l.userData.lamp === 'a');
   const lampB = lamps.filter((l) => l.userData.lamp === 'b');
   // each lens/lamp gets its own material instance so we can drive colour
-  for (const l of lamps) l.material = l.material.clone();
+  for (const l of lamps) {
+    l.material = l.material.clone();
+    l.material.userData.live = true;   // colour driven at runtime: never batch it
+  }
 
   const crossingApi = {
     group,

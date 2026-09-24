@@ -165,3 +165,78 @@ Judgement calls, newest milestone last.
   colliders). The lone shopper (figures come with the clerk, M5). The kei van,
   the sign flicker and the wet road (M6). Sakura at the frame edges (M2).
   Nothing in M1 blocks Fuji or the sign.
+
+## M2: Compact town
+
+- **The famous views are protected by placement.** Tan approved low town at
+  the frame edges. Nothing new stands in front of the storefront, the sign or
+  Fuji's cone. Poles and wires stay out of the 70° frame or pass above it.
+  The Lawson's vending machines and bins stand on its left side wall, hidden
+  behind the front corner. Its parked cars use the outer bays. One wheel stop
+  that would have edged into the bottom-left corner is left out. The two
+  houses behind the store are single-storey, so they stay below its roofline.
+  Pixel comparison against the approved M1 frames: mean difference 0.2/255
+  over the storefront and 0.03/255 over Fuji (falling petals and the edges).
+- **No poles along the Lawson frontage.** At golden hour the low sun laid the
+  nearest pair's shadow across the sign. The real store has no overhead lines
+  in front of it, so the main-road line runs from x ±44 outward.
+- **Layout (config.js TOWN).**
+  - Residential lane behind-left of the store, reached by a side lane.
+  - Park behind-right.
+  - Main road the full width of town, barricaded 通行止め at x ±118.
+  - Shopping street 富士見通り商店街 west of the photographers' lot.
+  - Side road at x 30 to the level crossing, with the station east of it.
+  - Railway at z = 60.
+  - Vegetable fields fill the open ground between zones.
+  - Tree lines and a low fence all round. The player clamp sits on that
+    fence, and roads end at visible barricades and guardrails.
+- **Parts reused, re-signed.** Houses, shopfronts, poles, wires, sakura,
+  groves, shrubs, vending, cars, props, the railway, crossing, station and
+  train come from the parts library. Every sign name lives in
+  `src/data/town.js`. The shared textures that carried Sakura Crossing names
+  (shop fascia table, station board, train destination, lanterns, a poster
+  strapline) now read from it. The bundle contains none of ひばり, 青空商店,
+  さかえ, 桜坂 or any other Sakura Crossing shop or place name.
+- **Railway placed whole.** Sakura Crossing's line is authored round its
+  crossing, so it is placed as one part at (30, 60) through an offset context
+  (`world/ctx.js`). The train is two cars, green and cream (a `livery` option
+  on the part), and waits off-scene between passes: one every 180 s. Gates
+  and lamps still follow the train's distance. The line leaves town between
+  planted earth banks (the cutting), with fences and 線路内立入禁止 plates
+  across the right-of-way.
+- **Our own traffic signals** (`world/signals.js`). The library has none.
+  They are Japanese horizontal heads with a glowing blue-green, plus
+  pedestrian heads, at a zebra at x = -35.
+- **Performance: static batching** (`world/merge.js`, SPEC section 11).
+  - Static meshes are merged per material, per 128 m cell, so the camera and
+    the shadow map can still cull.
+  - Plain-colour toon and basic materials are folded into vertex colours,
+    one shared material per lighting style. The toon shadow tint moved to a
+    per-vertex attribute (`cel({ tintAttr })` in core/toon.js) so it doesn't
+    split batches. The look is unchanged.
+  - Materials changed at runtime are tagged `userData.live` and never
+    folded: the store glass, lit interior and sign, signal and crossing
+    lamps, and the ground.
+  - The train batches inside itself, and the cloud ring into two draws.
+  - Far tree lines are one instanced draw each, with coarser blobs and no
+    shadows.
+  - Before: about 2,000 calls and 5–7M triangles. After: 83–294 calls and
+    0.61–0.73M triangles in every first-person view. The dev overview shots
+    from 95 m up reach 322.
+- **Petals follow the player:** 150 in a 48 m box (SPEC: 150 on High),
+  instead of Sakura Crossing's 980 along its street.
+- **Measured (dev `?m2check`, headless Chrome, Apple M2).**
+  - Straight end-to-end routes: 91–96 s at walking pace. A loop through
+    every zone: 322 s. Nothing got stuck.
+  - Fuji's peak is in line of sight from 87% of walkable sample points.
+  - Frame time at 2560×1440: 6.7–7.1 ms.
+- **Open question for Tan: walking time.** SPEC asks for a town of about
+  250 × 200 m that takes about 3 minutes to cross. At Sakura Crossing's walk
+  speed (2.55 m/s), 250 m takes about 100 s, so the two numbers don't agree.
+  The town follows the size; crossing it takes about 1.5 minutes.
+- **Deferred.** Crossing bells and all other sound (M4). The kei van, sign
+  flicker and wet road (M6). The Lawson's ashtray and umbrella stand; the
+  umbrella stand belongs by the door, which is in the famous frame.
+  Pedestrians.
+- **Status:** built and checked, pending Tan's sign-off. Tan's first read:
+  "kind of okay". Needs a review pass before M3.

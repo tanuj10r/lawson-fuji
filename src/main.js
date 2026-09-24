@@ -344,6 +344,8 @@ if (import.meta.env?.DEV) {
     player.pos.y = world.heightAt(player.pos.x, player.pos.z);
     player.bob = 0;
     player.applyCamera(0);
+    // dev: lift the camera for overview shots
+    if (opts.lift) camera.position.y += opts.lift;
     if (opts.ink !== undefined) pipeline.enabled.ink = opts.ink;
     if (opts.grade !== undefined) pipeline.enabled.grade = opts.grade;
     pipeline.forceScale = opts.scale || 1;
@@ -356,7 +358,12 @@ if (import.meta.env?.DEV) {
     seatLights();
     sky.dome.position.copy(camera.position);
     sky.clouds.position.copy(camera.position);
+    // count this one frame, every pass (shadow map included)
+    renderer.info.autoReset = false;
+    renderer.info.reset();
     pipeline.render();
+    window.__frameInfo = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
+    renderer.info.autoReset = true;
 
     const off = document.createElement('canvas');
     const outW = opts.outW || W;
@@ -374,7 +381,7 @@ if (import.meta.env?.DEV) {
       ctx.drawImage(img, (off.width - w) / 2, 0, w, h);
       ctx.globalAlpha = 1;
     }
-    const data = off.toDataURL('image/jpeg', opts.quality || 0.86);
+    const data = opts.png ? off.toDataURL('image/png') : off.toDataURL('image/jpeg', opts.quality || 0.86);
     const r = await fetch('/__shot', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -387,6 +394,242 @@ if (import.meta.env?.DEV) {
    * reference/lookdev/, and save a copy with the reference photo laid over
    * it to .shots/ (those carry the third-party photo, so they stay local). */
   const params = new URLSearchParams(location.search);
+
+  /* ?tour: frames round the town (M2 review), with draw-call and triangle
+   * counts in the console. */
+  if (params.has('tour')) {
+    world.fuji.ready.then(async () => {
+      const W = 1600, H = 900;
+      const stops = [
+        ['overview', 'golden', { pos: [0, 0, 150], yaw: 0, pitch: -0.42, lift: 95 }],
+        ['overview-west', 'morning', { pos: [60, 0, 110], yaw: 0.75, pitch: -0.4, lift: 70 }],
+        ['road-east', 'morning', { pos: [-60, 0, 14], yaw: -1.35, pitch: 0.05 }],
+        ['shotengai', 'golden', { pos: [-40, 0, 40], yaw: 1.57, pitch: 0.05 }],
+        ['residential', 'morning', { pos: [-22, 0, -41], yaw: 1.57, pitch: 0.05 }],
+        ['park', 'morning', { pos: [46, 0, 4], yaw: 0, pitch: 0.08 }],
+        ['sideroad', 'golden', { pos: [30, 0, 24], yaw: Math.PI, pitch: 0.02 }],
+        ['station', 'morning', { pos: [40, 0, 55], yaw: -1.6, pitch: 0.03 }],
+        ['lawson-side', 'morning', { pos: [-16, 0, 2], yaw: 1.15, pitch: 0.0 }],
+        ['train', 'golden', { pos: [30, 0, 46], yaw: Math.PI, pitch: 0.04, train: -12 }],
+        ['night-road', 'night', { pos: [-8, 0, 19], yaw: -0.5, pitch: 0.06 }],
+      ];
+      for (const [name, view, opts] of stops) {
+        enterHero(view);
+        if (opts.train !== undefined) {
+          // stage the train on the crossing with the gates down
+          const { train, crossing } = world.rail;
+          train.x = opts.train;
+          train.group.position.x = train.x;
+          train.group.visible = true;
+          crossing.setArms(1);
+          crossing.setLamps(true, 0.2);
+        }
+        await window.__shot(`m2-${name}`, W, H, { ...opts, quality: 0.85 });
+        const i = window.__frameInfo;
+        console.log(`tour ${name}: calls ${i.calls} triangles ${i.triangles}`);
+        if (name === 'road-east' || name === 'shotengai') {
+          renderer.shadowMap.enabled = false;
+          await window.__shot(`m2-${name}-noshadow`, 320, 180, { ...opts, quality: 0.5 });
+          renderer.shadowMap.enabled = true;
+          // same framing at full size, main pass only
+          const j = window.__frameInfo;
+          console.log(`tour ${name} (no shadow pass, small): calls ${j.calls}`);
+        }
+      }
+      console.log('batching ' + JSON.stringify(world.batching));
+      // what is heavy: meshes grouped by their nearest named ancestor
+      const agg = new Map();
+      scene.traverse((o) => {
+        if (!o.isMesh || !o.visible) return;
+        let a = o;
+        while (a.parent && !a.name) a = a.parent;
+        const key = (a.name || 'anon') + (o.isInstancedMesh ? '[inst]' : '');
+        const g = o.geometry;
+        const tris = (g.index ? g.index.count : g.attributes.position.count) / 3 * (o.isInstancedMesh ? o.count : 1);
+        const e = agg.get(key) ?? { n: 0, tris: 0 };
+        e.n++; e.tris += tris;
+        agg.set(key, e);
+      });
+      const rows = [...agg.entries()].sort((a, b) => b[1].tris - a[1].tris).slice(0, 18);
+      for (const [k, e] of rows) console.log(`heavy ${k}: meshes ${e.n} tris ${Math.round(e.tris)}`);
+      const kinds = new Map();
+      scene.traverse((o) => {
+        if (o.name !== 'merged') return;
+        const m = o.material;
+        const k = m.isShaderMaterial ? 'hull' : `${m.type}${m.vertexColors ? '-vc' : ''}${m.map ? '-map' : ''}${o.castShadow ? '-cast' : ''}`;
+        kinds.set(k, (kinds.get(k) ?? 0) + 1);
+      });
+      console.log('kinds ' + JSON.stringify([...kinds.entries()]));
+      const byN = [...agg.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 12);
+      for (const [k, e] of byN) console.log(`many ${k}: meshes ${e.n} tris ${Math.round(e.tris)}`);
+      document.title = 'tour done';
+      console.log('tour done');
+    });
+  }
+
+  /* ?m2check: the M2 acceptance measurements, printed to the console.
+   *   walk   the player controller driven along the town's longest routes at
+   *          walking pace: seconds taken, and whether it ever got stuck
+   *   fuji   share of walkable sample points with a clear line of sight from
+   *          eye height to Fuji's peak
+   *   perf   average frame time at 2560 x 1440, GPU work included */
+  /* ?screenshots: a set of town frames, lossless, at the game's own render
+   * scale, into screenshots/. */
+  if (params.has('screenshots')) {
+    world.fuji.ready.then(async () => {
+      const W = 1920, H = 1080;
+      const shots = [
+        ['01-famous-view-morning', 'morning', {}],
+        ['02-famous-view-golden-hour', 'golden', {}],
+        ['03-famous-view-night', 'night', {}],
+        ['04-lawson-forecourt-morning', 'morning', { pos: [6, 0, 9], yaw: 0.35, pitch: 0.12 }],
+        ['05-lawson-side-night', 'night', { pos: [-8, 0, 19], yaw: -0.5, pitch: 0.06 }],
+        ['06-main-road-signals-morning', 'morning', { pos: [-60, 0, 14], yaw: -1.35, pitch: 0.05 }],
+        ['07-main-road-poles-golden-hour', 'golden', { pos: [70, 0, 19], yaw: 1.45, pitch: 0.06 }],
+        ['08-shopping-street-golden-hour', 'golden', { pos: [-40, 0, 40], yaw: 1.57, pitch: 0.05 }],
+        ['09-shopping-street-night', 'night', { pos: [-100, 0, 40], yaw: -1.57, pitch: 0.05 }],
+        ['10-residential-lane-morning', 'morning', { pos: [-22, 0, -41], yaw: 1.57, pitch: 0.05 }],
+        ['11-park-and-fuji-morning', 'morning', { pos: [46, 0, 4], yaw: 0, pitch: 0.08 }],
+        ['12-level-crossing-train-golden-hour', 'golden', { pos: [30, 0, 46], yaw: Math.PI, pitch: 0.04, train: -12 }],
+        ['13-side-road-to-crossing-morning', 'morning', { pos: [30, 0, 24], yaw: Math.PI, pitch: 0.02 }],
+        ['14-station-platform-morning', 'morning', { pos: [40, 0, 55], yaw: -1.6, pitch: 0.03 }],
+        ['15-fields-and-fuji-golden-hour', 'golden', { pos: [95, 0, 12], yaw: -0.12, pitch: 0.1 }],
+        ['16-town-overview-golden-hour', 'golden', { pos: [0, 0, 150], yaw: 0, pitch: -0.42, lift: 95 }],
+      ];
+      for (const [name, view, opts] of shots) {
+        enterHero(view);
+        if (opts.train !== undefined) {
+          const { train, crossing } = world.rail;
+          train.x = opts.train;
+          train.group.position.x = train.x;
+          train.group.visible = true;
+          crossing.setArms(1);
+          crossing.setLamps(true, 0.2);
+        }
+        await window.__shot(name, W, H, { ...opts, png: true, dir: 'screenshots', scale: 2 });
+        console.log('shot ' + name);
+      }
+      console.log('tour done');
+    });
+  }
+
+  if (params.has('m2check')) {
+    world.fuji.ready.then(async (fujiMesh) => {
+      const log = (...a) => console.log('m2check ' + a.join(' '));
+      enterHero('morning');
+
+      /* ---- walk ---- */
+      const walkRoute = (name, pts) => {
+        player.pos.set(pts[0][0], world.heightAt(pts[0][0], pts[0][1]), pts[0][1]);
+        player.vel.set(0, 0, 0);
+        player.locked = true;
+        player.keys.clear();
+        player.keys.add('KeyW');
+        let t = 0, i = 1, stuck = 0, lastD = Infinity, since = 0, dist = 0;
+        const prev = player.pos.clone();
+        while (i < pts.length && t < 600) {
+          const [tx, tz] = pts[i];
+          const dx = tx - player.pos.x, dz = tz - player.pos.z;
+          const d = Math.hypot(dx, dz);
+          if (d < 0.8) { i++; lastD = Infinity; since = 0; continue; }
+          player.yaw = Math.atan2(-dx, -dz);
+          player.update(1 / 60);
+          dist += prev.distanceTo(player.pos);
+          prev.copy(player.pos);
+          t += 1 / 60;
+          since += 1 / 60;
+          if (d < lastD - 0.5) { lastD = d; since = 0; }
+          if (since > 4) {
+            stuck++;
+            log(`walk ${name} STUCK near (${player.pos.x.toFixed(1)}, ${player.pos.z.toFixed(1)}) heading to (${tx}, ${tz})`);
+            i++; since = 0; lastD = Infinity;
+          }
+        }
+        player.keys.clear();
+        player.locked = false;
+        log(`walk ${name}: ${t.toFixed(0)} s, ${dist.toFixed(0)} m, stuck ${stuck}`);
+      };
+      // west end of the shopping street -> the Lawson -> far corner of the park
+      walkRoute('shotengai-to-park', [[-104, 40], [-40, 40], [-36, 22], [0, 21], [40, 19], [40, 8], [46, 6], [46, -12], [46, -35], [62, -50]]);
+      // the station -> the level crossing road -> far end of the residential lane
+      walkRoute('station-to-lane', [[44, 55], [34, 55], [34, 22], [-21.5, 21], [-21.5, 5], [-21.5, -41], [-108, -41]]);
+      // a loop through every zone: shopping street, residential lane, park,
+      // station and back to the famous view
+      walkRoute('grand-loop', [[0, 21], [-36, 22], [-40, 40], [-104, 40], [-40, 40], [-36, 22], [-21.5, 20],
+        [-21.5, 5], [-21.5, -41], [-108, -41], [-21.5, -41], [-21.5, 8], [40, 8], [46, 6], [46, -35], [62, -50],
+        [46, -35], [46, 6], [40, 8], [34, 20], [34, 55], [44, 55], [34, 55], [34, 22], [0, 21]]);
+      // the barricade west to the barricade east, along the main road
+      walkRoute('road-end-to-end', [[-116, 13.8], [116, 13.8]]);
+
+      /* ---- fuji ---- */
+      {
+        const pos = fujiMesh.geometry.attributes.position;
+        let top = 0;
+        for (let k = 1; k < pos.count; k++) if (pos.getY(k) > pos.getY(top)) top = k;
+        const peakLocal = new THREE.Vector3().fromBufferAttribute(pos, top);
+        const ray = new THREE.Raycaster();
+        const targets = [];
+        world.root.traverse((o) => { if (o.isMesh && o.visible && o.name !== 'ground') targets.push(o); });
+        const B = world.bounds;
+        let n = 0, clear = 0;
+        const eye = new THREE.Vector3(), peak = new THREE.Vector3(), dir = new THREE.Vector3();
+        const inside = (x, z) => world.colliders.some((c) => c.top > 1.5 && x > c.x0 && x < c.x1 && z > c.z0 && z < c.z1);
+        for (let x = B.x0 + 6; x < B.x1 - 6; x += 10) {
+          for (let z = B.z0 + 6; z < B.z1 - 6; z += 10) {
+            if (inside(x, z)) continue;
+            eye.set(x, world.heightAt(x, z) + 1.6, z);
+            camera.position.copy(eye);
+            world.fuji.follow(camera);
+            fujiMesh.updateMatrixWorld(true);
+            peak.copy(peakLocal).applyMatrix4(fujiMesh.matrixWorld);
+            dir.subVectors(peak, eye).normalize();
+            ray.set(eye, dir);
+            ray.far = 400;
+            n++;
+            if (!ray.intersectObjects(targets, false).length) clear++;
+          }
+        }
+        log(`fuji peak visible from ${clear} of ${n} walkable sample points (${Math.round((100 * clear) / n)}%)`);
+      }
+
+      /* ---- perf ---- */
+      {
+        const W = 2560, H = 1440;
+        camera.aspect = W / H;
+        pipeline.forceScale = 0;
+        pipeline.setSize(W, H);
+        updateProjection();
+        setOutlineResolution(pipeline.size.x, pipeline.size.y);
+        const gl = renderer.getContext();
+        const px = new Uint8Array(4);
+        const views = [['morning', null], ['shotengai', [-40, 40, 1.57]], ['road', [-60, 14, -1.35]], ['park', [46, 4, 0]]];
+        for (const [name, at] of views) {
+          enterHero(name === 'morning' ? 'morning' : 'golden');
+          if (at) { player.pos.set(at[0], world.heightAt(at[0], at[1]), at[1]); player.yaw = at[2]; player.pitch = 0.05; player.applyCamera(0); }
+          world.update(0, camera);
+          seatLights();
+          sky.dome.position.copy(camera.position);
+          sky.clouds.position.copy(camera.position);
+          for (let k = 0; k < 5; k++) pipeline.render();
+          gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+          const N = 60;
+          const t0 = performance.now();
+          for (let k = 0; k < N; k++) {
+            world.update(1 / 60, camera);
+            pipeline.render();
+          }
+          gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+          const ms = (performance.now() - t0) / N;
+          log(`perf ${name}: ${ms.toFixed(2)} ms/frame at ${W}x${H} (internal ${pipeline.size.x}x${pipeline.size.y})`);
+        }
+        const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+        log('gpu ' + (dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : 'unknown'));
+      }
+      log('done');
+      console.log('tour done');
+    });
+  }
+
   if (params.has('lookdev')) {
     world.fuji.ready.then(async () => {
       const W = Number(params.get('w')) || 1920;

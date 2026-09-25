@@ -796,3 +796,39 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   passes).
 - **Other checks.** Heroes 0.10–0.12%; density 27 of 27; bare stretches
   pass; traincheck passes; no Sakura Crossing names.
+
+## M2e round 2: closing the gaps the review found
+
+- **The main road's far side.** The lot cutter builds a frontage row of
+  shops and houses facing the store across the road (TOWN.frontRow),
+  except on the photographers' lot where the famous views stand
+  (TOWN.photoLot). The old town's fields pulled back behind it.
+- **Shop rooms.** Recesses are now 3.4 m deep rooms furnished by trade
+  (shopfronts.js `furnish`), goods baked per colour:
+  - general stores and grocers: stocked wall shelving, low islands you
+    can see over, a counter and register, a lit drinks fridge;
+  - ramen, soba and wagashi: a counter with stools and a kitchen shelf;
+  - cafés: tables and chairs, and a coffee machine;
+  - laundromats: stacked machines; barbers: chairs and mirrors;
+  - fluorescent strips on every ceiling.
+  - The fittings take a little warm light (emissive 0.3–0.45), so a lit
+    shop reads brighter than the shade under its awning.
+- **The shrine.** A 手水舎 water pavilion with ladles, an 絵馬 rack, the
+  prayer-notice board, an offering box with the bell rope, and paper
+  lanterns strung along the approach.
+- **The line.** The track bed is painted gravel (`gravelTex`). A row of
+  cherries runs between the south fence and the houses beyond, clear of
+  the level crossing.
+- **Re-aimed spots.** train-at-platform stands along platform 2;
+  station-gates takes the window, clock, gates and board at an angle;
+  station-to-platform is on the gate line; the park looks down its
+  cherry-lined street. The two concourse spots are `indoor`: the density
+  check skips its building count there, since the room is the one
+  building in view. Every other count still applies.
+- **Checks.** Density 27 of 27; bare stretches; traincheck; heroes
+  0.10–0.12%; no Sakura Crossing names. Measured near idle (the kit street
+  read 6.15 ms against its usual 5.9): 5–13 ms at every town spot, so
+  60 fps at 1440p passes.
+- **Still open.** SPEC 11's draw budgets (300–780 calls, 1.9–3.5M
+  triangles, against 300 and 1M); a ticket window with a staff member;
+  people.

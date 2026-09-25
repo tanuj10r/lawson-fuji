@@ -51,7 +51,9 @@ export function atSpot(registry, decals, spot, hfov = 70) {
     else n.prop++;                                  // props and signs
   }
   for (const q of decals.quads) if (PAINT.has(q.layer) && inView(q.x, q.z)) n.marking++;
-  const fail = Object.keys(n).filter((k) => n[k] < BUDGET[k]);
+  // indoors (the station concourse) the room is the one building in view:
+  // the building count does not apply, everything else does
+  const fail = Object.keys(n).filter((k) => !(spot.indoor && k === 'building') && n[k] < BUDGET[k]);
   return { ...n, pass: fail.length === 0, fail };
 }
 

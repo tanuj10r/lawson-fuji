@@ -245,7 +245,9 @@ export function buildStation(ctx, { kit, service }) {
         const x = cxE + ox;
         for (const [z, yy] of [[B.z0 - run, stepY], [B.z0 - 0.1, PH]]) rails.push({ geometry: new THREE.BoxGeometry(0.05, 0.9, 0.05), matrix: trs(x, yy + 0.45, z) });
         const len = Math.hypot(run, PH - stepY);
-        rails.push({ geometry: new THREE.BoxGeometry(0.05, 0.05, len), matrix: trs(x, (stepY + PH) / 2 + 0.9, B.z0 - run / 2, Math.atan2(PH - stepY, run), 0, 0) });
+        // a box along z tilted by +t about x drops its +z end: the rail has to
+        // rise toward the door (+z), so the tilt is negative
+        rails.push({ geometry: new THREE.BoxGeometry(0.05, 0.05, len), matrix: trs(x, (stepY + PH) / 2 + 0.9, B.z0 - run / 2, -Math.atan2(PH - stepY, run), 0, 0) });
       }
       const rm = new THREE.Mesh(bake(rails), m.steel);
       rm.castShadow = true;

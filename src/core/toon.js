@@ -150,6 +150,7 @@ export function cel(opts = {}) {
     depthWrite = null,
     fog = true,
     alphaMap = null,
+    emissiveMap = null,
     vertexColors = false,
     tintAttr = false,
     wear = false,
@@ -176,6 +177,7 @@ export function cel(opts = {}) {
     vertexColors,
     emissive: emissive === null ? 0x000000 : emissive,
     emissiveIntensity,
+    emissiveMap,
   });
   if (depthWrite !== null) mat.depthWrite = depthWrite;
   // worn surfaces read a per-vertex aWear (see addWear)

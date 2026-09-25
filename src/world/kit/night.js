@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { cel } from '../../core/toon.js';
+import { windowAtlas } from './paint.js';
 
 /* ------------------------------------------------------------------ *
  * The town after dark (SPEC section 3, light; M2d).
@@ -19,8 +20,11 @@ import { cel } from '../../core/toon.js';
 const DAY_GLASS = 0x46506a, LIT = 0xffd9a0, DIM = 0x4a4a78;
 
 export function makeNight(ctx) {
-  const winLit = cel({ color: DAY_GLASS, bands: 2, tint: 0x4b4560, emissive: LIT, emissiveIntensity: 0, cache: false });
-  const winDim = cel({ color: DAY_GLASS, bands: 2, tint: 0x4b4560, emissive: DIM, emissiveIntensity: 0, cache: false });
+  // the glass shows what is behind it (M2e: curtains, blinds, shoji; kit/paint.js
+  // windowAtlas), and at night glows through it
+  const pane = { map: windowAtlas(), emissiveMap: windowAtlas() };
+  const winLit = cel({ color: 0xc4cad8, ...pane, bands: 2, tint: 0x4b4560, emissive: LIT, emissiveIntensity: 0, cache: false });
+  const winDim = cel({ color: 0xc4cad8, ...pane, bands: 2, tint: 0x4b4560, emissive: DIM, emissiveIntensity: 0, cache: false });
   winLit.userData.live = winDim.userData.live = true;
 
   const pools = [];

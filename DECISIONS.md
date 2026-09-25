@@ -694,3 +694,31 @@ Judgement calls, newest milestone last.
 - **Cost.** Empty instanced sets are hidden, and so are empty shadow
   stand-ins. About 50 more calls at the famous view; 4.3–8.6 ms at 1440p.
 - **Checks.** Density 27 of 27, bare stretches, traincheck; heroes 0.000%.
+
+## M2e Phase 5: buildings
+
+- **Behind the glass.** One painted atlas of 8 window interiors
+  (kit/paint.js `windowAtlas`): lace curtain, drawn curtains, venetian
+  blind, frosted bathroom glass with bottles, a dark room with the sky's
+  sheen, a plant on the sill, shoji, a roller blind. Every pane picks a
+  cell (`windowCell`). Frosted glass is likelier low down; shoji go on old
+  hip-roofed houses.
+- **The same atlas lights the night.** It is the night glass's emissive
+  map, so a lit window glows through its curtains or blind instead of as
+  a flat panel.
+- **Sashes.** Aluminium in silver, bronze or grey per house, with the two
+  leaves' meeting rails. 40% of houses have 面格子 grilles on their
+  ground-floor windows.
+- **Sill streaks.** A soft painted streak under every window, front and
+  side (`sillStreakTex`), darkest under the sill's ends. The wear atlas
+  dropped its guessed sill streaks; these sit under real windows.
+- **Downpipes.** PVC in grey, beige, brown or white per house, with wall
+  brackets and a shoe at the foot.
+- **Steel stairs.** The walk-up's stair is now painted steel (maroon,
+  brown or grey) on stringers, with rust showing through (Tan's photo 1).
+- **Storage sheds** (物置). A steel garden shed with sliding doors and a
+  sloped lid in 30% of lane gardens with room; half of them rusting.
+- **The famous views moved 0.10–0.12%** (window detail at their edges), well
+  within the guard, so no re-baseline was needed.
+- **Checks.** Density 27 of 27, bare stretches, traincheck; 4.4–9.1 ms at
+  1440p.

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { rustTex } from './kit/tex.js';
 import { PAL } from '../core/palette.js';
 import { cel, flat } from '../core/toon.js';
 import {
@@ -45,6 +46,14 @@ const ROOFS = [PAL.roofSlate, PAL.roofBlue, PAL.roofBrown, PAL.roofTeal];
 const DOORS = [0x8a6f5c, 0x5f6f7a, 0x7a5a52, 0x4f6b58, 0x8f7a52, 0x6a5f70];
 
 const M = {};
+/* Painted steel (M2e): the maroon or brown of an old walk-up's stair, the
+ * paint rusting through (kit/tex.js rustTex, as a second tone). */
+const steelMats = new Map();
+function steelMat(c) {
+  if (!steelMats.has(c)) steelMats.set(c, cel({ color: c, map: rustTex(), bands: 3, tint: 0x4a3e5c, cache: false }));
+  return steelMats.get(c);
+}
+
 function mats() {
   if (M.walls) return M;
   M.walls = WALLS.map((c) => cel({ color: c, bands: 3, tint: 0x6f6790 }));
@@ -314,7 +323,7 @@ export function makeWalkup(o = {}) {
   const UNITS = o.units ?? 4;
   const GAL = 1.35;                       // the access gallery, on the +z face
   const wallMat = m.walls[o.wall ?? 4];
-  const parts = { wall: [], trim: [], roof: [], metal: [], metalDark: [], concrete: [], door: [] };
+  const parts = { wall: [], trim: [], roof: [], metal: [], metalDark: [], concrete: [], door: [], steel: [] };
   const push = (k, geo, mx) => parts[k].push({ geometry: geo, matrix: mx });
   const litA = flat({ color: 0xffffff, map: litWindowTex(0), cache: false });
   const litB = flat({ color: 0xffffff, map: litWindowTex(1), cache: false });
@@ -387,14 +396,20 @@ export function makeWalkup(o = {}) {
     const sx = -w / 2 - 1.6;
     for (let k = 0; k < FLOORS; k++) {
       const y = k * FH;
-      push('concrete', new THREE.BoxGeometry(1.6, 0.2, GAL + 0.4), trs(sx + 0.8, y + 0.1, gz - GAL / 2 + 0.2));
+      push('steel', new THREE.BoxGeometry(1.6, 0.12, GAL + 0.4), trs(sx + 0.8, y + 0.1, gz - GAL / 2 + 0.2));
+      // the stringers the treads hang between (painted steel, 鉄骨階段)
+      for (const sxx of [0.1, 1.5]) {
+        const rise = FH, run = 9 * 0.26;
+        const len = Math.hypot(rise, run);
+        push('steel', new THREE.BoxGeometry(0.06, 0.22, len), trs(sx + sxx, y + rise / 2 + 0.2, gz - GAL / 2 + 0.4 - run / 2 + 0.13, Math.atan2(rise, run), 0, 0));
+      }
       for (let i = 0; i < 9; i++) {
-        push('concrete', new THREE.BoxGeometry(1.35, 0.14, 0.32),
+        push('steel', new THREE.BoxGeometry(1.35, 0.05, 0.3),
           trs(sx + 0.8, y + 0.26 + (i * FH) / 9, gz - GAL / 2 + 0.4 - i * 0.26));
       }
-      push('metal', new THREE.BoxGeometry(0.07, 0.07, GAL + 0.4), trs(sx + 0.04, y + 1.16, gz - GAL / 2 + 0.2));
+      push('steel', new THREE.BoxGeometry(0.07, 0.07, GAL + 0.4), trs(sx + 0.04, y + 1.16, gz - GAL / 2 + 0.2));
       for (let i = 0; i <= 8; i++) {
-        push('metal', new THREE.BoxGeometry(0.04, 0.9, 0.04),
+        push('steel', new THREE.BoxGeometry(0.04, 0.9, 0.04),
           trs(sx + 0.04, y + 0.72 + (i * FH) / 9, gz - GAL / 2 + 0.4 - i * 0.26));
       }
     }
@@ -450,6 +465,7 @@ export function makeWalkup(o = {}) {
   const matFor = {
     wall: wallMat, trim: m.trim, roof: m.roofs[o.roof ?? 0], metal: m.metal,
     metalDark: m.metalDark, concrete: m.concrete, door: m.doors[o.door ?? 1],
+    steel: steelMat(rng.pick([0x7a4a44, 0x6a5048, 0x5a5a66])),
   };
   for (const key of Object.keys(parts)) {
     if (!parts[key].length) continue;

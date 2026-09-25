@@ -4,6 +4,7 @@ import { cel, flat } from '../core/toon.js';
 import { meterBox } from '../core/textures.js';
 import { box, cyl, bake, trs, rngKit } from '../core/util.js';
 import { hullOutline } from '../core/outline.js';
+import { windowCell, sillStreakTex } from './kit/paint.js';
 
 /* ------------------------------------------------------------------ *
  * Low-rise Japanese houses.
@@ -48,6 +49,17 @@ function mats() {
  * @param o.floors     1 or 2
  * @param o.seed       determinism
  */
+const sashMats = new Map();
+function sashMat(c) {
+  if (!sashMats.has(c)) sashMats.set(c, cel({ color: c, bands: 3, tint: 0x5c5680 }));
+  return sashMats.get(c);
+}
+let streakM = null;
+function streakMat() {
+  streakM ??= flat({ color: 0xffffff, map: sillStreakTex(), transparent: true, depthWrite: false, cache: false });
+  return streakM;
+}
+
 export function makeHouse(o) {
   const m = mats();
   const rng = rngKit(o.seed ?? 7);
@@ -72,7 +84,15 @@ export function makeHouse(o) {
   const frontHalf = frontIsX ? w / 2 : d / 2;
   const sideHalf = frontIsX ? d / 2 : w / 2;
 
-  const parts = { wall: [], roof: [], trim: [], metal: [], metalDark: [], glass: [], concrete: [], door: [] };
+  const parts = { wall: [], roof: [], trim: [], metal: [], metalDark: [], glass: [], concrete: [], door: [], sash: [], grille: [], streak: [], pvc: [] };
+  /* M2e: windows from their own draw, so a house's layout never shifts:
+   * what is behind each pane (kit/paint.js windowAtlas), the sash's metal,
+   * a grille on some ground-floor windows, the streak under every sill */
+  const wr = rngKit((o.seed ?? 7) + 991);
+  const sashCol = wr.pick([0xc8ccd4, 0xc8ccd4, 0x6a5a50, 0xb8b4ac]);
+  const pvcCol = wr.pick([0xb9bec8, 0xd8ccb4, 0x6a5a50, 0xe8e8ea]);
+  const grilled = wr.chance(0.4);
+  const faceRy = Math.atan2(fx, fz);
   const push = (k, geo, mx) => parts[k].push({ geometry: geo, matrix: mx });
 
   /* -------------------------------- volume -------------------------------- */
@@ -188,14 +208,34 @@ export function makeHouse(o) {
     const dx = frontIsX ? 0.14 : ww;
     const dz = frontIsX ? ww : 0.14;
     if (kind === 'window') {
-      push('trim', new THREE.BoxGeometry(dx, wh + 0.14, dz + (frontIsX ? 0.14 : 0)), trs(px - fx * 0.02, y, pz - fz * 0.02));
+      // the aluminium sash: frame, and the meeting rails of two sliding leaves
+      push('sash', new THREE.BoxGeometry(dx, wh + 0.14, dz + (frontIsX ? 0.14 : 0)), trs(px - fx * 0.02, y, pz - fz * 0.02));
       const gx = frontIsX ? 0.06 : ww - 0.12;
       const gz = frontIsX ? ww - 0.12 : 0.06;
-      push('glass', new THREE.BoxGeometry(gx, wh, gz), trs(px + fx * 0.05, y, pz + fz * 0.05));
-      push('metal', new THREE.BoxGeometry(frontIsX ? 0.07 : 0.06, wh, frontIsX ? 0.06 : 0.07),
-        trs(px + fx * 0.07, y, pz + fz * 0.07));
+      // behind the glass: frosted glass is likelier low down (a bathroom), shoji on old houses
+      const low = y < 2;
+      const cell = low && wr.chance(0.25) ? 3 : o.roofKind === 'hip' && wr.chance(0.2) ? 6 : wr.pick([0, 0, 1, 1, 2, 4, 5, 7]);
+      push('glass', windowCell(new THREE.BoxGeometry(gx, wh, gz), cell), trs(px + fx * 0.05, y, pz + fz * 0.05));
+      for (const t of [-0.03, 0.03]) {
+        push('sash', new THREE.BoxGeometry(frontIsX ? 0.07 : 0.04, wh, frontIsX ? 0.04 : 0.07),
+          trs(px + fx * 0.07 + (frontIsX ? 0 : t), y, pz + fz * 0.07 + (frontIsX ? t : 0)));
+      }
       push('trim', new THREE.BoxGeometry(frontIsX ? 0.2 : ww + 0.2, 0.08, frontIsX ? ww + 0.2 : 0.2),
         trs(px + fx * 0.03, y - wh / 2 - 0.09, pz + fz * 0.03));
+      // 面格子: a grille of vertical bars over a ground-floor window
+      if (low && grilled && cell !== 6) {
+        const n = Math.max(4, Math.round(ww / 0.11));
+        for (let i = 0; i <= n; i++) {
+          const t = -ww / 2 + 0.06 + ((ww - 0.12) * i) / n;
+          push('grille', new THREE.BoxGeometry(0.03, wh + 0.1, 0.03), trs(px + fx * 0.16 + (frontIsX ? 0 : t), y, pz + fz * 0.16 + (frontIsX ? t : 0)));
+        }
+        for (const dy of [-wh / 2 - 0.02, wh / 2 + 0.02]) {
+          push('grille', new THREE.BoxGeometry(frontIsX ? 0.05 : ww + 0.02, 0.04, frontIsX ? ww + 0.02 : 0.05), trs(px + fx * 0.16, y + dy, pz + fz * 0.16));
+        }
+      }
+      // the streak the sill leaves on the wall below
+      const sh = wr.range(0.6, 1.1);
+      push('streak', new THREE.PlaneGeometry(ww * 0.95, sh), trs(px + fx * 0.012, y - wh / 2 - 0.12 - sh / 2, pz + fz * 0.012, 0, faceRy, 0));
       return { px, pz, ry };
     }
     push('door', new THREE.BoxGeometry(dx, wh, dz), trs(px + fx * 0.02, y, pz + fz * 0.02));
@@ -303,9 +343,12 @@ export function makeHouse(o) {
     const s = rng.sign();
     const px = frontIsX ? fx * (frontHalf + 0.07) : s * (sideHalf - 0.15);
     const pz = frontIsX ? s * (sideHalf - 0.15) : fz * (frontHalf + 0.07);
-    push('metal', new THREE.CylinderGeometry(0.055, 0.055, H, 6), trs(px, H / 2, pz));
-    push('metal', new THREE.BoxGeometry(frontIsX ? 0.12 : w * 0.9, 0.1, frontIsX ? d * 0.9 : 0.12),
+    push('pvc', new THREE.CylinderGeometry(0.055, 0.055, H - 0.2, 8), trs(px, H / 2 + 0.1, pz));
+    push('pvc', new THREE.BoxGeometry(frontIsX ? 0.12 : w * 0.9, 0.1, frontIsX ? d * 0.9 : 0.12),
       trs(frontIsX ? px : 0, H + 0.02, frontIsX ? 0 : pz));
+    // brackets up the wall, and the shoe that turns it out at the foot
+    for (const y of [0.9, 2.1, 3.3, 4.5]) if (y < H - 0.3) push('metalDark', new THREE.BoxGeometry(0.14, 0.03, 0.14), trs(px, y, pz));
+    push('pvc', new THREE.CylinderGeometry(0.055, 0.055, 0.22, 8), trs(px + fx * 0.08, 0.1, pz + fz * 0.08, fz * 0.9, 0, -fx * 0.9));
   }
   // air-conditioning box
   {
@@ -341,6 +384,7 @@ export function makeHouse(o) {
   const matFor = {
     wall: wallMat, roof: roofMat, trim: m.trim, metal: m.metal,
     metalDark: m.metalDark, glass: o.glassMat ?? m.glass, concrete: m.concrete, door: m.door,
+    sash: sashMat(sashCol), grille: sashMat(0xd4d8de), pvc: sashMat(pvcCol), streak: streakMat(),
   };
   for (const key of Object.keys(parts)) {
     if (!parts[key].length) continue;
@@ -348,6 +392,7 @@ export function makeHouse(o) {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     if (key === 'wall' || key === 'roof') hullOutline(mesh, { thickness: 0.0032 });
+    if (key === 'streak') { mesh.castShadow = false; mesh.userData.noOutline = true; mesh.renderOrder = 1; }
     g.add(mesh);
   }
 

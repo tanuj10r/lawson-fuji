@@ -10,8 +10,9 @@ import {
 } from '../props.js';
 import { makeGasMeter, makeWaterMeter, makeKidBike } from '../streetprops.js';
 import { makeVehicle } from '../vehicles.js';
-import { sidingTex, kawaraTex, boardTex, laundryTex, mortarTex, MORTAR_TILE } from './tex.js';
+import { sidingTex, kawaraTex, boardTex, laundryTex, mortarTex, MORTAR_TILE, sheetTex, rustTex } from './tex.js';
 import { wearBuilding, WEAR } from './wear.js';
+import { windowCell, sillStreakTex } from './paint.js';
 import { plant, potCrowd, ivyPanel } from './green.js';
 
 /* ------------------------------------------------------------------ *
@@ -58,9 +59,30 @@ const glassMat = () => mat('glass', () => cel({ color: 0x6f7c9c, bands: 2, tint:
  * true puts them on the x = +-hw walls, else on z = +-hd.  A frame, a pane
  * and a sill each, `floors` high, two along the wall.
  */
-export function sideWindows(g, { hw, hd, floors, fh = 2.72, sideX, y0 = 0, glass = null }) {
+/** A steel garden shed, 1.2 x 0.7 x 1.4 m, doors facing +z. */
+function storageShed(color, rusty) {
+  const g = new THREE.Group();
+  const body = cel({ color, map: rusty ? rustTex() : null, bands: 3, tint: 0x5c5680, cache: false });
+  const doorM = cel({ color: new THREE.Color(color).multiplyScalar(0.9).getHex(), map: sheetTex(), bands: 3, tint: 0x5c5680, cache: false });
+  const dark = cel({ color: 0x5a5a66, bands: 3 });
+  g.add(box(1.2, 1.35, 0.7, body, 0, 0.68, 0));
+  const lid = box(1.3, 0.06, 0.82, body, 0, 1.4, 0.02);
+  lid.rotation.x = 0.06;
+  g.add(lid);
+  for (const sx of [-0.29, 0.29]) g.add(box(0.56, 1.15, 0.02, doorM, sx, 0.68, 0.36));
+  g.add(box(1.2, 0.04, 0.05, dark, 0, 0.1, 0.37));
+  g.add(box(0.04, 0.12, 0.02, dark, 0.02, 0.8, 0.38));
+  g.add(box(1.24, 0.1, 0.74, dark, 0, 0.05, 0));
+  g.traverse((o) => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } });
+  return g;
+}
+
+let sideStreak = null;
+export function sideWindows(g, { hw, hd, floors, fh = 2.72, sideX, y0 = 0, glass = null, seed = 1 }) {
   const len = sideX ? hd * 2 : hw * 2;
   const n = len > 7 ? 2 : 1;
+  const r = rngKit(seed + 4141);
+  sideStreak ??= flat({ color: 0xffffff, map: sillStreakTex(), transparent: true, depthWrite: false, cache: false });
   for (let f = 0; f < floors; f++) {
     for (let i = 0; i < n; i++) {
       const t = -len / 2 + (len * (i + 1)) / (n + 1);
@@ -72,12 +94,25 @@ export function sideWindows(g, { hw, hd, floors, fh = 2.72, sideX, y0 = 0, glass
         const frame = new THREE.Mesh(new THREE.BoxGeometry(sideX ? 0.08 : fw + 0.14, fhh + 0.14, sideX ? fw + 0.14 : 0.08), trimMat());
         frame.position.set(px, y, pz);
         g.add(frame);
-        const pane = new THREE.Mesh(new THREE.BoxGeometry(sideX ? 0.1 : fw, fhh, sideX ? fw : 0.1), glass ?? glassMat());
+        // what is behind the glass (kit/paint.js windowAtlas): frosted glass likelier low down
+        const cell = f === 0 && r.chance(0.35) ? 3 : r.pick([0, 1, 2, 4, 5, 7]);
+        const pane = new THREE.Mesh(windowCell(new THREE.BoxGeometry(sideX ? 0.1 : fw, fhh, sideX ? fw : 0.1), cell), glass ?? glassMat());
         pane.position.set(px + (sideX ? s * 0.01 : 0), y, pz + (sideX ? 0 : s * 0.01));
         g.add(pane);
         const sill = new THREE.Mesh(new THREE.BoxGeometry(sideX ? 0.2 : fw + 0.2, 0.07, sideX ? fw + 0.2 : 0.2), trimMat());
         sill.position.set(px + (sideX ? s * 0.06 : 0), y - fhh / 2 - 0.06, pz + (sideX ? 0 : s * 0.06));
         g.add(sill);
+        // the sash's meeting rail, and the streak under the sill
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(sideX ? 0.12 : 0.05, fhh, sideX ? 0.05 : 0.12), trimMat());
+        rail.position.set(px + (sideX ? s * 0.02 : 0), y, pz + (sideX ? 0 : s * 0.02));
+        g.add(rail);
+        const sh = r.range(0.5, 0.9);
+        const st = new THREE.Mesh(new THREE.PlaneGeometry(fw * 0.95, sh), sideStreak);
+        st.position.set(px + (sideX ? s * 0.012 : 0), y - fhh / 2 - 0.12 - sh / 2, pz + (sideX ? 0 : s * 0.012));
+        st.rotation.y = sideX ? s * Math.PI / 2 : (s > 0 ? 0 : Math.PI);
+        st.userData.noOutline = true;
+        st.renderOrder = 1;
+        g.add(st);
       }
     }
   }
@@ -154,7 +189,7 @@ export function buildHouse(ctx, net, kit, lot, F, o = {}) {
     doorU = g.userData.doorU ?? 0;
     H = 2.72 * floors;
     // the flanks, seen down every gap and on every corner
-    sideWindows(g, { hw: W / 2, hd: D / 2, floors, sideX: along, glass: g.userData.glass });
+    sideWindows(g, { hw: W / 2, hd: D / 2, floors, sideX: along, glass: g.userData.glass, seed: lot.seed });
     // cladding and accents, on the walls the street sees
     const fx = F.face.x, fz = F.face.z;
     const hw = W / 2 + 0.013, hd = D / 2 + 0.013;
@@ -340,6 +375,16 @@ function dressFront(ctx, lot, F, { r, yard, bw, bd, shift, doorU, carport, lane,
       const u = (doorAt > 0 ? -1 : 1) * (w / 2 - g.range(0.9, 1.4));
       const q = inYard(u, yard * 0.55);
       plant(ctx, species, { x: q.x, z: q.z, y: 0, scale: species === 'pine' ? g.range(0.55, 0.8) : g.range(0.5, 0.7), seed: lot.seed + 23 });
+    }
+    // a steel storage shed (物置) in the garden's far corner: sliding doors
+    // with their runner, a sloped lid, rust at the foot on the old ones
+    if (lane && yard > 1.6 && g.chance(0.3)) {
+      const u = (doorAt > 0 ? -1 : 1) * (w / 2 - 0.8);
+      const q = inYard(u, yard - 0.55);
+      const shed = storageShed(g.pick([0xd8d4c8, 0xc4ccc4, 0xb8c0cc, 0xd8c8a8]), g.chance(0.5));
+      shed.position.set(q.x, 0, q.z);
+      shed.rotation.y = ry;
+      add(shed, q, 'prop', 0.6, 1.4);
     }
     if ((edge === 'block' || edge === 'timber') && segs.length && g.chance(0.3)) {
       const [a, b] = segs[g.int(0, segs.length - 1)];

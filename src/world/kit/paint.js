@@ -502,3 +502,152 @@ export function ivyTex() {
   ivyT.anisotropy = 8;
   return ivyT;
 }
+
+/* ------------------------------------------------------------ windows
+ * What is behind the glass (M2e Phase 5): Japanese houses show lace
+ * curtains, drawn curtains, blinds, a frosted bathroom pane with bottles on
+ * the sill, shoji, a plant, or just a dark room with the sky in it.  One
+ * atlas of 4 x 2 painted interiors; a pane picks a cell (windowCell).  The
+ * same atlas is the night glass's emissive map, so a lit window glows
+ * through its curtains rather than as a flat panel. */
+
+export const WINDOW_CELLS = 8;
+let winAtlas = null;
+export function windowAtlas() {
+  if (winAtlas) return winAtlas;
+  const C = 256, cols = 4, rows = 2;
+  const cv = document.createElement('canvas');
+  cv.width = C * cols; cv.height = C * rows;
+  const c = cv.getContext('2d');
+  const r = rng(5151);
+  const room = (x, y, top = '#3c4460', bot = '#565a78') => {
+    const g = c.createLinearGradient(0, y, 0, y + C);
+    g.addColorStop(0, top); g.addColorStop(1, bot);
+    c.fillStyle = g; c.fillRect(x, y, C, C);
+  };
+  const sky = (x, y, a = 0.35) => {
+    // the sky caught in the glass: a pale diagonal sheen
+    c.save(); c.beginPath(); c.rect(x, y, C, C); c.clip();
+    c.fillStyle = `rgba(200,220,245,${a})`;
+    c.beginPath(); c.moveTo(x + C * 0.1, y); c.lineTo(x + C * 0.45, y); c.lineTo(x + C * 0.05, y + C * 0.7); c.lineTo(x - C * 0.3, y + C * 0.7); c.fill();
+    c.fillStyle = `rgba(220,235,250,${a * 0.6})`;
+    c.beginPath(); c.moveTo(x + C * 0.55, y); c.lineTo(x + C * 0.62, y); c.lineTo(x + C * 0.3, y + C * 0.55); c.lineTo(x + C * 0.23, y + C * 0.55); c.fill();
+    c.restore();
+  };
+  const cells = [
+    // 0 lace curtain across the whole pane
+    (x, y) => {
+      room(x, y, '#8a8ea8', '#9a9cb4');
+      c.fillStyle = 'rgba(245,245,250,0.55)'; c.fillRect(x, y, C, C);
+      c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 2;
+      for (let i = 0; i < 14; i++) { c.beginPath(); c.moveTo(x + i * 19, y); c.quadraticCurveTo(x + i * 19 + 6, y + C / 2, x + i * 19, y + C); c.stroke(); }
+      for (let i = 0; i < 40; i++) { c.fillStyle = 'rgba(255,255,255,0.5)'; c.beginPath(); c.arc(x + r() * C, y + r() * C, 3 + r() * 4, 0, 7); c.fill(); }
+      sky(x, y, 0.2);
+    },
+    // 1 curtains drawn to the sides, the room dark between
+    (x, y) => {
+      room(x, y);
+      const col = ['#c8a07a', '#8aa0c0', '#c89aa8', '#a8b890'][Math.floor(r() * 4)];
+      for (const [x0, w] of [[0, 0.3], [0.72, 0.28]]) {
+        c.fillStyle = col; c.fillRect(x + x0 * C, y, w * C, C);
+        c.fillStyle = 'rgba(0,0,0,0.15)';
+        for (let i = 0; i < 5; i++) c.fillRect(x + x0 * C + i * w * C / 5, y, 5, C);
+      }
+      c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(x + 0.3 * C, y, 0.42 * C, 10);
+      sky(x, y);
+    },
+    // 2 a venetian blind, part lowered
+    (x, y) => {
+      room(x, y);
+      const drop = C * (0.4 + r() * 0.5);
+      for (let yy = 0; yy < drop; yy += 12) {
+        c.fillStyle = '#d8dce4'; c.fillRect(x, y + yy, C, 8);
+        c.fillStyle = '#a8aebc'; c.fillRect(x, y + yy + 8, C, 3);
+      }
+      sky(x, y, 0.25);
+    },
+    // 3 frosted bathroom glass, shapes of bottles on the sill
+    (x, y) => {
+      room(x, y, '#b4bccb', '#c2c8d4');
+      for (let i = 0; i < 6; i++) {
+        const bx = x + 20 + r() * (C - 50), bh = 30 + r() * 50;
+        c.fillStyle = ['rgba(120,150,190,0.5)', 'rgba(200,120,140,0.45)', 'rgba(110,160,120,0.45)', 'rgba(230,230,235,0.6)'][Math.floor(r() * 4)];
+        c.fillRect(bx, y + C - 14 - bh, 16 + r() * 10, bh);
+      }
+      c.strokeStyle = 'rgba(255,255,255,0.4)'; c.lineWidth = 1;
+      for (let i = 0; i < 30; i++) { c.beginPath(); c.moveTo(x, y + i * 9); c.lineTo(x + C, y + i * 9 + 4); c.stroke(); }
+    },
+    // 4 a dark room with the sky in it
+    (x, y) => { room(x, y, '#2e3450', '#3e4462'); sky(x, y, 0.5); },
+    // 5 a plant on the sill, a curtain half drawn
+    (x, y) => {
+      room(x, y);
+      c.fillStyle = '#e8e2d4'; c.fillRect(x, y, C * 0.45, C);
+      c.fillStyle = 'rgba(0,0,0,0.12)'; for (let i = 0; i < 4; i++) c.fillRect(x + i * C * 0.11, y, 4, C);
+      c.fillStyle = '#b86a50'; c.fillRect(x + C * 0.6, y + C - 50, 44, 40);
+      c.fillStyle = '#6f9a5e';
+      for (let i = 0; i < 8; i++) { c.beginPath(); c.ellipse(x + C * 0.6 + 22 + (r() - 0.5) * 60, y + C - 70 - r() * 50, 14, 8, r() * 3, 0, 7); c.fill(); }
+      sky(x, y, 0.25);
+    },
+    // 6 shoji: a paper grid (glows warm at night)
+    (x, y) => {
+      c.fillStyle = '#ece6d6'; c.fillRect(x, y, C, C);
+      c.strokeStyle = '#8a7a64'; c.lineWidth = 4;
+      for (let i = 1; i < 4; i++) { c.beginPath(); c.moveTo(x + i * C / 4, y); c.lineTo(x + i * C / 4, y + C); c.stroke(); }
+      for (let i = 1; i < 6; i++) { c.beginPath(); c.moveTo(x, y + i * C / 6); c.lineTo(x + C, y + i * C / 6); c.stroke(); }
+      sky(x, y, 0.15);
+    },
+    // 7 a roller blind pulled most of the way down
+    (x, y) => {
+      room(x, y);
+      c.fillStyle = ['#e8e4dc', '#dfe6ee', '#efe2c8'][Math.floor(r() * 3)];
+      c.fillRect(x, y, C, C * 0.75);
+      c.fillStyle = 'rgba(0,0,0,0.18)'; c.fillRect(x, y + C * 0.75 - 6, C, 6);
+      sky(x, y, 0.2);
+    },
+  ];
+  cells.forEach((f, i) => {
+    const x = (i % cols) * C, y = Math.floor(i / cols) * C;
+    c.save(); c.beginPath(); c.rect(x, y, C, C); c.clip(); f(x, y); c.restore();
+  });
+  winAtlas = new THREE.CanvasTexture(cv);
+  winAtlas.colorSpace = THREE.SRGBColorSpace;
+  winAtlas.anisotropy = 8;
+  return winAtlas;
+}
+
+/** Map a pane's UVs (0..1 on every face) into window cell `i`. */
+export function windowCell(geo, i) {
+  const cols = 4, rows = 2, col = i % cols, row = Math.floor(i / cols) % rows;
+  const inset = 0.01;
+  const u0 = col / cols + inset, du = 1 / cols - 2 * inset;
+  const v0 = 1 - (row + 1) / rows + inset, dv = 1 / rows - 2 * inset;
+  const uv = geo.attributes.uv;
+  for (let k = 0; k < uv.count; k++) uv.setXY(k, u0 + uv.getX(k) * du, v0 + uv.getY(k) * dv);
+  uv.needsUpdate = true;
+  return geo;
+}
+
+let sillT = null;
+/** The streak a sill leaves on the wall below it: a soft grey curtain of
+ * dirt, darkest under the sill's ends where the water runs off. */
+export function sillStreakTex() {
+  if (sillT) return sillT;
+  const W = 128, H = 128;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+  const r = rng(7373);
+  for (const [x, w, a] of [[0.12, 0.2, 0.55], [0.88, 0.2, 0.55], [0.5, 0.7, 0.28]]) {
+    const g = c.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, `rgba(96,88,118,${a})`); g.addColorStop(1, 'rgba(96,88,118,0)');
+    c.fillStyle = g;
+    c.beginPath();
+    c.moveTo((x - w / 2) * W, 0); c.lineTo((x + w / 2) * W, 0);
+    c.lineTo((x + w * 0.3) * W, H * (0.7 + r() * 0.3)); c.lineTo((x - w * 0.3) * W, H * (0.7 + r() * 0.3));
+    c.fill();
+  }
+  sillT = new THREE.CanvasTexture(cv);
+  sillT.colorSpace = THREE.SRGBColorSpace;
+  return sillT;
+}

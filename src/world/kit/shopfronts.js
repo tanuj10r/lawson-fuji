@@ -90,7 +90,7 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
   kit.serviceDrop(new THREE.Vector3(dp.x, floors === 2 ? 5.4 : 3.0, dp.z));
 
   // windows down the flanks: the home upstairs, the back room below
-  sideWindows(g, { hw: w / 2, hd: d / 2 - 0.6, floors, fh: 3.0, sideX: true, glass: ctx.night?.glass(r.chance(0.7)) });
+  sideWindows(g, { hw: w / 2, hd: d / 2 - 0.6, floors, fh: 3.0, sideX: true, glass: ctx.night?.glass(r.chance(0.7)), seed: lot.seed });
 
   // the flank: the outdoor unit of the shop's air conditioning, and the gas meter
   {

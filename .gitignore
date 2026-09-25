@@ -11,6 +11,7 @@ assets/audio/
 # reference/lookdev/ (our own screenshots) is still tracked.
 /reference/*.png
 /reference/density/
+/reference/japan/
 
 # Town screenshots: regenerate with ?screenshots on the dev server.
 screenshots/

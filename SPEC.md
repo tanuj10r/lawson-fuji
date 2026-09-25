@@ -15,6 +15,20 @@ Lawson (ローソン) is a cozy, first-person 3D browser game set in a compact J
 - Everything is built in code, as in Sakura Crossing: no downloaded models or images. All signage is drawn at runtime. Product labels stay generic.
 - Real Japanese sounds carry the nostalgia: sound effects from 効果音ラボ and clerk lines from VOICEVOX (section 9), with generated sound as a fallback.
 
+**Priority**
+
+The game is about going into a konbini. Clarity, engagement and build effort go,
+in this order, to:
+
+1. Inside the store: layout, fixtures, products, light, sound and the checkout,
+   accurate to a real Lawson, down to the small things you only notice by having
+   been in one. This is where the nostalgia lives.
+2. The store and everything around it: the facade, forecourt, parking, the road
+   in front and whatever the windows look out on.
+3. The town, as the walk to and from the store.
+
+When time or budget has to be split, it goes to the higher item first.
+
 **What is ours, and what we borrow**
 
 The game's identity is its own: the famous Lawson under Mt. Fuji, the konbini ritual (walk in, browse, microwave, talk to the clerk, pay, walk out), and the sounds of Japan. Sakura Crossing is a starter kit, not the product. We borrow its rendering, first-person walking and street props so we can launch quickly, then repurpose them:
@@ -25,7 +39,7 @@ The game's identity is its own: the famous Lawson under Mt. Fuji, the konbini ri
 
 **Non-goals**
 
-- Realism of any kind. The whole game looks like an anime film: cel-shaded, outlined, with painted skies (section 4).
+- Photorealism. The whole game looks like an anime film: cel-shaded, outlined, with painted skies (section 4). Detail, materials and everyday clutter should still be true to real Japan (M2e).
 - Real product packaging. The store is a real Lawson (name, blue signage, milk-can logo, uniform), but every product inside is a fictional, generic item.
 - Multiplayer, accounts, backend, or saving progress across devices.
 - Combat, fail states, timers, or scoring pressure.
@@ -812,6 +826,10 @@ The bar: someone who knows Japan walks these streets and recognises them. Real i
 detail and in how things are made, worn and used; still painted in the anime style
 of section 4 (the best hand-painted backgrounds, not photorealism).
 
+Order of work follows the priority in section 1: the Lawson's surroundings first
+(the facade, the forecourt and parking, the road in front, the view from the store
+windows, the approach streets), then outward into the town.
+
 - [ ] Detail catalogue `reference/japan-details.md`: researched from real Japanese
       streets (street furniture, building materials, signage conventions, colours,
       how things age and are repaired), each item noting where the town uses it.
@@ -841,6 +859,13 @@ of section 4 (the best hand-painted backgrounds, not photorealism).
 
 M3
 
+- [ ] Research first: `reference/konbini-details.md` records how a real Lawson
+      interior is laid out and furnished (fixtures, shelf edges and price rails,
+      POP cards, fridge doors, counter items, ceiling, floor, light, sounds), and
+      where each item goes in ours. Research only; no downloaded images.
+- [ ] Held to the M2e bar: at arm's length nothing reads as a flat untextured
+      box, and every fixed interior spot is compared in writing, detail by detail,
+      with real Lawson interiors.
 - [ ] The door opens and closes by proximity.
 - [ ] All 30 products render with readable Japanese labels and shelf price tags.
 - [ ] Picking an item moves it into the basket in view; removing it returns it to its slot.

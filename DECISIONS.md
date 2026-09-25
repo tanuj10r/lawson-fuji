@@ -748,3 +748,51 @@ Judgement calls, newest milestone last.
   Phase 6 read 8.8 and 9.6 ms at that spot: the cost is under 1 ms.
 - **Checks.** Density 27 of 27, bare stretches, traincheck; heroes
   0.10–0.12%.
+
+## M2e Phase 7: review against the references
+
+Every fixed spot was compared side by side with its `reference/density/`
+frame (screenshots/<date>/*-vs-ref.jpg), using japan-details.md as the
+checklist.
+
+**Close to the reference**
+- **Shopping street (spine-north).** Fuji now closes the view. Shop
+  fascias, poles, wires and the zebra match. Missing: the petal carpet on
+  the road and the crates and banners crowding the fronts.
+- **Lanes (lane-houses, lane-junction).** Green school strips, 止まれ, pots,
+  garden trees, block walls, windows with curtains and the steel stair all
+  read as a real lane. Missing: a shop or shrine on the corner, as the
+  reference has.
+- **Station plaza.** The big cherry, benches, the petal carpet, the clock
+  and the kiosk. Missing: people, a post box, bollards and a paved grid.
+- **Sakura close-up.** Florets, lacy rims and twigs, near the reference's
+  canopy.
+
+**Short of the reference**
+- **Shop interiors (spine-shops).** Ours read as a painted back wall. The
+  reference's are deep rooms, with counters, freezers and lit shelves, seen
+  through the glass.
+- **The main road (main-west, main-east).** Since the town moved, the
+  road's south side is the old town's fields. The reference has houses on
+  both sides. The frontage behind the start needs building up.
+- **The shrine.** Ours is an open gravel lot behind a fence. The
+  reference's sits tight among a ramen shop and houses, with lanterns, a
+  notice board and a 手水舎.
+- **The park spot.** It is badly aimed: a fence fills the frame.
+- **The station inside (gates, to-platform).** Ours shows plain gates in
+  front of a train's side. The reference has a ticket window, clock, fare
+  board, 有人改札, a ceiling with lights, and posters. Two spots also stare
+  into the train at close range; they need re-aiming.
+- **Platforms and the line (departures, train-at-platform, canopy,
+  crossing).** Ours has no ballast (the track bed is flat grey), no
+  sakura along the line, and plain fences. The reference lines the tracks
+  with cherries, gravel, the platform clock and people.
+
+**Measurements** (load 13–15 on this machine; the unchanged kit street,
+normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
+- **Frame time.** 10.7–18.7 ms measured, about 6–10.5 ms idle
+  (estimated): 60 fps at 1440p.
+- **SPEC 11 budgets.** Not met: 300–780 calls, 1.9–3.5M triangles (all
+  passes).
+- **Other checks.** Heroes 0.10–0.12%; density 27 of 27; bare stretches
+  pass; traincheck passes; no Sakura Crossing names.

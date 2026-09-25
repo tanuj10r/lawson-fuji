@@ -77,15 +77,18 @@ export function planNetwork() {
     ],
     busStops: [{ edge: edgeAt('x', G.main, 50), at: 50, side: 1 }],
     quiet: TOWN.quiet,
+    lowPoles: TOWN.lowPoles,
   };
 }
 
-/* ---- the special lots (SPEC section 3), as world rectangles ----
+/* ---- the special lots (SPEC section 3), as rectangles in the town's own
+ * frame (built turned, north of the main road: world/ctx.js `turned`) ----
  * `face` is the direction the frontage looks: toward the road it opens on. */
 const lane = ROADS.lane.asphalt / 2;
 export const SPECIALS = [
-  // a corner plot, as coin parking always is; the photographers stand at its east edge
-  { kind: 'coinParking', x0: -22.5, z0: 20.5, x1: 4, z1: 34.5, face: 'z-' },
+  // a corner plot on the main road, as coin parking always is: west of the
+  // Lawson's forecourt now the town stands behind the store (M2e.3)
+  { kind: 'coinParking', x0: 42, z0: 20.5, x1: 62 - lane - 0.4, z1: 34.5, face: 'z-' },
   { kind: 'shrine', x0: 6, z0: 80 + lane + 0.4, x1: 20, z1: 97, face: 'z-' },
   { kind: 'apartment', x0: 30 + lane + 0.5, z0: 86, x1: 30 + lane + 12.5, z1: 102, face: 'x-' },
   { kind: 'vacant', x0: 40, z0: 98, x1: 51, z1: 112 - lane - 0.3, face: 'z+' },

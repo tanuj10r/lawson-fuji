@@ -105,7 +105,9 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
     gm.rotation.y = s * Math.PI / 2;
     g.add(gm);
     g.updateMatrixWorld(true);
-    const acAt = ac.getWorldPosition(new THREE.Vector3());
+    // in the town's own frame (it is built turned, M2e.3), not the world's
+    ctx.root.updateWorldMatrix(true, false);
+    const acAt = ctx.root.worldToLocal(ac.getWorldPosition(new THREE.Vector3()));
     ctx.registry?.push({ kind: 'prop', x: acAt.x, z: acAt.z });
   }
 

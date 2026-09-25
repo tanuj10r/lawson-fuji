@@ -177,7 +177,9 @@ export function buildCrossing(ctx, { x, kit }) {
     ctx.collide(bx - 0.25, bz - 0.25, bx + 0.25, bz + 0.25, 1.1);
     arms.push({ pivot, side: ap.side });
     // the lowered arm blocks the lane (its top is raised to 1.2 m while down)
-    const block = { x0: x - halfW, x1: x + halfW, z0: bz - 0.12, z1: bz + 0.12, top: -1 };
+    // (in world coordinates: the colliders are the player's, whatever frame this is built in)
+    const c0 = ctx.toWorld({ x: x - halfW, z: bz - 0.12 }), c1 = ctx.toWorld({ x: x + halfW, z: bz + 0.12 });
+    const block = { x0: Math.min(c0.x, c1.x), x1: Math.max(c0.x, c1.x), z0: Math.min(c0.z, c1.z), z1: Math.max(c0.z, c1.z), top: -1 };
     ctx.colliders.push(block);
     arms[arms.length - 1].block = block;
   }

@@ -6,7 +6,7 @@ import { makeCtx } from './ctx.js';
 import { buildLawson } from './lawson.js';
 import { dressLawsonGround } from './lawson-dress.js';
 import { buildFuji } from './fuji.js';
-import { buildEdge } from './town-edge.js';
+import { buildFrame, buildOldTown } from './town-edge.js';
 import { buildCore } from './town-core.js';
 import { buildPetals } from './petals.js';
 import { mergeStatic } from './merge.js';
@@ -49,14 +49,46 @@ export function buildTown(scene) {
   ctx.colliders.push(...lawson.colliders);
   ctx.platforms.push(...lawson.platforms);
 
-  /* --- the town: its north side (M2, kept for the famous views) and the dense core (M2b) --- */
-  ctx.registry = [];
+  /* --- the town (M2e.3): built in its own tested frame, turned half round
+   * about the main road, so it stands between the Lawson and Fuji and you
+   * walk into it from the famous views.  T is that frame; the world ctx
+   * keeps the Lawson, the road and what the famous views see. --- */
+  const T = ctx.turned(TOWN.grid.main, 'town-turned');
+  // the density registry lives in the town's frame, with its decals and lots
+  const registry = [];
+  T.registry = registry;
+  const localRect = (r) => {
+    const a = T.toLocal({ x: r[0], z: r[1] }), b = T.toLocal({ x: r[2], z: r[3] });
+    return [Math.min(a.x, b.x), Math.min(a.z, b.z), Math.max(a.x, b.x), Math.max(a.z, b.z)];
+  };
+  ctx.registry = { push: (e) => registry.push({ ...e, ...T.toLocal(e), ...(e.rect ? { rect: localRect(e.rect) } : {}) }) };
   // the Lawson counts toward the density budget like any building
   ctx.registry.push({ kind: 'building', x: 0, z: -5, rect: [-8.5, -10, 11.1, 0] });
-  buildEdge(ctx);
-  // the Lawson's lot is worn with the town's own decals (oil, scuffs, patches)
-  ctx.onDecals = dressLawsonGround;
-  const core = buildCore(ctx);
+  buildFrame(ctx);
+  buildOldTown(T);
+  // the Lawson's lot is worn with the town's own decals (oil, scuffs,
+  // patches), placed in world terms and turned into the town's frame
+  T.onDecals = (decals) => dressLawsonGround({
+    add: (cell, x, z, across, along, f = { x: 0, z: -1 }, y, layer) => {
+      const p = T.toLocal({ x, z });
+      decals.add(cell, p.x, p.z, across, along, { x: -f.x, z: -f.z }, y, layer);
+    },
+  });
+  const core = buildCore(T);
+
+  /* The line, seen from the world: its crossing, its trains' events and
+   * their gusts in world terms (`local` is the line itself, for checks
+   * that run in its own frame). */
+  const L = core.line;
+  const line = Object.create(L, {
+    local: { value: L },
+    crossingPos: { get: () => T.toWorld(L.crossingPos) },
+    onEvent: { value: (fn) => L.onEvent((name, run) => fn(name, run && run.x !== undefined ? { ...run, ...T.toWorld(run) } : run)) },
+    gustAt: { value: (p) => { const a = L.gustAt(T.toLocal(p)); return { gust: a.gust, dir: -a.dir }; } },
+  });
+  /** The camera as the town's frame sees it (sakura culling, birds). */
+  const camLocal = { isCamera: true, position: new THREE.Vector3(), fov: 50, aspect: 1, getWorldDirection: null };
+  const camDir = new THREE.Vector3();
   // bottles behind a vending machine's glass shadow only its own insides
   root.traverse((o) => {
     if (o.isInstancedMesh && o.parent?.name === 'vending') o.castShadow = false;
@@ -65,13 +97,14 @@ export function buildTown(scene) {
 
   const camPos = new THREE.Vector3(0, 0, 16.5);
   const petals = buildPetals(ctx, {
-    count: TOWN.petals.air, half: 24, trackZ: TOWN.rail.z, follow: () => camPos,
+    count: TOWN.petals.air, half: 24, trackZ: T.toWorld({ x: 0, z: TOWN.rail.z }).z, follow: () => camPos,
   });
   // and the fall from the town's sakura (M2d), a separate field so the famous
   // views keep M2's petals exactly
+  const railZ = T.toWorld({ x: 0, z: TOWN.rail.z }).z;
   const fall = buildPetals(ctx, {
-    count: TOWN.petals.trees, half: 24, trackZ: TOWN.rail.z, follow: () => camPos,
-    emitters: core.sakura?.emitters ?? [], onlyTrees: true, seed: 8211,
+    count: TOWN.petals.trees, half: 24, trackZ: railZ, follow: () => camPos,
+    emitters: (core.sakura?.emitters ?? []).map((e) => T.toWorld(e)), onlyTrees: true, seed: 8211,
   });
   for (const m of fall.meshes) m.userData.dynamic = true;
   for (const m of petals.meshes) m.userData.dynamic = true;
@@ -100,9 +133,11 @@ export function buildTown(scene) {
     bounds: WORLD.bounds,
     lawson,
     core,
-    registry: ctx.registry,
+    registry,                  // in the town's frame (density checks run there)
     fuji,
-    line: core.line,
+    line,
+    /** The town's frame (turned): toWorld / toLocal / yawToWorld. */
+    frame: { toWorld: T.toWorld, toLocal: T.toLocal, yawToWorld: T.yawToWorld },
     batching,
     /** Ground height at (x, z); see ctx.heightAt for `fromY`. */
     heightAt: ctx.heightAt,
@@ -117,9 +152,16 @@ export function buildTown(scene) {
     update(dt, camera) {
       if (camera) camPos.copy(camera.position);
       for (const fn of ctx.updaters) fn(dt);
-      core.sakura?.update(camera ?? camPos);
-      core.life?.update(dt, camPos);
-      const air = core.line.gustAt(camPos);
+      const lp = T.toLocal(camPos);
+      camLocal.position.set(lp.x, camPos.y, lp.z);
+      if (camera) {
+        camera.getWorldDirection(camDir);
+        camLocal.fov = camera.fov; camLocal.aspect = camera.aspect;
+        camLocal.getWorldDirection = (v) => v.set(-camDir.x, camDir.y, -camDir.z);
+      }
+      core.sakura?.update(camera ? camLocal : camLocal.position);
+      core.life?.update(dt, camLocal.position);
+      const air = line.gustAt(camPos);
       petals.update(dt, air.gust, air.dir);
       fall.update(dt, air.gust, air.dir);
       if (camera) fuji.follow(camera);

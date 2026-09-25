@@ -106,11 +106,15 @@ export function makeNetwork(def) {
   /** Quiet zones ([x0, z0, x1, z1]): no poles, signs or road words inside. */
   const quietRects = def.quiet ?? [];
   const quiet = (x, z) => quietRects.some(([x0, z0, x1, z1]) => x > x0 && x < x1 && z > z0 && z < z1);
+  /** Low zones: no tall pole or overhead line, lamp posts instead (the famous
+   * views' sightline behind the store, M2e.3). */
+  const lowRects = def.lowPoles ?? [];
+  const low = (x, z) => lowRects.some(([x0, z0, x1, z1]) => x > x0 && x < x1 && z > z0 && z < z1);
   // a node where a road the kit doesn't pave meets others is paved by that road
   for (const n of Object.values(nodes)) n.external = n.edges.some((e) => e.opts.surface === false);
 
   return {
-    nodes, edges, at, along, walkEnd, quiet,
+    nodes, edges, at, along, walkEnd, quiet, low,
     crossings: (def.crossings ?? []).map((c) => ({ ...c, e: edges[c.edge] })),
     busStops: (def.busStops ?? []).map((b) => ({ ...b, e: edges[b.edge] })),
   };

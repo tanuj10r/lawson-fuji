@@ -335,6 +335,9 @@ function apartment(ctx, net, kit, s, F) {
   ctx.registry?.push({ kind: 'building', x: c.x, z: c.z, rect: [c.x - hx, c.z - hz, c.x + hx, c.z + hz] });
   const dp = F.at(0, 2.3);
   kit.serviceDrop(new THREE.Vector3(dp.x, 5.0, dp.z));
+  // its own lamp by the stair, lighting the way in (and the lane)
+  const lp = F.at(-F.w / 2 + 2.2, 0.35);
+  kit.lampPost(lp.x, lp.z, F.ry);
   // AC units along the front, at the foot of the gallery
   for (let i = 0; i < 4; i++) {
     const p = F.at(0.8 - w / 2 + 1.2 + i * (w - 2.4) / 3, 1.2);

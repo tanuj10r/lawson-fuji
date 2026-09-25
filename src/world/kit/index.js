@@ -28,6 +28,7 @@ export function buildKit(ctx, def) {
     lamps: poles.lamps,
     wireRuns: poles.runs,
     standPole: poles.standPole,
+    lampPost: poles.lampPost,
     finish() {
       if (done) return;
       done = true;

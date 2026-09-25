@@ -25,19 +25,30 @@ function nextTrade(r) {
   return deck[dealt++ % deck.length];
 }
 
-/* Buildings here would throw golden-hour shadows (sun low in the east) into
- * the famous view: next to the photographers' lot, one storey; further
- * east, two. */
-const LOW_ZONE = [4, 17, 28, 44];
-const SHADOW_ZONE = [28, 17, 62, 44];
-const inZone = (rect, z) => rect[0] < z[2] && rect[2] > z[0] && rect[1] < z[3] && rect[3] > z[1];
+/* The famous views' sightline (M2e.3: the town stands behind the store).
+ * From the hero camera (world z 30.4, eye 1.6 m) the Lawson's roofline is
+ * about 4.5° up; behind the store, inside the frame, a building must stay
+ * under that line or it shows over the roof and cuts into Fuji.  The frame
+ * widens with distance (hfov about 41° plus a margin).  Returns the most
+ * floors a lot may have, from its rectangle in world coordinates. */
+const HERO = { z: 30.4, eye: 1.6, rise: (4.0 - 1.6) / 30.4, spread: 0.4, margin: 4 };
+function envelopeFloors(w) {
+  const [x0, z0, x1, z1] = w;
+  if (z0 > 0) return 3;                                   // south of the glass line: not behind the store
+  const zNear = Math.min(z1, 0);                          // the lot's edge nearest the camera
+  const half = (HERO.z - zNear) * HERO.spread + HERO.margin;
+  if (x1 < -half || x0 > half) return 3;                  // outside the frame
+  const h = HERO.eye + (HERO.z - zNear) * HERO.rise;      // sightline height over that edge
+  return Math.max(1, Math.min(3, Math.floor((h - 1.3) / 2.72)));
+}
 
 export function buildLot(ctx, net, kit, lot) {
   const r = rngKit(lot.seed);
   const F = lotFrame(net, lot);
   const busy = lot.e.cls !== 'lane';
   const shop = busy ? r.chance(0.7) : r.chance(lot.corner ? 0.5 : 0.12);
-  const maxFloors = inZone(lot.rect, LOW_ZONE) ? 1 : inZone(lot.rect, SHADOW_ZONE) ? 2 : 3;
+  const c0 = ctx.toWorld({ x: lot.rect[0], z: lot.rect[1] }), c1 = ctx.toWorld({ x: lot.rect[2], z: lot.rect[3] });
+  const maxFloors = envelopeFloors([Math.min(c0.x, c1.x), Math.min(c0.z, c1.z), Math.max(c0.x, c1.x), Math.max(c0.z, c1.z)]);
   lot.kind = shop ? 'shop' : 'house';
   if (shop) return buildShop(ctx, net, kit, lot, F, nextTrade(r), { maxFloors });
   return buildHouse(ctx, net, kit, lot, F, { maxFloors });

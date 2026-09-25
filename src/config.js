@@ -195,7 +195,10 @@ export const LOOKS = {
 export const TOWN = {
   bounds: { x0: -122, x1: 122, z0: -97, z1: 174 },
   core: { x0: -97, x1: 97, z0: 20.5, z1: 168 },
-  /* The line (M2c, world/line/): double track along the south edge, the
+  /* Everything below is in the town's own frame, which is built turned
+   * half round about the main road (world = (-x, 2*main - z)) so the town
+   * stands between the Lawson and Fuji (M2e.3, world/ctx.js `turned`).
+   * The line (M2c, world/line/): double track along the south edge, the
    * station at the spine's end, the level crossing on lane x -80. */
   rail: { crossX: -80, z: 162, gauge: 1.067, spacing: 3.8 },
   crosswalk: { x: -35, width: 4 },              // zebra and signals on the main road
@@ -210,7 +213,7 @@ export const TOWN = {
     ns: [
       { x: -80, cls: 'lane', z1: 172 },           // crosses the railway
       { x: -50, cls: 'shopping', z1: 126 },       // the spine, to the plaza
-      { x: -25, cls: 'lane', z1: 144 },
+      { x: -25, cls: 'lane', z0: 28, z1: 144 },  // starts behind the Lawson's forecourt
       { x: 0, cls: 'lane', z0: 45, z1: 144 },
       { x: 30, cls: 'lane', z1: 144 },
       { x: 62, cls: 'lane', z1: 144 },
@@ -231,17 +234,31 @@ export const TOWN = {
     platforms: { x0: -74, x1: -26, depth: 3.5 },
     stopX: -50,
   },
-  /* Quiet zones: no poles, signs or road words.  The hero window, reaching
-   * east to x 55 because the golden-hour sun (from the east, 14° up) throws a
-   * pole's shadow 35 m west across the forecourt; and the railway. */
-  quiet: [[-30, -20, 55, 24], [-200, 153, 200, 171]],
+  /* Quiet zones: no poles, signs or road words.  In the town's own frame,
+   * which is built turned north of the road (M2e.3): the hero window (world
+   * x -55..30, z -20..24: the forecourt, the road, and behind the store,
+   * reaching east because the golden-hour sun throws a pole's shadow 35 m
+   * west), and the railway. */
+  quiet: [[-55, 3.7, 30, 47.7], [-200, 153, 200, 171]],
+  /* Behind the store, the famous views' cone: a 10 m pole clears the roof's
+   * sightline only past about 80 m (world z -82), and the frame widens with
+   * distance (world |x| < 26 to z -45, < 34 to z -82).  In here the lanes
+   * get 4.5 m lamp posts (防犯灯) and no overhead lines. */
+  lowPoles: [[-26, 47.7, 26, 72.7], [-34, 72.7, 34, 109.7]],
+  /* The Lawson's ground, in the town's frame: no lot is cut here.  The
+   * forecourt row along the main road, and the store with its back yard. */
+  lawsonReserve: [[-42, 17, 42, 28], [-34, 28, 32, 44]],
 };
 
 /* The flat ground plane under everything. */
 export const WORLD = {
   groundHalf: 1200,          // flat ground plane, well past the fog
   groundColor: 0xc4c4b6,
-  bounds: TOWN.bounds,
+  // the town's bounds, turned into the world with it (M2e.3)
+  bounds: {
+    x0: -TOWN.bounds.x1, x1: -TOWN.bounds.x0,
+    z0: 2 * TOWN.grid.main - TOWN.bounds.z1, z1: 2 * TOWN.grid.main - TOWN.bounds.z0,
+  },
 };
 
 /* ------------------------------------------------------------------ *
@@ -303,11 +320,11 @@ export const SHOT_SPOTS = [
   { name: 'town-spine-shops', scene: 'town', pos: [-46.6, 0, 62], yaw: 2.2, pitch: 0.02, looks: ['day'], ref: '06-general-store-front.png' },
   { name: 'town-spine-night', scene: 'town', pos: [-46.2, 0, 88], yaw: 3.1416, pitch: 0.04, looks: ['blue'] },
   { name: 'town-main-west', scene: 'town', pos: [-72, 0, 18.8], yaw: -1.5708, pitch: 0.03, looks: ['day'], ref: '02-main-road-van-poles.png' },
-  { name: 'town-main-east', scene: 'town', pos: [80, 0, 18.8], yaw: 1.5708, pitch: 0.03, looks: ['golden'], ref: '01-main-road-cycle-lanes.png' },
+  { name: 'town-main-east', scene: 'town', pos: [96, 0, 18.8], yaw: 1.5708, pitch: 0.03, looks: ['golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'town-lane-houses', scene: 'town', pos: [52, 0, 79.4], yaw: 1.5708, pitch: 0.04, looks: ['day', 'blue'], ref: '03-street-shrine-house.png' },
   { name: 'town-lane-junction', scene: 'town', pos: [-25.6, 0, 62], yaw: 3.1416, pitch: 0.02, looks: ['day'], ref: '09-konbini-corner-tomare.png' },
   { name: 'town-shrine', scene: 'town', pos: [11, 0, 77.6], yaw: 2.9, pitch: 0.05, looks: ['day'], ref: '04-shrine-pole-ramen.png' },
-  { name: 'town-coin-parking', scene: 'town', pos: [-9, 0, 22.5], yaw: 3.1416, pitch: 0.0, looks: ['day'] },
+  { name: 'town-coin-parking', scene: 'town', pos: [50, 0, 18.6], yaw: 3.1416, pitch: 0.0, looks: ['day'] },   // moved west of the store (M2e.3)
   { name: 'town-apartment', scene: 'town', pos: [28.2, 0, 83], yaw: -2.4, pitch: 0.06, looks: ['day'] },
   { name: 'town-vacant', scene: 'town', pos: [47, 0, 113.6], yaw: 0.35, pitch: 0.0, looks: ['golden'] },
   { name: 'town-park', scene: 'town', pos: [14.5, 0, 110.6], yaw: 3.1416, pitch: 0.02, looks: ['day'], ref: '11-plaza-zebra-sakura.png' },
@@ -329,7 +346,7 @@ export const SHOT_SPOTS = [
   { name: 'close-forecourt', scene: 'town', pos: [-5, 0, 7], yaw: 0.35, pitch: -0.42, looks: ['day'], close: true },
   { name: 'close-house-wall', scene: 'town', pos: [60, 0, 77.5], yaw: 1.9, pitch: 0.1, looks: ['day'], close: true },
   { name: 'close-sakura', scene: 'town', pos: [-50, 0, 128], yaw: 3.1416, pitch: 0.55, looks: ['day'], close: true, ref: '12-station-plaza-big-sakura.png' },
-  { name: 'town-overview', scene: 'town', pos: [0, 0, 215], yaw: 0, pitch: -0.62, lift: 95, looks: ['golden'] },
+  { name: 'town-overview', scene: 'town', pos: [0, 0, 95], yaw: 0, pitch: -0.5, lift: 95, looks: ['golden'], frame: 'world' },
   { name: 'town-overview-east', scene: 'town', pos: [170, 0, 90], yaw: -1.5708, pitch: -0.55, lift: 80, looks: ['day'] },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
@@ -341,11 +358,42 @@ export const SHOT_SPOTS = [
   { name: 'kit-overview', scene: 'kit', pos: [0, 0, 70], yaw: 0, pitch: -0.5, lift: 60, looks: ['golden'] },
 ];
 
-/** Where the main road's south walk breaks for the roads that meet it. */
+/* Town spots are authored in the town's own frame (built turned, M2e.3):
+ * everything but the famous views and the Lawson close-ups, and anything
+ * marked `frame: 'world'`.  __shot turns them into the world. */
+for (const s of SHOT_SPOTS) {
+  if (s.scene === 'town' && !s.hero && !s.name.startsWith('close-lawson') && !s.frame) s.frame = 'core';
+}
+
+/* The places worth walking to (the map now, the minimap in M2f).  `at` is
+ * in the town's own frame unless `frame: 'world'`; placeAt() gives world. */
+export const PLACES = [
+  { id: 'lawson', kind: 'konbini', jp: 'ローソン', en: 'Lawson', at: [0, -5], frame: 'world' },
+  { id: 'start', kind: 'view', jp: '富士山ビュー', en: 'The famous view', at: [0, 16.5], frame: 'world' },
+  { id: 'spine', kind: 'shops', jp: '商店街', en: 'Shopping street', at: [-50, 70] },
+  { id: 'shrine', kind: 'shrine', jp: '富士見稲荷神社', en: 'Inari shrine', at: [13, 88] },
+  { id: 'apartment', kind: 'home', jp: 'コーポ', en: 'Apartment block', at: [40, 94] },
+  { id: 'vacant', kind: 'lot', jp: '空き地', en: 'Vacant lot', at: [45.5, 105] },
+  { id: 'park', kind: 'park', jp: '児童公園', en: 'Small park', at: [14.5, 122] },
+  { id: 'plaza', kind: 'plaza', jp: '駅前広場', en: 'Station plaza', at: [-52.5, 137] },
+  { id: 'station', kind: 'station', jp: 'さくら富士駅', en: 'Sakura-Fuji Station', at: [-51, 151.5] },
+  { id: 'crossing', kind: 'crossing', jp: '踏切', en: 'Level crossing', at: [-80, 162] },
+  { id: 'parking', kind: 'parking', jp: 'コインパーキング', en: 'Coin parking', at: [50, 27] },
+  { id: 'oldLane', kind: 'home', jp: '住宅街', en: 'Old residential lane', at: [-60, -41] },
+  { id: 'oldPark', kind: 'park', jp: '公園', en: 'Old park', at: [46, -35] },
+];
+/** A place's world position (x, z). */
+export function placeAt(p) {
+  const [x, z] = p.at;
+  return p.frame === 'world' ? { x, z } : { x: -x, z: 2 * TOWN.grid.main - z };
+}
+
+/** Where the main road's north walk breaks for the town's roads that meet it (world x). */
 export function mainRoadGaps() {
+  // on the north walk, in world x: the town is built turned, so its x runs west
   return TOWN.grid.ns
     .filter((r) => r.z0 === undefined)
-    .map((r) => [r.x - ROADS[r.cls].asphalt / 2, r.x + ROADS[r.cls].asphalt / 2]);
+    .map((r) => [-r.x - ROADS[r.cls].asphalt / 2, -r.x + ROADS[r.cls].asphalt / 2]);
 }
 
 /* Local sounds (SPEC section 9): anything that belongs to a place is heard

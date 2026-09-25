@@ -30,6 +30,27 @@ export function lampMaterial() {
   return lampMats;
 }
 
+/** A residential lamp post (防犯灯): a slim steel post, a short arm over the
+ * lane, a small LED head.  Low enough to stand behind the store unseen from
+ * the famous views (config.js TOWN.lowPoles). */
+const POST_H = 4.5;
+function lampPost(side) {
+  const g = new THREE.Group();
+  const metal = cel({ color: 0xb8bcc6, bands: 3, tint: 0x666090 });
+  g.add(cyl(0.055, 0.07, POST_H, 8, metal, 0, POST_H / 2, 0));
+  const arm = cyl(0.03, 0.03, 0.7, 6, metal, 0, POST_H - 0.12, -side * 0.35);
+  arm.rotation.x = Math.PI / 2;
+  g.add(arm);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.42), metal);
+  head.position.set(0, POST_H - 0.16, -side * 0.72);
+  g.add(head);
+  const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 0.34), lampMaterial());
+  bulb.position.set(0, POST_H - 0.22, -side * 0.72);
+  g.add(bulb);
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  return { g, bulb };
+}
+
 function streetLamp(pole, H, side) {
   // an arm reaching over the road from the pole, in the pole's frame
   const g = new THREE.Group();
@@ -54,6 +75,13 @@ export function buildPoles(ctx, net, decals) {
   const guard = plateTex('guard').face;
   const all = [];               // { g, e, s, side }
   const lamps = [];             // where each street lamp's light falls (M2d night)
+  /* Where an object stands in this context's own frame.  Not the world's:
+   * the town is built turned (M2e.3), and whatever is added here is added
+   * under that turn, so a world position would be turned twice. */
+  const inFrame = (o) => {
+    ctx.root.updateWorldMatrix(true, false);
+    return ctx.root.worldToLocal(o.getWorldPosition(new THREE.Vector3()));
+  };
   const byEdge = new Map();
   let n = 0;
 
@@ -86,6 +114,19 @@ export function buildPoles(ctx, net, decals) {
     for (const s of spots) {
       const p = net.at(e, s, off);
       if (net.quiet(p.x, p.z)) continue;
+      if (net.low?.(p.x, p.z)) {
+        // behind the store: a lamp post, and no line through here
+        const { g, bulb } = lampPost(side);
+        g.position.set(p.x, y, p.z);
+        if (e.axis === 'z') g.rotation.y = Math.PI / 2;
+        g.name = 'lamp-post';
+        ctx.add(g);
+        g.updateMatrixWorld(true);
+        lamps.push(inFrame(bulb));
+        ctx.collide(p.x - 0.1, p.z - 0.1, p.x + 0.1, p.z + 0.1, y + POST_H);
+        ctx.registry?.push({ kind: 'pole', x: p.x, z: p.z });
+        continue;
+      }
       n++;
       const H = r.range(...POLES.height);
       const face = side > 0 ? Math.PI : 0;
@@ -117,7 +158,7 @@ export function buildPoles(ctx, net, decals) {
       g.name = 'pole';
       ctx.add(g);
       g.updateMatrixWorld(true);
-      if (bulb) lamps.push(bulb.getWorldPosition(new THREE.Vector3()));
+      if (bulb) lamps.push(inFrame(bulb));
       ctx.collide(p.x - 0.24, p.z - 0.24, p.x + 0.24, p.z + 0.24, y + H);
       ctx.registry?.push({ kind: 'pole', x: p.x, z: p.z });
       const rec = { g, e, s, side, x: p.x, z: p.z, H };
@@ -128,7 +169,7 @@ export function buildPoles(ctx, net, decals) {
   }
 
   /* ---- the cable web ---- */
-  const world = (rec, k) => rec.g.userData.anchors[k].clone().applyMatrix4(rec.g.matrixWorld);
+  const world = (rec, k) => { rec.g.updateMatrix(); return rec.g.userData.anchors[k].clone().applyMatrix4(rec.g.matrix); };
   const POWER = [0, 1, 2, 3, 4], TEL = [5, 6];
   const runs = [];
   const tel = [];
@@ -166,6 +207,18 @@ export function buildPoles(ctx, net, decals) {
     runs,                        // the power lines, for the birds that sit on them
     /** One more pole, off the street grid (a park light): lamp, plates,
      *  and three lines to the nearest pole. */
+    /** A lamp post (防犯灯) standing on its own: `ry` turns its arm. */
+    lampPost(x, z, ry = 0, y = 0) {
+      const { g, bulb } = lampPost(1);
+      g.position.set(x, y, z);
+      g.rotation.y = ry;
+      g.name = 'lamp-post';
+      ctx.add(g);
+      g.updateMatrixWorld(true);
+      lamps.push(inFrame(bulb));
+      ctx.collide(x - 0.1, z - 0.1, x + 0.1, z + 0.1, y + POST_H);
+      ctx.registry?.push({ kind: 'pole', x, z });
+    },
     standPole(x, z, y = 0) {
       const g = makePole({ x, y, z, h: 8.6, seed: 9000 + all.length, transformer: false, guard, telecom: true, litPlates: true, lamp: true });
       g.name = 'pole';
@@ -186,13 +239,15 @@ export function buildPoles(ctx, net, decals) {
     },
     /** A service drop from the nearest pole to `point` (a Vector3 on a facade). */
     serviceDrop(point, reach = 32) {
+      if (net.low?.(point.x, point.z)) return false;   // no line crosses the famous views' sightline
       let best = null, bd = reach;
       for (const p of all) {
         const d = Math.hypot(p.x - point.x, p.z - point.z);
         if (d < bd) { bd = d; best = p; }
       }
       if (!best) return false;
-      const from = best.g.userData.drop.clone().applyMatrix4(best.g.matrixWorld);
+      best.g.updateMatrix();
+      const from = best.g.userData.drop.clone().applyMatrix4(best.g.matrix);
       drops.push({ points: [from, point.clone()], sag: 0.35, r: POLES.dropR });
       return true;
     },

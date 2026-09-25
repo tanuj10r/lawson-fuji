@@ -193,9 +193,10 @@ A dense, lived-in, mixed-use town built around the famous view: a tight grid wit
 
 **Town plan: structure**
 
-- Station at one end, then a station plaza, then a shopping spine toward the main road, with residential lanes branching off everywhere.
-- The railway runs along one edge with the level crossing.
-- The Lawson stays on the main road at the open edge facing Fuji. The hero-view side stays open; density goes on the frame edges and behind the camera.
+- The game opens on the famous views, and the town lies ahead: between the Lawson and Mt. Fuji, north of the main road. You walk past the store into it, toward Fuji.
+- From the main road north: the Lawson's neighbours along the road, then residential lanes and a shopping spine running north to the station plaza, the station, and the railway along the far north edge with the level crossing.
+- The Lawson stays on the main road facing it, with Fuji behind. Behind the store, anything inside the famous views' frame stays under the roof's sightline from the hero camera (lower near the store, three storeys by about 60 m back); poles there give way to low lamp posts (防犯灯) with no overhead lines.
+- Behind the start spot, south of the road: the photographers' lot, an older residential lane, a park and fields.
 
 **Town plan: scale**
 
@@ -744,7 +745,7 @@ The game targets desktop browsers only, so quality comes first: every visual fea
 
 ## 12. Build milestones
 
-Build in 8 milestones (M2 in five parts, M2a to M2e), starting from the Sakura Crossing fork and proving the famous view before anything else. Each ends with a playable build checked against its acceptance list.
+Build in 8 milestones (M2 in six parts, M2a to M2f), starting from the Sakura Crossing fork and proving the famous view before anything else. Each ends with a playable build checked against its acceptance list.
 
 | # | Milestone | Scope |
 | --- | --- | --- |
@@ -754,7 +755,8 @@ Build in 8 milestones (M2 in five parts, M2a to M2e), starting from the Sakura C
 | M2b | Town | New town plan (section 3), house and shopfront generators, dressing; colliders |
 | M2c | Station and trains | Station building and plaza, two platforms, train cycle, level crossing driven by the train |
 | M2d | Town polish | Trees, petals, clutter pass, night lighting, performance |
-| M2e | Art fidelity | A researched catalogue of real Japanese street detail; painted Canvas2D textures and alpha-card foliage; sakura rebuilt as painted canopies; green trees and planting; facade, roof, window and weathering detail; shopfront interiors; ground and kerb detail. Judged close up against the reference frames |
+| M2e | Art fidelity (and the town moved ahead of the start, M2e.3) | A researched catalogue of real Japanese street detail; painted Canvas2D textures and alpha-card foliage; sakura rebuilt as painted canopies; green trees and planting; facade, roof, window and weathering detail; shopfront interiors; ground and kerb detail. Judged close up against the reference frames |
+| M2f | Minimap | A round minimap in the bottom-right corner with a compass, the player's arrow and the town's places; a full map on a key |
 | M3 | Store interior + products | Automatic door, interior fixtures, 30 products, targeting and pickup, basket |
 | M4 | Audio | Audio engine, all SFX, ambience loops, inside/outside mix, door chime, footsteps |
 | M5 | Clerk + checkout | Clerk look, state machine and animations; greeting, scanning, dialogue choices, payment, receipt, voice lines and subtitles |
@@ -781,7 +783,7 @@ M1 (Tan signs off before M2 starts)
 - [ ] Nothing is washed out: sky, walls and Fuji keep their colour.
 - [ ] Screenshots of all three views saved to `reference/lookdev/`.
 
-M2 (five sub-milestones; Tan signs off each before the next starts)
+M2 (six sub-milestones; Tan signs off each before the next starts)
 
 **Working method**
 
@@ -856,6 +858,13 @@ windows, the approach streets), then outward into the town.
       something its reference shows prominently. Counts alone never pass a spot.
 - [ ] 60 fps at 1440p (frame-time headroom may be spent on detail); SPEC 11 draw
       budgets reported.
+
+M2f
+
+- [ ] A round minimap in the bottom-right corner: the town drawn from the game's own data, rotating with the player, a compass rose with 北 at north, the player's arrow at the centre.
+- [ ] Place icons from config.js PLACES (station, shrine, plaza, parks, shopping street, the Lawson); the Lawson always marked, even off the edge.
+- [ ] A full-map view on a key (M), with place names in Japanese and English; UI text in strings.js.
+- [ ] Hidden in the famous views' hero cameras and never drawn over the store or Fuji; desktop only; no measurable frame-time cost.
 
 M3
 

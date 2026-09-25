@@ -98,7 +98,7 @@ for (const spot of spots) {
   for (const look of looks) {
     const name = spot.looks.length > 1 ? `${spot.name}-${look}` : spot.name;
     const opts = {
-      hero: spot.hero, look, pos: spot.pos, yaw: spot.yaw, pitch: spot.pitch, lift: spot.lift, train: spot.train,
+      hero: spot.hero, look, pos: spot.pos, yaw: spot.yaw, pitch: spot.pitch, lift: spot.lift, train: spot.train, frame: spot.frame,
       png: true, scale: 2, returnData: true,
     };
     const r = await page.evaluate(([n, w, h, o]) => window.__shot(n, w, h, o), [name, W, H, opts]);

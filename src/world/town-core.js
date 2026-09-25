@@ -35,6 +35,7 @@ export function buildCore(ctx) {
     ...SPECIALS.map((s) => [s.x0, s.z0, s.x1, s.z1]),
     [-300, -300, 300, C.z0],                 // the main road and everything north of it
     [-300, 154, 300, 300],                   // the railway corridor and beyond
+    ...TOWN.lawsonReserve,                   // the Lawson's forecourt and store (the town is built turned)
   ];
   const inside = (r) => r[0] >= C.x0 && r[2] <= C.x1 && r[1] >= C.z0 && r[3] <= C.z1;
   // the main road only has a south side in the core

@@ -6,7 +6,9 @@ import * as THREE from 'three';
  * groundAt.  `offset(dx, dz)` gives a child context whose group, colliders,
  * platforms and ground queries are shifted, so a part authored round its
  * own origin (the railway, round its level crossing) drops into our layout
- * unchanged.
+ * unchanged.  `turned(cz)` gives one turned half round about z = cz: the
+ * town is built in its own tested frame and stands north of the main road
+ * (M2e.3).
  * ------------------------------------------------------------------ */
 
 export function makeCtx(scene, root) {
@@ -27,7 +29,11 @@ export function makeCtx(scene, root) {
     return h;
   }
 
-  function build(group, dx, dz) {
+  /* A context's frame: world = (s·x + dx, s·z + dz), s = ±1.  s = -1 is a
+   * half-turn about y (M2e.3: the town is built turned, north of the road). */
+  function build(group, s, dx, dz) {
+    const wx = (x) => s * x + dx, wz = (z) => s * z + dz;
+    const lx = (x) => (x - dx) * s, lz = (z) => (z - dz) * s;
     return {
       scene,
       root: group,
@@ -35,29 +41,50 @@ export function makeCtx(scene, root) {
       interactables,
       add: (obj) => { group.add(obj); return obj; },
       collide: (x0, z0, x1, z1, top, bottom) => {
+        const a = wx(x0), b = wx(x1), c = wz(z0), d = wz(z1);
         colliders.push({
-          x0: Math.min(x0, x1) + dx, x1: Math.max(x0, x1) + dx,
-          z0: Math.min(z0, z1) + dz, z1: Math.max(z0, z1) + dz,
+          x0: Math.min(a, b), x1: Math.max(a, b),
+          z0: Math.min(c, d), z1: Math.max(c, d),
           top, bottom,
         });
       },
-      platform: (p) => platforms.push({ ...p, x0: p.x0 + dx, x1: p.x1 + dx, z0: p.z0 + dz, z1: p.z1 + dz }),
+      platform: (p) => {
+        const a = wx(p.x0), b = wx(p.x1), c = wz(p.z0), d = wz(p.z1);
+        platforms.push({ ...p, x0: Math.min(a, b), x1: Math.max(a, b), z0: Math.min(c, d), z1: Math.max(c, d) });
+      },
       cut: () => {},
-      groundAt: (x, z) => heightAt(x + dx, z + dz),
+      groundAt: (x, z) => heightAt(wx(x), wz(z)),
       interact: (i) => interactables.push(i),
       update: (fn) => updaters.push(fn),
-      /** A child context whose origin sits at (dx, dz) in this one. */
+      /** This frame's point in world coordinates, and back. */
+      toWorld: (p) => ({ ...p, x: wx(p.x), z: wz(p.z) }),
+      toLocal: (p) => ({ ...p, x: lx(p.x), z: lz(p.z) }),
+      /** A heading (yaw) in this frame, in the world's. */
+      yawToWorld: (yaw) => (s < 0 ? yaw + Math.PI : yaw),
+      turnedFrame: s < 0,
+      /** A child context whose origin sits at (ox, oz) in this one. */
       offset(ox, oz, name = 'part') {
         const g = new THREE.Group();
         g.name = name;
         g.position.set(ox, 0, oz);
         group.add(g);
-        return build(g, dx + ox, dz + oz);
+        return build(g, s, wx(ox), wz(oz));
+      },
+      /** A child context turned half round about the line z = cz of this
+       * one: (x, z) here lands at (-x, 2·cz - z).  Signs, text and stairs
+       * stay the right way round (a rotation, not a mirror). */
+      turned(cz, name = 'turned') {
+        const g = new THREE.Group();
+        g.name = name;
+        g.rotation.y = Math.PI;
+        g.position.set(0, 0, 2 * cz);
+        group.add(g);
+        return build(g, -s, wx(0), wz(2 * cz));
       },
     };
   }
 
-  const ctx = build(root, 0, 0);
+  const ctx = build(root, 1, 0, 0);
   ctx.platforms = platforms;
   ctx.updaters = updaters;
   ctx.heightAt = heightAt;

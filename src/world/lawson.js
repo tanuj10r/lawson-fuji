@@ -3,7 +3,7 @@ import { cel, flat } from '../core/toon.js';
 import { hullOutlineTree } from '../core/outline.js';
 import { tactileTex } from '../core/textures.js';
 import { bake, trs, shadowify } from '../core/util.js';
-import { LAWSON, STREET, mainRoadGaps } from '../config.js';
+import { LAWSON, STREET } from '../config.js';
 import {
   signBand, sideBand, logoPlate, nobori, tileTex,
   interiorCard, ceilingTex, glassShine, spillTex, redNotice, foodPoster, campaignBanner,
@@ -295,12 +295,9 @@ export function buildLawson(parent) {
   // the far sidewalk, raised on its kerb, with the tactile strip along it;
   // it breaks for the side road to the level crossing, whose asphalt runs on
   const platforms = [];
-  // runs of walk between the gaps (the town's roads build their own mouths)
-  const gaps = mainRoadGaps().sort((a, b) => a[0] - b[0]);
-  const runs = [];
-  let from = S.roadX0;
-  for (const [g0, g1] of gaps) { runs.push([from, g0]); from = g1; }
-  runs.push([from, S.roadX1]);
+  // one run: no road meets the main road from the south since the town
+  // moved north of it (M2e.3); the north walk breaks for them (town-edge.js)
+  const runs = [[S.roadX0, S.roadX1]];
   const kerbMat = cel({ color: 0xd2d3da, bands: 3 });
   for (const [x0, x1] of runs) {
     ground.add(shadowify(slab(x0, x1, 0, kerbH, S.roadZ, S.sidewalkZ, paving), false, true));

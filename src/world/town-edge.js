@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { cel, flat } from '../core/toon.js';
-import { TOWN, STREET, LAWSON } from '../config.js';
+import { TOWN, STREET, LAWSON, mainRoadGaps } from '../config.js';
 import { makeHouse, makeWall, makeTimberFence, makeBlockFence } from './buildings.js';
 import { buildSakura, buildGrove, buildShrubs } from './trees.js';
 import {
@@ -63,16 +63,36 @@ function walk(ctx, x0, x1, z0, z1, mat) {
   ctx.platform({ x0, x1, z0, z1, top: K });
 }
 
-export function buildEdge(ctx) {
-  const B = TOWN.bounds;
+/* M2e.3 split this file in two.  The town now stands north of the main
+ * road, built turned (world/ctx.js `turned`), and M2's north side swung
+ * round with it to the south, behind the start spot:
+ *
+ *   buildFrame(ctx)     world frame: what the famous views and the start
+ *                       spot see -- the main road's walks, ends, crossing
+ *                       and signals, the Lawson's own dressing, and the two
+ *                       sakura framing the view
+ *   buildOldTown(ctx)   the turned frame: M2's residential lane, fields,
+ *                       park, their poles and wires, and the edge's tree
+ *                       lines and fence (coordinates as M2 authored them) */
+
+export function buildFrame(ctx) {
   const S = STREET;
   const out = { vending: [] };
   const mats = Object.fromEntries(Object.entries(MAT).map(([k, f]) => [k, f()]));
 
   /* ============================== roads & walks ============================== */
-  // north walk along the main road, either side of the forecourt
-  for (const [x0, x1] of [[S.roadX0 + 7, S.x0], [S.x1, S.roadX1 - 7]]) {
-    walk(ctx, x0, x1, 8.3, S.forecourtZ, mats.walk);
+  // north walk along the main road, either side of the forecourt, as deep as
+  // the south walk (the town's frontage lots start where it ends)
+  // broken where the town's lanes and the shopping street meet the road
+  const gaps = mainRoadGaps().sort((a, b) => a[0] - b[0]);
+  for (const [a0, a1] of [[S.roadX0 + 7, S.x0], [S.x1, S.roadX1 - 7]]) {
+    let from = a0;
+    for (const [g0, g1] of gaps) {
+      if (g1 <= from || g0 >= a1) continue;
+      if (g0 > from) walk(ctx, from, g0, 2 * TOWN.grid.main - S.sidewalkZ, S.forecourtZ, mats.walk);
+      from = Math.max(from, g1);
+    }
+    if (a1 > from) walk(ctx, from, a1, 2 * TOWN.grid.main - S.sidewalkZ, S.forecourtZ, mats.walk);
   }
   // the main road's ends: barricaded, trees beyond
   for (const sx of [-1, 1]) {
@@ -123,6 +143,29 @@ export function buildEdge(ctx) {
     ];
     for (const c of cars) parkVehicle(ctx, { kind: 'kei', x: c.x, z: 5.1, y: 0, ry: 0, color: c.color });
   }
+
+  /* ============ the two sakura that frame the view (M2, mood ref 2) ============ */
+  {
+    const spots = [
+      // the frame's left edge, behind the store's corner, kept low
+      { x: -17.5, z: -9.5, scale: 0.82, seed: 1101, lean: 0.08 },
+      // right of the store, just outside the frame
+      { x: 20.0, z: -5.0, scale: 1.0, seed: 1102, lean: 0.1 },
+    ];
+    buildSakura(ctx, spots.map((p) => ({ ...p, y: 0 })));
+    for (const p of spots) ctx.collide(p.x - 0.3, p.z - 0.3, p.x + 0.3, p.z + 0.3, 2.5);
+  }
+
+  // trees across the main road's ends, behind the barricades
+  for (const sx of [-1, 1]) {
+    buildGrove(ctx, [9, 13, 17, 21].map((z) => ({ x: sx * 123.5, z, y: 0, scale: 1.4, seed: 3500 + z + (sx > 0 ? 50 : 0) })), { far: true });
+  }
+  return out;
+}
+
+export function buildOldTown(ctx) {
+  const B = TOWN.bounds;
+  const mats = Object.fromEntries(Object.entries(MAT).map(([k, f]) => [k, f()]));
 
   /* ============================ residential lane ============================ */
   {
@@ -201,15 +244,7 @@ export function buildEdge(ctx) {
       }
     }
 
-    /* Two single-storey houses behind the store.  From the famous views they
-     * stand below the Lawson's roofline and inside its width, so they never
-     * show; from everywhere else they close the gap behind it. */
-    [[-4, -24, 7.2, 1601], [7.5, -26, 6.8, 1602]].forEach(([x, z, w, seed], i) => {
-      ctx.add(makeHouse({ x, z, y: 0, w, d: 6.6, face: 'z+', floors: 1, seed, wall: 3 + i * 2, roof: i + 1, roofKind: 'hip' }));
-      ctx.collide(x - w / 2 - 0.1, z - 3.4, x + w / 2 + 0.1, z + 3.4, 2.72);
-      ctx.registry?.push({ kind: 'building', x, z, rect: [x - w / 2, z - 3.3, x + w / 2, z + 3.3] });
-    });
-
+    // (M2's two low houses behind the store went: the town's lots stand there now)
   }
 
   /* ================================== park ================================== */
@@ -256,11 +291,7 @@ export function buildEdge(ctx) {
   /* ================================= sakura ================================= */
   {
     const spots = [
-      // the frame's left edge, behind the store's corner, kept low (mood ref 2)
-      { x: -17.5, z: -9.5, scale: 0.82, seed: 1101, lean: 0.08 },
-      // right of the store, just outside the frame
-      { x: 20.0, z: -5.0, scale: 1.0, seed: 1102, lean: 0.1 },
-      // the park
+      // the park (the two framing the view are buildFrame's)
       { x: 30, z: -20, scale: 1.15, seed: 1103, lean: 0.07 },
       { x: 42, z: -17, scale: 1.05, seed: 1104, lean: 0.1 },
       { x: 58, z: -22, scale: 1.2, seed: 1105, lean: 0.06 },
@@ -276,7 +307,7 @@ export function buildEdge(ctx) {
   {
     const poles = [];
     const pole = (x, z, h, seed, o = {}) => {
-      const y = ctx.heightAt(x, z);
+      const y = ctx.groundAt(x, z);
       ctx.add(makePole({ x, z, y, h, seed, ...o }));
       ctx.collide(x - 0.22, z - 0.22, x + 0.22, z + 0.22, y + h);
       poles.push({ x, z, top: y + h });
@@ -327,10 +358,6 @@ export function buildEdge(ctx) {
     }
     row(B.x0 - 3, B.z0, B.x0 - 3, 4, 11, 3200);                // west, down to the main road
     row(B.x1 + 3, B.z0, B.x1 + 3, 4, 11, 3300);                // east
-    // across the main road's ends, behind the barricades
-    for (const sx of [-1, 1]) {
-      buildGrove(ctx, [9, 13, 17, 21].map((z) => ({ x: sx * 123.5, z, y: 0, scale: 1.4, seed: 3500 + z + (sx > 0 ? 50 : 0) })), { far: true });
-    }
 
     const fence = (x0, z0, x1, z1) => {
       const axis = x0 === x1 ? 'z' : 'x';
@@ -341,6 +368,4 @@ export function buildEdge(ctx) {
     fence(B.x0, B.z0, B.x0, 8.0);
     fence(B.x1, B.z0, B.x1, 8.0);
   }
-
-  return out;
 }

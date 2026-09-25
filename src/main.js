@@ -375,9 +375,14 @@ if (import.meta.env?.DEV) {
     if (opts.hero) enterHero(opts.hero);
     if (opts.train) window.__train?.(opts.train);
     if (opts.look) applyLook(opts.look);
-    if (opts.pos) player.pos.set(opts.pos[0], player.pos.y, opts.pos[2]);
+    // spots in the town's own frame (turned, M2e.3) stand in the world turned
+    const F = opts.frame === 'core' ? world.frame : null;
+    if (opts.pos) {
+      const p = F ? F.toWorld({ x: opts.pos[0], z: opts.pos[2] }) : { x: opts.pos[0], z: opts.pos[2] };
+      player.pos.set(p.x, player.pos.y, p.z);
+    }
     if (opts.y !== undefined) player.pos.y = opts.y;
-    if (opts.yaw !== undefined) player.yaw = opts.yaw;
+    if (opts.yaw !== undefined) player.yaw = F ? F.yawToWorld(opts.yaw) : opts.yaw;
     if (opts.pitch !== undefined) player.pitch = opts.pitch;
     // always resync the camera: the rAF loop is throttled when the page is
     // not compositing, so the camera cannot be assumed to match the player
@@ -463,7 +468,7 @@ if (import.meta.env?.DEV) {
    * the crossing shut whenever a train is within the margin of it? */
   if (params.has('traincheck')) {
     world.fuji.ready.then(() => {
-      const L = world.line, S = L.service;
+      const L = world.line.local ?? world.line, S = L.service;     // in the line's own frame
       const dt = 1 / 20;
       const cx = L.crossingPos.x;
       let openWhileNear = 0, lampsOffWhileDown = 0, steps = 0;

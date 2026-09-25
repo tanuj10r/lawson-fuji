@@ -574,3 +574,54 @@ Judgement calls, newest milestone last.
     material. Neither is polish; both are proposed for a later milestone.
 - **Heroes:** 0.000 / 0.356 / 0.000%. Density 27 of 27 and bare stretches
   pass; traincheck passes; no Sakura Crossing names.
+
+## M2e.3: the town moves between the Lawson and Fuji (Tan)
+
+- **Why:** the game opens on the famous views, but the town lay behind the
+  player, south of the main road. Tan wanted to walk *ahead* past the
+  store into the town, toward Fuji.
+- **How: a rigid half-turn, not a rebuild.** Everything that makes up the
+  town is built as before, in its own tested frame, inside a context
+  turned 180° about the main road's centreline
+  (world/ctx.js `turned`: local (x, z) → world (−x, 27.7 − z)).
+  - It is a rotation, not a mirror, so signs, text, stairs, the trains, the
+    crossing's timing, lots and density all keep working as tested.
+  - M2's old north side (the residential lane, park and fields) turns with
+    it and now lies south, behind the start.
+- **What stays in world coordinates.** The Lawson, its forecourt, the main
+  road's walks, ends, signals and crosswalk, the Lawson's own dressing and
+  the two sakura framing the view (town-edge.js `buildFrame`).
+- **What crosses the boundary.** The only places the two frames meet:
+  - colliders and platforms (ctx converts them);
+  - the line's crossing and events, and train gusts (a facade in town.js);
+  - the sakura and bird cameras (a turned camera proxy);
+  - petal emitters, the Lawson's lot decals, and the density registry
+    (kept in the town's frame);
+  - shot spots (`frame: 'core'`, turned by `__shot`);
+  - `PLACES` (`placeAt`).
+- **A frame bug found and fixed.** The kit read positions with
+  `matrixWorld`. Under the turn, the wire anchors, service drops, lamp
+  pools and one registry point were turned twice, and the wires tangled
+  across the sky. They now use positions in the builder's own frame.
+- **The famous views' sightline.** From the hero camera the store's
+  roofline is about 4.5° up, so behind the store, inside the frame:
+  - buildings take a height envelope (floors from the sightline over each
+    lot's nearest edge);
+  - a 10 m pole would show until about 80 m back, so poles there are
+    replaced by 4.5 m lamp posts (防犯灯) with no overhead lines, and houses
+    there take no service drop (TOWN.lowPoles);
+  - the apartment block lights its entrance with one.
+- **The Lawson's ground is reserved** in the town's frame (TOWN.lawsonReserve).
+  - The x −25 lane starts at the back of the forecourt instead of crossing it.
+  - The coin parking moved west of the forecourt.
+  - M2's two low houses behind the store went, because the town's own lots
+    stand there now.
+- **The famous views moved by 1.2–1.7%**, all at the frame edges beside the
+  store (the town's houses behind its corners). Re-baselined, on Tan's
+  standing OK for view changes during M2e.
+- **Checks.** Density 27 of 27, bare stretches and traincheck pass; frame
+  time 6–9.5 ms at 1440p.
+- **Contention in timings.** Timings taken while the in-app browser pane
+  was running the game read 2–4× slower. The pane is blanked for
+  measurements now.
+- **Next.** M2f (added to SPEC) draws the minimap from config.js PLACES.

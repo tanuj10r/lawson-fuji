@@ -59,6 +59,8 @@ export function buildCore(ctx) {
     wireRuns: kit.wireRuns, cats: ctx.cats,
     flocks: [mid(at('park'), 0.04), { ...mid(at('plaza'), 0.17, 6), x: at('plaza').x0 + 12 }, mid(at('shrine'), 0.04, 4), mid(at('vacant'), 0.03, 3)],
   });
+  // anyone else with marks for the town's decal mesh (the Lawson's lot, M2e)
+  ctx.onDecals?.(kit.decals);
   kit.finish();
   buildCoreEdge(ctx);
 

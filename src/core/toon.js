@@ -67,16 +67,42 @@ let patchedChunkAttr = '';
   }
 }
 
+/* Wear (M2e): a painted layer of dirt, streaks and stains that darkens a
+ * surface the way years of weather do.  One shared atlas holds every
+ * variant (kit/paint.js wearAtlas); a mesh carries, per vertex, where in
+ * the atlas it reads and how strongly (`aWear`: u, v, strength), so worn
+ * walls of any colour still batch together. */
+const wearTex = { value: null };
+/** Set the shared wear atlas (once, before the first frame). */
+export function setWearTexture(tex) { wearTex.value = tex; }
+
+function addWear(shader) {
+  shader.uniforms.uWearTex = wearTex;
+  shader.vertexShader = 'attribute vec3 aWear;\nvarying vec3 vWear;\n'
+    + shader.vertexShader.replace('#include <uv_vertex>', '#include <uv_vertex>\n\tvWear = aWear;');
+  shader.fragmentShader = 'uniform sampler2D uWearTex;\nvarying vec3 vWear;\n'
+    // after lighting: a sunlit pale wall is already past white, and dirt on
+    // its base colour would clip away to nothing
+    + shader.fragmentShader.replace('#include <opaque_fragment>',
+      // and pale lit walls take it harder: the grade compresses highlights,
+      // so the same dirt that reads on a shaded wall would vanish on a lit one
+      '\toutgoingLight = min( outgoingLight, vec3( 1.0 ) );\n'
+      + '\tfloat wearK = vWear.z * ( 0.8 + 0.5 * dot( outgoingLight, vec3( 0.3, 0.59, 0.11 ) ) );\n'
+      + '\toutgoingLight *= max( mix( vec3( 1.0 ), texture2D( uWearTex, vWear.xy ).rgb, wearK ), vec3( 0.35 ) );\n#include <opaque_fragment>');
+}
+
 /** Shadow tint read from a per-vertex `aTint` attribute instead of a uniform,
  * so batched geometry from many parts can keep each part's tint. */
 function applyTintAttribute(mat) {
   if (!patchAvailable) return mat;
+  const wear = !!mat.userData.wear;
   mat.onBeforeCompile = (shader) => {
     shader.vertexShader = 'attribute vec3 aTint;\nvarying vec3 vTint;\n'
       + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvTint = aTint;');
     shader.fragmentShader = shader.fragmentShader.replace(`#include <${TOON_CHUNK}>`, patchedChunkAttr);
+    if (wear) addWear(shader);
   };
-  mat.customProgramCacheKey = () => 'celTintAttr';
+  mat.customProgramCacheKey = () => 'celTintAttr' + (wear ? 'W' : '');
   mat.userData.tintAttr = true;
   return mat;
 }
@@ -86,15 +112,17 @@ function applyShadowTint(mat, tint) {
   if (!patchAvailable) return mat;
   const uni = { value: new THREE.Color(tint) };
   mat.userData.shadowTint = uni;
+  const wear = !!mat.userData.wear;
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uShadowTint = uni;
     shader.fragmentShader = shader.fragmentShader.replace(
       `#include <${TOON_CHUNK}>`,
       patchedChunk
     );
+    if (wear) addWear(shader);
   };
   const hex = new THREE.Color(tint).getHexString();
-  mat.customProgramCacheKey = () => 'celTint_' + hex;
+  mat.customProgramCacheKey = () => 'celTint_' + hex + (wear ? 'W' : '');
   return mat;
 }
 
@@ -122,12 +150,13 @@ export function cel(opts = {}) {
     alphaMap = null,
     vertexColors = false,
     tintAttr = false,
+    wear = false,
     cache = true,
   } = opts;
 
   const key = cache && !map && !alphaMap
     ? [color, bands, tint, flat, emissive, emissiveIntensity, transparent,
-       opacity, side, alphaTest, depthWrite, fog, vertexColors].join('|')
+       opacity, side, alphaTest, depthWrite, fog, vertexColors, wear].join('|')
     : null;
   if (key && matCache.has(key)) return matCache.get(key);
 
@@ -147,6 +176,8 @@ export function cel(opts = {}) {
     emissiveIntensity,
   });
   if (depthWrite !== null) mat.depthWrite = depthWrite;
+  // worn surfaces read a per-vertex aWear (see addWear)
+  if (wear) mat.userData.wear = true;
   if (tintAttr) applyTintAttribute(mat);
   else applyShadowTint(mat, tint);
   if (key) matCache.set(key, mat);

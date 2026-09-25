@@ -323,6 +323,12 @@ export const SHOT_SPOTS = [
   { name: 'crossing-fence', scene: 'town', pos: [-78.4, 0, 155.6], yaw: -2.5, pitch: 0.0, looks: ['day'], train: 'approach', ref: '20-level-crossing-fence.png' },
   { name: 'crossing-path', scene: 'town', pos: [-28.5, 0, 156.6], yaw: -2.3, pitch: -0.05, looks: ['day'], ref: '21-crossing-path-fence.png' },
   { name: 'platform-canopy', scene: 'town', pos: [-56, 0, 167.2], yaw: -1.5708, pitch: 0.06, looks: ['day'], train: 'platform', ref: '22-platform-canopy.png' },
+  // M2e: close-ups, at arm's length, where finish shows (no density check)
+  { name: 'close-lawson-front', scene: 'town', pos: [3.5, 0, 2.6], yaw: 0.25, pitch: 0.12, looks: ['day'], close: true },
+  { name: 'close-lawson-side', scene: 'town', pos: [15.5, 0, 3.5], yaw: 0.75, pitch: 0.1, looks: ['day'], close: true },
+  { name: 'close-forecourt', scene: 'town', pos: [-5, 0, 7], yaw: 0.35, pitch: -0.42, looks: ['day'], close: true },
+  { name: 'close-house-wall', scene: 'town', pos: [60, 0, 77.5], yaw: 1.9, pitch: 0.1, looks: ['day'], close: true },
+  { name: 'close-sakura', scene: 'town', pos: [-50, 0, 128], yaw: 3.1416, pitch: 0.55, looks: ['day'], close: true, ref: '12-station-plaza-big-sakura.png' },
   { name: 'town-overview', scene: 'town', pos: [0, 0, 215], yaw: 0, pitch: -0.62, lift: 95, looks: ['golden'] },
   { name: 'town-overview-east', scene: 'town', pos: [170, 0, 90], yaw: -1.5708, pitch: -0.55, lift: 80, looks: ['day'] },
 

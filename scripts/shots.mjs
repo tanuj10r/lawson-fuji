@@ -131,7 +131,7 @@ for (const spot of spots) {
       writeData(path.join(outDir, `${name}-vs-ref.jpg`), pair);
     }
     // the density budget, from every street-level town spot (not heroes or overviews)
-    if (spot.scene === 'town' && !spot.hero && !spot.lift && !baseline) {
+    if (spot.scene === 'town' && !spot.hero && !spot.lift && !spot.close && !baseline) {
       const dens = await page.evaluate((sp) => window.__density(sp),
         { x: spot.pos[0], z: spot.pos[2], yaw: spot.yaw });
       if (dens?.spot) {

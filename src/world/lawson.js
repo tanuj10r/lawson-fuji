@@ -5,9 +5,12 @@ import { tactileTex } from '../core/textures.js';
 import { bake, trs, shadowify } from '../core/util.js';
 import { LAWSON, STREET, mainRoadGaps } from '../config.js';
 import {
-  signBand, sideBand, logoPlate, poster, doorBanner, nobori, tileTex,
-  interiorCard, ceilingTex, glassShine, spillTex, redNotice,
+  signBand, sideBand, logoPlate, nobori, tileTex,
+  interiorCard, ceilingTex, glassShine, spillTex, redNotice, foodPoster, campaignBanner,
 } from './lawson-tex.js';
+import { dressLawson, wearLawson } from './lawson-dress.js';
+import { asphaltTex, ASPHALT_TILE } from './kit/tex.js';
+import { chipTex, CHIP_TILE } from './kit/paint.js';
 
 /* ------------------------------------------------------------------ *
  * The Lawson: storefront, forecourt and the road in front of it.
@@ -48,6 +51,19 @@ function patch(x0, x1, z0, z1, y, mat) {
   m.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
   m.receiveShadow = true;
   return m;
+}
+
+/** Lay a mesh's UVs out in world metres over the ground (tile `t`). */
+function worldUV(mesh, t) {
+  mesh.updateMatrix();
+  const pos = mesh.geometry.attributes.position, uv = mesh.geometry.attributes.uv;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrix);
+    uv.setXY(i, v.x / t, -v.z / t);
+  }
+  uv.needsUpdate = true;
+  return mesh;
 }
 
 /** An upright quad facing +Z, from min/max x and y. */
@@ -176,10 +192,14 @@ export function buildLawson(parent) {
       root.add(m);
       lit.push(m.material);
     };
-    hang(poster('onigiri'), -5.15, 1.35, 0.54, 0.72);
-    hang(poster('shinhatsubai'), 2.55, 1.45, 0.54, 0.72);
-    hang(poster('coffee'), 6.35, 1.35, 0.54, 0.72);
-    hang(doorBanner(), -2.05, 2.45, 2.3, 0.36);
+    // food posters papering the glass, as on the real store (M2e)
+    hang(foodPoster('karaage'), -7.35, 1.36, 0.66, 0.9);
+    hang(foodPoster('onigiri'), -5.15, 1.42, 0.66, 0.9);
+    hang(foodPoster('bento'), 0.5, 1.36, 0.66, 0.9);
+    hang(foodPoster('latte'), 2.55, 1.46, 0.66, 0.9);
+    hang(foodPoster('sandwich'), 4.45, 1.36, 0.66, 0.9);
+    hang(foodPoster('nikuman'), 6.35, 1.42, 0.66, 0.9);
+    hang(campaignBanner(), -2.05, 2.45, 2.3, 0.36);
     hang(logoPlate(), -3.78, 2.5, 0.42, 0.42);
   }
 
@@ -207,6 +227,9 @@ export function buildLawson(parent) {
     for (const m of lit) m.userData.live = true;   // setLook drives all of these
     root.userData.sign = [bandMat, sideMat];
   }
+
+  /* --------------- lived in: pipes, delivery corner, bins (M2e) --------------- */
+  dressLawson(root, { lit, colliders });
 
   /* ------------------------ forecourt furniture ------------------------ */
   const props = new THREE.Group();
@@ -257,17 +280,18 @@ export function buildLawson(parent) {
   ground.name = 'lawson-ground';
   parent.add(ground);
   const S = STREET;
-  const asphalt = cel({ color: ASPHALT, bands: 3, tint: 0x5a5480 });
-  const road = cel({ color: ROAD, bands: 3, tint: 0x5a5480 });
-  const lot = cel({ color: LOT, bands: 3, tint: 0x5a5480 });
+  // the town's asphalt skin, world-mapped: tone drift and aggregate (M2e)
+  const asphalt = cel({ color: ASPHALT, bands: 3, tint: 0x5a5480, map: asphaltTex(), cache: false });
+  const road = cel({ color: ROAD, bands: 3, tint: 0x5a5480, map: asphaltTex(), cache: false });
+  const lot = cel({ color: LOT, bands: 3, tint: 0x5a5480, map: asphaltTex(), cache: false });
   const apron = cel({ color: APRON, bands: 3 });
   const paving = cel({ color: PAVING, bands: 3 });
   const kerbH = 0.15;
 
-  ground.add(patch(S.x0, S.x1, 0, S.forecourtZ, 0.004, asphalt));
+  ground.add(worldUV(patch(S.x0, S.x1, 0, S.forecourtZ, 0.004, asphalt), ASPHALT_TILE));
   ground.add(patch(-hw - 0.6, wingX1 + 0.2, 0, S.apron, 0.008, apron));
-  ground.add(patch(S.roadX0, S.roadX1, S.forecourtZ, S.roadZ, 0.004, road));
-  ground.add(patch(S.lotX0, S.lotX1, S.sidewalkZ, S.lotZ, 0.004, lot));
+  ground.add(worldUV(patch(S.roadX0, S.roadX1, S.forecourtZ, S.roadZ, 0.004, road), ASPHALT_TILE));
+  ground.add(worldUV(patch(S.lotX0, S.lotX1, S.sidewalkZ, S.lotZ, 0.004, lot), ASPHALT_TILE));
   // the far sidewalk, raised on its kerb, with the tactile strip along it;
   // it breaks for the side road to the level crossing, whose asphalt runs on
   const platforms = [];
@@ -315,7 +339,9 @@ export function buildLawson(parent) {
     for (const [x0, x1] of runs) line(x0 + (x0 > S.roadX0 ? 1 : 0), x1 - (x1 < S.roadX1 ? 1 : 0), S.roadZ - 0.5, S.roadZ - 0.5 + lw);
     const mid = (S.forecourtZ + S.roadZ) / 2;
     for (let x = S.roadX0; x < S.roadX1; x += 10) line(x, x + 5, mid - lw / 2, mid + lw / 2);
-    const paint = new THREE.Mesh(bake(parts), cel({ color: PAINT, bands: 3 }));
+    // worn: chips and tyre-thinned bands (world-mapped)
+    const paint = new THREE.Mesh(bake(parts), cel({ color: PAINT, bands: 3, map: chipTex(), cache: false }));
+    worldUV(paint, CHIP_TILE);
     paint.receiveShadow = true;
     paint.name = 'lawson-paint';
     ground.add(paint);
@@ -323,7 +349,7 @@ export function buildLawson(parent) {
 
   // concrete wheel stops in each bay but the zebra
   {
-    const stopMat = cel({ color: 0xe9eaee, bands: 3 });
+    const stopMat = cel({ color: 0xc8cad2, bands: 3, tint: 0x6a6690 });   // plain precast concrete
     const firstBay = S.bayFirstX - Math.floor((S.bayFirstX - S.bayX0) / S.bayWidth) * S.bayWidth;
     for (let x = firstBay; x + S.bayWidth <= S.bayX1 + 0.01; x += S.bayWidth) {
       const cx = x + S.bayWidth / 2;
@@ -347,6 +373,7 @@ export function buildLawson(parent) {
   ground.add(spill);
 
   /* ------------------------------ finishing ------------------------------ */
+  wearLawson(shell);
   shadowify(shell);
   shadowify(props);
   hullOutlineTree(shell, { thickness: 0.0032 });

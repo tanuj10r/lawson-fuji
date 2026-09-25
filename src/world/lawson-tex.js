@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { FOOD } from './foodart.js';
 
 /* ------------------------------------------------------------------ *
  * Canvas2D signage and painted surfaces for the Lawson (AGENTS.md: all
@@ -409,4 +410,100 @@ export const redNotice = () =>
     c.fillRect(0, 0, w, h * 0.42);
     text(c, '24時間', w / 2, h * 0.21, w * 0.86, 36, '#ffffff');
     text(c, '営業中', w / 2, h * 0.62, w * 0.86, 34, '#d8342f');
+  });
+
+/* ------------------------------------------------------------------ *
+ * Food posters (M2e).  The real store's glass is papered with food:
+ * glossy illustrations, a price in a burst, a slogan.  Ours are painted
+ * (world/foodart.js) and every item is generic.
+ * ------------------------------------------------------------------ */
+
+const FOOD_POSTERS = {
+  onigiri: { bg: ['#fff6e2', '#ffe9c4'], band: '#d8342f', title: 'おにぎり', sub: 'ふっくら炊きたて', price: '¥128', art: 'onigiri2' },
+  latte: { bg: ['#f7efe4', '#e9d6bf'], band: '#6b4a34', title: 'カフェラテ', sub: 'ミルクたっぷり', price: 'S ¥150', art: 'latte' },
+  karaage: { bg: ['#fff4c4', '#ffe38a'], band: '#e0453f', title: 'からあげ', sub: '揚げたて', price: '¥238', art: 'karaage' },
+  sandwich: { bg: ['#f0f7e6', '#dcefcc'], band: '#3f8f4a', title: 'たまごサンド', sub: 'ふんわり', price: '¥298', art: 'sandwich' },
+  bento: { bg: ['#fff0ea', '#ffd9cc'], band: '#c43a3a', title: 'のり弁当', sub: 'あたためできます', price: '¥450', art: 'bento' },
+  nikuman: { bg: ['#fdf3ea', '#f5e1cc'], band: '#b6413a', title: '肉まん', sub: 'ほかほか', price: '¥160', art: 'nikuman' },
+};
+
+/** A price in a jagged burst. */
+function burst(c, x, y, r, str) {
+  c.beginPath();
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * Math.PI * 2, k = i % 2 ? 0.78 : 1;
+    c.lineTo(x + Math.cos(a) * r * k, y + Math.sin(a) * r * k);
+  }
+  c.closePath();
+  c.fillStyle = '#ffd23a'; c.fill();
+  c.lineWidth = 4; c.strokeStyle = '#d8342f'; c.stroke();
+  text(c, str, x, y + 2, r * 1.5, r * 0.62, '#d8342f');
+}
+
+/** A food poster: `kind` from FOOD_POSTERS. */
+export const foodPoster = (kind) =>
+  make('foodPoster-' + kind, 512, 704, (c, w, h) => {
+    const p = FOOD_POSTERS[kind];
+    const g = c.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, p.bg[0]); g.addColorStop(1, p.bg[1]);
+    c.fillStyle = g; c.fillRect(0, 0, w, h);
+    // soft rays behind the food
+    c.save();
+    c.translate(w / 2, h * 0.5);
+    c.fillStyle = 'rgba(255,255,255,0.45)';
+    for (let i = 0; i < 12; i++) {
+      c.rotate(Math.PI / 6);
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(-w * 0.08, -w); c.lineTo(w * 0.08, -w); c.closePath(); c.fill();
+    }
+    c.restore();
+    c.fillStyle = p.band; c.fillRect(0, 0, w, h * 0.17);
+    text(c, p.title, w / 2, h * 0.087, w * 0.88, 96, '#ffffff');
+    const s = w * 0.62, cy = h * 0.5;
+    if (p.art === 'onigiri2') {
+      FOOD.onigiri(c, w * 0.36, cy + s * 0.05, s * 0.72, { filling: '#e8795a', seed: 3 });
+      FOOD.onigiri(c, w * 0.66, cy - s * 0.02, s * 0.66, { filling: '#3a2f2a', seed: 9 });
+    } else {
+      FOOD[p.art](c, w / 2, cy, s);
+    }
+    burst(c, w * 0.8, h * 0.72, w * 0.14, p.price);
+    text(c, p.sub, w / 2, h * 0.9, w * 0.86, 64, p.band);
+  });
+
+/** The long campaign banner across the top of the glass. */
+export const campaignBanner = () =>
+  make('campaignBanner', 1280, 200, (c, w, h) => {
+    const g = c.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#fff3c0'); g.addColorStop(1, '#ffe07a');
+    c.fillStyle = g; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#d8342f';
+    c.beginPath(); c.arc(h * 0.62, h / 2, h * 0.4, 0, Math.PI * 2); c.fill();
+    text(c, '新', h * 0.62, h / 2 + 3, h * 0.6, 104, '#ffffff');
+    text(c, 'ふっくらおにぎり 始まる', w * 0.54, h * 0.52, w * 0.66, 112, '#3a2a1a');
+    FOOD.onigiri(c, w * 0.93, h * 0.52, h * 0.78, { seed: 4 });
+    c.fillStyle = 'rgba(58,42,26,0.25)'; c.fillRect(0, h - 6, w, 6);
+  });
+
+/** Konbini recycling labels: 燃えるゴミ / かん・びん / ペットボトル, one strip. */
+export const binLabels = () =>
+  make('binLabels', 768, 192, (c, w, h) => {
+    const cols = [['燃えるゴミ', '#d8342f'], ['かん・びん', '#2f6fb6'], ['ペットボトル', '#3f8f4a']];
+    cols.forEach(([t, col], i) => {
+      const x = (i * w) / 3;
+      c.fillStyle = '#ffffff'; c.fillRect(x + 6, 6, w / 3 - 12, h - 12);
+      c.fillStyle = col; c.fillRect(x + 6, 6, w / 3 - 12, h * 0.34);
+      text(c, t, x + w / 6, h * 0.2, w / 3 - 30, 40, '#ffffff');
+      // the slot
+      c.fillStyle = '#2a2a33';
+      c.beginPath(); c.roundRect(x + w / 6 - 50, h * 0.5, 100, i === 2 ? 70 : 34, 16); c.fill();
+    });
+  });
+
+/** A small red ATM sign for the side wall. */
+export const atmSign = () =>
+  make('atmSign', 256, 160, (c, w, h) => {
+    c.fillStyle = '#d8342f'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#ffffff'; c.fillRect(8, 8, w - 16, h - 16);
+    c.fillStyle = '#d8342f'; c.fillRect(14, 14, w - 28, h * 0.5);
+    text(c, 'ATM', w / 2, h * 0.34, w * 0.8, 70, '#ffffff', { font: SLAB });
+    text(c, '24時間', w / 2, h * 0.78, w * 0.8, 36, '#d8342f');
   });

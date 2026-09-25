@@ -10,7 +10,8 @@ import {
 } from '../props.js';
 import { makeGasMeter, makeWaterMeter, makeKidBike } from '../streetprops.js';
 import { makeVehicle } from '../vehicles.js';
-import { sidingTex, kawaraTex, boardTex, laundryTex } from './tex.js';
+import { sidingTex, kawaraTex, boardTex, laundryTex, mortarTex, MORTAR_TILE } from './tex.js';
+import { wearBuilding, WEAR } from './wear.js';
 
 /* ------------------------------------------------------------------ *
  * The house generator (SPEC section 3, buildings).
@@ -174,6 +175,18 @@ export function buildHouse(ctx, net, kit, lot, F, o = {}) {
     }
   }
   g.name = `house-${type}`;
+  // weather, by how old the house is: new boxes are nearly clean, old
+  // mortar is streaked and cracked (its own draw, so the layout never shifts)
+  {
+    const w = rngKit(lot.seed + 77);
+    const [kind, a0, a1] = {
+      modern: [WEAR.newer, 0.0, 0.35], siding: [WEAR.newer, 0.2, 0.65],
+      mortar: [WEAR.mortar, 0.45, 0.9], old: [WEAR.old, 0.7, 1.0],
+    }[type] ?? [WEAR.mortar, 0.35, 0.8];
+    // rendered walls get the trowelled mortar skin under their weather
+    const skin = type === 'mortar' || type === 'old' ? { tex: mortarTex(), tile: MORTAR_TILE } : null;
+    wearBuilding(g, kind, w.int(0, 15), w.range(a0, a1), { skin });
+  }
   ctx.add(g);
   const hx = (along ? bw : bd) / 2, hz = (along ? bd : bw) / 2;
   ctx.collide(c.x - hx - 0.05, c.z - hz - 0.05, c.x + hx + 0.05, c.z + hz + 0.05, H);

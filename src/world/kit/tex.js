@@ -441,6 +441,37 @@ const CELLS = {
       c.fillStyle = 'rgba(150,110,20,0.6)'; c.fillRect(0, 0, w, 4); c.fillRect(0, 0, 4, h);
     },
   },
+  oil: {
+    at: [1, 4], draw: (c, w, h) => {
+      // where cars stand: a dark drip pool, a drier ring, a few splashes
+      const r = rng(71);
+      for (const [k, a] of [[1, 0.18], [0.7, 0.26], [0.42, 0.38]]) {
+        c.fillStyle = `rgba(40,36,58,${a})`;
+        c.beginPath();
+        for (let i = 0; i <= 16; i++) {
+          const t = (i / 16) * Math.PI * 2, q = 0.8 + r() * 0.25;
+          c.lineTo(w / 2 + Math.cos(t) * (w / 2 - 12) * k * q, h / 2 + Math.sin(t) * (h / 2 - 20) * k * q);
+        }
+        c.fill();
+      }
+      for (let i = 0; i < 9; i++) {
+        c.fillStyle = 'rgba(40,36,58,0.35)';
+        c.beginPath(); c.ellipse(w / 2 + (r() - 0.5) * w * 0.8, h / 2 + (r() - 0.5) * h * 0.8, 3 + r() * 6, 2 + r() * 4, r() * 3, 0, Math.PI * 2); c.fill();
+      }
+    },
+  },
+  tyre: {
+    at: [2, 4], draw: (c, w, h) => {
+      // black scuffs from tyres turning into a bay: two soft arcs
+      c.lineCap = 'round';
+      for (const [x0, a] of [[w * 0.3, 0.3], [w * 0.7, 0.24]]) {
+        const g = c.createLinearGradient(0, h, 0, 0);
+        g.addColorStop(0, `rgba(36,32,50,${a})`); g.addColorStop(1, 'rgba(36,32,50,0)');
+        c.strokeStyle = g; c.lineWidth = 22;
+        c.beginPath(); c.moveTo(x0, h - 10); c.quadraticCurveTo(x0 + w * 0.12, h * 0.5, x0 + w * 0.02, 10); c.stroke();
+      }
+    },
+  },
   leaves: {
     at: [6, 3], draw: (c, w, h) => {
       // grit and a few fallen leaves at the kerb foot
@@ -756,6 +787,70 @@ export const kawaraTex = () =>
       }
       c.fillStyle = 'rgba(40,36,70,0.45)'; c.fillRect(0, j * rh + rh - 3, w, 3);
     }
+  }, { repeat: true });
+
+/** Mortar render (モルタル): 2 m tile.  The trowel leaves broad, faint
+ * arcs and a fine sand grain; painted as a few soft sweeps, not noise. */
+export const MORTAR_TILE = 2.0;
+export const mortarTex = () =>
+  canvasTex('mortar', 512, 512, (c, w, h) => {
+    const r = rng(61);
+    c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h);
+    // trowel sweeps, wrapped so the tile repeats cleanly
+    c.lineCap = 'round';
+    for (let i = 0; i < 34; i++) {
+      const x = r() * w, y = r() * h, rad = 50 + r() * 110, a0 = r() * Math.PI * 2;
+      const light = r() < 0.5;
+      c.strokeStyle = light ? 'rgba(255,255,255,0.18)' : 'rgba(128,120,148,0.03)';
+      c.lineWidth = 30 + r() * 40;
+      for (const [ox, oy] of [[0, 0], [w, 0], [-w, 0], [0, h], [0, -h]]) {
+        c.beginPath(); c.arc(x + ox, y + oy, rad, a0, a0 + 0.8 + r() * 0.9); c.stroke();
+      }
+    }
+    // sand grain: sparse, two tones, faint
+    for (let i = 0; i < 3200; i++) {
+      c.fillStyle = r() < 0.55 ? 'rgba(110,102,132,0.09)' : 'rgba(255,255,255,0.3)';
+      c.fillRect(r() * w, r() * h, 1.5, 1.5);
+    }
+  }, { repeat: true });
+
+/** Corrugated sheet (波板トタン): 1.2 m tile, a rib every 7.5 cm, lit on
+ * one flank and shaded on the other, with lap joints and a row of screws. */
+export const SHEET_TILE = 1.2;
+export const sheetTex = () =>
+  canvasTex('sheet', 256, 256, (c, w, h) => {
+    const ribs = 16, rw = w / ribs;
+    for (let i = 0; i < ribs; i++) {
+      const g = c.createLinearGradient(i * rw, 0, (i + 1) * rw, 0);
+      g.addColorStop(0, '#c9c3d4'); g.addColorStop(0.35, '#ffffff');
+      g.addColorStop(0.6, '#e9e5ee'); g.addColorStop(1, '#b3adc0');
+      c.fillStyle = g; c.fillRect(i * rw, 0, rw, h);
+    }
+    // screw heads along the purlins, and the shadow of a lap joint
+    c.fillStyle = 'rgba(90,84,110,0.55)';
+    for (const y of [h * 0.18, h * 0.68]) for (let i = 0; i < ribs; i += 2) c.fillRect(i * rw + rw * 0.4, y, 3, 3);
+    c.fillStyle = 'rgba(90,84,110,0.25)'; c.fillRect(0, h - 5, w, 5);
+  }, { repeat: true });
+
+/** Rust for sheet metal and steel stairs: orange-brown blooms at the fixings
+ * and running down from them, over white (a multiplier, like wear). */
+export const rustTex = () =>
+  canvasTex('rust', 256, 256, (c, w, h) => {
+    const r = rng(67);
+    c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 18; i++) {
+      const x = r() * w, y = r() * h, rad = 6 + r() * 16;
+      const g = c.createLinearGradient(0, y, 0, y + rad * 5);
+      g.addColorStop(0, 'rgba(196,112,72,0.55)'); g.addColorStop(1, 'rgba(196,112,72,0)');
+      c.fillStyle = g;
+      c.beginPath(); c.moveTo(x - rad * 0.5, y); c.lineTo(x + rad * 0.5, y); c.lineTo(x + rad * 0.15, y + rad * 5); c.lineTo(x - rad * 0.15, y + rad * 5); c.fill();
+      c.fillStyle = 'rgba(170,92,62,0.6)';
+      c.beginPath(); c.ellipse(x, y, rad * 0.5, rad * 0.35, 0, 0, Math.PI * 2); c.fill();
+    }
+    // a rusted foot where water sits
+    const g = c.createLinearGradient(0, h, 0, h * 0.8);
+    g.addColorStop(0, 'rgba(180,100,66,0.6)'); g.addColorStop(1, 'rgba(180,100,66,0)');
+    c.fillStyle = g; c.fillRect(0, h * 0.8, w, h * 0.2);
   }, { repeat: true });
 
 /** Vertical timber boarding: 1.2 m tile. */

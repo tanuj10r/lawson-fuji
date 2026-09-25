@@ -52,7 +52,7 @@ function bakeable(m) {
 function styleKey(m) {
   return [
     // toon tint travels per vertex (aTint), so it does not split batches
-    'vc', m.type, m.gradientMap?.uuid ?? '-',
+    'vc', m.type, m.gradientMap?.uuid ?? '-', !!m.userData.wear,
     m.transparent, m.opacity, m.side, m.alphaTest, m.depthWrite, m.fog, m.flatShading,
     m.emissive?.getHexString() ?? '-', m.emissiveIntensity ?? 0,
   ].join('|');
@@ -70,7 +70,8 @@ function styleMaterial(m) {
       color: 0xffffff, bands: m.gradientMap?.userData.bands ?? 3, tintAttr: true,
       flat: m.flatShading, transparent: m.transparent, opacity: m.opacity, side: m.side,
       alphaTest: m.alphaTest, depthWrite: m.depthWrite, fog: m.fog, vertexColors: true,
-      emissive: m.emissive?.getHex() ?? null, emissiveIntensity: m.emissiveIntensity, cache: false,
+      emissive: m.emissive?.getHex() ?? null, emissiveIntensity: m.emissiveIntensity,
+      wear: !!m.userData.wear, cache: false,
     });
   } else {
     out = new THREE.MeshBasicMaterial({
@@ -123,7 +124,7 @@ function matKey(m) {
     m.type, m.color.getHexString(), mapKey(m.map), m.gradientMap?.uuid ?? '-',
     m.userData.shadowTint?.value.getHexString() ?? '-', m.transparent, m.opacity, m.side,
     m.alphaTest, m.depthWrite, m.fog, m.vertexColors,
-    m.emissive?.getHexString() ?? '-', m.emissiveIntensity ?? 0,
+    m.emissive?.getHexString() ?? '-', m.emissiveIntensity ?? 0, !!m.userData.wear,
   ].join('|');
 }
 
@@ -188,7 +189,11 @@ export function mergeStatic(root, opts = {}) {
         // plain colour needs position and normal only; then the material's
         // (linear) colour and, for toon, its shadow tint, per vertex
         for (const name of Object.keys(geo.attributes)) {
-          if (name !== 'position' && name !== 'normal') geo.deleteAttribute(name);
+          if (name !== 'position' && name !== 'normal' && name !== 'aWear') geo.deleteAttribute(name);
+        }
+        // a worn style: every part carries aWear (strength 0 where it has none)
+        if (m.material.userData.wear && !geo.attributes.aWear) {
+          geo.setAttribute('aWear', new THREE.BufferAttribute(new Float32Array(geo.attributes.position.count * 3), 3));
         }
         if (!geo.attributes.normal) geo.computeVertexNormals();
         const n = geo.attributes.position.count;
@@ -391,6 +396,10 @@ function atlasTextures(root) {
       // clone() deep-copies userData through JSON, which turns the toon shadow
       // tint uniform into a plain object: share the original's instead
       c.userData = m.userData;
+      // nor the shader hooks (toon shadow tint, wear): without these an
+      // atlased toon part lost its violet shadow side
+      c.onBeforeCompile = m.onBeforeCompile;
+      c.customProgramCacheKey = m.customProgramCacheKey;
       c.map = pageTex[s.page];
       mats.set(key, c);
     }

@@ -1,8 +1,10 @@
 import * as THREE from 'three';
-import { cel } from '../core/toon.js';
+import { cel, setWearTexture } from '../core/toon.js';
+import { wearAtlas } from './kit/paint.js';
 import { WORLD, TOWN } from '../config.js';
 import { makeCtx } from './ctx.js';
 import { buildLawson } from './lawson.js';
+import { dressLawsonGround } from './lawson-dress.js';
 import { buildFuji } from './fuji.js';
 import { buildEdge } from './town-edge.js';
 import { buildCore } from './town-core.js';
@@ -24,6 +26,8 @@ export function buildTown(scene) {
   root.name = 'town';
   scene.add(root);
   const ctx = makeCtx(scene, root);
+  // the shared painted weather every worn surface reads (M2e, kit/paint.js)
+  setWearTexture(wearAtlas());
 
   /* --- ground --- */
   const groundMat = cel({ color: WORLD.groundColor, bands: 3, tint: 0x7a7396, cache: false });
@@ -50,6 +54,8 @@ export function buildTown(scene) {
   // the Lawson counts toward the density budget like any building
   ctx.registry.push({ kind: 'building', x: 0, z: -5, rect: [-8.5, -10, 11.1, 0] });
   buildEdge(ctx);
+  // the Lawson's lot is worn with the town's own decals (oil, scuffs, patches)
+  ctx.onDecals = dressLawsonGround;
   const core = buildCore(ctx);
   // bottles behind a vending machine's glass shadow only its own insides
   root.traverse((o) => {

@@ -237,7 +237,8 @@ export function buildStation(ctx, { kit, service }) {
 
     // the steps up from the plaza, full width of the entrance and canopy, handrails either side and down the middle
     const stepY = ROADS.asphaltY + ROADS.kerbH, run = 0.38 * 6;
-    steps(ctx, { x: cxE, z: B.z0, axis: 'z', dir: -1, n: 6, rise: (PH - stepY) / 6, run: 0.38, w: entW + 2.2, y: stepY });
+    // `dir` is the way up: start at the foot on the plaza and climb toward the door
+    steps(ctx, { x: cxE, z: B.z0 - run, axis: 'z', dir: 1, n: 6, rise: (PH - stepY) / 6, run: 0.38, w: entW + 2.2, y: stepY });
     {
       const rails = [];
       for (const ox of [-(entW / 2 + 1.0), 0, entW / 2 + 1.0]) {

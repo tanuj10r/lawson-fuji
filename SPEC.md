@@ -884,6 +884,12 @@ M4
 - [ ] The door chime plays exactly once per entry and per exit.
 - [ ] Stepping inside audibly muffles the outdoors within 1 s.
 - [ ] Audio starts after the first click in every supported browser.
+- [ ] Audio is re-encoded and trimmed (Opus or AAC, mono where the sound is
+      positional, loops cut to the loop), 2-3 MB in all, and fetched after the
+      game starts, never blocking the first frame.
+- [ ] Only licensed files are loaded: no chain jingle (AGENTS.md; the
+      game's door chime is ours), and each source's terms allow serving
+      the file from a public site.
 
 M5
 
@@ -901,6 +907,11 @@ M6
 M7
 
 - [ ] Locked 60 fps at 1440p on the Ultra tier.
+- [ ] First visit downloads under 5 MB (M3a: 0.6 MB before audio); start-up
+      under 5 s on an M1-class machine (M3a: 6.6 s on an M2), by caching the
+      generated textures and building the far town after the first frame;
+      browser memory under 300 MB (M3a: 400 MB).
+- [ ] Hosted on a static CDN with long-lived caching of the hashed files.
 - [ ] Credits list Sakura Crossing (MIT) and GSI elevation data.
 - [ ] A first-time player completes a purchase within 3 minutes using only in-game hints.
 - [ ] No copied melodies or real product packaging; Lawson branding only on the store, signs, uniform, receipt and bags.

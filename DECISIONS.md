@@ -832,3 +832,28 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
 - **Still open.** SPEC 11's draw budgets (300–780 calls, 1.9–3.5M
   triangles, against 300 and 1M); a ticket window with a staff member;
   people.
+
+## M2f: the minimap
+
+- **Keys.** M opens the full map; sound moved to N (Tan). The pause
+  screen lists both.
+- **One painted map, drawn once** (src/ui/mapArt.js), from the game's own
+  data turned into the world:
+  - the kit network's roads (pavements under the asphalt, the shopping
+    street darker), the Lawson's road and forecourt;
+  - building footprints from the density registry, the special lots in
+    their colours, the railway with both tracks, the platforms;
+  - the old town's lane, park and fields, and the Lawson in its blue.
+  - It cannot drift from the town: move a lot and the map moves with it.
+- **The corner map** (src/ui/minimap.js). 196 px, 60 m to the rim, turned
+  so you face up; a compass ring with 北 in red; place icons upright (a
+  glyph in a coloured disc). The Lawson is always on it, pinned to the rim
+  and pointing home when it is out of range. It is redrawn only when you
+  move or turn, as a single drawImage: no measurable frame cost (vsync
+  held at 16.7 ms while turning).
+- **The full map.** North up, every place in Japanese over English, the
+  labels placed clear of one another, 現在地 over your arrow. While it is
+  open you neither walk nor look; Esc (leaving pointer lock) closes it.
+- **Kept off the famous views.** Hidden while you stand on a famous view
+  (the game opens on one) until you walk 1.5 m off it; hidden on the start
+  and pause screens, with the reference overlay, and in dev captures.

@@ -8,6 +8,7 @@ import { createHud } from './core/hud.js';
 import { createMusic } from './core/audio.js';
 import { createSfx } from './core/sfx.js';
 import { buildTown } from './world/town.js';
+import { createMinimap } from './ui/minimap.js';
 import { buildKitTest } from './world/kit-test.js';
 import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
@@ -86,6 +87,10 @@ const devParams = new URLSearchParams(location.search);
 const KIT = import.meta.env.DEV && devParams.has('kit');
 const FROZEN = import.meta.env.DEV && devParams.has('shots');
 const world = KIT ? buildKitTest(scene) : buildTown(scene);
+/* The minimap and full map (M2f): the town only.  `famousView` is the spot
+ * of the famous view you stand on, if any: the minimap keeps off it. */
+const minimap = KIT ? null : createMinimap(world);
+let famousView = { x: SPAWN.pos[0], z: SPAWN.pos[2] };        // the game opens on one
 
 /* Shadow stand-ins (userData.shadowOnly): cheap shapes that cast a shadow
  * for something drawn in full detail on screen, the town's blossom.  They
@@ -139,7 +144,11 @@ hud.onStart = () => {
   sfx.start();
   player.lock();
 };
-player.onLockChange = (locked) => hud.setLocked(locked);
+player.onLockChange = (locked) => {
+  hud.setLocked(locked);
+  // leaving pointer lock (Esc) closes the full map too
+  if (!locked && minimap?.fullOpen) { minimap.setFull(false); player.suspended = false; }
+};
 canvas.addEventListener('click', () => {
   music.start();
   sfx.start();
@@ -239,6 +248,7 @@ function enterHero(name, { photo = refOn } = {}) {
   if (photo) player.hold();
   else player.holdLook = false;
   Object.assign(heroAt, { x: player.pos.x, z: player.pos.z, yaw: player.yaw, pitch: player.pitch });
+  famousView = { x: player.pos.x, z: player.pos.z };        // the minimap stays away until you walk off
   player.applyCamera(0);
   updateProjection();
   refOverlay?.show(refOn);
@@ -301,7 +311,13 @@ function seatLights() {
 
 window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
-  if (e.code === 'KeyM') {
+  // M: the full town map (M2f); it holds your walking and looking while open
+  if (e.code === 'KeyM' && minimap && player.locked) {
+    const open = !minimap.fullOpen;
+    minimap.setFull(open, player.pos, player.yaw);
+    player.suspended = open;
+  }
+  if (e.code === 'KeyN') {
     const off = music.toggle();
     hud.setMuted(off);
     hud.setVolume(music.volume);
@@ -346,6 +362,15 @@ function frame() {
   // the sky dome is centred on the flat origin, so it has to trail the camera
   sky.dome.position.copy(camera.position);
   sky.clouds.position.copy(camera.position);
+
+  // the minimap: not over the famous views (until you walk off the spot), not
+  // on the start or pause screens, not in dev captures
+  if (minimap) {
+    const onView = famousView && Math.hypot(player.pos.x - famousView.x, player.pos.z - famousView.z) < 1.5;
+    if (!onView) famousView = null;
+    minimap.setVisible(player.locked && !onView && !refOn && !FROZEN);
+    minimap.update(player.pos, player.yaw);
+  }
 
   const hovered = player.locked ? player.pick(world.interactables) : null;
   hud.setPrompt(hovered ? `E  ·  ${hovered.label.replace(/^.*?·\s*/, '')}` : '');

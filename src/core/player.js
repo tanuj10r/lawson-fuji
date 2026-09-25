@@ -57,7 +57,7 @@ export class Player {
 
   _bind() {
     const onMove = (e) => {
-      if (!this.locked) return;
+      if (!this.locked || this.suspended) return;     // suspended: the full map is open
       if (this.holdLook) {
         this._slack += Math.abs(e.movementX) + Math.abs(e.movementY);
         if (this._slack < 60) return;
@@ -124,7 +124,7 @@ export class Player {
     const speed = sprint ? this.runSpeed : this.walkSpeed;
 
     let fwd = 0, side = 0;
-    if (this.locked) {
+    if (this.locked && !this.suspended) {
       if (k.has('KeyW') || k.has('ArrowUp')) fwd += 1;
       if (k.has('KeyS') || k.has('ArrowDown')) fwd -= 1;
       if (k.has('KeyD') || k.has('ArrowRight')) side += 1;

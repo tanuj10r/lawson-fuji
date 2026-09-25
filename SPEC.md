@@ -861,10 +861,10 @@ windows, the approach streets), then outward into the town.
 
 M2f
 
-- [ ] A round minimap in the bottom-right corner: the town drawn from the game's own data, rotating with the player, a compass rose with 北 at north, the player's arrow at the centre.
-- [ ] Place icons from config.js PLACES (station, shrine, plaza, parks, shopping street, the Lawson); the Lawson always marked, even off the edge.
-- [ ] A full-map view on a key (M), with place names in Japanese and English; UI text in strings.js.
-- [ ] Hidden in the famous views' hero cameras and never drawn over the store or Fuji; desktop only; no measurable frame-time cost.
+- [x] A round minimap in the bottom-right corner: the town drawn from the game's own data, rotating with the player, a compass rose with 北 at north, the player's arrow at the centre.
+- [x] Place icons from config.js PLACES (station, shrine, plaza, parks, shopping street, the Lawson); the Lawson always marked, even off the edge.
+- [x] A full-map view on a key (M), with place names in Japanese and English; UI text in strings.js.
+- [x] Hidden in the famous views' hero cameras and never drawn over the store or Fuji; desktop only; no measurable frame-time cost.
 
 M3
 

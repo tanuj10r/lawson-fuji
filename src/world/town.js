@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { cel, setWearTexture } from '../core/toon.js';
 import { wearAtlas } from './kit/paint.js';
-import { WORLD, TOWN } from '../config.js';
+import { WORLD, TOWN, LAWSON } from '../config.js';
 import { makeCtx } from './ctx.js';
 import { buildLawson } from './lawson.js';
 import { dressLawsonGround } from './lawson-dress.js';
@@ -64,7 +64,7 @@ export function buildTown(scene) {
   };
   ctx.registry = { push: (e) => registry.push({ ...e, ...T.toLocal(e), ...(e.rect ? { rect: localRect(e.rect) } : {}) }) };
   // the Lawson counts toward the density budget like any building
-  ctx.registry.push({ kind: 'building', x: 0, z: -5, rect: [-8.5, -10, 11.1, 0] });
+  ctx.registry.push({ kind: 'building', x: 0, z: -5, rect: [-8.5, -LAWSON.depth, 11.1, 0] });
   const frame = buildFrame(ctx);
   T.sakura = [];                 // the old town's trees join the town's batch
   buildOldTown(T);

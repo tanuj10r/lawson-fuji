@@ -184,6 +184,14 @@ export function buildLawson(parent) {
     cool.userData.noOutline = true;
     cool.renderOrder = 2;
     inside.add(cool);
+    // and the upright freezer's and the smoothie freezer's doors
+    const fg = inside.userData.freezerGlass, sg = inside.userData.smoothieGlass;
+    const fMat = cool.material;
+    const f1 = face(fg.x0, fg.x1, fg.y0, fg.y1, fg.z, fMat);
+    const f2 = new THREE.Mesh(new THREE.PlaneGeometry(sg.z1 - sg.z0, sg.y1 - sg.y0), fMat);
+    f2.rotation.y = -Math.PI / 2;
+    f2.position.set(sg.x, (sg.y0 + sg.y1) / 2, (sg.z0 + sg.z1) / 2);
+    for (const f of [f1, f2]) { f.userData.noOutline = true; f.renderOrder = 2; inside.add(f); }
 
     // posters and the banner hung just inside the glass
     const inner = -0.05;

@@ -21,7 +21,7 @@ export const LAWSON = {
   x: 0,
   frontZ: 0,       // storefront glass line
   width: 17,       // main box; the real store is long and low
-  depth: 10,       // back wall at frontZ - depth
+  depth: 13,       // back wall at frontZ - depth (M3b.2: deeper, behind the famous facade)
   height: 4.0,     // ground to top of the parapet
   signBand: 0.62,  // blue band height
   coping: 0.42,    // pale cap above the band
@@ -354,11 +354,15 @@ export const SHOT_SPOTS = [
   // M3a: inside the Lawson (world frame; judged against reference/konbini-details.md)
   { name: 'store-door', scene: 'town', pos: [-2.3, 0, -0.6], yaw: 0, pitch: -0.05, looks: ['day'], close: true, frame: 'world' },
   { name: 'store-aisle', scene: 'town', pos: [-2.1, 0, -3.0], yaw: 0, pitch: -0.12, looks: ['day'], close: true, frame: 'world' },
-  { name: 'store-cooler', scene: 'town', pos: [-4.4, 0, -7.9], yaw: 0.35, pitch: -0.08, looks: ['day'], close: true, frame: 'world' },
+  { name: 'store-cooler', scene: 'town', pos: [-4.4, 0, -10.9], yaw: 0.35, pitch: -0.08, looks: ['day'], close: true, frame: 'world' },
   { name: 'store-counter', scene: 'town', pos: [3.4, 0, -2.2], yaw: -1.2, pitch: -0.1, looks: ['day', 'blue'], close: true, frame: 'world' },
-  { name: 'store-onigiri', scene: 'town', pos: [-6.6, 0, -5], yaw: 1.35, pitch: -0.3, looks: ['day'], close: true, frame: 'world' },
+  { name: 'store-onigiri', scene: 'town', pos: [-6.4, 0, -4.9], yaw: 1.35, pitch: -0.3, looks: ['day'], close: true, frame: 'world' },
   { name: 'store-shelf', scene: 'town', pos: [-4.4, 0, -4.5], yaw: 1.5708, pitch: -0.25, looks: ['day'], close: true, frame: 'world' },
-  { name: 'store-drinks', scene: 'town', pos: [-2.5, 0, -7.9], yaw: 0.1, pitch: -0.05, looks: ['day'], close: true, frame: 'world' },
+  { name: 'store-drinks', scene: 'town', pos: [-2.5, 0, -10.9], yaw: 0.1, pitch: -0.05, looks: ['day'], close: true, frame: 'world' },
+  { name: 'store-cooler-doors', scene: 'town', pos: [-4.4, 0, -10.2], yaw: 0, pitch: -0.05, looks: ['day'], close: true, frame: 'world' },
+  { name: 'store-icecase', scene: 'town', pos: [5.0, 0, -4.3], yaw: 1.5708, pitch: -0.62, looks: ['day'], close: true, frame: 'world' },
+  { name: 'store-selfserve', scene: 'town', pos: [6.2, 0, -9.5], yaw: -1.57, pitch: -0.05, looks: ['day'], close: true, frame: 'world' },
+  { name: 'store-back', scene: 'town', pos: [4.9, 0, -2.4], yaw: 0.25, pitch: -0.08, looks: ['day'], close: true, frame: 'world' },
   { name: 'store-left', scene: 'town', pos: [-5.0, 0, -1.4], yaw: 1.0, pitch: -0.1, looks: ['day'], close: true, frame: 'world' },
   { name: 'town-overview', scene: 'town', pos: [0, 0, 95], yaw: 0, pitch: -0.5, lift: 95, looks: ['golden'], frame: 'world' },
   { name: 'town-overview-east', scene: 'town', pos: [170, 0, 90], yaw: -1.5708, pitch: -0.55, lift: 80, looks: ['day'] },

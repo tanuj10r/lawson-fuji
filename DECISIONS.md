@@ -938,3 +938,40 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   the interior hidden).
 - **The famous views changed about 1%:** real products through the glass.
   This awaits Tan's OK before re-baselining.
+
+## M3b.2: a konbini's stock (Tan: "okay but not impressive")
+
+- **Research first** (reference/konbini-details.md, section 8). The key
+  finding: real konbini are organised by category in *vertical* blocks,
+  both door by door in the cooler and section by section in the chilled
+  case. M3b's deck-by-deck rows are what made it look fake.
+- **The store is 13 m deep, not 10.** It grew backwards, behind the
+  famous facade, which is unchanged.
+- **82 products.** The 30 are kept (SPEC 7: adding items is data-only),
+  and the new ones cover the range people remember. Every one is an
+  evocation with an original name. Real brands are refused by
+  check-names, which now lists 44 real brand names alongside the Sakura
+  Crossing ones.
+- **The cooler.** 8 doors by category with header signs, 6 gravity shelves
+  sloped 8° toward you, blocks of facings two deep, 冷えてます stickers.
+- **The chilled case.** Onigiri (leaning back on sloped decks),
+  sandwiches, bento and noodles, salads, sweets (fruit sando, roll cake,
+  cream puff, cheesecake, pudding), dairy. Each section has a canopy strip.
+- **Ice.** An open flat case (冷凍平台) of 12 wire baskets piled two deep:
+  premium cups, mochi ice, soda and chocolate bars, cones, family packs,
+  kakigori. Plus an upright freezer for bags of ice and frozen food.
+- **Tan's additions:**
+  - the self-serve smoothie corner: a fruit-cup freezer and two blenders;
+    the drinks are made in M5 and M6;
+  - an eat-in counter at the right-hand window, with stools, two
+    self-serve microwaves and a sanitiser;
+  - a generic battery-rental kiosk by the ATM;
+  - an alcohol shelf (one-cup sake, whisky, wine, otsumami).
+- **Bugs caught on the way.** The two new freezers and the ice case were
+  first built as solid boxes, which hid their stock; they are now hollow.
+  The ice case's well was too deep to see into from standing height; its
+  floor was raised and the stock piled.
+- **Cost.** 82 instanced draws, 4,744 facings on show and 15,715 units.
+  The famous view is 10.3 ms at 1440p.
+- **The famous views changed 2.0–2.3%** (the eat-in at the window, the new
+  stock). They await Tan's OK.

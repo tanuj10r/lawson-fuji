@@ -70,12 +70,13 @@ const tri = (w, h, r = 0.012) => {
 };
 const ball = (sx, sy, sz, ws = 12, hs = 9) => { const g = new THREE.SphereGeometry(0.5, ws, hs); g.scale(sx, sy, sz); return g; };
 const cylG = (rt, rb, h, seg = 14) => new THREE.CylinderGeometry(rt, rb, h, seg);
+const Q = Math.PI / 2;
 
 /** Build one product's geometry (cached). */
 const cache = new Map();
 export function productGeometry(id) {
   if (cache.has(id)) return cache.get(id);
-  const p = PRODUCT[id], m = p.mesh, cell = labelAtlas().cellOf[id];
+  const p = PRODUCT[id], m = p.mesh, cell = labelAtlas().cellOf[id].cell;
   const P = [];
   const body = m.body, band = m.band;
   switch (m.shape) {
@@ -148,6 +149,59 @@ export function productGeometry(id) {
     case 'coffeecup':
       P.push(part(cylG(0.04, 0.03, 0.11), trs(0, 0.055, 0), body, 'wrap', cell));
       P.push(part(cylG(0.042, 0.042, 0.012), trs(0, 0.114, 0), 0xf2f0ea)); break;
+    /* ---- M3b.2 ---- */
+    case 'pet2l':
+      P.push(part(new THREE.BoxGeometry(0.1, 0.24, 0.1), trs(0, 0.12, 0), body, 'front', cell));
+      P.push(part(cylG(0.016, 0.05, 0.05, 12), trs(0, 0.265, 0), body));
+      P.push(part(cylG(0.017, 0.017, 0.022), trs(0, 0.3, 0), band)); break;
+    case 'tallcan':
+      P.push(part(cylG(0.033, 0.033, 0.16), trs(0, 0.08, 0), body, 'wrap', cell));
+      P.push(part(cylG(0.028, 0.033, 0.012), trs(0, 0.166, 0), 0xc8ccd4)); break;
+    case 'slimcan':
+      P.push(part(cylG(0.026, 0.026, 0.14), trs(0, 0.07, 0), body, 'wrap', cell));
+      P.push(part(cylG(0.022, 0.026, 0.01), trs(0, 0.145, 0), 0xc8ccd4)); break;
+    case 'sixpack':
+      P.push(part(new THREE.BoxGeometry(0.2, 0.125, 0.135), trs(0, 0.0625, 0), body, 'front', cell));
+      for (let i = 0; i < 3; i++) for (let k = 0; k < 2; k++) P.push(part(cylG(0.026, 0.03, 0.008, 10), trs(-0.066 + i * 0.066, 0.129, -0.033 + k * 0.066), 0xc8ccd4)); break;
+    case 'milk1l':
+      P.push(part(new THREE.BoxGeometry(0.07, 0.19, 0.07), trs(0, 0.095, 0), body, 'front', cell));
+      for (const s2 of [-1, 1]) P.push(part(new THREE.BoxGeometry(0.07, 0.004, 0.05), trs(0, 0.205, s2 * 0.017, s2 * 0.78, 0, 0), body)); break;
+    case 'sakecup':
+      P.push(part(cylG(0.034, 0.031, 0.1), trs(0, 0.05, 0), body, 'wrap', cell));
+      P.push(part(cylG(0.035, 0.035, 0.008), trs(0, 0.104, 0), 0xc8a040)); break;
+    case 'whisky':
+      P.push(part(new THREE.BoxGeometry(0.075, 0.12, 0.045), trs(0, 0.06, 0), body, 'front', cell));
+      P.push(part(cylG(0.014, 0.03, 0.03), trs(0, 0.135, 0), body));
+      P.push(part(cylG(0.015, 0.015, 0.03), trs(0, 0.165, 0), band)); break;
+    case 'wine':
+      P.push(part(cylG(0.037, 0.037, 0.2), trs(0, 0.1, 0), body, 'front', cell));
+      P.push(part(cylG(0.014, 0.037, 0.05), trs(0, 0.225, 0), body));
+      P.push(part(cylG(0.014, 0.014, 0.07), trs(0, 0.285, 0), 0x8a1a2a)); break;
+    case 'fruitsando':
+      P.push(part(prism(tri(0.12, 0.1, 0.01), 0.06), null, 0xfbf6ec, 'front', cell)); break;
+    case 'rollcake':
+      P.push(part(new THREE.BoxGeometry(0.09, 0.06, 0.09), trs(0, 0.03, 0), 0xf6f2ea, 'front', cell));
+      P.push(part(cylG(0.035, 0.035, 0.07, 14), trs(0, 0.035, 0.005, 0, 0, Q), body)); break;
+    case 'creampuff':
+      P.push(part(new THREE.BoxGeometry(0.1, 0.03, 0.1), trs(0, 0.015, 0), 0xf6f2ea, 'front', cell));
+      P.push(part(ball(0.085, 0.06, 0.085, 12, 8), trs(0, 0.05, 0), body)); break;
+    case 'cakewedge':
+      P.push(part(prism(tri(0.09, 0.05, 0.006), 0.07, 0.002), trs(0, 0, 0, -Q, 0, 0), body));
+      P.push(part(new THREE.BoxGeometry(0.1, 0.012, 0.08), trs(0, 0.006, 0), 0xf6f2ea, 'front', cell)); break;
+    case 'icecup':
+      P.push(part(cylG(0.043, 0.038, 0.05), trs(0, 0.025, 0), 0xf6ecd0));
+      P.push(part(cylG(0.045, 0.045, 0.008), trs(0, 0.054, 0), body, 'top', cell)); break;
+    case 'icebar':
+      P.push(part(new THREE.BoxGeometry(0.07, 0.16, 0.022), trs(0, 0.08, 0), body, 'front', cell)); break;
+    case 'mochi':
+      P.push(part(new THREE.BoxGeometry(0.11, 0.045, 0.07), trs(0, 0.0225, 0), body, 'top', cell)); break;
+    case 'multipack':
+      P.push(part(new THREE.BoxGeometry(0.2, 0.06, 0.14), trs(0, 0.03, 0), body, 'front', cell)); break;
+    case 'icebag':
+      P.push(part(ball(0.16, 0.06, 0.22, 12, 8), trs(0, 0.03, 0), 0xe8f4fa, 'top', cell)); break;
+    case 'fruitcup':
+      P.push(part(cylG(0.045, 0.036, 0.1), trs(0, 0.05, 0), 0xe8f0f4, 'wrap', cell));
+      P.push(part(cylG(0.047, 0.047, 0.006), trs(0, 0.103, 0), 0xf2f2f2)); break;
     default:
       P.push(part(new THREE.BoxGeometry(0.08, 0.08, 0.08), trs(0, 0.04, 0), body, 'front', cell));
   }
@@ -174,19 +228,23 @@ export function makeStock() {
   const d = new THREE.Object3D();
   return {
     units,
-    add(id, x, y, z, ry = 0, count = PRODUCT[id].unitsPerSlot) {
-      const u = { id, x, y, z, ry, count };
+    add(id, x, y, z, ry = 0, count = PRODUCT[id].unitsPerSlot, rx = 0) {
+      const u = { id, x, y, z, ry, rx, count };
       units.push(u);
       (byId.get(id) ?? byId.set(id, []).get(id)).push(u);
       return u;
     },
     build(group, lit) {
-      const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, map: labelAtlas().tex, vertexColors: true });
-      lit.push(mat);
+      const A = labelAtlas();
+      const mats = A.pages.map((tex) => {
+        const m = new THREE.MeshBasicMaterial({ color: 0xffffff, map: tex, vertexColors: true });
+        lit.push(m);
+        return m;
+      });
       for (const [id, list] of byId) {
-        const inst = new THREE.InstancedMesh(productGeometry(id), mat, list.length);
+        const inst = new THREE.InstancedMesh(productGeometry(id), mats[A.cellOf[id].page], list.length);
         list.forEach((u, i) => {
-          d.position.set(u.x, u.y, u.z); d.rotation.set(0, u.ry, 0); d.updateMatrix();
+          d.position.set(u.x, u.y, u.z); d.rotation.set(u.rx ?? 0, u.ry, 0, 'YXZ'); d.updateMatrix();
           inst.setMatrixAt(i, d.matrix);
           u.mesh = inst; u.index = i;
         });

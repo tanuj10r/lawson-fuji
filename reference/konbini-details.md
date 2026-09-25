@@ -91,3 +91,36 @@ hot snacks are unnamed.
   https://zigen21.com/blog/convenience-display/
 - Gondola and fixture terms (ゴンドラ, エンド). http://www.10net.co.jp/00-gondora/01-01.html
 - Lawson's services (MACHI café, Loppi). https://en.wikipedia.org/wiki/Lawson_(store)
+
+---
+
+## 8. Round 2: how a konbini is really stocked (M3b.2)
+
+Found in research and from real stores, and now built:
+
+| Detail | Real | Ours | Status |
+| --- | --- | --- | --- |
+| Cooler by category | Each glass door is one category: water, tea, sports, soda, coffee and milk tea, milk drinks, beer, chu-hi; a sign on each door's header | 8 doors, 8 categories, header signs | have |
+| Gravity shelves | Shelves slope toward the door so the next bottle slides forward; small cans on top, 500 ml in the middle, 2 L and 6-packs at the bottom | 6 sloped shelves per door, sized that way | have |
+| Vertical blocks | A product is a column of facings, not scattered; rows recede behind the front bottle | Solid blocks per shelf, two deep | have |
+| Alcohol placement | Beer and chu-hi cans are refrigerated; wine, sake and whisky on an ordinary shelf | Beer and chu-hi doors in the cooler; the alcohol shelf on gondola 4 with おつまみ | have |
+| Chilled case by section | Grouped by type along its length (onigiri together; salads and desserts between bento and drinks), full, no gaps, bestsellers at eye level | 6 sections with canopy strips: onigiri, sandwiches, bento and noodles, salads, sweets (fruit sando), dairy | have |
+| Ice-cream case | Lawson's newer stores use an open flat case (冷凍平台), reachable from four sides, more capacity; wire baskets divide kinds | A 1 × 2.6 m open case, 12 baskets, two layers, tags | have |
+| Upright freezer | Frozen food, bags of ice | Two glass doors on the back wall | have |
+| Self-serve drinks | Coffee at the counter; the smoothie machine you set a cup of frozen fruit into (7-Eleven) | The coffee station, a fruit-cup freezer, two blenders | have |
+| Eat-in | A counter at the window, stools, self-serve microwaves, sanitiser | Along the right-hand window | have |
+| Battery rental | A charging-battery rental kiosk by the entrance (ChargeSPOT and others) | A generic kiosk beside the ATM | have |
+
+**Evocations, never copies.** The drinks people remember are evoked by
+colour language only, with original names: a blue-and-white ion water with
+a wave (ブルーイオン), a silver 9% lemon chu-hi (キリッと強レモン), a gold beer
+(黄金麦), an amber highball (琥珀ハイボール), a bamboo green tea (竹林の緑茶), a
+Fuji spring water (ふじの湧水). Real brand names are checked out of the
+bundle (scripts/check-names.mjs).
+
+Sources (round 2):
+- Beer and chu-hi refrigerated, wine and sake on shelves: https://jp.stanby.com/magazine/entry/20240228
+- Lawson's lidded cases and open flat cases (冷凍平台): https://www.itmedia.co.jp/business/articles/1808/28/news035.html
+- Reach-in and walk-in cases: https://www.coolland.co.jp/column-274.htm
+- Grouping by type, no gaps, eye level: https://nijiiro711.com/archives/3504
+- Salads and desserts between bento and drinks: https://zigen21.com/blog/convenience-display/

@@ -183,3 +183,41 @@ export const counterLabel = (kind) =>
     fit(c, K[2], w / 2, h * 0.42, w - 20, 40, K[1]);
     fit(c, K[3], w / 2, h * 0.8, w - 40, 16, K[1], 'normal');
   });
+
+/** The phone-battery rental kiosk's face: a slim screen, rows of batteries
+ *  charging (lit green), generic. */
+export const batteryFace = () =>
+  tex('battery', 128, 512, (c, w, h) => {
+    c.fillStyle = '#f2f2f0'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#2aa870'; c.fillRect(0, 0, w, 60);
+    fit(c, 'モバイル', w / 2, 20, w - 12, 22, '#ffffff'); fit(c, 'バッテリー', w / 2, 44, w - 12, 20, '#ffffff');
+    c.fillStyle = '#1a2a3a'; c.fillRect(12, 72, w - 24, 110);
+    fit(c, 'かしだし', w / 2, 110, w - 30, 20, '#8ae8b8'); fit(c, 'Rent a charger', w / 2, 140, w - 30, 12, '#8ae8b8', 'normal');
+    for (let i = 0; i < 8; i++) {
+      c.fillStyle = '#3a3e4a'; c.fillRect(22, 200 + i * 36, w - 44, 28);
+      c.fillStyle = '#58e08a'; c.fillRect(w - 38, 208 + i * 36, 8, 12);
+    }
+  });
+
+/** A section strip for the chilled case's canopy, or a cooler door's header. */
+export const stripSign = (jp, en, bg, fg = '#ffffff') =>
+  tex('strip-' + jp, 512, 96, (c, w, h) => {
+    c.fillStyle = bg; c.fillRect(0, 0, w, h);
+    fit(c, jp, w * 0.42, h * 0.52, w * 0.62, 56, fg);
+    fit(c, en, w * 0.83, h * 0.55, w * 0.28, 20, fg, 'normal');
+  });
+
+/** Stickers on the cooler doors, the smoothie corner's sign. */
+export const smallSign = (kind) =>
+  tex('ss-' + kind, 256, 128, (c, w, h) => {
+    const K = {
+      cold: ['#1e5ab8', '#ffffff', '冷えてます', 'ICE COLD'],
+      smoothie: ['#e8864a', '#ffffff', 'セルフスムージー', 'MAKE YOUR OWN'],
+      microwave: ['#f2f0ea', '#2a4a8a', 'ご自由にお使いください', 'Microwave: self-serve'],
+      eatin: ['#6a3a22', '#f2e6c8', 'イートイン', 'EAT-IN'],
+      ice: ['#3a8ad0', '#ffffff', 'アイスクリーム', 'ICE CREAM'],
+    }[kind];
+    c.fillStyle = K[0]; c.beginPath(); c.roundRect(2, 2, w - 4, h - 4, 14); c.fill();
+    fit(c, K[2], w / 2, h * 0.42, w - 24, 44, K[1]);
+    fit(c, K[3], w / 2, h * 0.78, w - 40, 18, K[1], 'normal');
+  });

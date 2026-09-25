@@ -109,6 +109,77 @@ const PAINT = {
     c.fillStyle = hex(m.band); c.beginPath(); c.roundRect(CELL * 0.2, CELL * 0.36, CELL * 0.6, CELL * 0.28, 12); c.fill();
     fit(c, p.nameJa, CELL / 2, CELL * 0.5, CELL * 0.54, 34, '#ffffff');
   },
+  /* ---- M3b.2 ---- */
+  ion(c, p, m) {
+    // white, a deep-blue wave across it, the name in blue: the colour language
+    // of an ion drink, never its design
+    c.fillStyle = '#f6f9fc'; c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = hex(m.band);
+    c.beginPath(); c.moveTo(0, CELL * 0.62);
+    for (let x = 0; x <= CELL; x += 8) c.lineTo(x, CELL * 0.62 + Math.sin(x / CELL * Math.PI * 4) * 12);
+    c.lineTo(CELL, CELL); c.lineTo(0, CELL); c.fill();
+    for (const x of [CELL * 0.25, CELL * 0.75]) {
+      fit(c, p.nameJa, x, CELL * 0.42, CELL * 0.46, 30, hex(m.band));
+      fit(c, 'ION WATER', x, CELL * 0.82, CELL * 0.4, 16, '#ffffff', 'normal');
+    }
+  },
+  strong(c, p, m) {
+    // a silver can, a big lemon, the strength in a bold number
+    c.fillStyle = '#d8dce4'; c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = 'rgba(255,255,255,0.5)'; c.fillRect(CELL * 0.1, 0, CELL * 0.06, CELL);
+    for (const x of [CELL * 0.25, CELL * 0.75]) {
+      c.fillStyle = '#f2d02a'; c.beginPath(); c.ellipse(x, CELL * 0.36, 34, 26, 0, 0, 7); c.fill();
+      c.strokeStyle = '#6a8a2a'; c.lineWidth = 3; c.stroke();
+      fit(c, '9%', x, CELL * 0.62, CELL * 0.44, 50, '#1a1a24');
+      fit(c, 'キリッと強レモン', x, CELL * 0.8, CELL * 0.46, 20, '#1a1a24');
+    }
+  },
+  fruitsando(c, p, m) {
+    // the cut face: white bread, whipped cream, strawberries halved, kiwi
+    c.fillStyle = '#f6ecd6'; c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = '#fffdf6'; c.fillRect(0, CELL * 0.18, CELL, CELL * 0.64);
+    for (const [x, y, col, r] of [[0.3, 0.5, '#e8455a', 30], [0.62, 0.42, '#e8455a', 26], [0.46, 0.66, '#7ac04a', 24], [0.8, 0.62, '#f2a030', 22]]) {
+      c.fillStyle = col; c.beginPath(); c.ellipse(CELL * x, CELL * y, r, r * 0.8, 0, 0, 7); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.6)'; c.beginPath(); c.ellipse(CELL * x, CELL * y, r * 0.35, r * 0.25, 0, 0, 7); c.fill();
+    }
+    c.fillStyle = hex(m.band); c.fillRect(0, 0, CELL, CELL * 0.16);
+    fit(c, p.nameJa, CELL / 2, CELL * 0.08, CELL * 0.9, 30, '#ffffff');
+  },
+  sweets(c, p, m) {
+    // a clear lid over the cake, a gold band with the name
+    c.fillStyle = hex(m.body); c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(0, 0, CELL * 0.2, CELL);
+    c.fillStyle = hex(m.band); c.fillRect(0, CELL * 0.68, CELL, CELL * 0.32);
+    fit(c, p.nameJa, CELL / 2, CELL * 0.8, CELL * 0.92, 30, '#f2e0a0');
+    fit(c, '¥' + p.priceYen, CELL / 2, CELL * 0.93, CELL * 0.5, 16, '#ffffff', 'normal');
+  },
+  icelid(c, p, m) {
+    // a premium cup's lid from above: a deep colour, a gold ring, the name
+    c.fillStyle = hex(m.band); c.fillRect(0, 0, CELL, CELL);
+    c.strokeStyle = '#d8b060'; c.lineWidth = 6; c.beginPath(); c.arc(CELL / 2, CELL / 2, CELL * 0.4, 0, 7); c.stroke();
+    fit(c, p.nameJa, CELL / 2, CELL * 0.46, CELL * 0.7, 36, '#f6ecd0');
+    fit(c, 'PREMIUM', CELL / 2, CELL * 0.62, CELL * 0.5, 18, '#d8b060', 'normal');
+  },
+  wrapper(c, p, m) {
+    // an ice bar's wrapper, lying flat: bold colour, the name large
+    c.fillStyle = hex(m.band); c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = hex(m.body); c.beginPath(); c.roundRect(CELL * 0.2, CELL * 0.14, CELL * 0.6, CELL * 0.72, 30); c.fill();
+    vfit(c, p.nameJa, CELL / 2, CELL * 0.18, CELL * 0.82, 40, '#ffffff');
+  },
+  fruitcup(c, p, m) {
+    // a clear cup of cut frozen fruit, the name on a band
+    c.fillStyle = '#e8f0f4'; c.fillRect(0, 0, CELL, CELL);
+    for (let i = 0; i < 28; i++) { c.fillStyle = hex(m.body); c.globalAlpha = 0.8; c.fillRect(rnd() * CELL, CELL * 0.4 + rnd() * CELL * 0.55, 26, 22); }
+    c.globalAlpha = 1;
+    c.fillStyle = hex(m.band); c.fillRect(0, CELL * 0.14, CELL, CELL * 0.22);
+    for (const x of [CELL * 0.25, CELL * 0.75]) fit(c, p.nameJa.replace('スムージー', '').replace('アイスコーヒー用', 'ICE'), x, CELL * 0.25, CELL * 0.44, 28, '#ffffff');
+  },
+  bottleFront(c, p, m) {
+    // a paper label on a glass bottle, cream, the name set like calligraphy
+    c.fillStyle = hex(m.body); c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = hex(m.band); c.fillRect(CELL * 0.14, CELL * 0.3, CELL * 0.72, CELL * 0.5);
+    vfit(c, p.nameJa.split(' ')[0], CELL / 2, CELL * 0.33, CELL * 0.77, 38, hex(m.body) === '#3a1a24' ? '#3a1a24' : '#1a1a20');
+  },
   plainSticker(c, p, m, bg) {
     c.fillStyle = bg; c.fillRect(0, 0, CELL, CELL);
     c.fillStyle = hex(m.band); c.beginPath(); c.roundRect(CELL * 0.12, CELL * 0.34, CELL * 0.76, CELL * 0.32, 14); c.fill();
@@ -122,7 +193,16 @@ function paintCell(c, p) {
     case 'onigiri': return PAINT.onigiri(c, p, m);
     case 'bento': return PAINT.bento(c, p, m);
     case 'sandwich': return PAINT.sandwich(c, p, m);
-    case 'pet': return PAINT.wrap(c, p, m);
+    case 'pet': case 'pet2l': return m.wave ? PAINT.ion(c, p, m) : PAINT.wrap(c, p, m);
+    case 'tallcan': case 'slimcan': return m.strong ? PAINT.strong(c, p, m) : PAINT.wrap(c, p, m, { liquid: hex(m.body) });
+    case 'sakecup': return PAINT.wrap(c, p, m, { liquid: '#e8f0f4' });
+    case 'whisky': case 'wine': return PAINT.bottleFront(c, p, m);
+    case 'fruitsando': return PAINT.fruitsando(c, p, m);
+    case 'rollcake': case 'creampuff': case 'cakewedge': return PAINT.sweets(c, p, m);
+    case 'icecup': return PAINT.icelid(c, p, m);
+    case 'icebar': case 'mochi': return PAINT.wrapper(c, p, m);
+    case 'fruitcup': return PAINT.fruitcup(c, p, m);
+    case 'sixpack': case 'multipack': case 'milk1l': case 'icebag': return PAINT.box(c, p, m);
     case 'codd': return PAINT.wrap(c, p, m, { liquid: '#bde4f2' });
     case 'can': return PAINT.wrap(c, p, m, { liquid: hex(m.body) });
     case 'cup': case 'odencup': case 'coffeecup': return PAINT.wrap(c, p, m, { liquid: hex(m.body) });
@@ -137,26 +217,31 @@ function paintCell(c, p) {
 }
 
 let atlas = null;
-/** The product atlas and each product's cell index. */
+/** The product atlas, in pages of 63 products (the 64th cell white), and
+ *  each product's { page, cell }. */
 export function labelAtlas() {
   if (atlas) return atlas;
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = SIZE;
-  const c = cv.getContext('2d');
-  const cellOf = {};
-  CATALOG.forEach((p, i) => {
-    const x = (i % N) * CELL, y = Math.floor(i / N) * CELL;
-    seed = 1000 + i;
-    c.save(); c.translate(x, y); c.beginPath(); c.rect(0, 0, CELL, CELL); c.clip();
-    paintCell(c, p);
-    c.restore();
-    cellOf[p.id] = i;
-  });
-  c.fillStyle = '#ffffff'; c.fillRect((WHITE % N) * CELL, Math.floor(WHITE / N) * CELL, CELL, CELL);
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  atlas = { tex, cellOf };
+  const pages = [], cellOf = {};
+  const per = N * N - 1;
+  for (let pg = 0; pg * per < CATALOG.length; pg++) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = SIZE;
+    const c = cv.getContext('2d');
+    CATALOG.slice(pg * per, (pg + 1) * per).forEach((p, i) => {
+      const x = (i % N) * CELL, y = Math.floor(i / N) * CELL;
+      seed = 1000 + pg * per + i;
+      c.save(); c.translate(x, y); c.beginPath(); c.rect(0, 0, CELL, CELL); c.clip();
+      paintCell(c, p);
+      c.restore();
+      cellOf[p.id] = { page: pg, cell: i };
+    });
+    c.fillStyle = '#ffffff'; c.fillRect((WHITE % N) * CELL, Math.floor(WHITE / N) * CELL, CELL, CELL);
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    pages.push(tex);
+  }
+  atlas = { pages, cellOf };
   return atlas;
 }
 
@@ -167,7 +252,7 @@ export function cellRect(i, inset = 3) {
 }
 
 /* ------------------------------ price tags ------------------------------ */
-const TW = 256, TH = 96, TC = 4, TR = 8;
+const TW = 256, TH = 96, TC = 4, TR = 24;
 let tags = null;
 /** Shelf tags: white, the name small, the price in red, (税込). */
 export function tagAtlas() {

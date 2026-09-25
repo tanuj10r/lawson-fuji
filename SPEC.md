@@ -171,6 +171,7 @@ A dense, lived-in, mixed-use town built around the famous view: a tight grid wit
 **Quality bar**
 
 - `reference/density/` holds frames from a newer Sakura Crossing build. They set the bar for density and finish.
+- Beyond density: the town must feel like a real Japanese neighbourhood, true in its materials, wear, planting and everyday clutter (M2e, `reference/japan-details.md`).
 - Match their density and polish, not their designs. Never copy their names, shops, signs or train livery (桜ヶ丘, ひだまりマート, 桜川電鉄, 春風 and so on). Everything stays ours.
 - Those frames come from a newer build than our fork. The station interior, ticket gates, people, bus stop, cycle lanes and shop interiors are NOT in our parts library. Build them.
 - The M1 hero views must not change. Press 1, 2, 3 after every change to check.
@@ -276,7 +277,7 @@ Aisles are 1.4 m wide and shelves 1.6 m tall, so in first person you can see ove
 
 ## 4. Art direction: anime style
 
-The whole game uses Sakura Crossing's rendering pipeline (`src/core`): toon ramps with violet-shifted shadows, ink lines from the second difference of depth, inverted-hull outlines on hero props, and a split-tone colour grade. For technique, Sakura Crossing's code wins wherever it differs from this section. For colour, mood, and everything specific to the Lawson and Fuji, this section and the reference images win. Nothing aims for realism; the target is a frame from a hand-painted anime background.
+The whole game uses Sakura Crossing's rendering pipeline (`src/core`): toon ramps with violet-shifted shadows, ink lines from the second difference of depth, inverted-hull outlines on hero props, and a split-tone colour grade. For technique, Sakura Crossing's code wins wherever it differs from this section. For colour, mood, and everything specific to the Lawson and Fuji, this section and the reference images win. Nothing aims for photorealism; the target is a frame from a hand-painted anime background, as rich in detail and as true to real Japan as the best of them (M2e).
 
 **From Sakura Crossing (use as is, then tune)**
 
@@ -729,7 +730,7 @@ The game targets desktop browsers only, so quality comes first: every visual fea
 
 ## 12. Build milestones
 
-Build in 8 milestones (M2 in four parts, M2a to M2d), starting from the Sakura Crossing fork and proving the famous view before anything else. Each ends with a playable build checked against its acceptance list.
+Build in 8 milestones (M2 in five parts, M2a to M2e), starting from the Sakura Crossing fork and proving the famous view before anything else. Each ends with a playable build checked against its acceptance list.
 
 | # | Milestone | Scope |
 | --- | --- | --- |
@@ -739,6 +740,7 @@ Build in 8 milestones (M2 in four parts, M2a to M2d), starting from the Sakura C
 | M2b | Town | New town plan (section 3), house and shopfront generators, dressing; colliders |
 | M2c | Station and trains | Station building and plaza, two platforms, train cycle, level crossing driven by the train |
 | M2d | Town polish | Trees, petals, clutter pass, night lighting, performance |
+| M2e | Art fidelity | A researched catalogue of real Japanese street detail; painted Canvas2D textures and alpha-card foliage; sakura rebuilt as painted canopies; green trees and planting; facade, roof, window and weathering detail; shopfront interiors; ground and kerb detail. Judged close up against the reference frames |
 | M3 | Store interior + products | Automatic door, interior fixtures, 30 products, targeting and pickup, basket |
 | M4 | Audio | Audio engine, all SFX, ambience loops, inside/outside mix, door chime, footsteps |
 | M5 | Clerk + checkout | Clerk look, state machine and animations; greeting, scanning, dialogue choices, payment, receipt, voice lines and subtitles |
@@ -765,7 +767,7 @@ M1 (Tan signs off before M2 starts)
 - [ ] Nothing is washed out: sky, walls and Fuji keep their colour.
 - [ ] Screenshots of all three views saved to `reference/lookdev/`.
 
-M2 (four sub-milestones; Tan signs off each before the next starts)
+M2 (five sub-milestones; Tan signs off each before the next starts)
 
 **Working method**
 
@@ -803,6 +805,39 @@ M2d
 - [ ] Fuller sakura with petal fall and drifts; night streets with warm windows, lit shops, lanterns and lamps, never one flat blue.
 - [ ] Birds on wires, a cat, sparrows.
 - [ ] 60 fps at 1440p with the whole town loaded.
+
+M2e
+
+The bar: someone who knows Japan walks these streets and recognises them. Real in
+detail and in how things are made, worn and used; still painted in the anime style
+of section 4 (the best hand-painted backgrounds, not photorealism).
+
+- [ ] Detail catalogue `reference/japan-details.md`: researched from real Japanese
+      streets (street furniture, building materials, signage conventions, colours,
+      how things age and are repaired), each item noting where the town uses it.
+      Research only: no downloaded images are committed or used in the game.
+- [ ] Sakura: painted blossom clusters (Canvas2D textures on alpha cards) over a
+      branch skeleton with visible limbs and fine twigs; soft pale-top to deep-underside
+      gradient; a lacy edge with sky showing through; petal carpets along kerbs, in
+      gutters and under trees. Side-by-side with the reference at 3 m, 10 m and 30 m.
+- [ ] Green: street and garden trees (pine, maple, camphor), clipped shrubs,
+      hedges, potted plants crowding doorsteps, weeds in cracks and the vacant lot,
+      creepers on some walls.
+- [ ] Buildings: every house and shop type gets painted surfaces (siding boards,
+      mortar with stains, roof tiles, sheet metal), window detail (frames, grilles,
+      curtains, blinds, frosted glass, things on sills), gutters and downpipes, rain
+      streaks and grime gradients, and visible age differences between buildings.
+- [ ] Shopfronts: interiors readable from the street (stock, menus, posters,
+      counters, lights), noren and nobori, shutters with wear, hand-written signs.
+- [ ] Ground: asphalt texture and tone variation, patched repairs, worn paint,
+      kerb stones, grated gutters, weeds, stains, fallen leaves and petals.
+- [ ] Close up: at 1.5 m from any surface the player can reach, nothing reads as a
+      flat untextured box.
+- [ ] Review: for every fixed spot, a written side-by-side with its reference frame
+      listing named details present and missing. A spot does not pass while it lacks
+      something its reference shows prominently. Counts alone never pass a spot.
+- [ ] 60 fps at 1440p (frame-time headroom may be spent on detail); SPEC 11 draw
+      budgets reported.
 
 M3
 

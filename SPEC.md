@@ -561,6 +561,8 @@ flowchart LR
 
 The outdoor bus lowpass drops from 20 kHz to 900 Hz and gains down 70% when the player is inside; reverse when outside. The reverb impulse response is generated in code (decaying noise, 0.8 s indoor). Positional sounds (vending machine hum, crossing bell, microwave) use `PannerNode` with HRTF.
 
+**Local sounds (town-wide rule).** Every sound or interactive cue that belongs to a place is heard only as the player nears that place, never across town: full volume within a short `near` range, eased to silence at `far`, and not playing at all beyond it (ranges in `config.js` `SOUND`). The crossing bells, for example, carry to the station plaza's south edge and the platforms, not to the Lawson. Only the ambience beds (birds, wind, night insects) and the in-store music are heard everywhere they apply.
+
 **Audio list (Tan downloads, Claude Code wires in)**
 
 Tan listens and picks each sound on 効果音ラボ using the search terms below, then saves it into `assets/audio/` under the given file name. Choosing by ear is the point: pick the version that feels most like Japan. Claude Code loads whatever exists and falls back to the procedural recipe for anything missing.
@@ -635,7 +637,7 @@ The clerk's lines are generated with VOICEVOX (free Japanese text-to-speech) usi
 | Vending machine | Buy | Button beep, 1 s motor whir, heavy clunk (60 Hz sine + noise, 120 ms) |
 | Coffee machine | Brewing | Gurgle: random low noise bursts through resonant filter, 20 s |
 | Crosswalk bird | Signal green | Original two-tone chirp: sine glide 2,800 to 3,600 Hz, 80 ms, repeated in "pi-yo" pairs every 0.6 s |
-| Railway crossing | Every \~3 min | Alternating two bell tones (\~730 Hz and \~860 Hz, FM bell voice) at \~2 Hz for 20 s, positional, far away |
+| Railway crossing | Before each train | Alternating two bell tones (\~730 Hz and \~860 Hz, FM bell voice) at \~2 Hz while the crossing is closed, positional, heard only near the crossing and station (`SOUND.crossingBells`) |
 | Footsteps | Walking | Short filtered noise clicks; outdoor = lower, grittier; indoor tile = brighter with slight reverb |
 | UI tap | Buttons | 1,200 Hz sine 30 ms |
 | Stamp earned | Achievement | Soft wooden "tok" (triangle 400 Hz, 40 ms) + chime note |

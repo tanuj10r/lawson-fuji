@@ -29,6 +29,8 @@ the current milestone needs.
 - No requests to other domains at runtime. Fuji elevation is baked by
   scripts/fetch-fuji-dem.mjs.
 - No bloom by default.
+- Sounds are local: a place's sounds and cues are heard only near that
+  place (config.js SOUND), never across town. SPEC section 9.
 - Repurpose, don't copy: reused Sakura Crossing buildings get our own
   names, signage and placement. No Sakura Crossing place or shop names
   in the game.

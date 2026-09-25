@@ -9,11 +9,23 @@
  *           bell voice.  Never a real station melody (AGENTS.md).
  *
  * Browsers only start audio from a user gesture, so nothing sounds until
- * `start()` is called from the same click that starts the music.  Volume
- * falls off with distance from the listener.
+ * `start()` is called from the same click that starts the music.
+ *
+ * Every sound here is local (config.js SOUND): full volume near its source,
+ * eased out to silence at its `far` range, and not playing at all beyond it.
  * ------------------------------------------------------------------ */
 
+import { SOUND } from '../config.js';
+
 const FILES = { bells: 'assets/audio/crossing-bells.mp3' };
+
+/** 1 within `near`, easing to 0 at `far`. */
+export function falloff(d, { near, far }) {
+  if (d <= near) return 1;
+  if (d >= far) return 0;
+  const t = 1 - (d - near) / (far - near);
+  return t * t * (3 - 2 * t);
+}
 
 export function createSfx({ volume = 0.5 } = {}) {
   let ac = null, master = null;
@@ -71,9 +83,6 @@ export function createSfx({ volume = 0.5 } = {}) {
     if (bell.timer) { clearInterval(bell.timer); bell.timer = null; }
   }
 
-  /** Distance falloff: full within 8 m, gone by `range`. */
-  const falloff = (d, range) => Math.max(0, Math.min(1, 1 - (d - 8) / (range - 8)));
-
   return {
     get ready() { return !!ac; },
     async start() {
@@ -93,14 +102,16 @@ export function createSfx({ volume = 0.5 } = {}) {
     /** The crossing: ringing or not, and how far the listener is. */
     bells(on, distance) {
       if (!ac) return;
-      if (on) startBells(); else stopBells();
-      bell.gain.gain.setTargetAtTime(on ? falloff(distance, 180) : 0, ac.currentTime, 0.1);
+      // out of range the bells are not merely silent: they are not ringing
+      const audible = on && distance < SOUND.crossingBells.far;
+      if (audible) startBells(); else stopBells();
+      bell.gain.gain.setTargetAtTime(audible ? falloff(distance, SOUND.crossingBells) : 0, ac.currentTime, 0.1);
     },
     /** The door chime: three notes of our own, a fourth then a step down. */
     chime(distance) {
-      if (!ac) return;
+      if (!ac || distance >= SOUND.doorChime.far) return;
       const g = ac.createGain();
-      g.gain.value = 0.6 * falloff(distance, 90);
+      g.gain.value = 0.6 * falloff(distance, SOUND.doorChime);
       g.connect(master);
       const t = ac.currentTime + 0.02;
       [[659.3, 0], [880.0, 0.28], [784.0, 0.56]].forEach(([f, dt]) => strike(f, t + dt, g, 0.4));

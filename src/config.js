@@ -341,3 +341,13 @@ export function mainRoadGaps() {
     .filter((r) => r.z0 === undefined)
     .map((r) => [r.x - ROADS[r.cls].asphalt / 2, r.x + ROADS[r.cls].asphalt / 2]);
 }
+
+/* Local sounds (SPEC section 9): anything that belongs to a place is heard
+ * only as you near that place, never across town.  `near`: full volume
+ * within this many metres; `far`: silent (and not playing at all) beyond it.
+ * The fade between is an ease, so a sound arrives as you approach rather
+ * than switching on. */
+export const SOUND = {
+  crossingBells: { near: 10, far: 45 },    // the crossing, the plaza's south edge, the platforms' west end
+  doorChime: { near: 5, far: 28 },         // the platform, the gates
+};

@@ -487,3 +487,17 @@ Judgement calls, newest milestone last.
   - Frame time 6.0–8.1 ms at 1440p at every spot.
   - Draw calls rise to 500–650 where a train stands at the platform: the
     two sets, their glass and doors. Still M2d's performance pass.
+
+## Local sounds (Tan, after M2c)
+
+- **Rule, town-wide:** a place's sounds and interactive cues are heard only
+  as the player nears that place, never across town. It is in SPEC
+  section 9 and AGENTS.md, and M4 builds every positional sound on it.
+- **Why:** the crossing bells faded out only at 180 m, so they carried to
+  the Lawson (176 m away) and ticked through the famous view.
+- **How:** config.js `SOUND` gives each sound a `near` (full volume) and a
+  `far` (silent) range, with an eased fade between (`falloff` in
+  core/sfx.js). Beyond `far` a sound is not playing at all.
+  - Crossing bells: near 10 m, far 45 m. They carry to the plaza's south
+    edge (23% at 34 m) and fade out by the middle of the plaza.
+  - Door chime: near 5 m, far 28 m (the platforms and the ticket gates).

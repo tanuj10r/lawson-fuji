@@ -7,6 +7,7 @@ import {
 } from '../core/textures.js';
 import { box, cyl, bake, trs, rngKit, sagCurve, shadowify } from '../core/util.js';
 import { hullOutline } from '../core/outline.js';
+import { leafTex } from './kit/paint.js';
 import { centerX, groundY, ROAD_HALF, WALK_W, WALK_H } from './street.js';
 
 /* ------------------------------------------------------------------ *
@@ -32,8 +33,9 @@ function mats() {
   M.concrete = cel({ color: PAL.concrete, bands: 3, tint: 0x6f6790 });
   M.concreteMid = cel({ color: PAL.concreteMid, bands: 3, tint: 0x6a6288 });
   M.terracotta = cel({ color: 0xc57a5a, bands: 3, tint: 0x6f5680 });
-  M.leaf = cel({ color: PAL.leaf, bands: 3, tint: 0x5b6f8c });
-  M.leafDeep = cel({ color: PAL.leafDeep, bands: 3, tint: 0x5b6f8c });
+  // painted leaves (M2e): the same skin as the town's trees, shaded round
+  M.leaf = cel({ color: 0xbcdc9c, map: leafTex('glossy'), bands: 'soft3', tint: 0x7a92a8, flat: false, cache: false });
+  M.leafDeep = cel({ color: 0x96c282, map: leafTex('glossy'), bands: 'soft3', tint: 0x6a7e9c, flat: false, cache: false });
   return M;
 }
 
@@ -761,6 +763,16 @@ export function makeGuardrail(o = {}) {
   return g;
 }
 
+/** A round clump of foliage: a smooth-shaded ball (radial normals), so the
+ * painted leaves read as a bush, not a cut gem. */
+function roundLeaf(rad) {
+  const g = new THREE.IcosahedronGeometry(rad, 1);
+  const p = g.attributes.position, n = g.attributes.normal, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i).normalize(); n.setXYZ(i, v.x, v.y, v.z); }
+  g.scale(1, 0.8, 1);
+  return g;
+}
+
 export function makePlanter(o = {}) {
   const m = mats();
   const rng = rngKit(o.seed ?? 3);
@@ -774,7 +786,7 @@ export function makePlanter(o = {}) {
   g.add(cyl(r * 0.86, r * 0.86, r * 0.1, 10, cel({ color: 0x6b5a4a, bands: 2 }), 0, r * 1.46, 0));
   const n = o.n ?? 4;
   for (let i = 0; i < n; i++) {
-    const blob = new THREE.Mesh(new THREE.IcosahedronGeometry(r * rng.range(0.5, 0.85), 0),
+    const blob = new THREE.Mesh(roundLeaf(r * rng.range(0.5, 0.85)),
       i % 3 === 0 ? m.leafDeep : m.leaf);
     blob.position.set(rng.range(-r * 0.6, r * 0.6), r * 1.7 + rng.range(0, r * 0.7), rng.range(-r * 0.6, r * 0.6));
     blob.rotation.set(rng.range(0, 3), rng.range(0, 3), rng.range(0, 3));
@@ -1615,7 +1627,7 @@ export function makePotShelf(o = {}) {
     g.add(pot);
     if (rng.chance(0.78)) {
       for (let k = 0; k < 3; k++) {
-        const blob = new THREE.Mesh(new THREE.IcosahedronGeometry(r * rng.range(0.5, 0.85), 0),
+        const blob = new THREE.Mesh(roundLeaf(r * rng.range(0.5, 0.85)),
           k === 0 ? m.leafDeep : m.leaf);
         blob.position.set(pot.position.x + rng.range(-r * 0.6, r * 0.6),
           y + r * 1.7 + rng.range(0, r * 0.6), pot.position.z + rng.range(-r * 0.5, r * 0.5));

@@ -10,6 +10,7 @@ import {
 import { makeWheelStops } from '../streetprops.js';
 import { makeVehicle, tyreMarks } from '../vehicles.js';
 import { buildShrubs } from '../trees.js';
+import { plant } from './green.js';
 import { ROADS } from '../../config.js';
 import { COIN_PARKING, SHRINE, FOR_SALE, PARK_NAME } from '../../data/town.js';
 import { signPost } from './signs.js';
@@ -221,6 +222,43 @@ function shrine(ctx, net, kit, s, F) {
   const t = F.at(F.w / 2 - 2.2, F.d - 2.2);
   ctx.sakura.push({ x: t.x, z: t.z, y: 0, scale: 1.6, seed: 7701 });        // a hero tree over the shrine
   ctx.collide(t.x - 0.4, t.z - 0.4, t.x + 0.4, t.z + 0.4, 3);
+  // and the sacred tree (神木): an old camphor in the other corner, girdled
+  // with a shimenawa rope and its zigzag paper streamers (M2e)
+  const k = F.at(-F.w / 2 + 2.4, F.d - 2.4);
+  plant(ctx, 'camphor', { x: k.x, z: k.z, y: 0, scale: 1.45, seed: 7702 });
+  shimenawa(ctx, k, 0.3 * 1.45 * 1.25, 1.7, F.ry);
+}
+
+/** A shimenawa: a twisted straw rope round a sacred tree, with shide. */
+function shimenawa(ctx, c, r, y, ry) {
+  const straw = cel({ color: 0xd8c690, bands: 3, tint: 0x7a6a78 });
+  const paper = flat({ color: 0xfbfbf6, side: THREE.DoubleSide, cache: false });
+  const g = new THREE.Group();
+  const rope = new THREE.Mesh(new THREE.TorusGeometry(r + 0.05, 0.06, 6, 24), straw);
+  rope.rotation.x = Math.PI / 2;
+  rope.position.y = y;
+  g.add(rope);
+  // the twist: a thinner strand wound round it
+  const twist = new THREE.Mesh(new THREE.TorusGeometry(r + 0.05, 0.035, 5, 24, Math.PI * 2), straw);
+  twist.rotation.set(Math.PI / 2, 0, 0.4);
+  twist.position.y = y + 0.03;
+  g.add(twist);
+  // shide: zigzag paper strips hanging from it, four round the trunk
+  const zig = new THREE.Shape();
+  zig.moveTo(0, 0); zig.lineTo(0.07, 0); zig.lineTo(0.07, -0.09); zig.lineTo(0.13, -0.09); zig.lineTo(0.13, -0.2);
+  zig.lineTo(0.07, -0.2); zig.lineTo(0.07, -0.3); zig.lineTo(0.02, -0.3); zig.lineTo(0.02, -0.2); zig.lineTo(-0.04, -0.2);
+  zig.lineTo(-0.04, -0.09); zig.lineTo(0, -0.09); zig.closePath();
+  const zg = new THREE.ShapeGeometry(zig);
+  for (let i = 0; i < 4; i++) {
+    const a = ry + (i / 4) * Math.PI * 2;
+    const s = new THREE.Mesh(zg, paper);
+    s.position.set(Math.sin(a) * (r + 0.1), y - 0.04, Math.cos(a) * (r + 0.1));
+    s.rotation.y = a;
+    s.userData.noOutline = true;
+    g.add(s);
+  }
+  g.position.set(c.x, 0, c.z);
+  ctx.add(g);
 }
 
 function torii(ctx, F, v, halfW, H) {
@@ -432,6 +470,10 @@ function park(ctx, net, kit, s, F) {
   const trees = [F.at(-F.w / 2 + 3.5, F.d - 4), F.at(F.w / 2 - 3.5, F.d * 0.45)];
   ctx.sakura.push(...trees.map((t, i) => ({ x: t.x, z: t.z, y: 0, scale: i ? 1.1 : 1.5, seed: 7801 + i })));
   for (const t of trees) ctx.collide(t.x - 0.4, t.z - 0.4, t.x + 0.4, t.z + 0.4, 3);
+  // a camphor and a zelkova for shade, green among the cherries (M2e)
+  const g1 = F.at(F.w / 2 - 2.5, F.d - 3), g2 = F.at(-F.w / 2 + 2.5, F.d * 0.3);
+  plant(ctx, 'camphor', { x: g1.x, z: g1.z, y: 0, scale: 1.1, seed: 7811 });
+  plant(ctx, 'zelkova', { x: g2.x, z: g2.z, y: 0, scale: 0.95, seed: 7812 });
   for (const [u, v, turn] of [[-F.w / 2 + 3.5, F.d - 6.3, 0], [F.w / 2 - 5.8, F.d * 0.45, Math.PI / 2]]) {
     const p = F.at(u, v);
     ctx.add(makeBench({ x: p.x, y: 0, z: p.z, ry: F.ry + turn, len: 1.6, wood: true }));
@@ -499,6 +541,8 @@ function plaza(ctx, net, kit, s) {
   const cx = (s.x0 + s.x1) / 2 + 4, cz = (s.z0 + s.z1) / 2;
   const y = ROADS.asphaltY + ROADS.kerbH;
   ctx.sakura.push({ x: cx, z: cz, y, scale: 1.9, seed: 8801 });              // the plaza's big one
+  // zelkovas at the plaza's road corners (M2e)
+  for (const [x, z, sd] of [[s.x0 + 3, s.z0 + 3, 8811], [s.x1 - 3, s.z0 + 3, 8812]]) plant(ctx, 'zelkova', { x, z, y, scale: 1.05, seed: sd });
   ctx.collide(cx - 0.6, cz - 0.6, cx + 0.6, cz + 0.6, 4);
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2;

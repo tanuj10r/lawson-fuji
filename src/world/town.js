@@ -165,6 +165,7 @@ export function buildTown(scene) {
         camLocal.getWorldDirection = (v) => v.set(-camDir.x, camDir.y, -camDir.z);
       }
       core.sakura?.update(camera ? camLocal : camLocal.position);
+      core.green?.update(camera ? camLocal : camLocal.position);
       frameSakura?.update(camera ?? camPos);
       core.life?.update(dt, camLocal.position);
       const air = line.gustAt(camPos);

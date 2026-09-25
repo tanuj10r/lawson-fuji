@@ -12,6 +12,7 @@ import { makeGasMeter, makeWaterMeter, makeKidBike } from '../streetprops.js';
 import { makeVehicle } from '../vehicles.js';
 import { sidingTex, kawaraTex, boardTex, laundryTex, mortarTex, MORTAR_TILE } from './tex.js';
 import { wearBuilding, WEAR } from './wear.js';
+import { plant, potCrowd, ivyPanel } from './green.js';
 
 /* ------------------------------------------------------------------ *
  * The house generator (SPEC section 3, buildings).
@@ -307,6 +308,45 @@ function dressFront(ctx, lot, F, { r, yard, bw, bd, shift, doorU, carport, lane,
     if (r.chance(0.25)) {
       const q = inYard(doorAt + 0.8, yard - 0.35);
       add(makeDeliveryBox({ x: q.x, y: 0, z: q.z, ry }), q, 'prop', 0.3, 0.7);
+    }
+  }
+
+  /* green (M2e Phase 4), from its own draw so the layout never shifts:
+   * pots crowding the front, a garden tree over the wall, ivy on it */
+  {
+    const g = rngKit(lot.seed + 313);
+    const o = F.at(0, 0), a1 = F.at(1, 0);
+    const along = { x: a1.x - o.x, z: a1.z - o.z };
+    const face = F.face;
+    if (yard > 0.9 && g.chance(0.7)) {
+      // along the house front, the other side of the door from the pots above
+      const u = doorAt + (g.chance(0.5) ? 1 : -1) * g.range(1.5, 2.6);
+      if (Math.abs(u) < w / 2 - 0.8) {
+        const p = inYard(u, yard - 0.35);
+        const half = potCrowd(ctx, p, along, { n: g.int(4, 9), seed: lot.seed + 17, reg });
+        ctx.collide(p.x - half, p.z - half, p.x + half, p.z + half, 0.7);
+      }
+    } else if (!lane && g.chance(0.45)) {
+      // no yard: the pots stand on the street edge against the house (Tan's photo)
+      const u = doorAt + (g.chance(0.5) ? 1 : -1) * g.range(1.2, 2.2);
+      if (Math.abs(u) < w / 2 - 0.8) {
+        const p = F.at(u, 0.3);
+        const half = potCrowd(ctx, p, along, { n: g.int(3, 7), seed: lot.seed + 19, reg });
+        ctx.collide(p.x - half, p.z - half, p.x + half, p.z + half, 0.7);
+      }
+    }
+    if (lane && yard > 1.6 && edge !== 'open' && g.chance(0.45)) {
+      const species = g.pick(['pine', 'pine', 'maple', 'camphor', 'mapleRed']);
+      const u = (doorAt > 0 ? -1 : 1) * (w / 2 - g.range(0.9, 1.4));
+      const q = inYard(u, yard * 0.55);
+      plant(ctx, species, { x: q.x, z: q.z, y: 0, scale: species === 'pine' ? g.range(0.55, 0.8) : g.range(0.5, 0.7), seed: lot.seed + 23 });
+    }
+    if ((edge === 'block' || edge === 'timber') && segs.length && g.chance(0.3)) {
+      const [a, b] = segs[g.int(0, segs.length - 1)];
+      const len = Math.min(b - a, g.range(1.2, 2.6));
+      const u = a + g.range(0, Math.max(0, b - a - len)) + len / 2;
+      const c = F.at(u, vWall - 0.12);
+      ivyPanel(ctx, c, face, len, g.range(0.8, 1.4));
     }
   }
 

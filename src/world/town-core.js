@@ -13,6 +13,10 @@ import { FENCE_OFF } from './line/track.js';
 import { buildTownSakura } from './kit/sakura.js';
 import { makeNight } from './kit/night.js';
 import { buildLife } from './kit/life.js';
+import { plant, buildGreen, buildWeeds } from './kit/green.js';
+import { LAYER } from './kit/decals.js';
+import { rngKit } from '../core/util.js';
+import { ROADS } from '../config.js';
 
 /* ------------------------------------------------------------------ *
  * The dense core south of the main road (SPEC section 3, M2b).
@@ -45,12 +49,16 @@ export function buildCore(ctx) {
   ctx.sakura ??= [];             // every town sakura (the old town's too), built in one batch below
   ctx.night = makeNight(ctx);    // window glass and pools of light, after dark
   ctx.cats = [];                 // the dressing's cats, whose tails life.js swishes
+  ctx.green ??= {};              // painted trees and potted plants by species (kit/green.js), built in one batch each
 
   const built = lots.map((lot) => buildLot(ctx, net, kit, lot));
   for (const s of SPECIALS) buildSpecial(ctx, net, kit, s);
   dressStreets(ctx, net, kit, lots, SPECIALS);
   const line = buildLine(ctx, { kit });
+  streetTrees(ctx, kit);
   const sakura = buildTownSakura(ctx, ctx.sakura, { decals: kit.decals });
+  const green = buildGreen(ctx, { decals: kit.decals });
+  buildWeeds(ctx, weedSpots(ctx, net));
   for (const l of kit.lamps) ctx.night.pool(l.x, l.z, 5.0, { strength: 1.2 });
   ctx.night.finish();
   // birds on the wires, sparrows pecking in the open places, the cats
@@ -65,7 +73,54 @@ export function buildCore(ctx) {
   kit.finish();
   buildCoreEdge(ctx);
 
-  return { kit, net, lots, built, specials: SPECIALS, line, sakura, night: ctx.night, life };
+  return { kit, net, lots, built, specials: SPECIALS, line, sakura, green, night: ctx.night, life };
+}
+
+/* Street trees (M2e): zelkova in iron-grated pits along the main road's
+ * walk, the town's side.  West of the Lawson only from the coin parking on,
+ * and east of it only past 70 m: the golden-hour sun, low in the east,
+ * would lay a nearer tree's shadow across the famous views' forecourt. */
+function streetTrees(ctx, kit) {
+  const r = rngKit(1717);
+  const z = TOWN.grid.main + ROADS.hero.asphalt / 2 + 0.9;
+  const mouths = TOWN.grid.ns.filter((g) => g.z0 === undefined).map((g) => g.x);
+  const poles = (ctx.registry ?? []).filter((e) => e.kind === 'pole');
+  const runs = [[48, 116], [-116, -70]];
+  for (const [x0, x1] of runs) {
+    for (let x = x0; x <= x1; x += 13) {
+      if (mouths.some((m) => Math.abs(m - x) < 5)) continue;
+      if (x > 40 && x < 60 && Math.abs(x - 50) < 8) continue;          // the bus stop
+      if (poles.some((p) => Math.hypot(p.x - x, p.z - z) < 3)) continue;
+      plant(ctx, 'zelkova', { x, z, y: ROADS.kerbH, scale: r.range(0.85, 1.05), seed: 4000 + x });
+      kit.decals.add('grate', x, z, 1.1, 1.1, { x: 0, z: -1 }, ROADS.kerbH, LAYER.lid);
+    }
+  }
+}
+
+/* Weeds (M2e): tufts at the foot of every lane's walls and gutters, round
+ * poles, and a field of them in the vacant lot. */
+function weedSpots(ctx, net) {
+  const r = rngKit(2929);
+  const out = [];
+  for (const e of net.edges) {
+    if (e.cls === 'hero') continue;
+    const off = e.a + (e.spec.walk > 0 ? e.spec.walk + 0.1 : 0.45);
+    for (const side of [-1, 1]) {
+      for (let s = e.a0 + r.range(0, 3); s < e.a1; s += r.range(1.5, 6)) {
+        if (r.next() < 0.45) continue;
+        const p = net.at(e, s, side * off);
+        if (net.quiet(p.x, p.z)) continue;
+        out.push({ x: p.x, z: p.z, y: e.spec.walk > 0 ? ROADS.kerbH : 0 });
+        if (r.next() < 0.3) out.push({ x: p.x + r.range(-0.3, 0.3), z: p.z + r.range(-0.3, 0.3), y: e.spec.walk > 0 ? ROADS.kerbH : 0, s: r.range(0.15, 0.3) });
+      }
+    }
+  }
+  for (const p of ctx.registry ?? []) {
+    if (p.kind === 'pole' && r.next() < 0.6) out.push({ x: p.x + r.range(-0.3, 0.3), z: p.z + r.range(-0.3, 0.3), y: 0, s: r.range(0.2, 0.4) });
+  }
+  const v = SPECIALS.find((q) => q.kind === 'vacant');
+  if (v) for (let i = 0; i < 90; i++) out.push({ x: r.range(v.x0 + 0.5, v.x1 - 0.5), z: r.range(v.z0 + 0.5, v.z1 - 0.5), y: 0.03, s: r.range(0.35, 0.75) });
+  return out;
 }
 
 /** Fences and tree lines round the core: the edge is always something you see. */

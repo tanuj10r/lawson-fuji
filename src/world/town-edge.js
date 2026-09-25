@@ -3,6 +3,7 @@ import { cel, flat } from '../core/toon.js';
 import { TOWN, STREET, LAWSON, mainRoadGaps } from '../config.js';
 import { makeHouse, makeWall, makeTimberFence, makeBlockFence } from './buildings.js';
 import { buildGrove, buildShrubs } from './trees.js';
+import { plant } from './kit/green.js';
 import {
   makePole, makeWires, makeBicycle, makePlanter, makeBarrier, makeCone,
   makeBench, makeTapPost, makeLaundryPole, makeBikeRack, makeSignPost, makeAircon,
@@ -298,6 +299,10 @@ export function buildOldTown(ctx) {
     ];
     // the town's painted cherry (kit/sakura.js), batched with the rest
     ctx.sakura.push(...spots.map((s) => ({ ...s, y: 0 })));
+    // and green among them (M2e): camphors on the park's far side, a pine by the lane
+    plant(ctx, 'camphor', { x: 66, z: -52, y: 0, scale: 1.3, seed: 1121 });
+    plant(ctx, 'camphor', { x: 26, z: -54, y: 0, scale: 1.1, seed: 1122 });
+    plant(ctx, 'zelkova', { x: 68, z: -15, y: 0, scale: 1.0, seed: 1123 });
   }
 
   /* ============================ poles and wires ============================ */

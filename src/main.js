@@ -95,7 +95,7 @@ scene.traverse((o) => { if (o.userData.shadowOnly) { o.visible = false; shadowOn
 if (shadowOnly.length) {
   const drawShadows = renderer.shadowMap.render;
   renderer.shadowMap.render = function (...args) {
-    for (const o of shadowOnly) o.visible = true;
+    for (const o of shadowOnly) o.visible = !o.userData.shadowEmpty;   // an empty stand-in costs a call for nothing
     drawShadows.apply(this, args);
     for (const o of shadowOnly) o.visible = false;
   };

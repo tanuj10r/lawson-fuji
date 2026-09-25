@@ -322,3 +322,183 @@ export function blossomCardTex() {
   cardT.anisotropy = 8;
   return cardT;
 }
+
+/* -------------------------------------------------------------- leaves
+ * Green in the same painted manner as the blossom (M2e Phase 4): a tiling
+ * skin of small leaves with light catching their tops, and an alpha-cut
+ * spray for a canopy's rim.  Drawn in near-white greens; the species' tones
+ * set the colour. */
+
+const LEAF = {
+  broad: { ground: '#eef3e2', cols: ['#ffffff', '#f2f7e6', '#e2edcf', '#d3e3bd', '#c4d8ad'], dark: 'rgba(120,150,110,0.55)', n: 1100, size: [5, 9] },
+  glossy: { ground: '#e8efdc', cols: ['#ffffff', '#f4f8ea', '#dbe8c8', '#c8dab4', '#b4cba0'], dark: 'rgba(96,126,100,0.6)', n: 1300, size: [5, 8] },
+  maple: { ground: '#f2f1e2', cols: ['#ffffff', '#f7f3e4', '#ece6cf', '#e0d8bd'], dark: 'rgba(140,130,100,0.5)', n: 700, size: [7, 11], star: true },
+};
+
+/** One leaf: a pointed oval with a light edge (or a five-point maple star). */
+function leaf(c, x, y, s, rot, col, star) {
+  c.save(); c.translate(x, y); c.rotate(rot);
+  c.fillStyle = col;
+  c.beginPath();
+  if (star) {
+    for (let k = 0; k < 10; k++) {
+      const a = (k / 10) * Math.PI * 2 - Math.PI / 2, rr = k % 2 ? s * 0.38 : s;
+      c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+  } else {
+    c.moveTo(0, -s);
+    c.quadraticCurveTo(s * 0.55, 0, 0, s);
+    c.quadraticCurveTo(-s * 0.55, 0, 0, -s);
+  }
+  c.fill();
+  c.restore();
+}
+
+const leafCache = {};
+/** A tiling skin of leaves: `kind` broad (zelkova), glossy (camphor), maple. */
+export function leafTex(kind = 'broad') {
+  if (leafCache[kind]) return leafCache[kind];
+  const L = LEAF[kind];
+  const S = 512;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  const r = rng(kind.length * 977 + 11);
+  c.fillStyle = L.ground; c.fillRect(0, 0, S, S);
+  // shade between the sprays
+  for (let i = 0; i < 30; i++) {
+    const x = r() * S, y = r() * S, rad = 26 + r() * 50;
+    for (const [ox, oy] of [[0, 0], [S, 0], [-S, 0], [0, S], [0, -S]]) {
+      const g = c.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, rad);
+      g.addColorStop(0, L.dark); g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g; c.fillRect(x + ox - rad, y + oy - rad, rad * 2, rad * 2);
+    }
+  }
+  for (let i = 0; i < L.n; i++) {
+    const x = r() * S, y = r() * S, s = L.size[0] + r() * (L.size[1] - L.size[0]), rot = r() * 6.3;
+    const col = L.cols[Math.floor(r() * L.cols.length)];
+    for (const [ox, oy] of [[0, 0], [S, 0], [-S, 0], [0, S], [0, -S]]) {
+      if (x + ox < -20 || x + ox > S + 20 || y + oy < -20 || y + oy > S + 20) continue;
+      leaf(c, x + ox, y + oy, s, rot, col, L.star);
+    }
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 8;
+  return (leafCache[kind] = t);
+}
+
+const cardCache = {};
+/** An alpha-cut spray of leaves on a twig, for a green canopy's rim. */
+export function leafCardTex(kind = 'broad') {
+  if (cardCache[kind]) return cardCache[kind];
+  const L = LEAF[kind];
+  const S = 256;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  const r = rng(kind.length * 331 + 5);
+  c.strokeStyle = '#4e4a44'; c.lineCap = 'round';
+  for (let i = 0; i < 3; i++) {
+    let x = S / 2 + (r() - 0.5) * 30, y = S * 0.88, a = -Math.PI / 2 + (r() - 0.5) * 1.2;
+    c.lineWidth = 2.5;
+    c.beginPath(); c.moveTo(x, y);
+    for (let k = 0; k < 9; k++) { a += (r() - 0.5) * 0.5; x += Math.cos(a) * 13; y += Math.sin(a) * 13; c.lineTo(x, y); }
+    c.stroke();
+  }
+  for (let i = 0; i < 170; i++) {
+    const a = r() * Math.PI * 2, d = Math.pow(r(), 0.8) * S * 0.44;
+    const x = S / 2 + Math.cos(a) * d, y = S * 0.5 + Math.sin(a) * d * 0.85;
+    leaf(c, x, y, (L.size[0] + r() * (L.size[1] - L.size[0])) * 1.1, r() * 6.3, L.cols[Math.floor(r() * L.cols.length)], L.star);
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return (cardCache[kind] = t);
+}
+
+let needleT = null;
+/** Pine needles for a clipped pine's pads: tufts of fine strokes. */
+export function needleTex() {
+  if (needleT) return needleT;
+  const S = 512;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  const r = rng(4411);
+  c.fillStyle = '#e4ecdc'; c.fillRect(0, 0, S, S);
+  c.lineCap = 'round';
+  for (let i = 0; i < 700; i++) {
+    const x = r() * S, y = r() * S, n = 7, len = 10 + r() * 8;
+    const col = ['#ffffff', '#eef4e6', '#d6e2cc', '#bfd0b6'][Math.floor(r() * 4)];
+    for (const [ox, oy] of [[0, 0], [S, 0], [-S, 0], [0, S], [0, -S]]) {
+      if (x + ox < -20 || x + ox > S + 20 || y + oy < -20 || y + oy > S + 20) continue;
+      c.strokeStyle = col; c.lineWidth = 1.6;
+      for (let k = 0; k < n; k++) {
+        const a = -Math.PI / 2 + (k / (n - 1) - 0.5) * 2.2;
+        c.beginPath(); c.moveTo(x + ox, y + oy); c.lineTo(x + ox + Math.cos(a) * len, y + oy + Math.sin(a) * len); c.stroke();
+      }
+    }
+  }
+  needleT = new THREE.CanvasTexture(cv);
+  needleT.colorSpace = THREE.SRGBColorSpace;
+  needleT.wrapS = needleT.wrapT = THREE.RepeatWrapping;
+  needleT.anisotropy = 8;
+  return needleT;
+}
+
+let grassT = null;
+/** A tuft of weeds and grass, alpha-cut: blades, a dandelion or two. */
+export function grassTex() {
+  if (grassT) return grassT;
+  const S = 256;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  const r = rng(2323);
+  c.lineCap = 'round';
+  for (let i = 0; i < 70; i++) {
+    const x = S * (0.2 + r() * 0.6), h = S * (0.25 + r() * 0.65), lean = (r() - 0.5) * S * 0.35;
+    c.strokeStyle = ['#8fb870', '#a7c888', '#7aa464', '#b9d49c', '#6f9660'][Math.floor(r() * 5)];
+    c.lineWidth = 2 + r() * 3;
+    c.beginPath(); c.moveTo(x, S); c.quadraticCurveTo(x + lean * 0.3, S - h * 0.6, x + lean, S - h); c.stroke();
+  }
+  // a few broad leaves low down, and a dandelion
+  for (let i = 0; i < 6; i++) leaf(c, S * (0.25 + r() * 0.5), S * (0.8 + r() * 0.15), 16 + r() * 10, (r() - 0.5) * 2.5, '#7fa66a', false);
+  if (r() < 0.9) {
+    c.fillStyle = '#f5cf3a';
+    c.beginPath(); c.arc(S * 0.62, S * 0.42, 9, 0, Math.PI * 2); c.fill();
+  }
+  grassT = new THREE.CanvasTexture(cv);
+  grassT.colorSpace = THREE.SRGBColorSpace;
+  grassT.anisotropy = 8;
+  return grassT;
+}
+
+let ivyT = null;
+/** Ivy on a wall, alpha-cut: runners with leaves, thinning upward. */
+export function ivyTex() {
+  if (ivyT) return ivyT;
+  const S = 512;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  const r = rng(6161);
+  const cols = ['#6f9a5e', '#86ad6c', '#5c8752', '#9cbd7e'];
+  for (let k = 0; k < 9; k++) {
+    let x = S * (0.1 + r() * 0.8), y = S, a = -Math.PI / 2 + (r() - 0.5) * 0.6;
+    const steps = 12 + Math.floor(r() * 20);
+    for (let s = 0; s < steps; s++) {
+      a += (r() - 0.5) * 0.6;
+      x += Math.cos(a) * 12; y += Math.sin(a) * 12;
+      c.strokeStyle = '#5a5a44'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x - Math.cos(a) * 12, y - Math.sin(a) * 12); c.stroke();
+      for (let l = 0; l < 3; l++) leaf(c, x + (r() - 0.5) * 16, y + (r() - 0.5) * 16, 7 + r() * 5, r() * 6.3, cols[Math.floor(r() * cols.length)], false);
+    }
+  }
+  ivyT = new THREE.CanvasTexture(cv);
+  ivyT.colorSpace = THREE.SRGBColorSpace;
+  ivyT.anisotropy = 8;
+  return ivyT;
+}

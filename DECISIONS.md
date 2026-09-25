@@ -655,3 +655,42 @@ Judgement calls, newest milestone last.
   their left and right edges; re-baselined.
 - **Checks.** Density 27 of 27, bare stretches, traincheck; 5.5–9.7 ms at
   1440p.
+
+## M2e Phase 4: greenery
+
+- **One tree builder, many species.** The painted cherry's builder became
+  kit/canopy.js, parameterised by a *look* (form, tones, skin, rim cards,
+  ground). The sakura is one look (kit/sakura.js), and the refactor is
+  pixel-exact: the heroes stayed at 0.000%.
+- **Species** (kit/green.js), all painted with leaf skins and rim sprays
+  (kit/paint.js `leafTex`, `leafCardTex`, `needleTex`):
+  - zelkova, the street tree: a vase of upward limbs, fresh spring green;
+  - camphor, the shrine's and the parks': round, dense, glossy;
+  - maple, green or red: small, layered;
+  - pine, the clipped garden pine: flat pads only, on a leaning trunk;
+  - shrub: the plant in a pot.
+  - Green's shade side is blue-violet, never grey-green, in the palette's
+    shadow family.
+- **Where they grow:**
+  - zelkovas in grated pits along the main road's north walk. West of the
+    Lawson only from the coin parking on, east only past 70 m, because the
+    golden-hour sun would lay a nearer tree's shadow over the famous
+    views' forecourt;
+  - a camphor and a zelkova in the park and in the old park, two zelkovas
+    at the plaza's road corners;
+  - the shrine's sacred camphor (神木), girdled with a shimenawa and its
+    shide;
+  - garden trees behind 45% of lane walls with a yard (pine most often).
+- **Pots** (`potCrowd`). Clay, glazed and plastic pots of every size, and
+  styrofoam boxes of seedlings, each with a painted plant. They crowd 70%
+  of doorsteps with a yard, and the street edge of 45% of houses without
+  one (Tan's Yotsugi photo).
+- **The library's planters and pot shelves.** Their shared leaf materials
+  now carry the painted leaf skin, and their foliage is round and
+  smooth-shaded, so they match the new trees.
+- **Weeds.** Crossed-quad tufts in one instanced draw: at lane wall feet
+  and gutters, round poles, and a field of them in the vacant lot.
+- **Ivy** on 30% of block and timber walls.
+- **Cost.** Empty instanced sets are hidden, and so are empty shadow
+  stand-ins. About 50 more calls at the famous view; 4.3–8.6 ms at 1440p.
+- **Checks.** Density 27 of 27, bare stretches, traincheck; heroes 0.000%.

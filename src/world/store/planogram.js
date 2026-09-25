@@ -96,6 +96,7 @@ export function stockStore(p, slots, group, lit) {
   };
 
   for (const s of slots) {
+    stock.slot = s;
     switch (s.zone) {
       case 'drinks': {
         // one door, one category; its shelf's products in solid blocks; the

@@ -30,6 +30,17 @@ export const LAWSON = {
   wingWidth: 2.6,  // tiled wall section at the right end
 };
 
+/* Shopping in the store (M3c; SPEC 5 and 6.3). */
+export const STORE = {
+  reach: 2.0,          // metres: what the crosshair can take
+  carry: 2,            // items you can hold without a basket
+  wallet: 3000,        // yen you start with
+  flight: 0.35,        // seconds, shelf to basket
+  slide: 0.25,         // seconds for the next unit to come forward
+  door: { open: 1.66, ease: 0.3, hold: 4.0, away: 2.5 },   // fridge doors: radians, s, s, m
+  basketShown: 12,     // items drawn in the basket; the count carries on
+};
+
 /* Ground plan in front of the store, as z lines (the store glass is z = 0). */
 export const STREET = {
   apron: 1.6,      // concrete walk along the glass

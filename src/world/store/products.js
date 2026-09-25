@@ -217,6 +217,21 @@ export function footprint(id) {
   return { w: bb.max.x - bb.min.x, d: bb.max.z - bb.min.z, h: bb.max.y - bb.min.y };
 }
 
+const _o = new THREE.Object3D();
+/**
+ * Write a unit's instance matrix: at its place, or `slide` metres back along
+ * its own depth (the next one coming forward, M3c), or hidden (scale 0).
+ * The caller flags `u.mesh.instanceMatrix.needsUpdate`.
+ */
+export function placeUnit(u, slide = 0, hidden = false) {
+  _o.position.set(u.x, u.y, u.z);
+  _o.rotation.set(u.rx ?? 0, u.ry, 0, 'YXZ');
+  if (slide) _o.position.addScaledVector(new THREE.Vector3(Math.sin(u.ry), 0, Math.cos(u.ry)), -slide);
+  _o.scale.setScalar(hidden ? 0 : 1);
+  _o.updateMatrix();
+  u.mesh.setMatrixAt(u.index, _o.matrix);
+}
+
 /**
  * The store's stock: `add(id, x, y, z, ry, count)` places a unit (the one on
  * show; `count` behind it); `build(group, lit)` makes one InstancedMesh per
@@ -225,11 +240,16 @@ export function footprint(id) {
 export function makeStock() {
   const units = [];
   const byId = new Map();
-  const d = new THREE.Object3D();
+  let front = null;
   return {
     units,
+    /** The shelf run being filled (planogram.js sets it): recorded on each unit. */
+    slot: null,
     add(id, x, y, z, ry = 0, count = PRODUCT[id].unitsPerSlot, rx = 0) {
-      const u = { id, x, y, z, ry, rx, count };
+      const u = { id, x, y, z, ry, rx, count, slot: this.slot, backs: [] };
+      // a unit with no count of its own is drawn behind the last one that has
+      // one (the rows receding, the layer piled on top): it belongs to it
+      if (count === 0 && front?.id === id) { front.backs.push(u); u.front = front; } else front = u;
       units.push(u);
       (byId.get(id) ?? byId.set(id, []).get(id)).push(u);
       return u;
@@ -244,9 +264,8 @@ export function makeStock() {
       for (const [id, list] of byId) {
         const inst = new THREE.InstancedMesh(productGeometry(id), mats[A.cellOf[id].page], list.length);
         list.forEach((u, i) => {
-          d.position.set(u.x, u.y, u.z); d.rotation.set(u.rx ?? 0, u.ry, 0, 'YXZ'); d.updateMatrix();
-          inst.setMatrixAt(i, d.matrix);
           u.mesh = inst; u.index = i;
+          placeUnit(u);
         });
         inst.computeBoundingSphere();
         inst.name = 'stock-' + id;

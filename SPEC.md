@@ -877,7 +877,22 @@ M3
       with real Lawson interiors.
 - [ ] The door opens and closes by proximity.
 - [ ] All 30 products render with readable Japanese labels and shelf price tags.
-- [ ] Picking an item moves it into the basket in view; removing it returns it to its slot.
+- [x] Picking an item moves it into the basket in view; removing it returns it to its slot.
+
+M3c (picking up and the basket)
+
+- [x] Inside the store the crosshair aims at single facings within 2 m; the one aimed at
+      gets a rim and a prompt with its Japanese name.
+- [x] Taking one drops that facing's count, the next slides forward, and an emptied
+      facing shows its gap and can no longer be aimed at.
+- [x] Cooler and freezer doors: the first E swings the door open with a puff of cold
+      air, the second takes the item; the door shuts itself after 4 s or when you walk off.
+- [x] The item arcs into the basket in the lower left of the view and stacks there;
+      without a basket you hold two at most.
+- [x] Tab opens the basket panel (JA/EN names, quantities, subtotal against the
+      wallet); putting an item back flies it to its own slot and restores the count.
+- [x] Walking out with unpaid items puts them all back, and the basket on its stack.
+- [x] The famous views stay within the guard; aiming costs well under 0.1 ms a frame.
 
 M4
 

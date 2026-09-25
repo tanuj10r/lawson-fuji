@@ -9,6 +9,7 @@ import { createMusic } from './core/audio.js';
 import { createSfx } from './core/sfx.js';
 import { buildTown } from './world/town.js';
 import { createMinimap } from './ui/minimap.js';
+import { createBasketPanel } from './ui/basketPanel.js';
 import { buildKitTest } from './world/kit-test.js';
 import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
@@ -107,6 +108,19 @@ if (shadowOnly.length) {
 }
 
 const player = new Player(camera, canvas, world);
+
+/* Shopping in the store (M3c): aiming at the shelves, the fridge doors, the
+ * basket in view and its panel on Tab. */
+const shop = world.lawson?.shop ?? null;
+const basketPanel = shop ? createBasketPanel() : null;
+if (shop) {
+  scene.add(shop.view, shop.fx);
+  shop.onChange = () => basketPanel.update(shop.cart, shop.hasBasket);
+}
+function setPanel(open) {
+  basketPanel.setOpen(open);
+  player.suspended = open;
+}
 const VOLUME_STORAGE_KEY = 'lawson-fuji-volume';
 let initialVolume = 0.34;
 try {
@@ -118,6 +132,7 @@ try {
 } catch { /* storage is optional; the game works without it */ }
 
 const hud = createHud({ volume: initialVolume });
+if (shop) shop.flash = (text) => hud.flash(text, 2500);
 const music = createMusic({ volume: initialVolume, fadeIn: 3.0 });
 hud.setMuted(music.muted);
 const rememberVolume = () => {
@@ -148,6 +163,7 @@ player.onLockChange = (locked) => {
   hud.setLocked(locked);
   // leaving pointer lock (Esc) closes the full map too
   if (!locked && minimap?.fullOpen) { minimap.setFull(false); player.suspended = false; }
+  if (!locked && basketPanel?.open) setPanel(false);
 };
 canvas.addEventListener('click', () => {
   music.start();
@@ -310,6 +326,21 @@ function seatLights() {
 }
 
 window.addEventListener('keydown', (e) => {
+  // Tab: the basket panel (never moves the page's focus)
+  if (e.code === 'Tab') {
+    e.preventDefault();
+    if (!e.repeat && basketPanel && player.locked && !minimap?.fullOpen) setPanel(!basketPanel.open);
+    return;
+  }
+  if (basketPanel?.open) {
+    if (e.code === 'KeyW' || e.code === 'ArrowUp') basketPanel.move(-1);
+    if (e.code === 'KeyS' || e.code === 'ArrowDown') basketPanel.move(1);
+    if (!e.repeat && ['KeyX', 'Delete', 'Backspace'].includes(e.code)) {
+      const item = basketPanel.chosen();
+      if (item) shop.putBack(item);
+    }
+    return;
+  }
   if (e.repeat) return;
   // M: the full town map (M2f); it holds your walking and looking while open
   if (e.code === 'KeyM' && minimap && player.locked) {
@@ -372,7 +403,14 @@ function frame() {
     minimap.update(player.pos, player.yaw);
   }
 
-  const hovered = player.locked ? player.pick(world.interactables) : null;
+  // in the store the shelves are aimed at by the shop; outside, the hitboxes
+  let hovered = null;
+  if (shop) shop.update(dt, camera, player.bob);
+  if (player.locked && !basketPanel?.open) {
+    hovered = shop?.inside(camera) ? shop.pick(camera) : player.pick(world.interactables);
+  }
+  if (shop && !(hovered?.unit)) shop.clearAim();
+  player.hovered = hovered;
   hud.setPrompt(hovered ? `E  ·  ${hovered.label.replace(/^.*?·\s*/, '')}` : '');
   // flat authoring coordinates, so what the readout says is what the code uses
   hud.setCoords(player.pos, player.yaw, player.pitch, dt);
@@ -389,6 +427,7 @@ window.__scene = {
   applyLook, enterHero,
 };
 window.__setOutlineRes = setOutlineResolution;
+if (import.meta.env?.DEV) window.__store = { shop, panel: basketPanel, setPanel };
 
 if (import.meta.env?.DEV) {
   /**
@@ -425,6 +464,12 @@ if (import.meta.env?.DEV) {
     pipeline.setSize(W, H);
     setOutlineResolution(pipeline.size.x, pipeline.size.y);
     world.update(0, camera);
+    // the shop: `opts.shop` seconds pass (flights land, doors swing), and what you carry follows the camera
+    if (shop) {
+      const steps = Math.round((opts.shop ?? 0) * 60);
+      for (let k = 0; k < steps; k++) shop.update(1 / 60, camera, 0);
+      shop.update(0, camera, 0);
+    }
     seatLights();
     sky.dome.position.copy(camera.position);
     sky.clouds.position.copy(camera.position);

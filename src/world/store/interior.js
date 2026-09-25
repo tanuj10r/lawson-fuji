@@ -48,6 +48,10 @@ export function buildInterior(group, { lit, colliders }) {
   const p = makePainter();
   const r = rngKit(3301);
   const slots = [];
+  // the glass doors of the cooler and freezers (store/doors.js hangs them):
+  // a hinge at (x, z), turned `base` so the leaf runs along local +x (times
+  // `s`) with the shop at local +z; `holds` says which stock is behind it
+  const doors = [];
   const block = (x0, x1, z0, z1, top = 2) => colliders.push({ x0: Math.min(x0, x1), x1: Math.max(x0, x1), z0: Math.min(z0, z1), z1: Math.max(z0, z1), top });
 
   /* ---------------------------- the room ---------------------------- */
@@ -84,18 +88,17 @@ export function buildInterior(group, { lit, colliders }) {
         p.box(x + 0.06, x + bw - 0.06, y - 0.07, y - 0.01, zf - 0.1, zf - 0.08, C.rail);
         slots.push({ zone: 'drinks', bay: b, level: k, x0: x + 0.1, x1: x + bw - 0.1, y, z: zf - 0.16, rail: zf - 0.075, face: { x: 0, z: 1 } });
       });
-      // the door: black frame, a tall handle, a sticker; the glass is the store's glass
+      // the door's opening: black posts, header and sill; the door hangs in it
       p.box(x, x + 0.06, FLOOR, 2.3, zf - 0.08, zf, C.coolerFrame);
       p.box(x, x + bw, 2.24, 2.3, zf - 0.08, zf, C.coolerFrame);
       p.box(x, x + bw, FLOOR, 0.12, zf - 0.08, zf, C.coolerFrame);
-      p.box(x + bw - 0.2, x + bw - 0.17, 0.8, 1.7, zf, zf + 0.05, C.steel);
-      if (b % 3 === 1) p.quad(smallSign('cold'), x + 0.45, 1.95, zf + 0.012, 0.3, 0.15);
+      doors.push({ x: x + 0.06, z: zf + 0.012, base: 0, s: 1, len: bw - 0.06, y0: 0.12, y1: 2.24, sticker: b % 3 === 1,
+        holds: { zone: 'drinks', axis: 'x', a: x, b: x + bw } });
       const [jp, en, col] = DOOR_SIGNS[b];
       p.quad(stripSign(jp, en, col), x + bw / 2, 2.5, zf + 0.01, bw - 0.1, 0.26);
     }
     p.box(xa + bays * bw - 0.06, xa + bays * bw, FLOOR, 2.3, zf - 0.08, zf, C.coolerFrame);
     p.box(xa, xa + bays * bw, 2.3, CEIL, zf - 0.08, zf, C.wall);                     // the bulkhead over it
-    group.userData.coolerGlass = { x0: xa, x1: xa + bays * bw, y0: 0.12, y1: 2.24, z: zf + 0.005 };
     block(xa, xa + bays * bw, Z0, zf + 0.05);
   }
 
@@ -117,7 +120,9 @@ export function buildInterior(group, { lit, colliders }) {
     p.box(fx0, fx1, 2.05, 2.1, fz, fz + 0.05, C.coolerFrame);
     p.box(fx0, fx1, FLOOR, 0.1, fz, fz + 0.05, C.coolerFrame);
     p.quad(stripSign('冷凍食品・氷', 'Frozen', '#3a8ad0'), (fx0 + fx1) / 2, 2.35, fz + 0.02, 1.5, 0.28);
-    group.userData.freezerGlass = { x0: fx0, x1: fx1, y0: 0.1, y1: 2.05, z: fz + 0.052 };
+    const mid = (fx0 + fx1) / 2;
+    doors.push({ x: fx0 + 0.05, z: fz + 0.065, base: 0, s: 1, len: mid - fx0 - 0.05, y0: 0.1, y1: 2.05, holds: { zone: 'freezer', axis: 'x', a: fx0, b: mid + 0.025 } });
+    doors.push({ x: fx1 - 0.05, z: fz + 0.065, base: 0, s: -1, len: fx1 - mid - 0.1, y0: 0.1, y1: 2.05, holds: { zone: 'freezer', axis: 'x', a: mid + 0.025, b: fx1 } });
     block(fx0, fx1, Z0, fz + 0.06);
     // the toilet door and its sign
     p.box(5.6, 6.5, FLOOR, 2.1, Z0, Z0 + 0.05, 0xd8d4cc);
@@ -254,7 +259,8 @@ export function buildInterior(group, { lit, colliders }) {
   {
     const bx = -4.3, bz = -0.9;
     p.box(bx - 0.25, bx + 0.25, FLOOR, 0.12, bz - 0.18, bz + 0.18, C.kick);
-    for (let k = 0; k < 6; k++) {
+    // five nested here; the sixth, on top, is the one you take (store/basket.js)
+    for (let k = 0; k < 5; k++) {
       const y = 0.12 + k * 0.07;
       p.box(bx - 0.24, bx + 0.24, y, y + 0.26, bz - 0.17, bz + 0.17, 0x2f6fb6, { shade: [0.8, 0.76, 1, 0.6, 0.86, 0.84] });
     }
@@ -372,7 +378,8 @@ export function buildInterior(group, { lit, colliders }) {
       slots.push({ zone: 'selfserve', level: k, x: xc + 0.22, y, z0: -10.0, z1: -9.0 });
     }
     for (const z of [-10.1, -9.5, -8.95]) p.box(xc - 0.05, xc, FLOOR, 2.0, z, z + 0.05, C.coolerFrame);
-    group.userData.smoothieGlass = { x: xc - 0.052, z0: -10.1, z1: -8.9, y0: 0.1, y1: 1.95 };
+    doors.push({ x: xc - 0.065, z: -10.05, base: -Math.PI / 2, s: 1, len: 0.55, y0: 0.1, y1: 1.95, holds: { zone: 'selfserve', axis: 'z', a: -10.1, b: -9.475 } });
+    doors.push({ x: xc - 0.065, z: -8.95, base: -Math.PI / 2, s: -1, len: 0.5, y0: 0.1, y1: 1.95, holds: { zone: 'selfserve', axis: 'z', a: -9.475, b: -8.9 } });
     // the counter with two blenders, lids and straws, a sink
     p.box(xc, xw, FLOOR, 0.92, -11.9, -10.2, 0xe8e4dc);
     p.box(xc - 0.03, xw, 0.92, 0.96, -11.93, -10.17, C.counterTop);
@@ -391,7 +398,9 @@ export function buildInterior(group, { lit, colliders }) {
   p.build(group, lit, { name: 'store' });
   group.userData.slots = slots;
   group.userData.units = units;
-  return { slots, units };
+  group.userData.doors = doors;
+  group.userData.basketStack = { x: -4.3, z: -0.9, y: 0.12 + 5 * 0.07 };
+  return { slots, units, doors };
 }
 
 /* -------------------------------------------------------------------- *

@@ -975,3 +975,39 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   The famous view is 10.3 ms at 1440p.
 - **The famous views changed 2.0–2.3%** (the eat-in at the window, the new
   stock). They await Tan's OK.
+
+## M3c: picking up and the basket
+
+- **Aiming is boxes, not meshes.** One box per shelf facing (the front unit
+  unioned with the rows drawn behind it), plus the fridge doors and the basket
+  stack, tested in the interior's frame. 3,580 facings take 0.03 ms a frame,
+  and the test only runs inside the store. Shelf boards don't block the ray; at
+  worst you can reach a facing just past a board's edge.
+- **Facings keep their stock count** (the planogram's `unitsPerSlot`). Taking
+  one lowers it; the next unit slides forward 0.25 s later, which is the
+  gravity shelf; the drawn rows behind thin out as the count falls below them;
+  the last one leaves a gap. The ice case's piles have no slide: the top layer
+  goes first.
+- **What you carry is drawn over the world, not in a separate pass.** The
+  plan said an overlay pass in post.js, but clearing depth for it would have
+  cost the ink pass the world's depth. Instead the basket's and held items'
+  materials squeeze their depth into the nearest 2% of the range
+  (`onTop`, store/basket.js). They never sink into a shelf you stand against,
+  they still write depth, and the ink still outlines them.
+- **The basket is blue, not red** (SPEC 5 says red). The store's own stack
+  is blue, as Lawson's baskets are, and the one you carry is one of those. It
+  has no logo: the basket isn't on AGENTS.md's branding list.
+- **Fridge doors** replace the single glass sheets: 8 cooler doors, 2 on the
+  upright freezer, 2 on the smoothie freezer (it has a middle post). Each
+  door is a pivot with its frame, handle and pane; the 冷えてます stickers
+  moved onto the leaves. They don't block walking; you step round them. The
+  famous views moved 0.14–0.16% (the pane now stops at each post), inside
+  the guard; that costs 25 more draw calls.
+- **The panel is keyboard-driven** (W/S, X, Tab): the pointer stays locked,
+  as with the full map.
+- **Deferred:**
+  - the sounds of taking, the doors and the basket (hooks are in place for M4);
+  - the hot case (asked for at the counter), the coffee station and the blenders (M5/M6);
+  - the wallet in the HUD (M5).
+- **The code:** store/shop.js (aiming, taking, flights), store/doors.js,
+  store/basket.js, ui/basketPanel.js. The test trip is scripts/_m3c.mjs.

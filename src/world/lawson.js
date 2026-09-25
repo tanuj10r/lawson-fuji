@@ -10,6 +10,8 @@ import {
 } from './lawson-tex.js';
 import { dressLawson, wearLawson } from './lawson-dress.js';
 import { buildInterior, buildDoor } from './store/interior.js';
+import { buildFridgeDoors } from './store/doors.js';
+import { makeShop } from './store/shop.js';
 import { asphaltTex, ASPHALT_TILE } from './kit/tex.js';
 import { chipTex, CHIP_TILE } from './kit/paint.js';
 
@@ -177,21 +179,11 @@ export function buildLawson(parent) {
     inside.name = 'lawson-interior';
     root.add(inside);
     buildInterior(inside, { lit, colliders });
-    // the glass in the walk-in cooler's doors
-    const cg = inside.userData.coolerGlass;
-    const cool = face(cg.x0, cg.x1, cg.y0, cg.y1, cg.z,
-      flat({ color: 0xd8ecf8, transparent: true, opacity: 0.18, depthWrite: false, cache: false }));
-    cool.userData.noOutline = true;
-    cool.renderOrder = 2;
-    inside.add(cool);
-    // and the upright freezer's and the smoothie freezer's doors
-    const fg = inside.userData.freezerGlass, sg = inside.userData.smoothieGlass;
-    const fMat = cool.material;
-    const f1 = face(fg.x0, fg.x1, fg.y0, fg.y1, fg.z, fMat);
-    const f2 = new THREE.Mesh(new THREE.PlaneGeometry(sg.z1 - sg.z0, sg.y1 - sg.y0), fMat);
-    f2.rotation.y = -Math.PI / 2;
-    f2.position.set(sg.x, (sg.y0 + sg.y1) / 2, (sg.z0 + sg.z1) / 2);
-    for (const f of [f1, f2]) { f.userData.noOutline = true; f.renderOrder = 2; inside.add(f); }
+    // the cooler's and the freezers' glass doors, hung on their hinges (M3c)
+    const coolGlass = flat({ color: 0xd8ecf8, transparent: true, opacity: 0.18, depthWrite: false, cache: false });
+    const fridge = buildFridgeDoors(inside, inside.userData.doors, { glassMat: coolGlass, lit });
+    // shopping: aiming, taking, the basket (M3c)
+    root.userData.shop = makeShop(inside, { doors: fridge, lit });
 
     // posters and the banner hung just inside the glass
     const inner = -0.05;
@@ -402,6 +394,8 @@ export function buildLawson(parent) {
     platforms,
     /** The door, each frame: `p` the player's position. */
     update(dt, p) { root.userData.door.update(dt, p); },
+    /** Shopping inside (M3c): aiming, taking, the fridge doors, the basket. */
+    get shop() { return root.userData.shop; },
     setLook(look) {
       const s = look.store;
       for (const m of lit) m.color.setScalar(s.interior);

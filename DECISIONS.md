@@ -901,3 +901,40 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   re-baselining.
 - **Cost.** Hero-1 is 9.5 ms at 1440p; with the interior hidden, 9.7 ms.
   No measurable cost.
+
+## M3b: the products
+
+- **The catalogue** (data/catalog.js): SPEC 7's 30 products in its Product
+  shape. The names are ours (やすらぎ緑茶, あさの微糖, うすしおポテト, きのこチョコ
+  and so on) and every package is generic.
+- **Painted packaging** (store/labels.js). One 2048 atlas with a 256 px
+  cell per product, each designed by shape:
+  - an onigiri's clear wrapper with grains, nori and its name strip;
+  - a bento seen through its lid; a sandwich cut to show its filling;
+  - a bottle's wrap label (the name twice round, so it reads from any
+    side); boxes, bags and pouches with bands and names;
+  - melon pan's crust.
+  - A second atlas holds the shelf tags: name, ¥price, (税込).
+  - Labels are seeded, so they are the same on every load.
+- **Shaped meshes** (store/products.js). Rounded onigiri and sandwich
+  prisms, PET bottles with shoulder and cap, cans, a codd bottle with its
+  marble, gable-topped cartons, puffed chip bags, cups with lids, bento
+  with lids, melon pan domes, umbrellas, and the hot items. Each is hand-
+  shaded like the room, with the label mapped front, wrap or top.
+- **One unit drawn per facing.** A slot's stock (3–6) is a count behind it,
+  so the stock is 2,450 facings (11,212 units) in 31 instanced draws, about
+  265k triangles. Drawing every unit would have been over 600k.
+- **The planogram** (store/planogram.js) fills every recorded slot in
+  blocks of facings, with a price tag under each block, and no filler:
+  - chilled case: onigiri on the lowest decks, then sandwiches and salad,
+    bento, pudding;
+  - cooler: the six drinks in blocks of two;
+  - gondolas by aisle, each end cap with a featured product;
+  - karaage and nikuman in the hot case and steamer, oden, coffee cups;
+  - ice under the freezer lids (the tinted lid became an open top with a
+    rail), and umbrellas in a stand by the counter.
+  - Every unit is recorded { id, mesh, index, position, count } for M3c.
+- **Cost.** The famous view is 9.3 ms at 1440p with the stock (9.7 ms with
+  the interior hidden).
+- **The famous views changed about 1%:** real products through the glass.
+  This awaits Tan's OK before re-baselining.

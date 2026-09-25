@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { LAWSON } from '../../config.js';
 import { rngKit } from '../../core/util.js';
 import { makePainter } from './painter.js';
+import { stockStore } from './planogram.js';
 import {
   floorTex, FLOOR_TILE, ceilingTex, CEIL_TILE, hangingSign, popCard, cigaretteTex, magazineTex,
   machineFace, doorSign, registerScreen, counterLabel,
@@ -77,15 +78,7 @@ export function buildInterior(group, { lit, colliders }) {
         const y = 0.25 + k * 0.42;
         p.box(x + 0.06, x + bw - 0.06, y - 0.02, y, zf - 0.6, zf - 0.08, C.coolerShelf);
         p.box(x + 0.06, x + bw - 0.06, y - 0.06, y, zf - 0.1, zf - 0.08, C.rail);
-        const n = 8;
-        for (let i = 0; i < n; i++) {
-          const bx = x + 0.14 + i * ((bw - 0.28) / (n - 1));
-          const col = GOODS[(b * 3 + k * 5 + i) % GOODS.length];
-          const h = k === 4 ? 0.2 : r.range(0.2, 0.28);
-          p.cyl(bx, y, zf - 0.22, 0.034, h, col, 8);
-          p.cyl(bx, y + h, zf - 0.22, 0.014, 0.03, 0xf2f2f2, 6);
-        }
-        slots.push({ zone: 'drinks', x0: x + 0.1, x1: x + bw - 0.1, y, z: zf - 0.22, face: { x: 0, z: 1 } });
+        slots.push({ zone: 'drinks', bay: b, level: k, x0: x + 0.1, x1: x + bw - 0.1, y, z: zf - 0.22, rail: zf - 0.075, face: { x: 0, z: 1 } });
       }
       // the door: black frame, a tall handle; the glass is the store's glass (see below)
       p.box(x, x + 0.06, FLOOR, 2.3, zf - 0.08, zf, C.coolerFrame);
@@ -123,13 +116,7 @@ export function buildInterior(group, { lit, colliders }) {
       p.box(xb + 0.12, xb + depth, y - 0.02, y, za, zb, C.shelf);
       p.box(xb + 0.12, xb + depth, y + 0.28, y + 0.3, za, zb, C.caseLight);         // the light under the shelf above
       p.box(xb + depth - 0.02, xb + depth, y - 0.06, y, za, zb, C.rail);
-      // filler: onigiri triangles at the bottom, boxes higher up
-      for (let z = za + 0.08; z < zb - 0.1; z += r.range(0.12, 0.2)) {
-        const col = k < 2 ? [0xf6f4ec, 0xe84a3a, 0x3a6ec8, 0x2e3a34][Math.floor(r.next() * 4)] : GOODS[Math.floor(r.next() * GOODS.length)];
-        const h = k < 2 ? 0.1 : r.range(0.05, 0.12);
-        p.box(xb + depth - 0.24, xb + depth - 0.06, y, y + h, z, z + 0.11, col);
-      }
-      slots.push({ zone: 'chilled', x: xb + depth - 0.15, y, z0: za + 0.1, z1: zb - 0.1, face: { x: 1, z: 0 } });
+      slots.push({ zone: 'chilled', level: k, x: xb + depth - 0.12, y, z0: za + 0.1, z1: zb - 0.1, rail: xb + depth + 0.012, face: { x: 1, z: 0 } });
     }
     block(xb, xf + 0.05, za, zb);
   }
@@ -158,13 +145,7 @@ export function buildInterior(group, { lit, colliders }) {
         const y = 0.16 + k * 0.27;
         p.box(Math.min(cx, xs), Math.max(cx, xs), y - 0.02, y, zA, zB, C.shelf);
         p.box(xs - 0.01, xs + 0.01, y - 0.06, y, zA, zB, C.rail);                     // the price rail
-        for (let z = zA + 0.05; z < zB - 0.08;) {
-          const w = r.range(0.08, 0.22), h = r.range(0.1, 0.22);
-          const inner = side < 0 ? cx - 0.05 : cx + 0.05, outer = xs - side * 0.04;
-          p.box(Math.min(inner, outer), Math.max(inner, outer), y, y + h, z, z + w, GOODS[Math.floor(r.next() * GOODS.length)]);
-          z += w + 0.015;
-        }
-        slots.push({ zone: ['snacks', 'noodles', 'bread', 'daily'][gi], x: xs, y, z0: zA + 0.05, z1: zB - 0.05, face: { x: side, z: 0 } });
+        slots.push({ zone: 'gondola', gi, side, level: k, x: xs, y, z0: zA + 0.05, z1: zB - 0.05, face: { x: side, z: 0 } });
       }
     }
     // the end cap toward the front, and its POP card on top
@@ -176,8 +157,7 @@ export function buildInterior(group, { lit, colliders }) {
       const y = 0.2 + k * 0.33;
       p.box(x0 + 0.03, x1 - 0.03, y - 0.02, y, zB + 0.04, zB + 0.36, C.shelf);
       p.box(x0, x1, y - 0.05, y, zB + 0.34, zB + 0.36, C.rail);
-      // one product faced in a block, the way an end cap is built
-      for (let i = 0; i < 5; i++) p.box(x0 + 0.06 + i * 0.16, x0 + 0.2 + i * 0.16, y, y + 0.2, zB + 0.08, zB + 0.32, GOODS[(gi * 3 + k) % GOODS.length]);
+      slots.push({ zone: 'endcap', gi, level: k, x0: x0 + 0.05, x1: x1 - 0.05, y, z: zB + 0.22, rail: zB + 0.37, face: { x: 0, z: 1 } });
     }
     p.quad(popCard(['new', 'rec', 'limited', 'sale'][gi]), cx, H + 0.2, zB + 0.2, 0.52, 0.39);
     p.box(cx - 0.01, cx + 0.01, H, H + 0.02, zB + 0.18, zB + 0.22, C.upright);
@@ -235,13 +215,17 @@ export function buildInterior(group, { lit, colliders }) {
     p.box(xf + 0.03, xb - 0.03, 1.48, 1.54, zb - 0.92, zb - 0.08, C.steel);
     for (const z of [zb - 0.9, zb - 0.1]) p.box(xf + 0.05, xb - 0.05, 1.02, 1.48, z - 0.02, z + 0.02, C.steel);
     p.quad(counterLabel('hot'), xf + 0.02, 1.62, zb - 0.5, 0.6, 0.22, { ry: -Math.PI / 2 });
-    for (let k = 0; k < 2; k++) for (let i = 0; i < 4; i++) {
-      p.box(xf + 0.12 + i * 0.15, xf + 0.24 + i * 0.15, 1.04 + k * 0.22, 1.12 + k * 0.22, zb - 0.8, zb - 0.2, [0xd58a3a, 0xc8743a, 0xe8b060][(i + k) % 3]);
+    for (let k = 0; k < 2; k++) {
+      p.box(xf + 0.08, xb - 0.14, 1.03 + k * 0.22, 1.04 + k * 0.22, zb - 0.85, zb - 0.15, C.steel);     // the trays
+      slots.push({ zone: 'hot', id: 'karaage', x: xf + 0.35, y: 1.04 + k * 0.22, z0: zb - 0.82, z1: zb - 0.18 });
     }
     // the steamer: a glass box on a steel base, buns on a rack inside
     p.box(xf + 0.05, xb - 0.05, 0.97, 1.08, zb - 1.7, zb - 1.05, C.steel);
     p.box(xf + 0.05, xb - 0.05, 1.42, 1.46, zb - 1.7, zb - 1.05, C.steel);
-    for (let i = 0; i < 3; i++) for (let k = 0; k < 2; k++) p.cyl(xf + 0.2 + i * 0.18, 1.08 + k * 0.17, zb - 1.38, 0.07, 0.07, 0xfbf7ee, 12);
+    for (let k = 0; k < 2; k++) {
+      p.box(xf + 0.08, xb - 0.08, 1.07 + k * 0.17, 1.08 + k * 0.17, zb - 1.66, zb - 1.09, C.steel);
+      slots.push({ zone: 'hot', id: 'nikuman', x: xf + 0.35, y: 1.08 + k * 0.17, z0: zb - 1.62, z1: zb - 1.12 });
+    }
     p.quad(counterLabel('steam'), xf + 0.02, 1.55, zb - 1.38, 0.5, 0.18, { ry: -Math.PI / 2 });
     // two registers, each with its customer display and card reader
     for (const z of [-3.3, -4.5]) {
@@ -271,23 +255,34 @@ export function buildInterior(group, { lit, colliders }) {
     p.quad(cigaretteTex(), X1 - 0.305, 2.05, -4.05, 4.2, 1.26, { ry: -Math.PI / 2 });
     p.box(X1 - 0.04, X1, FLOOR, 2.05, -7.9, -7.0, 0xc8ccd4);
     p.quad(doorSign('staff'), X1 - 0.05, 2.3, -7.45, 0.8, 0.4, { ry: -Math.PI / 2 });
-    slots.push({ zone: 'hot', x: xf + 0.4, y: 1.04, z0: zb - 0.8, z1: zb - 0.2 });
-    slots.push({ zone: 'coffee', x: xf + 0.3, y: 0.97, z: za + 0.35 });
+    slots.push({ zone: 'hot', id: 'oden', x: xf + 0.25, y: 0.97, z0: -4.95, z1: -4.75 });
+    slots.push({ zone: 'coffee', x: xf + 0.3, y: 0.97, z0: za + 0.72, z1: za + 0.93 });
   }
 
   /* ------------------------ the ice-cream freezer ------------------------ */
   {
     const x0 = 3.0, x1 = 4.2, z0 = -3.9, z1 = -3.1;
     p.box(x0, x1, FLOOR, 0.82, z0, z1, 0xeef0f4);
-    p.box(x0 + 0.05, x1 - 0.05, 0.82, 0.84, z0 + 0.05, z1 - 0.05, C.glassTint);
-    for (let i = 0; i < 12; i++) p.box(x0 + 0.1 + (i % 6) * 0.17, x0 + 0.24 + (i % 6) * 0.17, 0.66, 0.8, z0 + 0.12 + Math.floor(i / 6) * 0.32, z0 + 0.36 + Math.floor(i / 6) * 0.32, GOODS[i % GOODS.length]);
+    p.box(x0 + 0.05, x1 - 0.05, 0.25, 0.3, z0 + 0.05, z1 - 0.05, 0xdfe6ee);             // the inside floor
+    p.box(x0 - 0.01, x1 + 0.01, 0.82, 0.84, (z0 + z1) / 2 - 0.01, (z0 + z1) / 2 + 0.01, C.steel);   // the lids' meeting rail
     block(x0, x1, z0, z1, 0.9);
-    slots.push({ zone: 'frozen', x0, x1, y: 0.66, z0, z1 });
+    slots.push({ zone: 'frozen', x0: x0 + 0.08, x1: x1 - 0.08, y: 0.3, z0: z0 + 0.1, z1: z1 - 0.1 });
+  }
+  /* ----------------- the umbrella stand, by the counter ----------------- */
+  {
+    const ux = 5.2, uz = -1.1;
+    p.box(ux - 0.2, ux + 0.2, FLOOR, 0.45, uz - 0.15, uz + 0.15, C.steel);
+    p.box(ux - 0.18, ux + 0.18, 0.45, 0.47, uz - 0.13, uz + 0.13, C.kick);
+    block(ux - 0.22, ux + 0.22, uz - 0.17, uz + 0.17, 0.8);
+    slots.push({ zone: 'umbrella', x: ux, y: 0.1, z: uz });
   }
 
+  // the products on every shelf, and their price tags (M3b, store/planogram.js)
+  const units = stockStore(p, slots, group, lit);
   p.build(group, lit, { name: 'store' });
   group.userData.slots = slots;
-  return { slots };
+  group.userData.units = units;
+  return { slots, units };
 }
 
 /* -------------------------------------------------------------------- *

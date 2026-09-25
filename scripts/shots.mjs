@@ -104,7 +104,7 @@ for (const spot of spots) {
     const r = await page.evaluate(([n, w, h, o]) => window.__shot(n, w, h, o), [name, W, H, opts]);
     const file = path.join(baseline ? baseDir : outDir, `${name}.png`);
     writeData(file, r.data);
-    const row = { calls: r.calls, triangles: r.triangles };
+    const row = { calls: r.calls, triangles: r.triangles, mainCalls: r.mainCalls, mainTriangles: r.mainTriangles };
 
     if (timeIt && !baseline) {
       // SPEC section 11: 60 fps at 1440p
@@ -140,7 +140,7 @@ for (const spot of spots) {
       }
     }
     stats[name] = row;
-    const bits = [`calls ${row.calls}`, `tris ${Math.round(row.triangles / 1000)}k`];
+    const bits = [`calls ${row.calls} (main ${row.mainCalls})`, `tris ${Math.round(row.triangles / 1000)}k (main ${Math.round(row.mainTriangles / 1000)}k)`];
     if (row.ms !== undefined) bits.push(`${row.ms} ms @1440p`);
     if (row.heroDiff !== undefined) bits.push(`hero diff ${row.heroDiff}%`);
     console.log(`  ${name.padEnd(26)} ${bits.join('  ')}`);

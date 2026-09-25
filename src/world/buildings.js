@@ -340,7 +340,7 @@ export function makeHouse(o) {
   /* ---------------------------- merge and finish ---------------------------- */
   const matFor = {
     wall: wallMat, roof: roofMat, trim: m.trim, metal: m.metal,
-    metalDark: m.metalDark, glass: m.glass, concrete: m.concrete, door: m.door,
+    metalDark: m.metalDark, glass: o.glassMat ?? m.glass, concrete: m.concrete, door: m.door,
   };
   for (const key of Object.keys(parts)) {
     if (!parts[key].length) continue;

@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { cel, flat } from '../../core/toon.js';
 import { rngKit, box, cyl } from '../../core/util.js';
+import { makeGasMeter } from '../streetprops.js';
 import { makeShop, makeMenuBoard, makeShopFlag, makeFreezer, makeProduceStack, makePaperLantern } from '../shops.js';
 import {
-  makeCrates, makeMilkCrate, makePlanter, makeBench, makeBicycle, makeBucket, makeFlowerBed, makeVendBin,
+  makeCrates, makeMilkCrate, makePlanter, makeBench, makeBicycle, makeBucket, makeFlowerBed, makeVendBin, makeAircon,
 } from '../props.js';
 import { addVending } from '../vending.js';
 import { hangLaundry, sideWindows } from './houses.js';
@@ -89,7 +90,24 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
   kit.serviceDrop(new THREE.Vector3(dp.x, floors === 2 ? 5.4 : 3.0, dp.z));
 
   // windows down the flanks: the home upstairs, the back room below
-  sideWindows(g, { hw: w / 2, hd: d / 2 - 0.6, floors, fh: 3.0, sideX: true });
+  sideWindows(g, { hw: w / 2, hd: d / 2 - 0.6, floors, fh: 3.0, sideX: true, glass: ctx.night?.glass(r.chance(0.7)) });
+
+  // the flank: the outdoor unit of the shop's air conditioning, and the gas meter
+  {
+    const s = r.chance(0.5) ? 1 : -1;
+    const ac = makeAircon({ x: 0, y: 0, z: 0 });
+    ac.position.set(s * (w / 2 + 0.35), 0, 0.5);
+    ac.rotation.y = s * Math.PI / 2;
+    ac.userData.detail = true;
+    g.add(ac);
+    const gm = makeGasMeter({ x: 0, y: 0, z: 0 });
+    gm.position.set(s * (w / 2 + 0.02), 0, -1.2);
+    gm.rotation.y = s * Math.PI / 2;
+    g.add(gm);
+    g.updateMatrixWorld(true);
+    const acAt = ac.getWorldPosition(new THREE.Vector3());
+    ctx.registry?.push({ kind: 'prop', x: acAt.x, z: acAt.z });
+  }
 
   /* ---- inside the recess, in the unit's own frame (front at d/2) ---- */
   const m = mats();
@@ -138,6 +156,14 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
       }
     }
     inner.traverse((n) => { if (n.isMesh) n.userData.noOutline = true; });
+    // at night the shop is lit from inside: a warm glow just behind the glass
+    ctx.night?.glow(g, openW - 0.1, 2.3, 0, 1.35, front - 0.14);
+  }
+
+  /* ---- the shop's light on the pavement at night ---- */
+  if (!T.shutter) {
+    const lp = F.at(0, -0.6);
+    ctx.night?.pool(lp.x, lp.z, Math.min(w * 0.55, 3.4), { y: walk ? 0.17 : 0, strength: 1.0 });
   }
 
   /* ---- the pavement outside ---- */
@@ -176,6 +202,7 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
       case 'vending': {
         const p = F.at(u, vOut - 0.1);
         addVending(ctx, { detail: true, x: p.x, y: yOut, z: p.z, ry, variant: seed % 3, seed });
+        ctx.night?.pool(p.x, p.z, 1.8, { y: yOut, color: 0xe8f0ff, strength: 0.8 });
         const b = F.at(u + 0.9, vOut);
         ctx.add(makeVendBin({ x: b.x, y: yOut, z: b.z, ry }));
         reg('prop', p); reg('prop', b);

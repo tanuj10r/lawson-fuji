@@ -6,6 +6,7 @@ import { TOWN, ROADS } from '../../config.js';
 import { steps, railing } from '../ground.js';
 import { makeBench, makeBins, makePhoneBooth, makePlanter, makeBikeRack } from '../props.js';
 import { makeBusStop, makeVehicle } from '../vehicles.js';
+import { addVending } from '../vending.js';
 import { LAYER } from '../kit/decals.js';
 import { TRACK_Z } from './track.js';
 import {
@@ -13,6 +14,7 @@ import {
   windowSignTex, timetableTex, clockFaceTex, areaMapTex, posterTex, taxiSignTex, makeDepartureBoard, labelTex,
 } from './tex.js';
 import { buildShop } from '../kit/shopfronts.js';
+import { lampMaterial } from '../kit/poles.js';
 import { makeAircon, makeBicycle, makeNoticeBoard } from '../props.js';
 
 /* ------------------------------------------------------------------ *
@@ -261,8 +263,22 @@ export function buildStation(ctx, { kit, service }) {
     lit.userData.noOutline = true;
     g.add(lit);
 
+    // the station's face: downpipes at the corners, posters in frames, a vending pair
+    for (const x of [B.x0 + 0.2, B.x1 - 0.2]) g.add(box(0.12, H + PH, 0.12, m.steel, x, (H + PH) / 2, B.z0 - 0.08));
+    [[cxE - 7.5, 0], [cxE + 7.8, 3]].forEach(([x, v]) => board(g, posterTex(v), 0.72, 1.0, x, PH + 1.4, B.z0 - 0.02, Math.PI));
+    for (const [k, x] of [[0, B.x0 + 2.0], [1, B.x0 + 3.2]]) {
+      addVending(ctx, { detail: true, x, y: ROADS.asphaltY + ROADS.kerbH, z: B.z0 - 0.5, ry: Math.PI, variant: k, seed: 8870 + k });
+      ctx.night?.pool(x, B.z0 - 1.2, 1.8, { y: ROADS.asphaltY + ROADS.kerbH, color: 0xe8f0ff, strength: 0.8 });
+      reg(ctx, 'prop', x, B.z0 - 0.5);
+    }
     // name over the entrance
     board(g, entranceTex(), 7.2, 1.8, cxE, y0 + 3.6, B.z0 - 0.58, Math.PI, true);
+    // lit from inside after dark: the open entrance and the two windows
+    ctx.night?.glow(g, entW - 0.2, 2.5, cxE, PH + 1.3, B.z0 + 0.3, Math.PI);
+    for (const x of [B.x0 + 4, B.x1 - 4]) ctx.night?.glow(g, 3.8, 1.4, x, PH + 1.65, B.z0 - 0.03, Math.PI);
+    // the light it throws: the concourse, and down the steps
+    for (let x = B.x0 + 4; x < B.x1 - 2; x += 6) ctx.night?.pool(x, (B.z0 + B.z1) / 2, 3.4, { y: PH, strength: 0.8 });
+    ctx.night?.pool(cxE, B.z0 - 2.4, 4.2, { y: ROADS.asphaltY + ROADS.kerbH, strength: 1.1 });
   }
 
   /* ---- concourse ---- */
@@ -379,6 +395,7 @@ export function buildStation(ctx, { kit, service }) {
     const lit = new THREE.Mesh(bake(lights), m.light);
     lit.userData.noOutline = true;
     g.add(lit);
+    for (let x = c0 + 1.5; x < c1; x += 7) ctx.night?.pool(x, colZ + P.face * 0.6, 3.2, { y: PH, strength: 0.9 });
     // hanging under the canopy: platform number, departure board, clock
     const hz = colZ + P.face * 1.2;
     const ry = P.face > 0 ? 0 : Math.PI;
@@ -526,6 +543,20 @@ export function buildStation(ctx, { kit, service }) {
     g.add(makeBikeRack({ x: br.x, y, z: br.z, ry: Math.PI / 2, n: 6, seed: 8830 }));
     ctx.collide(br.x - 1.0, br.z - 2.2, br.x + 1.0, br.z + 2.2, y + 1.0);
     reg(ctx, 'prop', br.x, br.z);
+    // lamp posts round the plaza, each with its pool of light after dark
+    for (const [lx, lz] of [[P.x0 + 9, P.z0 + 6], [P.x1 - 9, P.z0 + 5], [cxE + 10, B.z0 - 8]]) {
+      const lp = new THREE.Group();
+      lp.add(cyl(0.07, 0.09, 3.8, 8, m.dark, 0, 1.9, 0));
+      lp.add(cyl(0.2, 0.26, 0.4, 8, m.dark, 0, 3.95, 0));
+      lp.add(cyl(0.17, 0.17, 0.26, 8, lampMaterial(), 0, 3.7, 0));
+      lp.add(cyl(0.16, 0.2, 0.2, 8, m.dark, 0, 0.1, 0));
+      lp.position.set(lx, y, lz);
+      lp.traverse((n) => { if (n.isMesh) n.castShadow = true; });
+      g.add(lp);
+      ctx.collide(lx - 0.15, lz - 0.15, lx + 0.15, lz + 0.15, y + 4);
+      reg(ctx, 'prop', lx, lz);
+      ctx.night?.pool(lx, lz, 5.5, { y, strength: 1.1 });
+    }
     // a light over the plaza, wired to the street
     kit.standPole(P.x0 + 1.2, P.z0 + 1.2);
     kit.standPole(cxE - 5.5, B.z0 - 1.2);   // at the plaza's south edge, beside the steps

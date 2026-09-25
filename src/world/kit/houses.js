@@ -56,7 +56,7 @@ const glassMat = () => mat('glass', () => cel({ color: 0x6f7c9c, bands: 2, tint:
  * true puts them on the x = +-hw walls, else on z = +-hd.  A frame, a pane
  * and a sill each, `floors` high, two along the wall.
  */
-export function sideWindows(g, { hw, hd, floors, fh = 2.72, sideX, y0 = 0 }) {
+export function sideWindows(g, { hw, hd, floors, fh = 2.72, sideX, y0 = 0, glass = null }) {
   const len = sideX ? hd * 2 : hw * 2;
   const n = len > 7 ? 2 : 1;
   for (let f = 0; f < floors; f++) {
@@ -70,7 +70,7 @@ export function sideWindows(g, { hw, hd, floors, fh = 2.72, sideX, y0 = 0 }) {
         const frame = new THREE.Mesh(new THREE.BoxGeometry(sideX ? 0.08 : fw + 0.14, fhh + 0.14, sideX ? fw + 0.14 : 0.08), trimMat());
         frame.position.set(px, y, pz);
         g.add(frame);
-        const pane = new THREE.Mesh(new THREE.BoxGeometry(sideX ? 0.1 : fw, fhh, sideX ? fw : 0.1), glassMat());
+        const pane = new THREE.Mesh(new THREE.BoxGeometry(sideX ? 0.1 : fw, fhh, sideX ? fw : 0.1), glass ?? glassMat());
         pane.position.set(px + (sideX ? s * 0.01 : 0), y, pz + (sideX ? 0 : s * 0.01));
         g.add(pane);
         const sill = new THREE.Mesh(new THREE.BoxGeometry(sideX ? 0.2 : fw + 0.2, 0.07, sideX ? fw + 0.2 : 0.2), trimMat());
@@ -142,14 +142,17 @@ export function buildHouse(ctx, net, kit, lot, F, o = {}) {
     const wallMat = plainMat(tone);
     const roofMat = type === 'old' ? kawaraMat() : undefined;
     const roofKind = type === 'modern' ? 'flat' : type === 'old' ? r.pick(['gable', 'hip']) : r.pick(['gable', 'hip', 'gable', 'shed']);
+    // at night about half the houses have their lights on (kit/night.js)
+    const glass = ctx.night?.glass(r.chance(0.55));
     g = makeHouse({
       x: c.x, y: 0, z: c.z, w: W, d: D, face: F.faceKey, floors, seed: lot.seed,
-      wallMat, roofMat, roofKind, shutters: type !== 'modern', porch: r.chance(0.6),
+      wallMat, roofMat, roofKind, shutters: type !== 'modern', porch: r.chance(0.6), glassMat: glass,
     });
+    g.userData.glass = glass;
     doorU = g.userData.doorU ?? 0;
     H = 2.72 * floors;
     // the flanks, seen down every gap and on every corner
-    sideWindows(g, { hw: W / 2, hd: D / 2, floors, sideX: along });
+    sideWindows(g, { hw: W / 2, hd: D / 2, floors, sideX: along, glass: g.userData.glass });
     // cladding and accents, on the walls the street sees
     const fx = F.face.x, fz = F.face.z;
     const hw = W / 2 + 0.013, hd = D / 2 + 0.013;

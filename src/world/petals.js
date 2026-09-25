@@ -35,7 +35,7 @@ export function buildPetals(ctx, opts = {}) {
   const Z0 = follow ? -HALF : Z0_DEFAULT;
   const Z1 = follow ? HALF : Z1_DEFAULT;
   const trackZ = opts.trackZ ?? 0;
-  const rng = rngKit(8123);
+  const rng = rngKit(opts.seed ?? 8123);
   const tex = petalTex();
 
   const geo = new THREE.PlaneGeometry(0.185, 0.135);
@@ -85,10 +85,27 @@ export function buildPetals(ctx, opts = {}) {
   let t = 0;
 
   let cxF = 0, czF = 0;
+  /* `emitters` ([{ x, y, z, r }], M2d): canopies the fall comes from.  A
+   * petal that lands mostly re-spawns inside a tree near the player, so the
+   * blossom visibly drops from the sakura rather than out of the air. */
+  const emitters = opts.emitters ?? [];
+  const onlyTrees = !!opts.onlyTrees;
   function respawn(p) {
-    p.x = cxF + rng.range(-HALF, HALF);
-    p.z = czF + rng.range(Z0, Z1);
-    p.y = TOP + rng.range(0, 1.4);
+    const near = emitters.filter((e) => Math.abs(e.x - cxF) < HALF && Math.abs(e.z - czF) < HALF);
+    if (near.length && (onlyTrees || rng.next() < 0.75)) {
+      const e = near[Math.floor(rng.next() * near.length)];
+      const a = rng.range(0, Math.PI * 2), d = Math.sqrt(rng.next()) * e.r;
+      p.x = e.x + Math.cos(a) * d;
+      p.z = e.z + Math.sin(a) * d;
+      p.y = e.y + rng.range(-0.8, 0.6);
+    } else if (onlyTrees) {
+      // no tree near: this petal waits, out of sight, until there is one
+      p.x = cxF; p.z = czF; p.y = -5;
+    } else {
+      p.x = cxF + rng.range(-HALF, HALF);
+      p.z = czF + rng.range(Z0, Z1);
+      p.y = TOP + rng.range(0, 1.4);
+    }
     p.phase = rng.range(0, 10);
   }
 
@@ -113,12 +130,14 @@ export function buildPetals(ctx, opts = {}) {
       p.angle += p.spinRate * dt * (1 + gust);
 
       const cx = follow ? cxF : centerX(p.z);
+      // a petal from a tree never wraps round the box: it falls again from a tree
+      if (onlyTrees && (Math.abs(p.x - cx) > HALF || p.z < czF + Z0 || p.z > czF + Z1)) respawn(p);
       // `while`, so a teleport (the famous-view keys) re-centres at once
       while (p.x < cx - HALF) p.x += 2 * HALF;
       while (p.x > cx + HALF) p.x -= 2 * HALF;
       while (p.z < czF + Z0) p.z += Z1 - Z0;
       while (p.z > czF + Z1) p.z -= Z1 - Z0;
-      if (p.y < (follow ? 0 : groundY(p.z)) + 0.04) respawn(p);
+      if (p.y < (follow ? 0 : groundY(p.z)) + 0.04) respawn(p);   // a waiting petal (y -5) retries every frame
 
       q.setFromAxisAngle(p.spin, p.angle);
       dummy.position.set(p.x, p.y, p.z);
@@ -131,6 +150,8 @@ export function buildPetals(ctx, opts = {}) {
     for (const m of meshes) m.instanceMatrix.needsUpdate = true;
   }
 
+  // a tree field starts at the trees, not scattered through the box
+  if (onlyTrees) for (const p of P) respawn(p);
   // settle the field so the very first frame already has petals mid-air
   for (let i = 0; i < 40; i++) update(0.1, 0, 1);
 

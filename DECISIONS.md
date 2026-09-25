@@ -501,3 +501,76 @@ Judgement calls, newest milestone last.
   - Crossing bells: near 10 m, far 45 m. They carry to the plaza's south
     edge (23% at 34 m) and fade out by the middle of the plaza.
   - Door chime: near 5 m, far 28 m (the platforms and the ticket gates).
+
+## M2d: town polish
+
+- **Sakura.** The town south of the main road gets its own cherry
+  (kit/sakura.js); M2's north side keeps the library tree, since it frames
+  the famous views.
+  - 4–7 limbs, each forking. Blossom clumps number 85 per tree (150 on
+    hero trees), in three tones by height, with drooping outer clumps.
+  - Hero trees (scale 1.5–1.9) stand at the plaza, shrine and park.
+  - Every town tree is one wood mesh plus instanced blossom.
+  - A clump is six small round balls merged: one sphere reads as a
+    balloon, and a low-poly sphere reads as a gem. Beyond 40 m a clump is
+    one ball.
+  - Petal drifts are decals in a ring under each tree.
+- **Petals.** The air field (150) is unchanged, so the hero frames are
+  unchanged. A second field (250) falls only from canopies near the
+  player: it respawns at a tree and never wraps around the camera.
+- **Night** (kit/night.js, driven by the look's shop spill).
+  - House windows: 55% lit warm (#ffd9a0), the rest dim violet.
+  - Warm glow behind shop glass and station doors.
+  - One additive mesh of light pools under lamps, shopfronts, vending
+    machines, canopies and the station entrance.
+  - The blossom keeps a little pink after dark.
+- **Life** (kit/life.js).
+  - 60 sparrows on the power lines and 4 crows.
+  - Ground flocks in the park, plaza, shrine and vacant lot. They hop and
+    peck, fly up to a wire within 3.2 m, and come back once the player
+    has gone 8 m away.
+  - Cats swish their tails.
+  - Only birds within 32 m are animated.
+- **Clutter.**
+  - Shops: AC units and gas meters on their flanks.
+  - Station front: downpipes, posters and vending machines.
+  - Walk-road props sit on the kerb edge, with colliders no deeper than
+    0.3 m, so every pavement stays walkable.
+  - Idle people (optional) are not added: the triangle budget below does
+    not pass.
+- **Performance.** No visible quality cut, as AGENTS.md requires. Lossless
+  changes only:
+  - Train doors: only the platform side opens, so each car has two
+    sliding groups (baked per material), and the far side's leaves batch
+    with the body. This removes about 220 meshes.
+  - Fences share one chain-link texture, with the tiling baked into UVs.
+    The batcher now does the same for any texture clone that differs only
+    in repeat or offset (merge.js `mapKey`/`uvBaked`).
+  - Glow panels are no longer `keep`, so they batch.
+  - Small props (the kit's `detail` tag) receive shadows but cast none.
+  - Blossom: clumps outside the view cone (plus a 0.45 rad margin) are
+    not drawn. They are re-sorted after a 2 m move or a 0.15 rad turn.
+  - Blossom shadows come from stand-ins drawn only into the shadow map
+    (`userData.shadowOnly`, main.js wraps `shadowMap.render`): the full
+    clump within 30 m, one round ball beyond. Only those that can fall in
+    the sun's shadow box are included.
+  - A single ball (icosa 0) was tried as the shadow stand-in and dropped:
+    its shadows showed as hexagons on the park grass.
+  - 64 m cells were tried: 20–30% fewer triangles, but 40–50% more
+    calls. Kept 128 m.
+- **Measured** (shots, 1440p, Apple M2).
+  - Frame time 6–12 ms at every spot: 60 fps passes with room.
+  - SPEC 11 budgets do **not** pass at street spots:
+    - calls 200–490 (overview 609);
+    - triangles 1.1–2.5M, all passes;
+    - main pass alone 0.75–1.54M.
+  - Before M2d's performance pass, the lane view was 695 calls and
+    2.92M triangles; it is now 492 calls and 2.27M.
+  - The remaining calls are real material differences: toon band ramps,
+    tints, live night materials, hulls.
+  - The remaining triangles are the dense town inside 128 m cells, drawn
+    in both passes, plus Fuji (209k).
+  - Closing the gap needs far-building LOD proxies and a shared toon
+    material. Neither is polish; both are proposed for a later milestone.
+- **Heroes:** 0.000 / 0.356 / 0.000%. Density 27 of 27 and bare stretches
+  pass; traincheck passes; no Sakura Crossing names.

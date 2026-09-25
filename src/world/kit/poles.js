@@ -47,11 +47,13 @@ function streetLamp(pole, H, side) {
   bulb.position.set(0, y - 0.12, -side * 1.6);
   g.add(bulb);
   pole.add(g);
+  return bulb;
 }
 
 export function buildPoles(ctx, net, decals) {
   const guard = plateTex('guard').face;
   const all = [];               // { g, e, s, side }
+  const lamps = [];             // where each street lamp's light falls (M2d night)
   const byEdge = new Map();
   let n = 0;
 
@@ -111,10 +113,11 @@ export function buildPoles(ctx, net, decals) {
       });
       if (e.axis === 'z') g.rotation.y = Math.PI / 2;
       // rotated a quarter, the pole's local z is world x: `side` holds on both axes
-      if (n % POLES.lampEvery === 0) streetLamp(g, H, side);
+      const bulb = n % POLES.lampEvery === 0 ? streetLamp(g, H, side) : null;
       g.name = 'pole';
       ctx.add(g);
       g.updateMatrixWorld(true);
+      if (bulb) lamps.push(bulb.getWorldPosition(new THREE.Vector3()));
       ctx.collide(p.x - 0.24, p.z - 0.24, p.x + 0.24, p.z + 0.24, y + H);
       ctx.registry?.push({ kind: 'pole', x: p.x, z: p.z });
       const rec = { g, e, s, side, x: p.x, z: p.z, H };
@@ -159,6 +162,8 @@ export function buildPoles(ctx, net, decals) {
   const drops = [];
   return {
     list: all,
+    lamps,
+    runs,                        // the power lines, for the birds that sit on them
     /** One more pole, off the street grid (a park light): lamp, plates,
      *  and three lines to the nearest pole. */
     standPole(x, z, y = 0) {
@@ -174,6 +179,7 @@ export function buildPoles(ctx, net, decals) {
         if (d < bd) { bd = d; best = p; }
       }
       const rec = { g, x, z, H: 8.6 };
+      lamps.push(new THREE.Vector3(x, y + 5, z));      // the library lamp hangs over its foot
       if (best) for (const k of [0, 1, 5]) runs.push({ points: [world(best, k), world(rec, k)], sag: POLES.sag, r: POLES.wireR });
       all.push(rec);
       return rec;

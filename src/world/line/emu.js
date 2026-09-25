@@ -134,30 +134,43 @@ function buildCar({ cab, tail, rng }) {
     }
   }
 
-  /* ---- doors: two leaves each, sliding into the pocket ---- */
+  /* ---- doors: two leaves each, sliding into the pocket ----
+   * Only the platform side (local -z) ever opens, and on it every left leaf
+   * slides the same way, as does every right one: so a car has two sliding
+   * groups, each one baked mesh per material.  The far side's leaves are
+   * plain parts of the body. */
   const leaves = { 1: [], [-1]: [] };
+  const w = DOOR_W / 2;
   for (const sz of [1, -1]) {
     const z = sz * (CAR_W / 2 - 0.068);
-    for (const d of DOORS) {
-      for (const half of [-1, 1]) {
-        const leaf = new THREE.Group();
-        const w = DOOR_W / 2;
-        leaf.add(box(w, BAND[0] - FLOOR, 0.02, m.body, 0, (FLOOR + BAND[0]) / 2, 0));
-        leaf.add(box(w, DOOR_TOP - BAND[0], 0.02, m.band, 0, (BAND[0] + DOOR_TOP) / 2, 0));
-        const pane = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.16, 0.8), m.glass);
-        pane.position.set(0, 2.55, sz * 0.012);
-        pane.rotation.y = sz > 0 ? 0 : Math.PI;
-        leaf.add(pane);
-        leaf.position.set(d + half * (w / 2), 0, z);
-        leaf.userData.closedX = d + half * (w / 2);
-        leaf.userData.half = half;
-        leaf.traverse((n) => { if (n.isMesh) n.castShadow = true; });
-        leaf.userData.dynamic = true;      // it slides: never batched
-        car.add(leaf);
-        leaves[sz].push(leaf);
+    for (const half of [-1, 1]) {
+      const slide = sz < 0 ? { body: [], band: [], glass: [] } : null;
+      for (const d of DOORS) {
+        const x = d + half * (w / 2);
+        const pieces = [
+          ['body', new THREE.BoxGeometry(w, BAND[0] - FLOOR, 0.02), trs(x, (FLOOR + BAND[0]) / 2, z)],
+          ['band', new THREE.BoxGeometry(w, DOOR_TOP - BAND[0], 0.02), trs(x, (BAND[0] + DOOR_TOP) / 2, z)],
+        ];
+        for (const [k, geo, mx] of pieces) (slide ? slide[k] : (P[k] ??= [])).push({ geometry: geo, matrix: mx });
+        const pane = { geometry: new THREE.PlaneGeometry(w - 0.16, 0.8), matrix: trs(x, 2.55, z + sz * 0.012, 0, sz > 0 ? 0 : Math.PI, 0) };
+        if (slide) slide.glass.push(pane);
+        else (P.glassStatic ??= []).push(pane);
       }
-      push('dark', new THREE.BoxGeometry(DOOR_W + 0.1, 0.06, 0.1), trs(d, DOOR_TOP + 0.03, sz * (CAR_W / 2 - 0.03)));
+      if (slide) {
+        const grp = new THREE.Group();
+        for (const [k, list] of Object.entries(slide)) {
+          const mesh = new THREE.Mesh(bake(list), k === 'glass' ? m.glass : m[k]);
+          mesh.castShadow = k !== 'glass';
+          if (k === 'glass') mesh.userData.noOutline = true;
+          grp.add(mesh);
+        }
+        grp.userData.half = half;
+        grp.userData.dynamic = true;       // it slides: never batched
+        car.add(grp);
+        leaves[sz].push(grp);
+      }
     }
+    for (const d of DOORS) push('dark', new THREE.BoxGeometry(DOOR_W + 0.1, 0.06, 0.1), trs(d, DOOR_TOP + 0.03, sz * (CAR_W / 2 - 0.03)));
   }
 
   /* ---- interior: benches, poles, racks, straps ---- */
@@ -274,13 +287,14 @@ function buildCar({ cab, tail, rng }) {
   /* ---- bake ---- */
   const matFor = {
     floor: m.floor, roof: m.roof, body: m.body, band: m.band, lining: m.lining, metal: m.metal,
-    dark: m.dark, seat: m.seat, seatBase: m.seatBase, pole: m.pole, skirt: m.skirt,
+    dark: m.dark, seat: m.seat, seatBase: m.seatBase, pole: m.pole, skirt: m.skirt, glassStatic: m.glass,
   };
   for (const [k, list] of Object.entries(P)) {
     const mesh = new THREE.Mesh(bake(list), matFor[k]);
     mesh.castShadow = k !== 'lining' && k !== 'seat' && k !== 'pole';
     mesh.receiveShadow = true;
-    if (['lining', 'seat', 'seatBase', 'pole', 'floor'].includes(k)) mesh.userData.noOutline = true;
+    if (['lining', 'seat', 'seatBase', 'pole', 'floor', 'glassStatic'].includes(k)) mesh.userData.noOutline = true;
+    if (k === 'glassStatic') mesh.castShadow = false;
     car.add(mesh);
     if (k === 'roof' || k === 'skirt') hullOutline(mesh, { thickness: 0.0034 });
   }
@@ -347,7 +361,7 @@ export function buildEmu(ctx, { cars = 2, seed = 2104 } = {}) {
     setDoors(t) {
       doorT = t;
       const e = t * t * (3 - 2 * t);
-      for (const l of leaves[-1]) l.position.x = l.userData.closedX + l.userData.half * (DOOR_W / 2) * e * 0.96;
+      for (const l of leaves[-1]) l.position.x = l.userData.half * (DOOR_W / 2) * e * 0.96;
     },
     get doors() { return doorT; },
     /** 0 by day .. 1 at night: the interior lights up. */

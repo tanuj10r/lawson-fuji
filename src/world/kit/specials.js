@@ -9,7 +9,7 @@ import {
 } from '../props.js';
 import { makeWheelStops } from '../streetprops.js';
 import { makeVehicle, tyreMarks } from '../vehicles.js';
-import { buildSakura, buildShrubs } from '../trees.js';
+import { buildShrubs } from '../trees.js';
 import { ROADS } from '../../config.js';
 import { COIN_PARKING, SHRINE, FOR_SALE, PARK_NAME } from '../../data/town.js';
 import { signPost } from './signs.js';
@@ -219,7 +219,7 @@ function shrine(ctx, net, kit, s, F) {
   // fence round the sides and back, and a big tree behind
   shrineFence(ctx, s, F);
   const t = F.at(F.w / 2 - 2.2, F.d - 2.2);
-  buildSakura(ctx, [{ x: t.x, z: t.z, y: 0, scale: 1.05, seed: 7701, lean: 0.06 }]);
+  ctx.sakura.push({ x: t.x, z: t.z, y: 0, scale: 1.6, seed: 7701 });        // a hero tree over the shrine
   ctx.collide(t.x - 0.4, t.z - 0.4, t.x + 0.4, t.z + 0.4, 3);
 }
 
@@ -427,7 +427,7 @@ function park(ctx, net, kit, s, F) {
   }
   // trees and benches
   const trees = [F.at(-F.w / 2 + 3.5, F.d - 4), F.at(F.w / 2 - 3.5, F.d * 0.45)];
-  buildSakura(ctx, trees.map((t, i) => ({ x: t.x, z: t.z, y: 0, scale: 1.0 + i * 0.1, seed: 7801 + i, lean: 0.07 })));
+  ctx.sakura.push(...trees.map((t, i) => ({ x: t.x, z: t.z, y: 0, scale: i ? 1.1 : 1.5, seed: 7801 + i })));
   for (const t of trees) ctx.collide(t.x - 0.4, t.z - 0.4, t.x + 0.4, t.z + 0.4, 3);
   for (const [u, v, turn] of [[-F.w / 2 + 3.5, F.d - 6.3, 0], [F.w / 2 - 5.8, F.d * 0.45, Math.PI / 2]]) {
     const p = F.at(u, v);
@@ -495,7 +495,7 @@ function plaza(ctx, net, kit, s) {
   ctx.platform({ x0: s.x0, z0: s.z0, x1: s.x1, z1: s.z1, top: ROADS.asphaltY + ROADS.kerbH });
   const cx = (s.x0 + s.x1) / 2 + 4, cz = (s.z0 + s.z1) / 2;
   const y = ROADS.asphaltY + ROADS.kerbH;
-  buildSakura(ctx, [{ x: cx, z: cz, y, scale: 1.6, seed: 8801, lean: 0.04 }]);
+  ctx.sakura.push({ x: cx, z: cz, y, scale: 1.9, seed: 8801 });              // the plaza's big one
   ctx.collide(cx - 0.6, cz - 0.6, cx + 0.6, cz + 0.6, 4);
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2;

@@ -201,7 +201,7 @@ export const TOWN = {
   crosswalk: { x: -35, width: 4 },              // zebra and signals on the main road
   residential: { laneZ: -41, laneX0: -110, sideLaneX: -21.5 },
   park: { x0: 22, x1: 70, z0: -58, z1: -12 },
-  petals: 150,                                    // SPEC section 1: 150 on High
+  petals: { air: 150, trees: 250 },               // SPEC 11: 400 on Ultra -- M2's field, plus the fall from the town's sakura
   /* Grid lines of the core.  `ns` run south from the main road (z = main)
    * unless `z0` says otherwise; `ew` run between x0 and x1. */
   grid: {
@@ -304,14 +304,14 @@ export const SHOT_SPOTS = [
   { name: 'town-spine-night', scene: 'town', pos: [-46.2, 0, 88], yaw: 3.1416, pitch: 0.04, looks: ['blue'] },
   { name: 'town-main-west', scene: 'town', pos: [-72, 0, 18.8], yaw: -1.5708, pitch: 0.03, looks: ['day'], ref: '02-main-road-van-poles.png' },
   { name: 'town-main-east', scene: 'town', pos: [80, 0, 18.8], yaw: 1.5708, pitch: 0.03, looks: ['golden'], ref: '01-main-road-cycle-lanes.png' },
-  { name: 'town-lane-houses', scene: 'town', pos: [52, 0, 79.4], yaw: 1.5708, pitch: 0.04, looks: ['day'], ref: '03-street-shrine-house.png' },
+  { name: 'town-lane-houses', scene: 'town', pos: [52, 0, 79.4], yaw: 1.5708, pitch: 0.04, looks: ['day', 'blue'], ref: '03-street-shrine-house.png' },
   { name: 'town-lane-junction', scene: 'town', pos: [-25.6, 0, 62], yaw: 3.1416, pitch: 0.02, looks: ['day'], ref: '09-konbini-corner-tomare.png' },
   { name: 'town-shrine', scene: 'town', pos: [11, 0, 77.6], yaw: 2.9, pitch: 0.05, looks: ['day'], ref: '04-shrine-pole-ramen.png' },
   { name: 'town-coin-parking', scene: 'town', pos: [-9, 0, 22.5], yaw: 3.1416, pitch: 0.0, looks: ['day'] },
   { name: 'town-apartment', scene: 'town', pos: [28.2, 0, 83], yaw: -2.4, pitch: 0.06, looks: ['day'] },
   { name: 'town-vacant', scene: 'town', pos: [47, 0, 113.6], yaw: 0.35, pitch: 0.0, looks: ['golden'] },
   { name: 'town-park', scene: 'town', pos: [14.5, 0, 110.6], yaw: 3.1416, pitch: 0.02, looks: ['day'], ref: '11-plaza-zebra-sakura.png' },
-  { name: 'town-plaza', scene: 'town', pos: [-50, 0, 125.5], yaw: 3.1416, pitch: 0.05, looks: ['day'], ref: '12-station-plaza-big-sakura.png' },
+  { name: 'town-plaza', scene: 'town', pos: [-50, 0, 125.5], yaw: 3.1416, pitch: 0.05, looks: ['day', 'blue'], ref: '12-station-plaza-big-sakura.png' },
   // M2c: the station and the line (`train` stands the service in a moment)
   { name: 'station-plaza-clock', scene: 'town', pos: [-50, 0, 134], yaw: 2.2, pitch: 0.08, looks: ['day'], ref: '13-plaza-clock.png' },
   { name: 'station-entrance', scene: 'town', pos: [-41.8, 0, 136.5], yaw: 2.82, pitch: 0.1, looks: ['day'], ref: '14-station-entrance.png' },

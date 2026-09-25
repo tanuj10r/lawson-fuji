@@ -25,6 +25,8 @@ export function buildKit(ctx, def) {
   return {
     net, roads, features, poles: poles.list, signs, decals,
     serviceDrop: poles.serviceDrop,
+    lamps: poles.lamps,
+    wireRuns: poles.runs,
     standPole: poles.standPole,
     finish() {
       if (done) return;

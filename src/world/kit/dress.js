@@ -4,7 +4,7 @@ import {
   makePlanter, makeBench, makePostBox, makeCat, makeBikeRack, makeVendBin, makeCrates,
 } from '../props.js';
 import { addVending } from '../vending.js';
-import { buildSakura, buildShrubs } from '../trees.js';
+import { buildShrubs } from '../trees.js';
 import { ROADS } from '../../config.js';
 
 /* ------------------------------------------------------------------ *
@@ -86,7 +86,7 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
         const p = net.at(e, mid, side * (walk ? e.t + 1.2 : e.a + 1.4));
         if (net.quiet(p.x, p.z)) continue;
         if (w > 6 && r.chance(0.55)) {
-          trees.push({ x: p.x, z: p.z, y: 0, scale: r.range(0.8, 1.05), seed: e.seed * 7 + Math.round(mid), lean: r.range(0.04, 0.1) });
+          trees.push({ x: p.x, z: p.z, y: 0, scale: r.range(0.9, 1.2), seed: e.seed * 7 + Math.round(mid) });
           ctx.collide(p.x - 0.35, p.z - 0.35, p.x + 0.35, p.z + 0.35, 3);
           reg('prop', p);
           if (w > 9) put(makePlanter({ x: 0, y: 0, z: 0, r: 0.3, flower: true, seed: e.seed + Math.round(a), n: 6 }), a + 1.2, 'prop', 0.3, 0.8);
@@ -97,6 +97,7 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
           const q = net.at(e, mid, off);
           if (!net.quiet(q.x, q.z)) {
             addVending(ctx, { detail: true, x: q.x, y, z: q.z, ry, variant: Math.round(mid) % 3, seed: e.seed + Math.round(mid) });
+            ctx.night?.pool(q.x, q.z, 2.4, { y, color: 0xe8f0ff, strength: 0.8 });
             const b2 = net.at(e, mid + 1.2, off);
             addVending(ctx, { detail: true, x: b2.x, y, z: b2.z, ry, variant: (Math.round(mid) + 1) % 3, seed: e.seed + Math.round(mid) + 1 });
             const vb = makeVendBin({ x: 0, y: 0, z: 0 });
@@ -139,7 +140,7 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
     }
   }
 
-  if (trees.length) buildSakura(ctx, trees);
+  ctx.sakura.push(...trees);           // built with the town's other sakura in one batch
   if (ctx.hedges?.length) buildShrubs(ctx, ctx.hedges);
 
   /* cats, sat at a front gate */
@@ -152,7 +153,9 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
     cat.position.set(p.x, 0, p.z);
     cat.rotation.y = r.range(0, Math.PI * 2);
     cat.userData.detail = true;
+    if (cat.userData.tail) cat.userData.tail.userData.dynamic = true;    // it swishes (kit/life.js)
     ctx.add(cat);
+    ctx.cats?.push(cat);
     ctx.collide(p.x - 0.25, p.z - 0.25, p.x + 0.25, p.z + 0.25, 0.4);
     reg('prop', p);
   }

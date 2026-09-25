@@ -83,13 +83,44 @@ function styleMaterial(m) {
   return out;
 }
 
+/** A map by what it draws, not by which clone: clones of one image that
+ *  differ only in repeat and offset batch together, the transform baked
+ *  into each mesh's UVs (see uvBaked). */
+function mapKey(t) {
+  if (!t) return '-';
+  if (!t.source || t.isVideoTexture || t.isRenderTargetTexture) return t.uuid;
+  return [t.source.uuid, t.wrapS, t.wrapT, t.magFilter, t.minFilter, t.colorSpace, t.flipY, t.anisotropy].join(':');
+}
+const _uvm = new THREE.Matrix3();
+/** Bake a map's own transform (repeat, offset, rotation) into the UVs. */
+function uvBaked(geo, t) {
+  const uv = geo.attributes.uv;
+  if (!t || !uv || !t.source) return;
+  if (t.matrixAutoUpdate) t.updateMatrix();
+  if (t.matrix.equals(_uvm.identity())) return;
+  const v = new THREE.Vector2();
+  for (let i = 0; i < uv.count; i++) {
+    v.fromBufferAttribute(uv, i).applyMatrix3(t.matrix);
+    uv.setXY(i, v.x, v.y);
+  }
+}
+/** The batch's map: the same image, with no transform of its own. */
+function plainMap(t) {
+  if (t.matrixAutoUpdate) t.updateMatrix();
+  if (t.matrix.equals(_uvm.identity())) return t;
+  const c = t.clone();                // shares the image (source): no new upload
+  c.repeat.set(1, 1); c.offset.set(0, 0); c.rotation = 0; c.center.set(0, 0);
+  c.matrixAutoUpdate = true;
+  return c;
+}
+
 function matKey(m) {
   if (m.userData.live) return m.uuid;   // driven at runtime: its own batch, same object
   if (bakeable(m)) return styleKey(m);
   if (m.isShaderMaterial && m.uniforms?.uThickness) return hullKey(m);
   if (!(m.isMeshBasicMaterial || m.isMeshToonMaterial)) return m.uuid;
   return [
-    m.type, m.color.getHexString(), m.map?.uuid ?? '-', m.gradientMap?.uuid ?? '-',
+    m.type, m.color.getHexString(), mapKey(m.map), m.gradientMap?.uuid ?? '-',
     m.userData.shadowTint?.value.getHexString() ?? '-', m.transparent, m.opacity, m.side,
     m.alphaTest, m.depthWrite, m.fog, m.vertexColors,
     m.emissive?.getHexString() ?? '-', m.emissiveIntensity ?? 0,
@@ -171,8 +202,22 @@ export function mergeStatic(root, opts = {}) {
           geo.setAttribute('aTint', fill(m.material.userData.shadowTint?.value ?? DEFAULT_TINT));
         }
       }
+      if (!g.bake && m.material.map) uvBaked(geo, m.material.map);
       return geo;
     });
+    // the transforms are in the UVs now: one plain copy of the material
+    if (!g.bake && g.material.map) {
+      const t = g.material.map;
+      if (t.matrixAutoUpdate) t.updateMatrix();
+      if (!t.matrix.equals(_uvm.identity())) {
+        const c = g.material.clone();
+        c.userData = g.material.userData;   // shared, as the atlas does (shadowTint)
+        c.onBeforeCompile = g.material.onBeforeCompile;          // clone() drops these
+        c.customProgramCacheKey = g.material.customProgramCacheKey;
+        c.map = plainMap(t);
+        g.material = c;
+      }
+    }
     const geo = mergeGeometries(geos, false);
     geos.forEach((x) => x.dispose());
     if (!geo) continue;

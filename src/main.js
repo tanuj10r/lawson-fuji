@@ -87,6 +87,20 @@ const KIT = import.meta.env.DEV && devParams.has('kit');
 const FROZEN = import.meta.env.DEV && devParams.has('shots');
 const world = KIT ? buildKitTest(scene) : buildTown(scene);
 
+/* Shadow stand-ins (userData.shadowOnly): cheap shapes that cast a shadow
+ * for something drawn in full detail on screen, the town's blossom.  They
+ * are hidden, and shown only while the shadow map is drawn. */
+const shadowOnly = [];
+scene.traverse((o) => { if (o.userData.shadowOnly) { o.visible = false; shadowOnly.push(o); } });
+if (shadowOnly.length) {
+  const drawShadows = renderer.shadowMap.render;
+  renderer.shadowMap.render = function (...args) {
+    for (const o of shadowOnly) o.visible = true;
+    drawShadows.apply(this, args);
+    for (const o of shadowOnly) o.visible = false;
+  };
+}
+
 const player = new Player(camera, canvas, world);
 const VOLUME_STORAGE_KEY = 'lawson-fuji-volume';
 let initialVolume = 0.34;
@@ -389,6 +403,13 @@ if (import.meta.env?.DEV) {
     renderer.info.reset();
     pipeline.render();
     window.__frameInfo = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
+    // and again with the shadow map left as it is: the main pass alone
+    renderer.shadowMap.autoUpdate = false;
+    renderer.info.reset();
+    pipeline.render();
+    window.__frameInfo.mainCalls = renderer.info.render.calls;
+    window.__frameInfo.mainTriangles = renderer.info.render.triangles;
+    renderer.shadowMap.autoUpdate = true;
     renderer.info.autoReset = true;
     if (opts.time) {
       // average frame time over `time` frames, GPU work included (readPixels waits for it)

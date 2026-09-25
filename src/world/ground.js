@@ -297,6 +297,16 @@ export function wallRun(ctx, o) {
  * reads the depth buffer, and a see-through fence written into it turns into
  * a field of speckle.
  */
+let chainLink = null;
+function sharedChainLink() {
+  if (!chainLink) {
+    chainLink = chainLinkTex().clone();
+    chainLink.wrapS = chainLink.wrapT = THREE.RepeatWrapping;
+    chainLink.needsUpdate = true;
+  }
+  return chainLink;
+}
+
 export function meshFence(ctx, o) {
   const m = groundMats();
   const h = o.h ?? 1.9;
@@ -329,12 +339,15 @@ export function meshFence(ctx, o) {
   frame.castShadow = true;
   g.add(frame);
 
-  const tex = chainLinkTex().clone();
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(len / 0.42, (h - 0.2) / 0.42);
-  tex.needsUpdate = true;
+  /* One shared repeating texture, the tiling in the UVs: a clone per fence
+   * (to set its repeat) made every panel its own material, and none of them
+   * could batch. */
+  const tex = sharedChainLink();
+  const pg = new THREE.PlaneGeometry(len, h - 0.2);
+  const uv = pg.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (len / 0.42), uv.getY(i) * ((h - 0.2) / 0.42));
   const panel = new THREE.Mesh(
-    new THREE.PlaneGeometry(len, h - 0.2),
+    pg,
     flat({
       color: o.meshColor ?? 0xc2c8d0, map: tex, transparent: true, opacity: 0.82,
       side: THREE.DoubleSide, depthWrite: false, cache: false,

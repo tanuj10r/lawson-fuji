@@ -59,14 +59,29 @@ export function buildTown(scene) {
 
   const camPos = new THREE.Vector3(0, 0, 16.5);
   const petals = buildPetals(ctx, {
-    count: TOWN.petals, half: 24, trackZ: TOWN.rail.z, follow: () => camPos,
+    count: TOWN.petals.air, half: 24, trackZ: TOWN.rail.z, follow: () => camPos,
   });
+  // and the fall from the town's sakura (M2d), a separate field so the famous
+  // views keep M2's petals exactly
+  const fall = buildPetals(ctx, {
+    count: TOWN.petals.trees, half: 24, trackZ: TOWN.rail.z, follow: () => camPos,
+    emitters: core.sakura?.emitters ?? [], onlyTrees: true, seed: 8211,
+  });
+  for (const m of fall.meshes) m.userData.dynamic = true;
   for (const m of petals.meshes) m.userData.dynamic = true;
 
   // batched per 128 m cell, so the camera and the shadow map can cull
   // the Lawson keeps its own textures: the famous view never changes
   lawson.root.userData.noAtlas = true;
   lawson.ground.userData.noAtlas = true;
+  // small props (the kit's detail tag) still take shadows but cast none:
+  // at their size the shadow pass pays far more than it shows (SPEC 11)
+  const small = (o, on) => {
+    on ||= !!o.userData.detail;
+    if (on && o.isMesh) o.castShadow = false;
+    for (const c of o.children) small(c, on);
+  };
+  small(root, false);
   const batching = mergeStatic(root, { cell: 128, atlas: true });
 
   /* --- Mt. Fuji, riding with the camera like the sky --- */
@@ -90,13 +105,17 @@ export function buildTown(scene) {
       lawson.setLook(look);
       core.kit.setLook(look);
       core.line.setLook(look);
+      core.night.setLook(look);
       fuji.setLook(look);
     },
     update(dt, camera) {
       if (camera) camPos.copy(camera.position);
       for (const fn of ctx.updaters) fn(dt);
+      core.sakura?.update(camera ?? camPos);
+      core.life?.update(dt, camPos);
       const air = core.line.gustAt(camPos);
       petals.update(dt, air.gust, air.dir);
+      fall.update(dt, air.gust, air.dir);
       if (camera) fuji.follow(camera);
     },
   };

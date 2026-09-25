@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MENU_TAGS } from '../../data/town.js';
 
 /* ------------------------------------------------------------------ *
  * Canvas2D art for the town kit (AGENTS.md: everything drawn in code).
@@ -464,6 +465,21 @@ const CELLS = {
         c.ellipse(x, y, 1.2 + r() * 1.4, 0.8 + r() * 0.8, r() * Math.PI, 0, Math.PI * 2);
         c.fill();
       }
+    },
+  },
+  // カラー舗装: the red-brown surfacing laid where a lane needs drivers to
+  // slow (the shrine, the school), worn pale where the wheels run
+  red: {
+    at: [5, 4], draw: (c, w, h) => {
+      c.fillStyle = 'rgba(196,92,78,0.9)'; c.fillRect(0, 0, w, h);
+      const r = rng(55);
+      for (const x of [w * 0.28, w * 0.72]) {
+        const g = c.createLinearGradient(x - 40, 0, x + 40, 0);
+        g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.5, 'rgba(0,0,0,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        c.save(); c.globalCompositeOperation = 'destination-out'; c.fillStyle = g; c.fillRect(x - 40, 0, 80, h); c.restore();
+      }
+      wear(c, 0, 0, w, h, 56, 260);
+      for (let i = 0; i < 400; i++) { c.fillStyle = r() < 0.5 ? 'rgba(120,50,50,0.3)' : 'rgba(255,220,210,0.25)'; c.fillRect(r() * w, r() * h, 2, 2); }
     },
   },
   oil: {
@@ -941,16 +957,41 @@ export const shopBackTex = (kind = 'general') =>
       for (let i = 0; i < 3; i++) { c.fillStyle = goods[i % goods.length] === '#e8eef4' ? '#f6d86a' : '#f28cb0'; c.fillRect(40 + i * 150, 50, 70, 90); }
       return;
     }
-    for (let row = 0; row < 4; row++) {
+    // noodle and sweet shops: the row of wooden menu tags (品書き) along the top
+    const tags = kind === 'ramen' || kind === 'soba' || kind === 'wagashi';
+    for (let row = tags ? 1 : 0; row < 4; row++) {
       const y = 20 + row * 58;
       c.fillStyle = '#b8a890'; c.fillRect(0, y + 46, w, 6);
       for (let x = 6; x < w - 10;) {
         const bw = 10 + r() * 22;
-        c.fillStyle = goods[Math.floor(r() * goods.length)];
+        const col = goods[Math.floor(r() * goods.length)];
+        c.fillStyle = col;
         const bh = 18 + r() * 26;
         c.fillRect(x, y + 46 - bh, bw, bh);
+        // a label band on the packet, and its shine
+        c.fillStyle = 'rgba(255,255,255,0.55)'; c.fillRect(x + 2, y + 46 - bh * 0.6, bw - 4, 4);
+        c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(x, y + 46 - bh, 3, bh);
         x += bw + 2;
       }
+      // price cards along the shelf edge, one in three a red sale card
+      for (let x = 20 + r() * 30; x < w - 30; x += 50 + r() * 40) {
+        c.fillStyle = r() < 0.33 ? '#e8453f' : '#fff6c8';
+        c.fillRect(x, y + 47, 18, 10);
+      }
+    }
+    if (tags) {
+      c.fillStyle = '#6a4a34'; c.fillRect(0, 0, w, 64);
+      const n = Math.min(MENU_TAGS.length, 8);
+      for (let i = 0; i < n; i++) {
+        const x = 16 + i * ((w - 32) / n);
+        c.fillStyle = '#f2e6c8'; c.fillRect(x, 6, 40, 54);
+        c.fillStyle = '#2a1e18'; c.font = `bold 13px ${JP}`; c.textAlign = 'center'; c.textBaseline = 'top';
+        [...MENU_TAGS[i]].slice(0, 4).forEach((ch, k) => c.fillText(ch, x + 20, 9 + k * 12.5));
+      }
+    } else if (r() < 0.8) {
+      // a hanging POP banner over the shelves
+      c.fillStyle = r() < 0.5 ? '#e8453f' : '#f2c23c'; c.fillRect(w * 0.3, 0, w * 0.4, 18);
+      c.fillStyle = '#ffffff'; c.fillRect(w * 0.32, 5, w * 0.36, 3);
     }
   });
 

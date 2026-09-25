@@ -10,6 +10,8 @@ import { addVending } from '../vending.js';
 import { hangLaundry, sideWindows } from './houses.js';
 import { ROADS } from '../../config.js';
 import { shopBackTex, barberTex } from './tex.js';
+import { noticeTex, forRentTex } from './paint.js';
+import { SHOP_NOTICES, FOR_RENT } from '../../data/town.js';
 
 /* ------------------------------------------------------------------ *
  * The shopfront generator (SPEC section 3, buildings).
@@ -160,6 +162,29 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
     inner.traverse((n) => { if (n.isMesh) n.userData.noOutline = true; });
     // at night the shop is lit from inside: a warm glow just behind the glass
     ctx.night?.glow(g, openW - 0.1, 2.3, 0, 1.35, front - 0.14);
+  }
+
+  /* ---- paper on the glass (M2e): notices taped up inside it, and on a
+   * closed shop the agent's board on the shutter ---- */
+  {
+    const q = rngKit(lot.seed + 555);
+    const paper = (tex, x, y, pw, ph, z) => {
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), flat({ color: 0xf4f2ee, map: tex, cache: false }));
+      p.position.set(x, y, z);
+      p.rotation.z = q.range(-0.04, 0.04);
+      p.userData.noOutline = true;
+      g.add(p);
+    };
+    if (trade === 'closed') {
+      paper(forRentTex(FOR_RENT), q.range(-0.5, 0.5), 1.45, 0.8, 0.6, front - 0.12);
+    } else if (T.inside !== 'none' && q.chance(0.8)) {
+      const n = q.chance(0.4) ? 2 : 1;
+      for (let i = 0; i < n; i++) {
+        const k = q.int(0, SHOP_NOTICES.length - 1);
+        const x = (i === 0 ? -1 : 1) * q.range(0.35, openW / 2 - 0.35);
+        paper(noticeTex(SHOP_NOTICES[k], 'notice' + k), x, q.range(1.1, 1.5), 0.3, 0.41, front - 0.1);
+      }
+    }
   }
 
   /* ---- the shop's light on the pavement at night ---- */

@@ -722,3 +722,29 @@ Judgement calls, newest milestone last.
   within the guard, so no re-baseline was needed.
 - **Checks.** Density 27 of 27, bare stretches, traincheck; 4.4–9.1 ms at
   1440p.
+
+## M2e Phase 6: shopfronts and ground
+
+- **Paper on the glass.** 80% of open shops have one or two notices taped
+  inside the glass: hand-lettered, sun-faded at the top, tape at the
+  corners (kit/paint.js `noticeTex`). The wording lives in
+  data/town.js `SHOP_NOTICES`: staff wanted, today's special, hours, a
+  closing notice, a cashless sticker, the cherry festival.
+- **The closed shop** carries the estate agent's 貸店舗 board on its shutter
+  (`FOR_RENT`).
+- **Worn shutters** (`wornShutterTex`), on every shop that has one: grime
+  rising from the ground, rust running from the slat joints and along the
+  bottom rail, the scuff where it is pushed up, an old sticker.
+- **Interiors.** Packets on the shelves have label bands and a shine, with
+  price cards along the shelf edges (a third are red sale cards). Most
+  shelved shops hang a POP banner. The ramen, soba and wagashi shops have
+  the row of wooden menu tags (品書き) along the top of the back wall
+  (`MENU_TAGS`).
+- **Red paving** (カラー舗装, decal cell `red`). The lane in front of the
+  shrine is surfaced red-brown between its two junctions, worn pale in the
+  wheel tracks.
+- **Timings under load.** A full run read 19 ms at one spot while the
+  machine sat at load 7. Back to back under the same load, Phase 5 and
+  Phase 6 read 8.8 and 9.6 ms at that spot: the cost is under 1 ms.
+- **Checks.** Density 27 of 27, bare stretches, traincheck; heroes
+  0.10–0.12%.

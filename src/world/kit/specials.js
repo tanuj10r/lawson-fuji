@@ -222,6 +222,15 @@ function shrine(ctx, net, kit, s, F) {
   const t = F.at(F.w / 2 - 2.2, F.d - 2.2);
   ctx.sakura.push({ x: t.x, z: t.z, y: 0, scale: 1.6, seed: 7701 });        // a hero tree over the shrine
   ctx.collide(t.x - 0.4, t.z - 0.4, t.x + 0.4, t.z + 0.4, 3);
+  // the lane in front is laid red (カラー舗装): slow, people cross here
+  {
+    const laneZ = s.z0 - ROADS.lane.asphalt / 2 - 0.4;
+    const wdt = ROADS.lane.asphalt - 2 * ROADS.lane.gutter;
+    // from past the junction at x 0 to short of the next one at x 30
+    for (let x = Math.max(s.x0 - 5, 2.8); x + 3 < Math.min(s.x1 + 5, 27.4); x += 3) {
+      kit.decals.add('red', x + 1.5, laneZ, wdt, 3.002, { x: 1, z: 0 }, ROADS.asphaltY, LAYER.wear);
+    }
+  }
   // and the sacred tree (神木): an old camphor in the other corner, girdled
   // with a shimenawa rope and its zigzag paper streamers (M2e)
   const k = F.at(-F.w / 2 + 2.4, F.d - 2.4);

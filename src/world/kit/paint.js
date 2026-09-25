@@ -651,3 +651,105 @@ export function sillStreakTex() {
   sillT.colorSpace = THREE.SRGBColorSpace;
   return sillT;
 }
+
+/* ------------------------------------------------------------ shops
+ * M2e Phase 6: the paper on the glass, the wear on the shutters. */
+
+const JPF = `'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, sans-serif`;
+const HAND = `'Hiragino Maru Gothic ProN', 'Yu Gothic', 'Hiragino Sans', sans-serif`;
+
+function fitText(c, str, x, y, maxW, size, color, font, weight = 'bold') {
+  let s = size;
+  do { c.font = `${weight} ${s}px ${font}`; if (c.measureText(str).width <= maxW) break; s -= 1; } while (s > 8);
+  c.fillStyle = color; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(str, x, y);
+}
+
+const noticeCache = new Map();
+/** A notice taped to the glass: paper, slightly crooked writing, tape at
+ * the corners, a sun-faded top. `n` { t, s, paper, ink }. */
+export function noticeTex(n, key) {
+  if (noticeCache.has(key)) return noticeCache.get(key);
+  const W = 256, H = 352;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+  c.fillStyle = n.paper; c.fillRect(0, 0, W, H);
+  const g = c.createLinearGradient(0, 0, 0, H * 0.3);
+  g.addColorStop(0, 'rgba(236,214,160,0.35)'); g.addColorStop(1, 'rgba(236,214,160,0)');
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  c.save(); c.translate(W / 2, H * 0.36); c.rotate(-0.03);
+  fitText(c, n.t, 0, 0, W * 0.86, 56, n.ink, HAND);
+  c.restore();
+  c.strokeStyle = n.ink; c.lineWidth = 3;
+  c.beginPath(); c.moveTo(W * 0.12, H * 0.5); c.lineTo(W * 0.88, H * 0.49); c.stroke();
+  // the small print, in two lines if it is long
+  const words = n.s.split(' ');
+  const half = Math.ceil(words.length / 2);
+  const lines = n.s.length > 11 ? [words.slice(0, half).join(' '), words.slice(half).join(' ')] : [n.s];
+  lines.forEach((l, i) => fitText(c, l, W / 2, H * (0.62 + i * 0.12), W * 0.84, 30, '#333340', JPF, 'normal'));
+  // tape
+  c.fillStyle = 'rgba(240,236,200,0.75)';
+  for (const [x, y, a] of [[18, 10, -0.6], [W - 18, 10, 0.6]]) { c.save(); c.translate(x, y); c.rotate(a); c.fillRect(-20, -8, 40, 16); c.restore(); }
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  noticeCache.set(key, t);
+  return t;
+}
+
+let rentT = null;
+/** 貸店舗: the estate agent's board on a closed shop's shutter. */
+export function forRentTex(n) {
+  if (rentT) return rentT;
+  const W = 320, H = 240;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+  c.fillStyle = '#ffffff'; c.fillRect(0, 0, W, H);
+  c.fillStyle = '#d8342f'; c.fillRect(0, 0, W, H * 0.46);
+  fitText(c, n.t, W / 2, H * 0.24, W * 0.86, 84, '#ffffff', JPF);
+  fitText(c, n.s, W / 2, H * 0.62, W * 0.86, 36, '#222222', JPF);
+  fitText(c, 'TEL ' + n.tel, W / 2, H * 0.84, W * 0.86, 30, '#d8342f', JPF);
+  rentT = new THREE.CanvasTexture(cv);
+  rentT.colorSpace = THREE.SRGBColorSpace;
+  return rentT;
+}
+
+let shutT = null;
+/** A roller shutter that has been up and down for thirty years: slats,
+ * grime rising from the ground, rust at the bottom rail and running from
+ * the slat joints, a scuff where it is pushed up, an old sticker. */
+export function wornShutterTex() {
+  if (shutT) return shutT;
+  const W = 256, H = 512, rows = 22;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+  const r = rng(3131);
+  const step = H / rows;
+  for (let i = 0; i < rows; i++) {
+    c.fillStyle = i % 2 ? '#c9c4d2' : '#e6e2ea'; c.fillRect(0, i * step, W, step);
+    c.fillStyle = '#9a94a6'; c.fillRect(0, i * step + step - 2.5, W, 2.5);
+  }
+  // grime from the ground up
+  const g = c.createLinearGradient(0, H, 0, H * 0.55);
+  g.addColorStop(0, 'rgba(96,86,100,0.55)'); g.addColorStop(1, 'rgba(96,86,100,0)');
+  c.fillStyle = g; c.fillRect(0, H * 0.55, W, H * 0.45);
+  // rust runs from the joints, heavier low down
+  for (let i = 0; i < 26; i++) {
+    const x = r() * W, y = H * (0.3 + r() * 0.65), len = 12 + r() * 40;
+    const rg = c.createLinearGradient(0, y, 0, y + len);
+    rg.addColorStop(0, 'rgba(176,98,64,0.6)'); rg.addColorStop(1, 'rgba(176,98,64,0)');
+    c.fillStyle = rg; c.fillRect(x, y, 2 + r() * 3, len);
+  }
+  c.fillStyle = 'rgba(160,90,60,0.7)'; c.fillRect(0, H - 10, W, 10);
+  // the scuff in the middle where hands push it up
+  c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(W * 0.4, H * 0.78, W * 0.2, H * 0.12);
+  // an old sticker, sun-bleached
+  c.fillStyle = 'rgba(240,210,90,0.55)'; c.fillRect(W * 0.66, H * 0.62, 34, 22);
+  shutT = new THREE.CanvasTexture(cv);
+  shutT.colorSpace = THREE.SRGBColorSpace;
+  shutT.anisotropy = 8;
+  return shutT;
+}

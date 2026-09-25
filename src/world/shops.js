@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { wornShutterTex } from './kit/paint.js';
 import { PAL } from '../core/palette.js';
 import { cel, flat } from '../core/toon.js';
 import {
@@ -177,11 +178,11 @@ export function makeShop(ctx, o) {
    * Half down is the useful state: it says the shop exists and is between
    * shifts, without needing anybody to be standing in the doorway. */
   if (o.shutter) {
-    const tex = shutterTex(22);
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    // thirty years of use: grime, rust, a scuff and a sticker (M2e)
+    const tex = wornShutterTex();
     const SH = 2.55 * o.shutter;
     const sl = box(openW - 0.1, SH, 0.06,
-      cel({ color: PAL.shutter, bands: 3, map: tex, tint: 0x4b4560, cache: false }),
+      cel({ color: 0xffffff, bands: 3, map: tex, tint: 0x4b4560, cache: false }),
       0, 2.55 - SH / 2, front - 0.16);
     sl.castShadow = sl.receiveShadow = true;
     g.add(sl);

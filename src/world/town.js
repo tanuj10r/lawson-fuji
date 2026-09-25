@@ -4,7 +4,8 @@ import { WORLD, TOWN } from '../config.js';
 import { makeCtx } from './ctx.js';
 import { buildLawson } from './lawson.js';
 import { buildFuji } from './fuji.js';
-import { buildBlocks } from './town-blocks.js';
+import { buildEdge } from './town-edge.js';
+import { buildCore } from './town-core.js';
 import { buildRail } from './town-rail.js';
 import { buildPetals } from './petals.js';
 import { mergeStatic } from './merge.js';
@@ -45,8 +46,12 @@ export function buildTown(scene) {
   ctx.colliders.push(...lawson.colliders);
   ctx.platforms.push(...lawson.platforms);
 
-  /* --- the town (M2) --- */
-  buildBlocks(ctx);
+  /* --- the town: its north side (M2, kept for the famous views) and the dense core (M2b) --- */
+  ctx.registry = [];
+  // the Lawson counts toward the density budget like any building
+  ctx.registry.push({ kind: 'building', x: 0, z: -5, rect: [-8.5, -10, 11.1, 0] });
+  buildEdge(ctx);
+  const core = buildCore(ctx);
   const rail = buildRail(ctx);
   // bottles behind a vending machine's glass shadow only its own insides
   root.traverse((o) => {
@@ -61,7 +66,10 @@ export function buildTown(scene) {
   for (const m of petals.meshes) m.userData.dynamic = true;
 
   // batched per 128 m cell, so the camera and the shadow map can cull
-  const batching = mergeStatic(root, { cell: 128 });
+  // the Lawson keeps its own textures: the famous view never changes
+  lawson.root.userData.noAtlas = true;
+  lawson.ground.userData.noAtlas = true;
+  const batching = mergeStatic(root, { cell: 128, atlas: true });
 
   /* --- Mt. Fuji, riding with the camera like the sky --- */
   const fuji = buildFuji(scene);
@@ -72,6 +80,8 @@ export function buildTown(scene) {
     interactables: ctx.interactables,
     bounds: WORLD.bounds,
     lawson,
+    core,
+    registry: ctx.registry,
     fuji,
     rail,
     batching,
@@ -80,6 +90,7 @@ export function buildTown(scene) {
     setLook(look) {
       groundMat.color.set(look.ground);
       lawson.setLook(look);
+      core.kit.setLook(look);
       fuji.setLook(look);
     },
     update(dt, camera) {

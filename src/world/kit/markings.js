@@ -48,6 +48,7 @@ export function paintMarkings(net, decals) {
   /** Road lettering or a symbol, read by traffic heading `dir`. */
   const word = (e, cell, s, off, across, along, dir) => {
     const p = net.at(e, s, off);
+    if (net.quiet(p.x, p.z)) return;
     const f = net.along(e, dir);
     decals.add(cell, p.x, p.z, across, along, f, AY, LAYER.symbol);
   };
@@ -75,6 +76,18 @@ export function paintMarkings(net, decals) {
           word(e, 'arrow', s + dir * 2.4, side * (c0 + c1) / 2, 0.7, 1.4, dir);
         }
       }
+    } else if (e.cls === 'hero') {
+      /* The Lawson's road keeps its own paint (lawson.js).  Its cycle lanes
+       * are the blue 自転車ナビライン: feathered arrows down each lane edge,
+       * a bicycle every few. */
+      for (const side of [-1, 1]) {
+        const dir = headingOn(e, side);
+        const off = side * (e.a - 1.0);
+        let k = 0;
+        for (let s = s0 + 3; s < s1 - 3; s += 6, k++) {
+          word(e, k % 5 === 0 ? 'bikeBlue' : 'navi', s, off, 0.75, k % 5 === 0 ? 1.1 : 1.6, dir);
+        }
+      }
     } else if (e.cls === 'shopping') {
       dashed(e, s0, s1, 0, 0.12);
     } else {
@@ -98,7 +111,7 @@ export function paintMarkings(net, decals) {
       if (e.len < 30) break;
       const sIn = dir > 0 ? s0 + 12 : s1 - 12;
       const side = e.axis === 'x' ? -dir : dir;          // the half this traffic uses
-      const off = e.cls === 'lane' ? 0 : side * (e.cls === 'main' ? spec.carriage / 4 : e.a / 2);
+      const off = e.cls === 'lane' ? 0 : side * (e.cls === 'main' || e.cls === 'hero' ? spec.carriage / 4 : e.a / 2);
       const across = e.cls === 'lane' ? 1.5 : 1.6;
       word(e, speedCell, sIn, off, across, 2.6, dir);
       if (e.cls === 'lane' && (info.school || info.pedPriority) && e.len > 40) {

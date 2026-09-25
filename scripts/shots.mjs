@@ -73,13 +73,20 @@ page.on('pageerror', (e) => console.log('  [page error]', e.message));
 
 const stats = {};
 const guards = [];
+const densityRows = [];
+let bare = null;
 let scene = null;
 
 for (const spot of spots) {
   if (spot.scene !== scene) {
     scene = spot.scene;
+    // a page error before the scene is ready ends the run at once
+    let onError;
+    const crashed = new Promise((_, reject) => { onError = (e) => reject(e); page.on('pageerror', onError); });
     await page.goto(`${base}?shots${scene === 'kit' ? '&kit' : ''}`);
-    await page.waitForFunction(() => window.__ready === true, null, { timeout: 120000 });
+    await Promise.race([page.waitForFunction(() => window.__ready === true, null, { timeout: 120000, polling: 250 }), crashed]);
+    page.off('pageerror', onError);
+    crashed.catch(() => {});
     const gpu = await page.evaluate(() => {
       const gl = window.__scene.renderer.getContext();
       const e = gl.getExtension('WEBGL_debug_renderer_info');
@@ -110,8 +117,9 @@ for (const spot of spots) {
     if (spot.guard && !baseline) {
       const bfile = path.join(baseDir, `${name}.png`);
       if (fs.existsSync(bfile)) {
-        const pct = await page.evaluate(diffImages, [r.data, readData(bfile)]);
+        const { pct, mask } = await page.evaluate(diffImages, [r.data, readData(bfile)]);
         row.heroDiff = +pct.toFixed(3);
+        if (pct > 0) writeData(path.join(outDir, `${name}-diff.png`), mask);
         guards.push([name, pct]);
       } else {
         guards.push([name, null]);
@@ -122,6 +130,15 @@ for (const spot of spots) {
       const pair = await page.evaluate(sideBySide, [r.data, `/reference/density/${spot.ref}`]);
       writeData(path.join(outDir, `${name}-vs-ref.jpg`), pair);
     }
+    // the density budget, from every street-level town spot (not heroes or overviews)
+    if (spot.scene === 'town' && !spot.hero && !spot.lift && !baseline) {
+      const dens = await page.evaluate((sp) => window.__density(sp),
+        { x: spot.pos[0], z: spot.pos[2], yaw: spot.yaw });
+      if (dens?.spot) {
+        row.density = dens.spot;
+        densityRows.push([name, dens.spot]);
+      }
+    }
     stats[name] = row;
     const bits = [`calls ${row.calls}`, `tris ${Math.round(row.triangles / 1000)}k`];
     if (row.ms !== undefined) bits.push(`${row.ms} ms @1440p`);
@@ -130,8 +147,23 @@ for (const spot of spots) {
   }
 }
 
+if (!baseline && densityRows.length) {
+  // town-wide bare stretches, once
+  await page.goto(`${base}?shots`);
+  await page.waitForFunction(() => window.__ready === true, null, { timeout: 120000, polling: 250 });
+  bare = (await page.evaluate(() => window.__density()))?.bare ?? null;
+  stats._bare = bare;
+}
 if (!baseline) {
   fs.writeFileSync(path.join(outDir, 'stats.json'), JSON.stringify(stats, null, 2));
+  for (const [name, d] of densityRows) {
+    const counts = `buildings ${d.building}, poles ${d.pole}, props ${d.prop}, markings ${d.marking}`;
+    console.log(`DENSITY ${name}: ${d.pass ? 'pass' : 'FAIL (' + d.fail.join(', ') + ')'}  ${counts}`);
+  }
+  if (bare) {
+    console.log(`BARE frontage: ${bare.frontage.len} m (${bare.frontage.cls} at ${JSON.stringify(bare.frontage.at)})`);
+    console.log(`BARE asphalt: ${bare.asphalt.len} m (${bare.asphalt.cls} at ${JSON.stringify(bare.asphalt.at)})  ${bare.pass ? 'pass' : 'FAIL'}`);
+  }
   let fail = false;
   for (const [name, pct] of guards) {
     if (pct === null) console.log(`GUARD ${name}: no baseline (run with --baseline first)`);
@@ -147,11 +179,11 @@ await server.close();
 
 /* ---- run in the page ---- */
 
-/** % of pixels whose largest channel differs by more than 24. */
+/** % of pixels whose largest channel differs by more than 24, and a mask of them. */
 async function diffImages([a, b]) {
   const load = async (src) => { const i = new Image(); i.src = src; await i.decode(); return i; };
   const [ia, ib] = await Promise.all([load(a), load(b)]);
-  if (ia.width !== ib.width || ia.height !== ib.height) return 100;
+  if (ia.width !== ib.width || ia.height !== ib.height) return { pct: 100, mask: a };
   const px = (img) => {
     const c = document.createElement('canvas');
     c.width = img.width; c.height = img.height;
@@ -160,12 +192,23 @@ async function diffImages([a, b]) {
     return x.getImageData(0, 0, c.width, c.height).data;
   };
   const pa = px(ia), pb = px(ib);
+  // the mask: the frame dimmed, changed pixels in magenta
+  const c = document.createElement('canvas');
+  c.width = ia.width; c.height = ia.height;
+  const x = c.getContext('2d');
+  const out = x.createImageData(c.width, c.height);
   let n = 0;
   for (let i = 0; i < pa.length; i += 4) {
     const dd = Math.max(Math.abs(pa[i] - pb[i]), Math.abs(pa[i + 1] - pb[i + 1]), Math.abs(pa[i + 2] - pb[i + 2]));
-    if (dd > 24) n++;
+    const hit = dd > 24;
+    if (hit) n++;
+    out.data[i] = hit ? 255 : pa[i] * 0.35;
+    out.data[i + 1] = hit ? 0 : pa[i + 1] * 0.35;
+    out.data[i + 2] = hit ? 255 : pa[i + 2] * 0.35;
+    out.data[i + 3] = 255;
   }
-  return (100 * n) / (pa.length / 4);
+  x.putImageData(out, 0, 0);
+  return { pct: (100 * n) / (pa.length / 4), mask: c.toDataURL('image/png') };
 }
 
 /** Ours on the left, the reference frame on the right, both 810 px tall. */

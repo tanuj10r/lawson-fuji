@@ -40,7 +40,8 @@ const faceFor = (f) => Math.atan2(-f.x, -f.z);
 /**
  * A post with plates stacked on it.  plates: [{ kind, o, w, y, double }].
  */
-export function signPost(ctx, { x, z, y = 0, ry = 0, h = 2.9, plates = [], name = 'sign' }) {
+export function signPost(ctx, { x, z, y = 0, ry = 0, h = 2.9, plates = [], name = 'sign', quiet }) {
+  if (quiet?.(x, z)) return null;
   const m = mats();
   const g = new THREE.Group();
   g.name = name;
@@ -72,16 +73,18 @@ export function signPost(ctx, { x, z, y = 0, ry = 0, h = 2.9, plates = [], name 
   g.rotation.y = ry;
   ctx.add(g);
   ctx.collide(x - 0.12, z - 0.12, x + 0.12, z + 0.12, y + h);
+  ctx.registry?.push({ kind: 'sign', x, z });
   return g;
 }
 
 export function placeSigns(ctx, net, features) {
   const out = [];
+  const add = (g) => g && out.push(g);
   /** A roadside spot on the `side` of edge `e` at `s`: on the pavement, or just off a lane. */
   const roadside = (e, s, side) => {
     const walk = e.spec.walk > 0;
     const p = net.at(e, s, side * (e.a + (walk ? 0.55 : 0.3)));
-    return { ...p, y: walk ? WY : 0 };
+    return { ...p, y: walk ? WY : 0, quiet: net.quiet };
   };
 
   /* ---- 止まれ and mirrors ---- */
@@ -89,7 +92,7 @@ export function placeSigns(ctx, net, features) {
     const { e, dir, s, side, node } = st;
     const f = net.along(e, dir);
     const p = roadside(e, s - dir * 0.6, side);
-    out.push(signPost(ctx, { ...p, ry: faceFor(f), h: 2.6, plates: [{ kind: 'tomare', w: 0.8 }], name: 'sign-tomare' }));
+    add(signPost(ctx, { ...p, ry: faceFor(f), h: 2.6, plates: [{ kind: 'tomare', w: 0.8 }], name: 'sign-tomare' }));
     if (e.cls === 'lane') {
       // the mirror stands on the far corner, turned back toward the driver
       const trim = e.axis === 'x' ? node.ax : node.az;
@@ -98,10 +101,12 @@ export function placeSigns(ctx, net, features) {
       const pos = (e.axis === 'x' ? node.x : node.z) + dir * ahead;
       const x = e.axis === 'x' ? pos + rx * right : node.x + rx * right;
       const z = e.axis === 'x' ? node.z + rz * right : pos + rz * right;
+      if (net.quiet(x, z)) continue;
       const mirror = makeMirror({ x, z, ry: faceFor(f) });
       mirror.name = 'mirror';
       ctx.add(mirror);
       ctx.collide(x - 0.15, z - 0.15, x + 0.15, z + 0.15, 2.6);
+      ctx.registry?.push({ kind: 'sign', x, z });
     }
   }
 
@@ -113,10 +118,10 @@ export function placeSigns(ctx, net, features) {
     const plates = [{ kind: 'speed', o: { n: speed }, w: 0.6, y: 2.45 }];
     if (e.cls === 'shopping') plates.push({ kind: 'noParking', w: 0.6, y: 1.78 });
     const p = roadside(e, s + dir * 5, side);
-    out.push(signPost(ctx, { ...p, ry: faceFor(f), plates, name: 'sign-speed' }));
+    add(signPost(ctx, { ...p, ry: faceFor(f), plates, name: 'sign-speed' }));
     if (school) {
       const q = roadside(e, s + dir * 14, side);
-      out.push(signPost(ctx, { ...q, ry: faceFor(f), plates: [{ kind: 'schoolZone', w: 0.75 }], name: 'sign-school' }));
+      add(signPost(ctx, { ...q, ry: faceFor(f), plates: [{ kind: 'schoolZone', w: 0.75 }], name: 'sign-school' }));
     }
   }
 
@@ -125,7 +130,7 @@ export function placeSigns(ctx, net, features) {
     for (const side of [-1, 1]) {
       const p = roadside(c.e, c.s + side * (c.L / 2 + 0.5), side);
       const f = net.along(c.e, c.e.axis === 'x' ? -side : side);
-      out.push(signPost(ctx, {
+      add(signPost(ctx, {
         ...p, ry: faceFor(f), h: 3.1, plates: [{ kind: 'pedCross', w: 0.6, double: true }], name: 'sign-crossing',
       }));
     }
@@ -142,7 +147,7 @@ export function placeSigns(ctx, net, features) {
       const s = (dir > 0 ? e.a1 : e.a0) - dir * 28;
       const p = roadside(e, s, side);
       const d = DIRECTIONS[di++ % DIRECTIONS.length];
-      out.push(signPost(ctx, {
+      add(signPost(ctx, {
         ...p, ry: faceFor(net.along(e, dir)), h: 4.4,
         plates: [{ kind: 'direction', o: d, w: 2.2, y: 3.7 }], name: 'sign-direction',
       }));
@@ -153,7 +158,7 @@ export function placeSigns(ctx, net, features) {
   for (const b of features.busStops) {
     const p = roadside(b.e, b.at + b.dir * 5, b.side);
     const f = net.along(b.e, b.dir);
-    out.push(signPost(ctx, {
+    add(signPost(ctx, {
       ...p, ry: faceFor(f), h: 2.6,
       plates: [
         { kind: 'busStop', o: { t: BUS_STOP }, w: 0.55, y: 2.3, double: true },

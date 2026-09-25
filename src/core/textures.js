@@ -1786,14 +1786,12 @@ export const blockPlate = (variant = 0) =>
       /* Appended, never reordered: `plate:` on a walk-up is an index into this
        * array, so inserting a name would rechristen a block that is already
        * standing. */
-      const names = [['ひばり台コーポ', 'HIBARIDAI  CORP'], ['メゾン さくら坂', 'MAISON  SAKURAZAKA'],
-        ['ハイツ ひばり', 'HEIGHTS  HIBARI'], ['コーポ みなみ', 'CORP  MINAMI'],
-        ['グリーンハイツ', 'GREEN  HEIGHTS'], ['さくら荘', 'SAKURA  SO'],
-        // appended with ひばり台六丁目
+      /* Lawson Fuji: our own names (none of Sakura Crossing's), same count. */
+      const names = [['コーポ ふじみ', 'CORP  FUJIMI'], ['メゾン こもれび', 'MAISON  KOMOREBI'],
+        ['ハイツ あおば', 'HEIGHTS  AOBA'], ['コーポ みなみ', 'CORP  MINAMI'],
+        ['グリーンハイツ', 'GREEN  HEIGHTS'], ['すずらん荘', 'SUZURAN  SO'],
         ['コーポ ひがし', 'CORP  HIGASHI'], ['ハイツ みのり', 'HEIGHTS  MINORI'],
-        ['第二 さくら荘', 'SAKURA  SO  II'],
-        // appended with ひばり台七丁目
-        ['コーポ さかえ', 'CORP  SAKAE']];
+        ['ふもと荘', 'FUMOTO  SO'], ['コーポ あけぼの', 'CORP  AKEBONO']];
       const st = names[variant % names.length];
       c.fillStyle = '#f4f2ea';
       c.fillRect(0, 0, w, h);

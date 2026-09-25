@@ -3,7 +3,7 @@ import { cel, flat } from '../core/toon.js';
 import { hullOutlineTree } from '../core/outline.js';
 import { tactileTex } from '../core/textures.js';
 import { bake, trs, shadowify } from '../core/util.js';
-import { LAWSON, STREET } from '../config.js';
+import { LAWSON, STREET, mainRoadGaps } from '../config.js';
 import {
   signBand, sideBand, logoPlate, poster, doorBanner, nobori, tileTex,
   interiorCard, ceilingTex, glassShine, spillTex, redNotice,
@@ -271,9 +271,14 @@ export function buildLawson(parent) {
   // the far sidewalk, raised on its kerb, with the tactile strip along it;
   // it breaks for the side road to the level crossing, whose asphalt runs on
   const platforms = [];
-  ground.add(patch(S.gap[0], S.gap[1], S.roadZ, S.sidewalkZ, 0.004, road));
+  // runs of walk between the gaps (the town's roads build their own mouths)
+  const gaps = mainRoadGaps().sort((a, b) => a[0] - b[0]);
+  const runs = [];
+  let from = S.roadX0;
+  for (const [g0, g1] of gaps) { runs.push([from, g0]); from = g1; }
+  runs.push([from, S.roadX1]);
   const kerbMat = cel({ color: 0xd2d3da, bands: 3 });
-  for (const [x0, x1] of [[S.roadX0, S.gap[0]], [S.gap[1], S.roadX1]]) {
+  for (const [x0, x1] of runs) {
     ground.add(shadowify(slab(x0, x1, 0, kerbH, S.roadZ, S.sidewalkZ, paving), false, true));
     ground.add(shadowify(slab(x0, x1, 0, kerbH + 0.01, S.roadZ - 0.02, S.roadZ + 0.14, kerbMat), false, true));
     platforms.push({ x0, x1, z0: S.roadZ, z1: S.sidewalkZ, top: kerbH });
@@ -306,8 +311,8 @@ export function buildLawson(parent) {
     for (let z = S.apron + 0.2; z < S.forecourtZ - 0.3; z += 0.95) line(zebra[0], zebra[1], z, z + 0.55);
     // road: edge lines and a dashed centre line
     line(S.roadX0, S.roadX1, S.forecourtZ + 0.3, S.forecourtZ + 0.3 + lw);
-    line(S.roadX0, S.gap[0] - 2, S.roadZ - 0.5, S.roadZ - 0.5 + lw);
-    line(S.gap[1] + 2, S.roadX1, S.roadZ - 0.5, S.roadZ - 0.5 + lw);
+    // the south edge line breaks at each mouth
+    for (const [x0, x1] of runs) line(x0 + (x0 > S.roadX0 ? 1 : 0), x1 - (x1 < S.roadX1 ? 1 : 0), S.roadZ - 0.5, S.roadZ - 0.5 + lw);
     const mid = (S.forecourtZ + S.roadZ) / 2;
     for (let x = S.roadX0; x < S.roadX1; x += 10) line(x, x + 5, mid - lw / 2, mid + lw / 2);
     const paint = new THREE.Mesh(bake(parts), cel({ color: PAINT, bands: 3 }));

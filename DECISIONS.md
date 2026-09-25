@@ -304,3 +304,98 @@ Judgement calls, newest milestone last.
   - Kit spots: 103–203 calls, ~280k triangles, 5.0–5.9 ms per frame at
     1440p on an Apple M2.
   - Heroes: unchanged (0.000%), 5.6–5.8 ms.
+
+## M2b: Dense town
+
+- **Plan (config.js TOWN.grid, world/town-plan.js).**
+  - South of the main road, a grid about 190 × 135 m.
+  - The shopping spine runs at x −50 from the main road to the station
+    plaza; lanes run every 25–35 m; the railway moved to the south edge
+    (z 158), with its level crossing on lane x −80.
+  - The grid lines become a kit network (every crossing is a node), so
+    the M2a kit lays and dresses every street.
+- **The north side is M2's, unchanged (world/town-edge.js).** It is what
+  shows at the edges of the famous views, so it moved out of
+  town-blocks.js as it was. Everything south of the main road sits behind
+  the hero cameras' image plane (z > 16.5) and was rebuilt freely.
+- **The main road keeps the photo's cross-section** (6.7 m, lawson.js).
+  - It is a network edge the kit dresses but doesn't pave (`surface:
+    false`).
+  - Its cycle lanes are blue 自転車ナビライン arrows with bike symbols
+    (SPEC allows green or blue).
+  - The south walk breaks for every road that meets it
+    (`mainRoadGaps()`).
+- **Golden-hour shadows set the rules near the hero view.** The sun is 14°
+  up, from the east.
+  - No poles or signs from x −30 to 55 on the main road (quiet zone);
+    a pole there throws a 35 m shadow across the forecourt.
+  - Lots from x 4 to 28 are one storey; from x 28 to 62, two.
+  - Hero 2 differs from the M2 baseline by 0.357%: M2's two south-frontage
+    poles (x −10, 20) are gone, and so are their shadows on the forecourt.
+    M1 had neither. Heroes 1 and 3 are identical.
+- **Lots and mixing (kit/lots.js, kit/buildings.js).**
+  - Lots are 7–12 m wide with 0.5–1.5 m gaps, up to 14 m deep, so they
+    meet back to back. Busier streets are cut first.
+  - Spine and main road: 70% shop-houses. Lanes: 12% shops, 50% on
+    corners. Trades are dealt from a shuffled deck.
+- **Generators.**
+  - Houses (kit/houses.js) have four styles on the library house:
+    siding, mortar, old/kawara and modern. Attic houses, terraces and
+    walk-ups add variety. Fronts are dressed by yard depth, and side walls
+    get windows.
+  - Shopfronts (kit/shopfronts.js) have 14 trades on the library shop
+    unit. The recess is 1.9 m deep, with shelves, counter, washers or
+    chairs and a lit ceiling panel. Clutter is chosen per trade.
+  - All new names are in src/data/town.js.
+- **Special lots (kit/specials.js).**
+  - Inari shrine (富士見稲荷神社): two torii, foxes, lanterns, nobori and
+    a small hall.
+  - Coin parking (ふじみパーク): a corner plot, shrunk so a building and a
+    pole stand within 25 m of its middle. The photographers' strip round
+    x = 0 stays clear.
+  - Apartment (ふもと荘): 2 floors, on the library walk-up.
+  - Vacant lot (売地, 富士見不動産) and tiny park (ふじみ ちびっこ広場).
+  - The plaza is paving, a big sakura, a ring of benches and bike racks;
+    M2c brings the station.
+- **Density check (kit/density.js; `npm run shots` prints it).**
+  - It works from a registry the generators fill, because batching
+    merges the scene away.
+  - A building counts if any point round its footprint is inside the view
+    cone within 25 m; there is no occlusion test.
+  - "Bare" is measured along both frontages and down the asphalt of
+    every kit street. Special lots, and quiet zones (the hero window, the
+    railway), count as covered.
+- **Walkability.**
+  - The shopping pavement is 2.2 m, not 1.6 m, so a pole and a shop's
+    clutter never meet across it. Poles stand at the kerb; pavement
+    clutter has colliders of at most 0.3 m.
+  - `?m2check` scans both spine pavements for a gap the player (0.34 m)
+    fits through at every 0.25 m. Its walker now uses the carriageway,
+    because it steers straight at waypoints.
+- **Performance.**
+  - A texture atlas at batch time (merge.js): multi-material meshes are
+    split per group, and every non-repeating texture is packed into
+    4096² pages with remapped UVs. Signage then batches by style.
+    Street-level draw calls fell from 1,100–1,360 to 250–450, and frame
+    time from 10.7 to about 7 ms. The Lawson opts out (`noAtlas`) so the
+    famous view keeps its textures.
+  - Kit wires use 8 × 3 tubes (M2's keep 14 × 4).
+  - A distance-culled "detail" layer (small props in 32/64 m cells) was
+    tried. It cut triangles by about 0.25M but added calls and time, so
+    it is off. The hook (`userData.detail`, `detailCell`, `cullDetail`)
+    stays for M2d.
+  - Measured (headless Chrome, Apple M2, 2560×1440): 5.7–8.9 ms at
+    every spot. Draw calls are 160–450 at street level and 550 from the
+    overview. Triangles are 1.5–2.0M per frame, shadow pass included.
+    **Over SPEC 11's budgets (< 300 calls, < 1M triangles)**: M2d's
+    performance pass, with distance-based detail for far buildings.
+- **Bug fixed in the parts library:** `makeWall` made NaN geometry for any
+  run under 0.9 m (n = 0). This was behind the console's NaN warnings,
+  including M2's.
+- **Sakura Crossing names.** The walk-up's block plates carried ひばり台
+  and さくら坂 names; they are ours now. `npm run check:names` builds and
+  searches the bundle for 15 names: none.
+- **Measured (`?m2check`).**
+  - Walk routes: 0 stuck points on all four.
+  - Fuji's peak is in line of sight from 67% of walkable points (M2:
+    87%; the bar is "most").

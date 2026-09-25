@@ -13,7 +13,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "play": "vite build && vite preview --port 5179 --open",
-    "shots": "node scripts/shots.mjs"
+    "shots": "node scripts/shots.mjs",
+    "check:names": "node scripts/check-names.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

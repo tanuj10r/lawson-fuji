@@ -156,9 +156,11 @@ export function makePole(o = {}) {
 }
 
 /** Sagging cable runs between a list of world-space anchor points. */
-export function makeWires(ctx, runs) {
+export function makeWires(ctx, runs, o = {}) {
   const m = mats();
   const geos = [];
+  // `seg` / `radial`: the kit strings over a thousand spans, so it asks for less
+  const seg = o.seg ?? 14, radial = o.radial ?? 4;
   for (const run of runs) {
     const { points, sag = 0.5, r = 0.026 } = run;
     for (let i = 0; i < points.length - 1; i++) {
@@ -166,7 +168,7 @@ export function makeWires(ctx, runs) {
       const b = points[i + 1];
       const dist = a.distanceTo(b);
       const curve = sagCurve(a, b, sag * Math.min(1.6, dist / 14), 12);
-      geos.push(new THREE.TubeGeometry(curve, 14, r, 4, false));
+      geos.push(new THREE.TubeGeometry(curve, seg, r, radial, false));
     }
   }
   if (!geos.length) return null;

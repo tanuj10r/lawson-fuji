@@ -57,8 +57,12 @@ export function makeHouse(o) {
   const floors = o.floors ?? 2;
   const fh = 2.72;
   const H = fh * floors;
-  const wallMat = m.walls[o.wall ?? rng.int(0, WALLS.length - 1)];
-  const roofMat = m.roofs[o.roof ?? rng.int(0, ROOFS.length - 1)];
+  // `wallMat` / `roofMat` (kit/houses.js): textured siding and kawara.  The
+  // index draws still happen, so a seed builds the same house either way.
+  const wallIdx = o.wall ?? rng.int(0, WALLS.length - 1);
+  const roofIdx = o.roof ?? rng.int(0, ROOFS.length - 1);
+  const wallMat = o.wallMat ?? m.walls[wallIdx];
+  const roofMat = o.roofMat ?? m.roofs[roofIdx];
   const roofKind = o.roofKind ?? rng.pick(['gable', 'hip', 'gable', 'flat', 'hip']);
 
   // frontage direction as a unit vector in XZ
@@ -349,6 +353,8 @@ export function makeHouse(o) {
 
   g.position.set(o.x, o.y ?? 0, o.z);
   g.userData.footprint = { w, d, H };
+  // where the front door is, along the frontage from the centre
+  g.userData.doorU = doorU;
   return g;
 }
 
@@ -380,7 +386,8 @@ export function makeWall(o) {
   if (o.fence) {
     const fh = o.fenceH ?? 0.85;
     const parts = [];
-    const n = Math.floor(len / 0.9);
+    // at least one bay: a run under 0.9 m made n = 0 and every post NaN
+    const n = Math.max(1, Math.floor(len / 0.9));
     for (let i = 0; i <= n; i++) {
       const t = -len / 2 + (len / n) * i;
       parts.push({
@@ -394,7 +401,7 @@ export function makeWall(o) {
         matrix: trs(0, y, 0),
       });
     }
-    const nb = Math.floor(len / 0.22);
+    const nb = Math.max(1, Math.floor(len / 0.22));
     for (let i = 0; i <= nb; i++) {
       const t = -len / 2 + (len / nb) * i;
       parts.push({

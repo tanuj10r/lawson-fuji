@@ -34,6 +34,7 @@ const VARIANTS = [
 export function addVending(ctx, o = {}) {
   const v = makeVendingMachine(o.variant ?? 0, o.seed ?? 1);
   v.position.set(o.x, o.y ?? 0, o.z);
+  if (o.detail) v.userData.detail = true;   // kit: a small prop, drawn near the camera
   v.rotation.y = o.ry ?? 0;
   shadowify(v, true, true);
   ctx.add(v);

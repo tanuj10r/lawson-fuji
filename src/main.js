@@ -8,8 +8,9 @@ import { createHud } from './core/hud.js';
 import { createMusic } from './core/audio.js';
 import { buildTown } from './world/town.js';
 import { buildKitTest } from './world/kit-test.js';
+import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
-import { PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI } from './config.js';
+import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI } from './config.js';
 
 /* ------------------------------------------------------------------ *
  * Lawson Fuji -- entry point.  Rendering is inherited from Sakura Crossing (MIT).
@@ -417,6 +418,15 @@ if (import.meta.env?.DEV) {
    * it to .shots/ (those carry the third-party photo, so they stay local). */
   const params = devParams;
   window.__lastView = () => lastView;
+  /* The density budget (SPEC section 3), from a spot and town-wide. */
+  window.__density = (spot) => {
+    const kit = world.core?.kit ?? world.kit;
+    if (!kit || !world.registry) return null;
+    const out = {};
+    if (spot) out.spot = atSpot(world.registry, kit.decals, spot, PLAYER.hfov);
+    else out.bare = bareStretches(kit.net, world.core?.lots ?? [], world.registry, kit.decals, world.core?.specials ?? []);
+    return out;
+  };
   world.fuji.ready.then(() => { window.__ready = true; });
 
   /* ?tour: frames round the town (M2 review), with draw-call and triangle
@@ -533,15 +543,29 @@ if (import.meta.env?.DEV) {
         player.locked = false;
         log(`walk ${name}: ${t.toFixed(0)} s, ${dist.toFixed(0)} m, stuck ${stuck}`);
       };
-      // west end of the shopping street -> the Lawson -> far corner of the park
-      walkRoute('shotengai-to-park', [[-104, 40], [-40, 40], [-36, 22], [0, 21], [40, 19], [40, 8], [46, 6], [46, -12], [46, -35], [62, -50]]);
-      // the station -> the level crossing road -> far end of the residential lane
-      walkRoute('station-to-lane', [[44, 55], [34, 55], [34, 22], [-21.5, 21], [-21.5, 5], [-21.5, -41], [-108, -41]]);
-      // a loop through every zone: shopping street, residential lane, park,
-      // station and back to the famous view
-      walkRoute('grand-loop', [[0, 21], [-36, 22], [-40, 40], [-104, 40], [-40, 40], [-36, 22], [-21.5, 20],
-        [-21.5, 5], [-21.5, -41], [-108, -41], [-21.5, -41], [-21.5, 8], [40, 8], [46, 6], [46, -35], [62, -50],
-        [46, -35], [46, 6], [40, 8], [34, 20], [34, 55], [44, 55], [34, 55], [34, 22], [0, 21]]);
+      // M2b: the famous view -> down the spine -> the plaza
+      walkRoute('spine-to-plaza', [[0, 18.6], [-48.4, 18.6], [-48.4, 124]]);
+      /* The walker steers straight at each waypoint, so pavements are checked
+       * separately: at every 0.25 m along the spine's two pavements there has
+       * to be a gap the player (0.34 m round) fits through. */
+      {
+        const R = 0.34;
+        const blocked = (x, z) => world.colliders.some((c) => c.top > world.heightAt(x, z) + 0.45
+          && x > c.x0 - R && x < c.x1 + R && z > c.z0 - R && z < c.z1 + R);
+        for (const [name, xa, xb] of [['spine east', -47.0, -44.8], ['spine west', -55.2, -53.0]]) {
+          let bad = 0;
+          for (let z = 21; z < 124; z += 0.25) {
+            let ok = false;
+            for (let x = xa; x <= xb && !ok; x += 0.1) ok = !blocked(x, z);
+            if (!ok) bad++;
+          }
+          log(`pavement ${name}: ${bad === 0 ? 'passable all along' : bad + ' blocked slices'}`);
+        }
+      }
+      // a loop round the lanes of the core
+      walkRoute('lanes-loop', [[-25.5, 19.5], [-25.5, 80], [92, 80], [92, 146], [0, 146], [0, 112], [-50, 112], [-50, 45], [-25.5, 45]]);
+      // the north side: the residential lane behind the store
+      walkRoute('north-lane', [[-21.5, 20], [-21.5, 5], [-21.5, -41], [-108, -41]]);
       // the barricade west to the barricade east, along the main road
       walkRoute('road-end-to-end', [[-116, 13.8], [116, 13.8]]);
 
@@ -586,7 +610,7 @@ if (import.meta.env?.DEV) {
         setOutlineResolution(pipeline.size.x, pipeline.size.y);
         const gl = renderer.getContext();
         const px = new Uint8Array(4);
-        const views = [['morning', null], ['shotengai', [-40, 40, 1.57]], ['road', [-60, 14, -1.35]], ['park', [46, 4, 0]]];
+        const views = [['morning', null], ['spine', [-46.2, 40, Math.PI]], ['road', [-60, 14, -1.35]], ['lane', [52, 79.4, 1.5708]]];
         for (const [name, at] of views) {
           enterHero(name === 'morning' ? 'morning' : 'golden');
           if (at) { player.pos.set(at[0], world.heightAt(at[0], at[1]), at[1]); player.yaw = at[2]; player.pitch = 0.05; player.applyCamera(0); }

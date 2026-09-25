@@ -233,6 +233,31 @@ const CELLS = {
       wear(c, 0, 0, w, h, 13);
     },
   },
+  navi: {
+    at: [7, 3], draw: (c, w, h) => {
+      // 矢羽根: a blue feathered arrow pointing along travel (top of the cell)
+      c.fillStyle = '#3a78d0';
+      c.beginPath();
+      c.moveTo(w / 2, 10); c.lineTo(w - 20, h * 0.42); c.lineTo(w - 20, h - 10);
+      c.lineTo(w / 2, h * 0.58); c.lineTo(20, h - 10); c.lineTo(20, h * 0.42);
+      c.closePath(); c.fill();
+      wear(c, 0, 0, w, h, 26, 120);
+    },
+  },
+  bikeBlue: {
+    at: [0, 4], draw: (c, w, h) => {
+      c.fillStyle = '#3a78d0'; c.fillRect(0, 0, w, h);
+      c.strokeStyle = WHITE; c.lineWidth = 10; c.lineCap = 'round';
+      const r = 40, y = h * 0.6;
+      c.beginPath(); c.arc(w * 0.28, y, r, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.arc(w * 0.72, y, r, 0, Math.PI * 2); c.stroke();
+      c.beginPath();
+      c.moveTo(w * 0.28, y); c.lineTo(w * 0.45, y - 56); c.lineTo(w * 0.64, y - 56); c.lineTo(w * 0.72, y);
+      c.moveTo(w * 0.28, y); c.lineTo(w * 0.52, y); c.lineTo(w * 0.64, y - 56);
+      c.stroke();
+      wear(c, 0, 0, w, h, 27, 160);
+    },
+  },
   petals: {
     at: [7, 1], draw: (c, w, h) => {
       const r = rng(14);
@@ -643,6 +668,47 @@ const PLATES = {
       }
     },
   },
+  parking: {
+    shape: 'rect', size: () => [256, 384],
+    draw: (c, w, h, o) => {
+      c.fillStyle = '#f5c428'; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#1f4fa8'; c.beginPath(); c.arc(w / 2, 104, 80, 0, Math.PI * 2); c.fill();
+      fit(c, 'P', w / 2, 108, 120, 130, SIGN_WHITE);
+      fit(c, o.t ?? '', w / 2, 222, w - 24, 38, '#20243a');
+      fit(c, o.s ?? '', w / 2, 272, w - 24, 30, '#20243a');
+      c.fillStyle = '#d8302c'; c.fillRect(0, h - 70, w, 70);
+      fit(c, o.foot ?? '', w / 2, h - 35, w - 24, 30, SIGN_WHITE);
+    },
+  },
+  forSale: {
+    shape: 'rect', size: () => [384, 256],
+    draw: (c, w, h, o) => {
+      c.fillStyle = SIGN_WHITE; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#d8302c'; c.fillRect(0, 0, w, 110);
+      fit(c, '売地', w / 2, 58, w - 40, 88, SIGN_WHITE);
+      fit(c, o.t ?? '', w / 2, 150, w - 30, 36, '#20243a');
+      fit(c, o.tel ?? '', w / 2, 210, w - 30, 34, '#d8302c');
+    },
+  },
+  parkName: {
+    shape: 'rect', size: () => [384, 256],
+    draw: (c, w, h, o) => {
+      c.fillStyle = '#f4efe2'; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#3f7f60'; c.fillRect(0, 0, w, 16); c.fillRect(0, h - 16, w, 16);
+      fit(c, o.t ?? '', w / 2, 80, w - 30, 52, '#2f5b40');
+      ['ボール遊びは しずかに', 'ごみは もちかえりましょう', 'ペットの ふんは かいぬしが'].forEach((l, i) =>
+        fit(c, l, w / 2, 140 + i * 30, w - 50, 22, '#4a4a58', { weight: '600' }));
+    },
+  },
+  shrineName: {
+    shape: 'rect', size: () => [128, 384],
+    draw: (c, w, h, o) => {
+      c.fillStyle = '#e8e0d0'; c.fillRect(0, 0, w, h);
+      const t = [...(o.t ?? '')];
+      const step = (h - 30) / Math.max(1, t.length);
+      t.forEach((g, i) => fit(c, g, w / 2, 15 + step * (i + 0.5), w - 20, step * 0.9, '#2a2630'));
+    },
+  },
   guard: {
     shape: 'rect', size: () => [256, 128],
     draw: (c, w, h) => {
@@ -655,3 +721,141 @@ const PLATES = {
     },
   },
 };
+
+/* ------------------------------ building skins ------------------------------ *
+ * Tiled in metres by the panels that carry them (kit/houses.js). */
+
+/** Horizontal siding: 2.4 m tile, boards ~0.2 m, a shadow line under each. */
+export const sidingTex = () =>
+  canvasTex('siding', 256, 256, (c, w, h) => {
+    c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h);
+    const n = 12;
+    for (let i = 0; i < n; i++) {
+      const y = (i * h) / n;
+      c.fillStyle = 'rgba(110,100,135,0.28)'; c.fillRect(0, y, w, 3);
+      c.fillStyle = 'rgba(255,255,255,0.5)'; c.fillRect(0, y + 3, w, 2);
+    }
+    // a vertical joint now and then
+    c.fillStyle = 'rgba(110,100,135,0.18)';
+    for (let i = 0; i < n; i++) c.fillRect(((i * 97) % 256), (i * h) / n, 2, h / n);
+  }, { repeat: true });
+
+/** Kawara: rows of rounded tiles, dark blue-grey; one tile = 0.3 m. */
+export const kawaraTex = () =>
+  canvasTex('kawara', 256, 256, (c, w, h) => {
+    c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h);
+    const cols = 8, rows = 8, cw = w / cols, rh = h / rows;
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < cols; i++) {
+        const x = i * cw, y = j * rh;
+        const g = c.createLinearGradient(x, 0, x + cw, 0);
+        g.addColorStop(0, 'rgba(60,56,90,0.35)');
+        g.addColorStop(0.45, 'rgba(255,255,255,0.25)');
+        g.addColorStop(1, 'rgba(60,56,90,0.35)');
+        c.fillStyle = g; c.fillRect(x, y, cw, rh);
+      }
+      c.fillStyle = 'rgba(40,36,70,0.45)'; c.fillRect(0, j * rh + rh - 3, w, 3);
+    }
+  }, { repeat: true });
+
+/** Vertical timber boarding: 1.2 m tile. */
+export const boardTex = () =>
+  canvasTex('boards', 256, 256, (c, w, h) => {
+    const r = rng(41);
+    const n = 8;
+    for (let i = 0; i < n; i++) {
+      const t = r();
+      c.fillStyle = t < 0.3 ? '#e6d8c4' : t < 0.6 ? '#f2e6d4' : '#ffffff';
+      c.fillRect((i * w) / n, 0, w / n, h);
+      c.fillStyle = 'rgba(80,60,60,0.45)'; c.fillRect((i * w) / n, 0, 3, h);
+    }
+    for (let k = 0; k < 40; k++) {
+      c.fillStyle = 'rgba(120,90,70,0.18)';
+      c.fillRect(r() * w, r() * h, 2, 10 + r() * 30);
+    }
+  }, { repeat: true });
+
+/** Washing on a line: towels and shirts, alpha-cut. */
+export const laundryTex = (variant = 0) =>
+  canvasTex('laundry' + variant, 128, 160, (c, w, h) => {
+    const cols = ['#f4f4f6', '#9cc4e8', '#f2b8c8', '#f6e3a0', '#b8dcc0', '#e8e0f2'];
+    const col = cols[variant % cols.length];
+    c.fillStyle = col;
+    if (variant % 2) {
+      // a shirt
+      c.beginPath();
+      c.moveTo(w * 0.3, 6); c.lineTo(w * 0.7, 6); c.lineTo(w, h * 0.22); c.lineTo(w * 0.86, h * 0.36);
+      c.lineTo(w * 0.78, h * 0.3); c.lineTo(w * 0.78, h - 4); c.lineTo(w * 0.22, h - 4);
+      c.lineTo(w * 0.22, h * 0.3); c.lineTo(w * 0.14, h * 0.36); c.lineTo(0, h * 0.22);
+      c.closePath(); c.fill();
+    } else {
+      c.fillRect(8, 6, w - 16, h - 12);
+      c.fillStyle = 'rgba(255,255,255,0.5)'; c.fillRect(8, h - 30, w - 16, 8);
+    }
+    c.fillStyle = 'rgba(90,80,110,0.25)'; c.fillRect(0, 0, w, 6);
+  });
+
+/** Back wall of a shop interior: shelves of goods, by trade. */
+export const shopBackTex = (kind = 'general') =>
+  canvasTex('shopBack' + kind, 512, 256, (c, w, h) => {
+    const r = rng(kind.length * 31 + 7);
+    c.fillStyle = '#efe8dc'; c.fillRect(0, 0, w, h);
+    const goods = {
+      general: ['#d8504a', '#f2c23c', '#4f8fd0', '#6fb86a', '#f2f2f2', '#e8864a'],
+      bakery: ['#d8a060', '#c07a3a', '#f0d09a', '#e8b878'],
+      florist: ['#f28cb0', '#f2d24a', '#e85a5a', '#9fd07a', '#c090e0'],
+      wagashi: ['#f4d8e0', '#9fc07a', '#f2f2ea', '#8a5a4a'],
+      books: ['#4a6fa8', '#c84a4a', '#e8d8b0', '#5a8a5a', '#8a6aa0'],
+      ramen: ['#c8a070', '#e8d8b8', '#8a4a3a'],
+      cafe: ['#8a5a3a', '#e8d8c0', '#c8a070'],
+      laundry: ['#e8eef4'],
+      dentist: ['#e8f0f4'],
+      barber: ['#e8eef4', '#4a8ac8'],
+    }[kind] ?? ['#d8504a', '#f2c23c', '#4f8fd0', '#6fb86a'];
+    if (kind === 'laundry' || kind === 'dentist' || kind === 'barber') {
+      // a tiled wall, a counter line, posters
+      c.fillStyle = '#dfe6ec'; c.fillRect(0, 0, w, h);
+      c.strokeStyle = 'rgba(120,130,150,0.3)';
+      for (let x = 0; x < w; x += 32) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke(); }
+      for (let y = 0; y < h; y += 32) { c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); }
+      for (let i = 0; i < 3; i++) { c.fillStyle = goods[i % goods.length] === '#e8eef4' ? '#f6d86a' : '#f28cb0'; c.fillRect(40 + i * 150, 50, 70, 90); }
+      return;
+    }
+    for (let row = 0; row < 4; row++) {
+      const y = 20 + row * 58;
+      c.fillStyle = '#b8a890'; c.fillRect(0, y + 46, w, 6);
+      for (let x = 6; x < w - 10;) {
+        const bw = 10 + r() * 22;
+        c.fillStyle = goods[Math.floor(r() * goods.length)];
+        const bh = 18 + r() * 26;
+        c.fillRect(x, y + 46 - bh, bw, bh);
+        x += bw + 2;
+      }
+    }
+  });
+
+/** The barber's pole: red, white and blue spirals. */
+export const barberTex = () =>
+  canvasTex('barber', 128, 256, (c, w, h) => {
+    c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h);
+    const band = (col, off) => {
+      c.fillStyle = col;
+      for (let y = -h; y < h * 2; y += 96) {
+        c.beginPath();
+        c.moveTo(0, y + off); c.lineTo(w, y + off - 64); c.lineTo(w, y + off - 40); c.lineTo(0, y + off + 24);
+        c.closePath(); c.fill();
+      }
+    };
+    band('#d8302c', 0);
+    band('#2a5aa8', 48);
+  }, { repeat: true });
+
+/** A shrine nobori: red cloth, the dedication in white, down the middle. */
+export const noboriTex = (text = '') =>
+  canvasTex('nobori' + text, 96, 384, (c, w, h) => {
+    c.fillStyle = '#c8322c'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#f2ead8'; c.fillRect(0, 0, w, 14);
+    const t = [...text];
+    const step = (h - 40) / Math.max(1, t.length);
+    t.forEach((g, i) => fit(c, g, w / 2, 26 + step * (i + 0.5), w - 18, step * 0.92, '#fbf6ea'));
+  });

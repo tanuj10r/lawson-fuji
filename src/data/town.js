@@ -25,6 +25,14 @@ export const SHOP_SIGNS = {
   greengrocer: { bg: '#fdf6e4', bar: 0xef8a3c, fg: '#a3531c', t: '八百屋 まるやま', s: 'やさい くだもの', en: 'MARUYAMA' },
   cafe: { bg: '#f6f1ea', bar: 0x6b4430, fg: '#6b4430', t: '喫茶 あさぎり', s: 'コーヒー ・ ナポリタン', en: 'ASAGIRI' },
   hardware: { bg: '#eef2f5', bar: 0x3d6ec4, fg: '#2a4f97', t: '金物 やまだ', s: 'だいどころ ・ どうぐ', en: 'YAMADA' },
+  // M2b: the rest of the town's trades
+  ramen: { bg: '#f7efe0', bar: 0xc0392b, fg: '#9a2a1e', t: 'らーめん 雲海', s: 'しょうゆ ・ みそ', en: 'UNKAI' },
+  wagashi: { bg: '#f6f0e6', bar: 0x7a4a5a, fg: '#6a3a4a', t: '菓子処 ゆきみ', s: 'だんご ・ さくらもち', en: 'YUKIMI' },
+  general: { bg: '#fbf6e8', bar: 0x2f7a4a, fg: '#24603a', t: 'よろず屋 たかね', s: 'たばこ ・ 食料品 ・ 日用品', en: 'TAKANE' },
+  barber: { bg: '#f2f6fa', bar: 0x2a5aa8, fg: '#24488a', t: 'ヘアーサロン かざぐるま', s: 'カット ・ 顔そり', en: 'KAZAGURUMA' },
+  laundry: { bg: '#f0f6fa', bar: 0x3aa0c8, fg: '#1e6a8a', t: 'コインランドリー しらゆき', s: '24時間 ・ 乾燥機', en: 'SHIRAYUKI' },
+  dentist: { bg: '#f4faf6', bar: 0x2e9a78, fg: '#1f6e56', t: 'こだま歯科医院', s: '予約優先 ・ 土曜診療', en: 'KODAMA DENTAL' },
+  closed: { bg: '#e6e2d6', bar: 0x8a8274, fg: '#6a645a', t: '洋品店 まつや', s: 'ながらくの ご愛顧を', en: 'MATSUYA' },
 };
 
 /** The barricades where the main road leaves town. */
@@ -53,3 +61,9 @@ export const DIRECTIONS = [
 
 /** The bus stop in the town. */
 export const BUS_STOP = '富士見町';
+
+/* ---- special lots (M2b) ---- */
+export const COIN_PARKING = { t: 'ふじみパーク', s: '20分 100円', foot: '最大料金 600円' };
+export const SHRINE = { name: '富士見稲荷神社', nobori: '正一位稲荷大明神' };
+export const FOR_SALE = { t: '富士見不動産', tel: '0555-23-0770' };
+export const PARK_NAME = 'ふじみ ちびっこ広場';

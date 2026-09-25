@@ -70,11 +70,13 @@ export function buildRoads(ctx, net, decals) {
 
   /* ---- junction squares ---- */
   for (const n of Object.values(net.nodes)) {
-    if (!n.ax || !n.az) continue;
+    if (!n.ax || !n.az || n.external) continue;
     group.add(slab(n.x - n.ax, n.z - n.az, n.x + n.ax, n.z + n.az, AY, 0.06, m.asphalt, ASPHALT_TILE, 'junction'));
   }
 
   for (const e of net.edges) {
+    // a road built elsewhere (the Lawson's): the kit only dresses it
+    if (e.opts.surface === false) continue;
     const r = rngKit(e.seed);
     const spec = e.spec;
 

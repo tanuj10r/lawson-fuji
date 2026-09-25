@@ -60,7 +60,8 @@ export function buildPoles(ctx, net, decals) {
     const r = rngKit(e.seed + 31);
     const side = e.opts.poles ?? (r.chance(0.5) ? -1 : 1);
     const onWalk = e.spec.walk > 0;
-    const off = side * (e.a + (onWalk ? 0.45 : 0.32));
+    // on a pavement the pole stands at the kerb, leaving the walk clear
+    const off = side * (e.a + (onWalk ? 0.35 : 0.32));
     const y = onWalk ? WY : 0;
     // keep clear of zebras and bus stops
     const busy = [
@@ -81,8 +82,9 @@ export function buildPoles(ctx, net, decals) {
 
     const list = [];
     for (const s of spots) {
-      n++;
       const p = net.at(e, s, off);
+      if (net.quiet(p.x, p.z)) continue;
+      n++;
       const H = r.range(...POLES.height);
       const face = side > 0 ? Math.PI : 0;
       const plates = [];
@@ -114,6 +116,7 @@ export function buildPoles(ctx, net, decals) {
       ctx.add(g);
       g.updateMatrixWorld(true);
       ctx.collide(p.x - 0.24, p.z - 0.24, p.x + 0.24, p.z + 0.24, y + H);
+      ctx.registry?.push({ kind: 'pole', x: p.x, z: p.z });
       const rec = { g, e, s, side, x: p.x, z: p.z, H };
       list.push(rec);
       all.push(rec);
@@ -156,6 +159,25 @@ export function buildPoles(ctx, net, decals) {
   const drops = [];
   return {
     list: all,
+    /** One more pole, off the street grid (a park light): lamp, plates,
+     *  and three lines to the nearest pole. */
+    standPole(x, z, y = 0) {
+      const g = makePole({ x, y, z, h: 8.6, seed: 9000 + all.length, transformer: false, guard, telecom: true, litPlates: true, lamp: true });
+      g.name = 'pole';
+      ctx.add(g);
+      g.updateMatrixWorld(true);
+      ctx.collide(x - 0.24, z - 0.24, x + 0.24, z + 0.24, y + 8.6);
+      ctx.registry?.push({ kind: 'pole', x, z });
+      let best = null, bd = 45;
+      for (const p of all) {
+        const d = Math.hypot(p.x - x, p.z - z);
+        if (d < bd) { bd = d; best = p; }
+      }
+      const rec = { g, x, z, H: 8.6 };
+      if (best) for (const k of [0, 1, 5]) runs.push({ points: [world(best, k), world(rec, k)], sag: POLES.sag, r: POLES.wireR });
+      all.push(rec);
+      return rec;
+    },
     /** A service drop from the nearest pole to `point` (a Vector3 on a facade). */
     serviceDrop(point, reach = 32) {
       let best = null, bd = reach;
@@ -170,9 +192,10 @@ export function buildPoles(ctx, net, decals) {
     },
     /** Build the wires (after every service drop has been asked for). */
     finish() {
-      const a = makeWires(ctx, runs);
-      const b = makeWires(ctx, tel);
-      const c = makeWires(ctx, drops);
+      const lite = { seg: 8, radial: 3 };
+      const a = makeWires(ctx, runs, lite);
+      const b = makeWires(ctx, tel, lite);
+      const c = makeWires(ctx, drops, { seg: 6, radial: 3 });
       return [a, b, c].filter(Boolean);
     },
   };

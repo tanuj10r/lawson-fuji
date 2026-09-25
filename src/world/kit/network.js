@@ -22,9 +22,10 @@ function halves(cls) {
 
 /**
  * @param def.nodes     { id: [x, z] }
- * @param def.edges     [[from, to, cls, opts?]]  opts: { seed, school, pedPriority, poles: side|0 }
+ * @param def.edges     [[from, to, cls, opts?]]  opts: { seed, school, pedPriority, poles: side|0, surface: false }
  * @param def.crossings [{ edge, at }]  a zebra across edge `edge` at `at` along it
  * @param def.busStops  [{ edge, at, side }]
+ * @param def.quiet     [[x0, z0, x1, z1]]  no furniture inside (the hero window)
  */
 export function makeNetwork(def) {
   const nodes = {};
@@ -102,8 +103,14 @@ export function makeNetwork(def) {
     return pos + d * n.az;
   }
 
+  /** Quiet zones ([x0, z0, x1, z1]): no poles, signs or road words inside. */
+  const quietRects = def.quiet ?? [];
+  const quiet = (x, z) => quietRects.some(([x0, z0, x1, z1]) => x > x0 && x < x1 && z > z0 && z < z1);
+  // a node where a road the kit doesn't pave meets others is paved by that road
+  for (const n of Object.values(nodes)) n.external = n.edges.some((e) => e.opts.surface === false);
+
   return {
-    nodes, edges, at, along, walkEnd,
+    nodes, edges, at, along, walkEnd, quiet,
     crossings: (def.crossings ?? []).map((c) => ({ ...c, e: edges[c.edge] })),
     busStops: (def.busStops ?? []).map((b) => ({ ...b, e: edges[b.edge] })),
   };

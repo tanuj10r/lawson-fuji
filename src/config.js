@@ -42,16 +42,15 @@ export const STREET = {
   roadZ: 17.2,     // far kerb
   tactileZ: 17.55, // centre of the yellow tactile strip
   sidewalkZ: 20.5, // far sidewalk ends, a paved lot begins
-  lotZ: 36,
+  lotZ: 42.5,      // to the lane at z 45
   x0: -40,         // forecourt
   x1: 40,
   roadX0: -125,    // the main road runs the width of the town (M2)
   roadX1: 125,
-  lotX0: -40,      // the paved lot where the photographers stand
-  lotX1: 24,
+  lotX0: -22.5,    // the paved lot where the photographers stand (coin parking)
+  lotX1: 27.5,
   bayX0: -20,      // painted bays and wheel stops, out past the hero frame
   bayX1: 22,
-  gap: [25.3, 34.7], // the far sidewalk breaks for the side road
 };
 
 /* Hero views (SPEC section 1).
@@ -184,22 +183,49 @@ export const LOOKS = {
   },
 };
 
-/* The compact town around the Lawson (SPEC section 3, M2).  About 245 x 190 m.
+/* The town (SPEC section 3, M2b).
  *
- *   north (-z)  tree line; residential lane (left), the Lawson, park (right)
- *   z 10.5-17.2 the main road, barricaded where it leaves town at x ±118
- *   south (+z)  the photographers' lot, shopping street (left), side road
- *               to the level crossing and station (right), the railway at
- *               z = 60, tree line beyond */
+ *   north (-z)  the frame-edge side: residential lane (left), the Lawson and
+ *               open ground toward Fuji, the park (right) -- M2's, kept as is
+ *               so the famous views never change
+ *   z 10.5-17.2 the main road (lawson.js), barricaded where it leaves town
+ *   south (+z)  the dense core on a grid (TOWN.grid, world/town-plan.js):
+ *               shopping spine to the station plaza, lanes everywhere, the
+ *               railway along the south edge */
 export const TOWN = {
-  bounds: { x0: -122, x1: 122, z0: -97, z1: 92 },
-  rail: { crossX: 30, z: 60, interval: 180 },   // a train every 3 minutes
-  sideRoad: { x: 30, z0: 17.2, z1: 86 },        // carriageway ±3.15, walks 1.55
+  bounds: { x0: -122, x1: 122, z0: -97, z1: 174 },
+  core: { x0: -97, x1: 97, z0: 20.5, z1: 168 },
+  rail: { crossX: -80, z: 158, interval: 180 },   // a train every 3 minutes (M2c rebuilds)
   crosswalk: { x: -35, width: 4 },              // zebra and signals on the main road
   residential: { laneZ: -41, laneX0: -110, sideLaneX: -21.5 },
-  shotengai: { laneZ: 40, x0: -108, x1: -38 },
   park: { x0: 22, x1: 70, z0: -58, z1: -12 },
   petals: 150,                                    // SPEC section 1: 150 on High
+  /* Grid lines of the core.  `ns` run south from the main road (z = main)
+   * unless `z0` says otherwise; `ew` run between x0 and x1. */
+  grid: {
+    main: 13.85,
+    mainX: [-118, 118],
+    ns: [
+      { x: -80, cls: 'lane', z1: 172 },           // crosses the railway
+      { x: -50, cls: 'shopping', z1: 126 },       // the spine, to the plaza
+      { x: -25, cls: 'lane', z1: 146 },
+      { x: 0, cls: 'lane', z0: 45, z1: 146 },
+      { x: 30, cls: 'lane', z1: 146 },
+      { x: 62, cls: 'lane', z1: 146 },
+      { x: 92, cls: 'lane', z1: 146 },
+    ],
+    ew: [
+      { z: 45, x0: -80, x1: 92 },
+      { z: 80, x0: -80, x1: 92 },
+      { z: 112, x0: -80, x1: 92 },
+      { z: 146, x0: -25, x1: 92 },
+    ],
+  },
+  plaza: { x0: -78, x1: -27, z0: 126, z1: 152 },
+  /* Quiet zones: no poles, signs or road words.  The hero window, reaching
+   * east to x 55 because the golden-hour sun (from the east, 14° up) throws a
+   * pole's shadow 35 m west across the forecourt; and the railway. */
+  quiet: [[-30, -20, 55, 24], [-200, 151, 200, 166]],
 };
 
 /* The flat ground plane under everything. */
@@ -218,8 +244,11 @@ export const WORLD = {
  * between the side gutters on a lane); `walk` is each pavement. */
 export const ROADS = {
   lane: { asphalt: 4.6, walk: 0, gutter: 0.36, speed: 30, rank: 0 },
-  shopping: { asphalt: 6.0, walk: 1.6, gutter: 0, speed: 30, rank: 1 },
+  shopping: { asphalt: 6.0, walk: 2.2, gutter: 0, speed: 30, rank: 1 },   // narrow, but two can pass a pole
   main: { asphalt: 10.0, carriage: 7.0, cycle: 1.5, walk: 2.0, gutter: 0, speed: 40, rank: 2 },
+  /* The Lawson's own road (lawson.js builds it; the photo wins over SPEC's
+   * width): 6.7 m of asphalt, 3.3 m walk.  The kit only dresses it. */
+  hero: { asphalt: 6.7, carriage: 6.7, walk: 3.3, gutter: 0, speed: 40, rank: 2 },
   kerbH: 0.15,      // pavement top above the asphalt
   asphaltY: 0.02,   // asphalt top above the ground plane
 };
@@ -260,8 +289,23 @@ export const SHOT_SPOTS = [
   { name: 'hero-1', scene: 'town', hero: 'morning', looks: ['day'], guard: true },
   { name: 'hero-2', scene: 'town', hero: 'golden', looks: ['golden'], guard: true },
   { name: 'hero-3', scene: 'town', hero: 'night', looks: ['blue'], guard: true },
-  { name: 'town-road', scene: 'town', pos: [-60, 0, 14], yaw: -1.35, pitch: 0.05, looks: ['day'], ref: '02-main-road-van-poles.png' },
-  { name: 'town-shotengai', scene: 'town', pos: [-40, 0, 40], yaw: 1.57, pitch: 0.05, looks: ['golden'], ref: '05-shopping-street-petals.png' },
+  // M2b: street level round the core
+  { name: 'town-spine-north', scene: 'town', pos: [-46.2, 0, 23.5], yaw: 3.1416, pitch: 0.03, looks: ['day', 'golden'], ref: '05-shopping-street-petals.png' },
+  { name: 'town-spine-shops', scene: 'town', pos: [-46.6, 0, 62], yaw: 2.2, pitch: 0.02, looks: ['day'], ref: '06-general-store-front.png' },
+  { name: 'town-spine-night', scene: 'town', pos: [-46.2, 0, 88], yaw: 3.1416, pitch: 0.04, looks: ['blue'] },
+  { name: 'town-main-west', scene: 'town', pos: [-72, 0, 18.8], yaw: -1.5708, pitch: 0.03, looks: ['day'], ref: '02-main-road-van-poles.png' },
+  { name: 'town-main-east', scene: 'town', pos: [80, 0, 18.8], yaw: 1.5708, pitch: 0.03, looks: ['golden'], ref: '01-main-road-cycle-lanes.png' },
+  { name: 'town-lane-houses', scene: 'town', pos: [52, 0, 79.4], yaw: 1.5708, pitch: 0.04, looks: ['day'], ref: '03-street-shrine-house.png' },
+  { name: 'town-lane-junction', scene: 'town', pos: [-25.6, 0, 62], yaw: 3.1416, pitch: 0.02, looks: ['day'], ref: '09-konbini-corner-tomare.png' },
+  { name: 'town-shrine', scene: 'town', pos: [11, 0, 77.6], yaw: 2.9, pitch: 0.05, looks: ['day'], ref: '04-shrine-pole-ramen.png' },
+  { name: 'town-coin-parking', scene: 'town', pos: [-9, 0, 22.5], yaw: 3.1416, pitch: 0.0, looks: ['day'] },
+  { name: 'town-apartment', scene: 'town', pos: [28.2, 0, 83], yaw: -2.4, pitch: 0.06, looks: ['day'] },
+  { name: 'town-vacant', scene: 'town', pos: [47, 0, 113.6], yaw: 0.35, pitch: 0.0, looks: ['golden'] },
+  { name: 'town-park', scene: 'town', pos: [14.5, 0, 110.6], yaw: 3.1416, pitch: 0.02, looks: ['day'], ref: '11-plaza-zebra-sakura.png' },
+  { name: 'town-plaza', scene: 'town', pos: [-50, 0, 121], yaw: 3.1416, pitch: 0.05, looks: ['day'], ref: '12-station-plaza-big-sakura.png' },
+  { name: 'town-crossing', scene: 'town', pos: [-80.6, 0, 138], yaw: 3.1416, pitch: 0.02, looks: ['golden'], ref: '20-level-crossing-fence.png' },
+  { name: 'town-overview', scene: 'town', pos: [0, 0, 215], yaw: 0, pitch: -0.62, lift: 95, looks: ['golden'] },
+  { name: 'town-overview-east', scene: 'town', pos: [170, 0, 90], yaw: -1.5708, pitch: -0.55, lift: 80, looks: ['day'] },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },
@@ -271,3 +315,10 @@ export const SHOT_SPOTS = [
   { name: 'kit-lane-signs', scene: 'kit', pos: [-6, 0, -35.5], yaw: -1.5708, pitch: 0.03, looks: ['day', 'blue'], ref: '02-main-road-van-poles.png' },
   { name: 'kit-overview', scene: 'kit', pos: [0, 0, 70], yaw: 0, pitch: -0.5, lift: 60, looks: ['golden'] },
 ];
+
+/** Where the main road's south walk breaks for the roads that meet it. */
+export function mainRoadGaps() {
+  return TOWN.grid.ns
+    .filter((r) => r.z0 === undefined)
+    .map((r) => [r.x - ROADS[r.cls].asphalt / 2, r.x + ROADS[r.cls].asphalt / 2]);
+}

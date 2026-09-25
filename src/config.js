@@ -351,6 +351,12 @@ export const SHOT_SPOTS = [
   { name: 'close-forecourt', scene: 'town', pos: [-5, 0, 7], yaw: 0.35, pitch: -0.42, looks: ['day'], close: true },
   { name: 'close-house-wall', scene: 'town', pos: [60, 0, 77.5], yaw: 1.9, pitch: 0.1, looks: ['day'], close: true },
   { name: 'close-sakura', scene: 'town', pos: [-50, 0, 128], yaw: 3.1416, pitch: 0.55, looks: ['day'], close: true, ref: '12-station-plaza-big-sakura.png' },
+  // M3a: inside the Lawson (world frame; judged against reference/konbini-details.md)
+  { name: 'store-door', scene: 'town', pos: [-2.3, 0, -0.6], yaw: 0, pitch: -0.05, looks: ['day'], close: true, frame: 'world' },
+  { name: 'store-aisle', scene: 'town', pos: [-2.1, 0, -3.0], yaw: 0, pitch: -0.12, looks: ['day'], close: true, frame: 'world' },
+  { name: 'store-cooler', scene: 'town', pos: [-4.4, 0, -7.9], yaw: 0.35, pitch: -0.08, looks: ['day'], close: true, frame: 'world' },
+  { name: 'store-counter', scene: 'town', pos: [3.4, 0, -2.2], yaw: -1.2, pitch: -0.1, looks: ['day', 'blue'], close: true, frame: 'world' },
+  { name: 'store-left', scene: 'town', pos: [-5.0, 0, -1.4], yaw: 1.0, pitch: -0.1, looks: ['day'], close: true, frame: 'world' },
   { name: 'town-overview', scene: 'town', pos: [0, 0, 95], yaw: 0, pitch: -0.5, lift: 95, looks: ['golden'], frame: 'world' },
   { name: 'town-overview-east', scene: 'town', pos: [170, 0, 90], yaw: -1.5708, pitch: -0.55, lift: 80, looks: ['day'] },
 

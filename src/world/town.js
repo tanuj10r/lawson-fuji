@@ -157,6 +157,7 @@ export function buildTown(scene) {
     update(dt, camera) {
       if (camera) camPos.copy(camera.position);
       for (const fn of ctx.updaters) fn(dt);
+      lawson.update(dt, camPos);          // the automatic door
       const lp = T.toLocal(camPos);
       camLocal.position.set(lp.x, camPos.y, lp.z);
       if (camera) {

@@ -6,9 +6,10 @@ import { bake, trs, shadowify } from '../core/util.js';
 import { LAWSON, STREET } from '../config.js';
 import {
   signBand, sideBand, logoPlate, nobori, tileTex,
-  interiorCard, ceilingTex, glassShine, spillTex, redNotice, foodPoster, campaignBanner,
+  glassShine, spillTex, redNotice, foodPoster, campaignBanner,
 } from './lawson-tex.js';
 import { dressLawson, wearLawson } from './lawson-dress.js';
+import { buildInterior, buildDoor } from './store/interior.js';
 import { asphaltTex, ASPHALT_TILE } from './kit/tex.js';
 import { chipTex, CHIP_TILE } from './kit/paint.js';
 
@@ -128,7 +129,8 @@ export function buildLawson(parent) {
   {
     const frame = new THREE.Group();
     frame.name = 'lawson-frame';
-    const mullions = [-6.1, -4.2, -3.3, -2.3, -1.3, -0.4, 1.55, 3.5, 5.4, 7.3];
+    // (the entrance's middle mullion is the two door leaves meeting: store/interior.js)
+    const mullions = [-6.1, -4.2, -3.3, -1.3, -0.4, 1.55, 3.5, 5.4, 7.3];
     for (const x of mullions) frame.add(slab(x - 0.04, x + 0.04, 0.08, glassTop, -0.06, 0.06, alu));
     frame.add(slab(gx0, gx1, 0, 0.1, -0.08, 0.08, cel({ color: ALU_DARK, bands: 2 })));
     frame.add(slab(gx0, gx1, glassTop - 0.08, glassTop, -0.08, 0.08, alu));
@@ -137,52 +139,51 @@ export function buildLawson(parent) {
     frame.add(slab(d0, d1, 2.16, 2.24, -0.08, 0.08, alu));
     shell.add(frame);
 
-    const glass = face(gx0, gx1, 0.1, glassTop - 0.08, 0.0,
-      flat({ color: 0x9fbcd2, transparent: true, opacity: 0.3, depthWrite: false, cache: false }));
-    glass.userData.noOutline = true;
-    glass.renderOrder = 2;
+    const glassMat = flat({ color: 0x9fbcd2, transparent: true, opacity: 0.3, depthWrite: false, cache: false });
+    // the fixed glass either side of the entrance, and over it; the door has its own
+    const glass = new THREE.Group();
+    for (const [a, b, y0, y1] of [[gx0, d0, 0.1, glassTop - 0.08], [d1, gx1, 0.1, glassTop - 0.08], [d0, d1, 2.24, glassTop - 0.08]]) {
+      const f = face(a, b, y0, y1, 0.0, glassMat);
+      f.userData.noOutline = true;
+      f.renderOrder = 2;
+      glass.add(f);
+    }
+    glass.material = glassMat;
     root.add(glass);
     const shineTex = glassShine();
     shineTex.wrapS = THREE.RepeatWrapping;
     shineTex.repeat.set(3, 1);
-    const shine = face(gx0, gx1, 0.1, glassTop - 0.08, 0.012,
-      flat({ map: shineTex, transparent: true, opacity: 0.4, depthWrite: false, cache: false }));
-    shine.userData.noOutline = true;
-    shine.renderOrder = 3;
+    const shineMat = flat({ map: shineTex, transparent: true, opacity: 0.4, depthWrite: false, cache: false });
+    const shine = new THREE.Group();
+    for (const [a, b] of [[gx0, d0], [d1, gx1]]) {
+      const f = face(a, b, 0.1, glassTop - 0.08, 0.012, shineMat);
+      f.userData.noOutline = true;
+      f.renderOrder = 3;
+      shine.add(f);
+    }
+    shine.material = shineMat;
     root.add(shine);
     root.userData.glass = glass.material;
     root.userData.shine = shine.material;
     // setLook changes their opacity: keep them out of static batching
     glass.material.userData.live = shine.material.userData.live = true;
+    // the automatic door (M3a), its leaves in the same glass
+    root.userData.door = buildDoor(root, { alu, glassMat, colliders });
   }
 
-  /* --------------------- the painted interior (M3 replaces) --------------------- */
+  /* --------------------- the interior (M3a, store/interior.js) --------------------- */
   {
     const inside = new THREE.Group();
-    inside.name = 'lawson-interior-card';
-    const deep = -6;
-    const w = gx1 - gx0;
-    const card = face(gx0, gx1, 0, glassTop, deep, flat({ map: interiorCard(w, glassTop) }));
-    const ceilMat = flat({ map: ceilingTex(w, -deep) });
-    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(w, -deep), ceilMat);
-    ceil.rotation.x = Math.PI / 2;
-    ceil.position.set(0, glassTop - 0.02, deep / 2);
-    const floorMat = flat({ color: 0xe6e4de, cache: false });
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, -deep), floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.set(0, 0.02, deep / 2);
-    const sideMat = flat({ color: 0xf3f1ec, side: THREE.DoubleSide, cache: false });
-    for (const x of [gx0, gx1]) {
-      const s = new THREE.Mesh(new THREE.PlaneGeometry(-deep, glassTop), sideMat);
-      s.rotation.y = Math.PI / 2;
-      s.position.set(x, glassTop / 2, deep / 2);
-      inside.add(s);
-    }
-    inside.add(card, ceil, floor);
-    inside.traverse((o) => { if (o.isMesh) o.userData.noOutline = true; });
+    inside.name = 'lawson-interior';
     root.add(inside);
-    lit.push(card.material, ceilMat, floorMat, sideMat);
-    floorMat.userData.live = sideMat.userData.live = true;   // setLook drives these
+    buildInterior(inside, { lit, colliders });
+    // the glass in the walk-in cooler's doors
+    const cg = inside.userData.coolerGlass;
+    const cool = face(cg.x0, cg.x1, cg.y0, cg.y1, cg.z,
+      flat({ color: 0xd8ecf8, transparent: true, opacity: 0.18, depthWrite: false, cache: false }));
+    cool.userData.noOutline = true;
+    cool.renderOrder = 2;
+    inside.add(cool);
 
     // posters and the banner hung just inside the glass
     const inner = -0.05;
@@ -376,8 +377,14 @@ export function buildLawson(parent) {
   hullOutlineTree(shell, { thickness: 0.0032 });
   hullOutlineTree(props, { thickness: 0.003 });
 
-  // the store is solid until the door opens in M3
-  colliders.push({ x0: -hw, x1: wingX1, z0: back, z1: 0.35 });
+  // the store's walls (M3a: you can go in): left, back, the tiled wing on the
+  // right, and the front glass either side of the door (the door is its own)
+  colliders.push({ x0: -hw - 0.2, x1: -hw + 0.28, z0: back, z1: 0.35 });
+  colliders.push({ x0: -hw, x1: wingX1, z0: back - 0.2, z1: back + 0.28 });
+  colliders.push({ x0: hw, x1: wingX1, z0: back, z1: 0.35 });
+  const dr = root.userData.door;
+  colliders.push({ x0: -hw, x1: dr.d0, z0: -0.2, z1: 0.35 });
+  colliders.push({ x0: dr.d1, x1: hw, z0: -0.2, z1: 0.35 });
 
   return {
     root,
@@ -385,6 +392,8 @@ export function buildLawson(parent) {
     colliders,
     /** Raised walkable surfaces: the far sidewalk stands on its kerb. */
     platforms,
+    /** The door, each frame: `p` the player's position. */
+    update(dt, p) { root.userData.door.update(dt, p); },
     setLook(look) {
       const s = look.store;
       for (const m of lit) m.color.setScalar(s.interior);

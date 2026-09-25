@@ -857,3 +857,47 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
 - **Kept off the famous views.** Hidden while you stand on a famous view
   (the game opens on one) until you walk 1.5 m off it; hidden on the start
   and pause screens, with the reference overlay, and in dev captures.
+
+## M3a: the store interior
+
+- **Research first.** reference/konbini-details.md records a Lawson's
+  plan, fixtures, the counter and the room, and is the checklist for every
+  interior spot: 29 of 30 details are in (the charity box and small goods
+  at the register wait for M5).
+- **Painted, not lit.** A konbini is lit evenly from a ceiling full of
+  lights. So the room uses unlit, vertex-coloured materials with each
+  face shaded by hand (store/painter.js), and the ink pass draws every
+  edge. The sun's shadow through the roof would otherwise darken the
+  room, and the cost stays low. Every material is white-based and joins
+  the store's `lit` list, so the look scales the room's brightness.
+- **The plan** (store/interior.js). Looking in from the door, which is
+  left of centre:
+  - **left wall:** the ticket kiosk (red, generic), copier and ATM, then
+    the open chilled case;
+  - **back wall:** an 8-bay walk-in cooler with bottles in columns and a
+    price rail on every shelf;
+  - **the floor:** four 1.5 m gondolas, below eye height so you see over
+    them to the drinks, with end caps and POP cards (新商品, おすすめ,
+    期間限定, お買い得);
+  - **front:** the magazine rack along the glass, behind the pale-blue
+    film;
+  - **right:** the counter, with the hot showcase, steamer, two
+    registers, oden and the self-serve coffee at its end; behind it the
+    numbered cigarette wall, microwaves, the back counter and the staff
+    door;
+  - **back right:** the toilet door;
+  - hanging category signs, LED troffer rows, a tiled floor with a
+    sheen, a mirror and dome cameras.
+  - Aisles are 1.4 m.
+- **The door.** Two sliding leaves in the store's glass. They open within
+  1.8 m, close 2 s after you are clear, and are solid until mostly open.
+  The store's solid collider became walls, fixtures and the glass either
+  side of the door. Walked in and out headless: the door opened and
+  closed, the aisles were walkable, the cooler and glass were solid.
+- **Slots.** Every shelf run is recorded (zone, position, facing) for
+  M3b's products. The painted blocks on the shelves are filler until then.
+- **The famous views changed 4.5–5.8%**: the real room shows through the
+  glass instead of the painted card. They await Tan's OK before
+  re-baselining.
+- **Cost.** Hero-1 is 9.5 ms at 1440p; with the interior hidden, 9.7 ms.
+  No measurable cost.

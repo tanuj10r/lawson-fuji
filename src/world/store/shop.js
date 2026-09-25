@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { STORE, LAWSON } from '../../config.js';
 import { PRODUCT } from '../../data/catalog.js';
 import { STRINGS } from '../../data/strings.js';
-import { productGeometry, placeUnit } from './products.js';
+import { productGeometry, placeUnit, unitMatrix } from './products.js';
 import { basketModel, packBasket, onTop, BASKET } from './basket.js';
 
 /* ------------------------------------------------------------------ *
@@ -24,12 +24,11 @@ import { basketModel, packBasket, onTop, BASKET } from './basket.js';
 
 const ZONES = new Set(['drinks', 'chilled', 'gondola', 'endcap', 'icecase', 'freezer', 'selfserve']);
 const IN_VIEW = new THREE.Vector3(-0.34, -0.45, -0.84);        // the basket, in the camera's frame
-const IN_HAND = [new THREE.Vector3(0.3, -0.2, -0.64), new THREE.Vector3(0.19, -0.22, -0.68)];
+const IN_HAND = [new THREE.Vector3(0.2, -0.17, -0.6), new THREE.Vector3(0.1, -0.19, -0.64)];
 const hw = LAWSON.width / 2;
 
 export function makeShop(inside, { doors, lit }) {
   const units = inside.userData.units;
-  const stackAt = inside.userData.basketStack;
 
   /* ---------------- the facings you can take, as boxes ---------------- */
   const pickable = [];
@@ -38,7 +37,7 @@ export function makeShop(inside, { doors, lit }) {
     if (u.front || !ZONES.has(u.slot?.zone)) continue;
     const box = new THREE.Box3();
     for (const v of [u, ...u.backs]) {
-      v.mesh.getMatrixAt(v.index, m4);
+      unitMatrix(v, m4);
       box.union(bb.copy(productGeometry(v.id).boundingBox).applyMatrix4(m4));
     }
     u.box = box;
@@ -51,13 +50,16 @@ export function makeShop(inside, { doors, lit }) {
     pickable.push(u);
   }
 
-  /* ----------------------- the basket stack, its top ----------------------- */
-  const top = basketModel(lit);
-  top.position.set(stackAt.x, stackAt.y, stackAt.z);
-  top.userData.dynamic = true;
-  inside.add(top);
-  const stackBox = new THREE.Box3(
-    new THREE.Vector3(stackAt.x - 0.26, 0, stackAt.z - 0.19), new THREE.Vector3(stackAt.x + 0.26, stackAt.y + BASKET.h, stackAt.z + 0.19));
+  /* ---------------- the basket stacks, the top one of each ---------------- */
+  const stacks = inside.userData.basketStacks.map((at) => {
+    const top = basketModel(lit);
+    top.position.set(at.x, at.y, at.z);
+    top.userData.dynamic = true;
+    inside.add(top);
+    const box = new THREE.Box3(new THREE.Vector3(at.x - 0.27, 0, at.z - 0.2), new THREE.Vector3(at.x + 0.27, at.y + BASKET.h, at.z + 0.2));
+    return { top, box };
+  });
+  let from = null;             // the stack your basket came from
 
   /* ----------------- what you carry, drawn over the world ----------------- */
   const view = new THREE.Group();          // follows the camera (main.js adds it to the scene)
@@ -72,7 +74,7 @@ export function makeShop(inside, { doors, lit }) {
   view.add(held);
   const pageMat = new Map();
   const topMat = (u) => {
-    const src = u.mesh.material;
+    const src = u.mat;
     if (!pageMat.has(src)) { const m = onTop(src.clone()); lit.push(m); pageMat.set(src, m); }
     return pageMat.get(src);
   };
@@ -102,7 +104,6 @@ export function makeShop(inside, { doors, lit }) {
   /* ----------------------------- visuals ----------------------------- */
   function refreshSlot(u) {
     [u, ...u.backs].forEach((v, i) => placeUnit(v, 0, i >= u.count));
-    u.mesh.instanceMatrix.needsUpdate = true;
   }
   function layout() {
     for (const m of showing) m.parent?.remove(m);
@@ -144,13 +145,16 @@ export function makeShop(inside, { doors, lit }) {
     return out;
   }
   function unitWorld(u, out) {
-    u.mesh.getMatrixAt(u.index, out);
-    return out.premultiply(inside.matrixWorld);
+    return unitMatrix(u, out).premultiply(inside.matrixWorld);
   }
 
   /* ----------------------------- actions ----------------------------- */
+  const total = () => cart.reduce((n, c) => n + PRODUCT[c.id].priceYen, 0);
   function take(u) {
     if (!hasBasket && cart.length >= STORE.carry) { api.flash?.(STRINGS.store.handsFull); return; }
+    // the wallet (¥1,000, Tan): what would take you over it stays on the shelf
+    const price = PRODUCT[u.id].priceYen, left = STORE.wallet - total();
+    if (price > left) { api.flash?.(STRINGS.store.noMoney(left, price), true); refuse = 0.5; return; }
     const from = unitWorld(u, new THREE.Matrix4());
     u.count--;
     const item = { id: u.id, u, flying: true };
@@ -184,7 +188,7 @@ export function makeShop(inside, { doors, lit }) {
     for (const c of cart) { c.u.count++; refreshSlot(c.u); }
     cart.length = 0;
     hasBasket = false;
-    top.visible = true;
+    if (from) from.top.visible = true;
     layout();
   }
 
@@ -198,7 +202,7 @@ export function makeShop(inside, { doors, lit }) {
   rim.renderOrder = 4;
   inside.add(rim);
   const _s = new THREE.Matrix4(), _cc = new THREE.Vector3();
-  let rimOn = null;
+  let rimOn = null, refuse = 0;          // refuse: seconds of the red shake left
   function highlight(u) {
     if (u === rimOn && (!u || rim.visible)) return;
     rimOn = u;
@@ -206,14 +210,17 @@ export function makeShop(inside, { doors, lit }) {
     if (!u) return;
     const g = productGeometry(u.id);
     rim.geometry = g;
+    refuse = 0;
     // grow about the product's own middle
     g.boundingBox.getCenter(_cc);
     const k = 1.1;
     _s.makeTranslation(_cc.x, _cc.y, _cc.z).multiply(new THREE.Matrix4().makeScale(k, k, k)).multiply(new THREE.Matrix4().makeTranslation(-_cc.x, -_cc.y, -_cc.z));
-    u.mesh.getMatrixAt(u.index, rim.matrix);
+    unitMatrix(u, rim.matrix);
     rim.matrix.multiply(_s);
+    rimBase.copy(rim.matrix);
     rim.matrixWorldNeedsUpdate = true;
   }
+  const rimBase = new THREE.Matrix4(), _sh = new THREE.Matrix4();
 
   /* ----------------------------- aiming ----------------------------- */
   const ray = new THREE.Ray(), inv = new THREE.Matrix4(), hit = new THREE.Vector3(), eye = new THREE.Vector3();
@@ -236,24 +243,27 @@ export function makeShop(inside, { doors, lit }) {
       if (t < bestT) { bestT = t; best = u; }
     }
     // a shut door is in the way of what is behind it
-    let door = null;
+    let door = null, shut = null;
     for (const d of doors.list) {
-      if (d.want || d.open > 0.5) continue;
-      if (!ray.intersectBox(d.box, hit)) continue;
+      const open = d.want || d.open > 0.5;
+      if (!ray.intersectBox(open ? d.openBox : d.box, hit)) continue;
       const t = hit.distanceTo(eye);
-      if (t <= bestT + 0.02 && t <= R) { door = d; bestT = t; }
+      if (t <= bestT + 0.02 && t <= R) { if (open) { shut = d; door = null; } else { door = d; shut = null; } bestT = t; }
     }
-    if (best?.door && !best.door.want && best.door.open < 0.5) door = best.door;
-    if (door) return target('door' + door.i, () => ({ label: STRINGS.store.openDoor, action: () => doors.open(door) }));
-    if (ray.intersectBox(stackBox, hit) && hit.distanceTo(eye) < Math.min(bestT, R)) {
-      if (!hasBasket) return target('basket', () => ({ label: STRINGS.store.takeBasket, action: takeBasket }));
-      if (!cart.length) return target('unbasket', () => ({ label: STRINGS.store.returnBasket, action: dropBasket }));
+    if (best?.door && !best.door.want && best.door.open < 0.5 && !shut) door = best.door;
+    if (door) return target('door' + door.i, () => ({ label: STRINGS.store.openDoor, action: () => doors.open(door), kind: 'door' }));
+    // an open leaf in front of everything else: aim at it to shut it
+    if (shut && bestT < R) return target('shut' + shut.i, () => ({ label: STRINGS.store.closeDoor, action: () => doors.close(shut), kind: 'door' }));
+    for (const st of stacks) {
+      if (!ray.intersectBox(st.box, hit) || hit.distanceTo(eye) >= Math.min(bestT, R)) continue;
+      if (!hasBasket) return target(st, () => ({ label: STRINGS.store.takeBasket, action: () => takeBasket(st), kind: 'basket' }));
+      if (!cart.length && st === from) return target('un', () => ({ label: STRINGS.store.returnBasket, action: dropBasket, kind: 'basket' }));
     }
     if (!best) return null;
-    return target(best, () => ({ label: STRINGS.store.take(PRODUCT[best.id].nameJa), action: () => take(best), unit: best }));
+    return target(best, () => ({ label: STRINGS.store.take(PRODUCT[best.id].nameEn), action: () => take(best), unit: best, kind: 'item' }));
   }
-  function takeBasket() { hasBasket = true; top.visible = false; layout(); }
-  function dropBasket() { hasBasket = false; top.visible = true; layout(); }
+  function takeBasket(st = stacks[0]) { hasBasket = true; from = st; st.top.visible = false; layout(); }
+  function dropBasket() { hasBasket = false; if (from) from.top.visible = true; layout(); }
 
   /* ------------------------------- frame ------------------------------- */
   const ease = (t) => t * t * (3 - 2 * t);
@@ -271,6 +281,10 @@ export function makeShop(inside, { doors, lit }) {
   };
   api.clearAim = () => highlight(null);
   api.putBack = putBack;
+  api.stats = inside.userData.stockStats;
+  api.total = total;
+  /** Is a fridge door within reach (the card shows its line then)? */
+  api.nearDoor = () => doors.list.some((d) => d.box.distanceToPoint(local) < STORE.reach);
   api.returnAll = returnAll;
   api.update = (dt, camera, bob = 0) => {
     camera.updateMatrixWorld();
@@ -287,15 +301,22 @@ export function makeShop(inside, { doors, lit }) {
       returnAll();
       if (had) api.flash?.(STRINGS.store.notOut);
     }
+    if (inNow && !wasInside) api.onEnter?.();
     wasInside = inNow;
     doors.update(dt, local);
+    // a refused take: the rim turns red and shakes
+    if (refuse > 0) {
+      refuse = Math.max(0, refuse - dt);
+      rimMat.color.set(refuse > 0 ? 0xff6a5a : 0x9fd0ff);
+      rim.matrix.copy(_sh.makeTranslation(Math.sin(refuse * 60) * 0.008 * (refuse / 0.5), 0, 0)).multiply(rimBase);
+      rim.matrixWorldNeedsUpdate = true;
+    }
 
     for (let k = slides.length - 1; k >= 0; k--) {
       const s = slides[k];
       s.t += dt / STORE.slide;
       const e = ease(Math.max(0, Math.min(1, s.t)));
       placeUnit(s.u, s.u.depth * (1 - e), s.u.count <= 0);
-      s.u.mesh.instanceMatrix.needsUpdate = true;
       if (s.t >= 1) { slides.splice(k, 1); refreshSlot(s.u); }
     }
 

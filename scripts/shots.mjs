@@ -93,6 +93,8 @@ for (const spot of spots) {
       return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'unknown';
     });
     console.log(`scene ${scene}  (${gpu})`);
+    // the store's stock (M3d): how many products, never more than CAP of one
+    if (scene === 'town') stats._stock = await page.evaluate(() => window.__store?.shop?.stats ?? null);
   }
   const looks = spot.looks.filter((l) => !onlyLooks.length || onlyLooks.includes(l));
   for (const look of looks) {
@@ -180,6 +182,12 @@ if (!baseline) {
     console.log(`BARE asphalt: ${bare.asphalt.len} m (${bare.asphalt.cls} at ${JSON.stringify(bare.asphalt.at)})  ${bare.pass ? 'pass' : 'FAIL'}`);
   }
   let fail = false;
+  const st = stats._stock;
+  if (st) {
+    const ok = st.max <= 18;
+    if (!ok) fail = true;
+    console.log(`STOCK ${st.products} products, ${st.units} units, most of one: ${st.max} (${st.maxId}) ${ok ? 'pass' : 'FAIL'}${st.unplaced.length ? `; not on a shelf: ${st.unplaced.length} (${st.unplaced.join(', ')})` : ''}`);
+  }
   for (const [name, pct] of guards) {
     if (pct === null) console.log(`GUARD ${name}: no baseline (run with --baseline first)`);
     else if (pct > GUARD_LIMIT) { fail = true; console.log(`GUARD ${name}: FAIL, ${pct.toFixed(3)}% of pixels changed`); }

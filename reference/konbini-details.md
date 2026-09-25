@@ -124,3 +124,31 @@ Sources (round 2):
 - Reach-in and walk-in cases: https://www.coolland.co.jp/column-274.htm
 - Grouping by type, no gaps, eye level: https://nijiiro711.com/archives/3504
 - Salads and desserts between bento and drinks: https://zigen21.com/blog/convenience-display/
+
+---
+
+## 9. Round 3: the range across all three chains (M3d)
+
+Tan asked for no more than 15–20 of any one product and a real range,
+grouped by aisle, researched across 7-Eleven, FamilyMart and Lawson. What
+konbini of all three carry, beyond food and drink:
+
+| Section | Real | Ours (gondola, side) |
+| --- | --- | --- |
+| Savoury snacks | Chips in many flavours, corn puffs, shrimp crackers, senbei and arare, nuts, potato-stick cups; "adult snacks" (premium senbei, dark chocolate) are a growing share | G1, facing the chilled case: 37 kinds |
+| Chocolate and sweets | Bars, bite-size bags, choco sticks, choco mushrooms/bamboo, gummies, candy, mints and gum, biscuits | G1, window side: 42 kinds |
+| Medicine and health | A growing number of stores sell regulated drugs: cold, fever and pain, stomach and anti-diarrhoea, kanpō, plus vitamins, energy and nutrient drinks, eye drops, plasters, masks | G2, facing the chilled case, under a 医薬品 strip: 28 kinds, boxes marked 第2類 / 第3類医薬品 |
+| Cosmetics and care | Each chain has its own line (7-Eleven's ParaDo, FamilyMart's line with Kanebo, Lawson's Integrate and &nd by rom&nd): lip tint, foundation, primer, eye palette, concealer, cleansing milk; plus face wash, lotion, sheet masks, travel shampoo, toothbrushes, body wipes | G2, window side: 48 kinds |
+| Daily goods | Socks and underwear (FamilyMart's Convenience Wear is famous), towels, chargers and cables, batteries, stationery, tissues, rubbish bags, cling film | G3, facing the chilled case: 38 kinds |
+| Wine, sake, spirits | Wine, sake cartons and cups, shochu, whisky, mixers, and otsumami beside them; beer and chu-hi stay cold in the cooler | G3, window side: 31 kinds |
+
+In all, 446 products (the cooler about 90, the chilled case about 50),
+each placed as one block of a few facings with a row behind, and at most
+a second block, never more than 18 units in the store.
+
+Sources (round 3):
+- https://www.nippon.com/en/guide-to-japan/gu013004/ (socks, drugs, services; regulated drugs need registered staff)
+- https://www.fun-japan.jp/en/articles/14384 (the chains' cosmetics lines)
+- https://nomakenolife.com/blog/familymart-7-eleven-and-lawson-partner-with-top-japanese
+- https://www.byfood.com/blog/culture/japanese-snacks-konbini-japanese-convenience-store (the snack aisle)
+- https://livejapan.com/en/in-tokyo/in-pref-tokyo/in-asakusa/article-a0002729/

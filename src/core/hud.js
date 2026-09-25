@@ -79,8 +79,9 @@ export function createHud({ volume = 0.34 } = {}) {
     onStart: null,
     onVolumeChange: null,
     /** Brief centre-screen note that fades itself out. */
-    flash(text, ms = 1400) {
+    flash(text, ms = 1400, error = false) {
       toast.textContent = text;
+      toast.classList.toggle('err', error);
       toast.classList.add('on');
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toast.classList.remove('on'), ms);

@@ -10,14 +10,13 @@ const NAMES = [
   '桜ヶ丘', 'ひだまり', 'HIDAMARI', '桜川電鉄', '春風', '桜守', 'はるかぜ',
 ];
 /* And no real product brands on the shelves (AGENTS.md: products are
- * generic).  Lawson itself is allowed on the store, signs, uniform,
- * receipt and bags. */
+ * generic), and no real chain's name: the store is ホタル (M3d). */
 const BRANDS = [
   'Pocari', 'ポカリ', 'Strong Zero', 'ストロングゼロ', '-196', 'Suntory', 'サントリー', '伊右衛門', 'BOSS',
   'Calpis', 'カルピス', 'Kirin', 'キリン', 'Asahi', 'アサヒ', 'Sapporo', 'サッポロ', 'Yebisu', 'ヱビス',
   'Häagen', 'ハーゲンダッツ', '雪見だいふく', 'Pino', 'ピノ', 'Coca', 'コカ', 'Pepsi', 'ペプシ', '三ツ矢',
   'Karaage-kun', 'からあげクン', 'Loppi', 'ChargeSPOT', 'チャージスポット', 'MACHI', 'マチカフェ',
-  'FamilyMart', 'ファミリーマート', '7-Eleven', 'セブン', 'Oi Ocha', 'お〜いお茶', 'Aquarius', 'アクエリアス',
+  'FamilyMart', 'ファミリーマート', 'LAWSON', 'Lawson', 'ローソン', '7-Eleven', 'セブン', 'Oi Ocha', 'お〜いお茶', 'Aquarius', 'アクエリアス',
 ];
 NAMES.push(...BRANDS);
 execSync('npx vite build', { cwd: ROOT, stdio: 'ignore' });

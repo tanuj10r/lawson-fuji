@@ -3,45 +3,56 @@ import { PRODUCT } from '../data/catalog.js';
 import { STORE } from '../config.js';
 
 /* ------------------------------------------------------------------ *
- * The basket panel (M3c; SPEC 10): Tab slides it in from the right.
- * Rows of what you carry, grouped by product, with the subtotal against
- * your wallet.  The pointer stays locked, so it is driven by keys: W/S
- * choose a row, X puts one of it back, Tab closes.  And a small badge,
- * top right, counting what you carry.
+ * Shopping on screen (M3c; English only and the wallet card, M3d).
+ *
+ * The card, top left: from the moment you take a basket (or pick
+ * something up by hand) it shows the wallet, what the basket comes to and
+ * what is left, and the only keys that do anything in the store, each lit
+ * when it can be used right now.
+ *
+ * The panel, Tab: slides in from the right with what you carry, grouped
+ * by product.  The pointer stays locked, so it is driven by keys: W/S
+ * choose a row, X puts one of it back, Tab closes.
  * ------------------------------------------------------------------ */
 
-const yen = (n) => '¥' + n.toLocaleString('ja-JP');
+const yen = (n) => '¥' + n.toLocaleString('en');
+const S = STRINGS.store;
 
 export function createBasketPanel() {
-  const S = STRINGS.store;
   const style = document.createElement('style');
   style.textContent = `
-    .bpanel { position: fixed; top: 0; right: 0; bottom: 0; width: 360px; z-index: 15;
+    .bpanel { position: fixed; top: 0; right: 0; bottom: 0; width: 380px; z-index: 15;
       display: flex; flex-direction: column; padding: 22px 20px 18px;
-      background: rgba(252,250,252,.92); backdrop-filter: blur(8px);
+      background: rgba(252,250,252,.94); backdrop-filter: blur(8px);
       border-left: 3px solid #1f5fae; box-shadow: -8px 0 30px rgba(40,30,60,.18);
       transform: translateX(105%); transition: transform .22s ease; color: #3a3350; }
     .bpanel.on { transform: none; }
-    .bpanel h2 { margin: 0; font-size: 21px; letter-spacing: .04em; }
-    .bpanel h2 small, .bpanel .en { display: block; font-size: 12px; font-weight: 500; color: #8f88a8; letter-spacing: .02em; }
+    .bpanel h2 { margin: 0; font-size: 22px; letter-spacing: .01em; }
+    .bpanel .jp { display: block; font-size: 12px; font-weight: 500; color: #8f88a8; }
     .bpanel ul { list-style: none; margin: 16px 0 10px; padding: 0; flex: 1; overflow: hidden; }
-    .bpanel li { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center;
+    .bpanel li { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center;
       padding: 8px 10px; border-radius: 10px; font-size: 16px; }
     .bpanel li.sel { background: rgba(31,95,174,.12); box-shadow: inset 3px 0 0 #1f5fae; }
     .bpanel li .q { color: #6a6384; font-size: 14px; }
     .bpanel li .p { font-weight: 600; font-variant-numeric: tabular-nums; }
-    .bpanel .none { padding: 10px; color: #8f88a8; }
-    .bpanel .sum { border-top: 1.5px solid rgba(58,51,80,.2); padding-top: 12px; display: grid;
-      grid-template-columns: 1fr auto; row-gap: 6px; font-size: 16px; }
-    .bpanel .sum b { font-size: 20px; font-variant-numeric: tabular-nums; }
-    .bpanel .sum .over { color: #c8342f; }
-    .bpanel .keys { margin-top: 14px; font-size: 13px; color: #6a6384; }
-    .bbadge { position: fixed; top: 16px; right: 18px; z-index: 6; display: none;
-      align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
-      background: rgba(252,250,252,.85); border: 1.5px solid rgba(31,95,174,.5);
-      font-size: 14px; font-weight: 700; color: #1f5fae; }
-    .bbadge.on { display: flex; }
-    .bbadge svg { width: 18px; height: 16px; }
+    .bpanel .none { display: block; padding: 10px; color: #8f88a8; }
+    .money { display: grid; grid-template-columns: 1fr auto; row-gap: 5px; font-size: 15px;
+      font-variant-numeric: tabular-nums; }
+    .money b { font-size: 18px; }
+    .money .left b { color: #2a8a4a; }
+    .money .left.low b { color: #d08a1a; }
+    .money .left.out b { color: #d0342f; }
+    .bpanel .money { border-top: 1.5px solid rgba(58,51,80,.2); padding-top: 12px; }
+    .keys { margin-top: 12px; display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 14px; align-items: center; }
+    .keys kbd { font: 700 12px ui-monospace, monospace; padding: 2px 7px; border-radius: 5px; min-width: 22px; text-align: center;
+      background: #fff; border: 1.5px solid rgba(58,51,80,.35); color: #3a3350; }
+    .keys .off { opacity: .35; }
+    .scard { position: fixed; top: 16px; left: 16px; z-index: 6; width: 290px; padding: 14px 16px;
+      border-radius: 14px; background: rgba(252,250,252,.9); backdrop-filter: blur(6px);
+      border: 1.5px solid rgba(31,95,174,.45); box-shadow: 0 6px 22px rgba(40,30,60,.16); color: #3a3350;
+      opacity: 0; transform: translateY(-6px); transition: opacity .25s, transform .25s; pointer-events: none; }
+    .scard.on { opacity: 1; transform: none; }
+    .scard .keys { border-top: 1.5px solid rgba(58,51,80,.16); padding-top: 10px; }
   `;
   document.head.appendChild(style);
 
@@ -49,41 +60,57 @@ export function createBasketPanel() {
   panel.className = 'bpanel';
   panel.setAttribute('aria-hidden', 'true');
   document.body.appendChild(panel);
-  const badge = document.createElement('div');
-  badge.className = 'bbadge';
-  badge.innerHTML = `<svg viewBox="0 0 18 16"><path d="M1 5h16l-2 10H3z" fill="#2f6fb6"/><path d="M5 5l3-4M13 5l-3-4" stroke="#24558e" stroke-width="1.6" fill="none"/></svg><span></span>`;
-  document.body.appendChild(badge);
+  const card = document.createElement('aside');
+  card.className = 'scard';
+  document.body.appendChild(card);
 
   let open = false, sel = 0, rows = [], last = { cart: [], basket: false };
+  let ctx = { show: false, aim: null, nearDoor: false };
+
+  function money(cart) {
+    const total = cart.reduce((s, c) => s + PRODUCT[c.id].priceYen, 0), left = STORE.wallet - total;
+    const cls = left <= 0 ? 'out' : left < 200 ? 'low' : '';
+    return `<div class="money">
+      <span>${S.wallet}</span><b>${yen(STORE.wallet)}</b>
+      <span>${S.subtotal} · ${S.items(cart.length)}</span><b>${yen(total)}</b>
+      <span class="left ${cls}">${S.left}</span><span class="left ${cls}"><b>${yen(left)}</b></span>
+    </div>`;
+  }
+  const keyRows = (list) => `<div class="keys">${list.map(([k, text, on = true]) =>
+    `<kbd class="${on ? '' : 'off'}">${k || '·'}</kbd><span class="${on ? '' : 'off'}">${text}</span>`).join('')}</div>`;
 
   function group(cart) {
     const m = new Map();
-    for (const c of cart) {
-      const r = m.get(c.id) ?? m.set(c.id, { id: c.id, items: [] }).get(c.id);
-      r.items.push(c);
-    }
+    for (const c of cart) (m.get(c.id) ?? m.set(c.id, { id: c.id, items: [] }).get(c.id)).items.push(c);
     return [...m.values()];
   }
-  function render() {
+  function renderPanel() {
     const { cart, basket } = last;
     rows = group(cart);
     sel = Math.max(0, Math.min(sel, rows.length - 1));
-    const total = cart.reduce((s, c) => s + PRODUCT[c.id].priceYen, 0);
     panel.innerHTML = `
-      <h2>${basket ? S.basketJa : S.hands}<small>${basket ? S.basket : S.handsEn}</small></h2>
+      <h2>${basket ? S.basket : S.hands}</h2>
       <ul>${rows.length ? rows.map((r, i) => `
         <li class="${i === sel ? 'sel' : ''}">
-          <span>${PRODUCT[r.id].nameJa}<span class="en">${PRODUCT[r.id].nameEn}</span></span>
+          <span>${PRODUCT[r.id].nameEn}<span class="jp">${PRODUCT[r.id].nameJa}</span></span>
           <span class="q">× ${r.items.length}</span>
           <span class="p">${yen(PRODUCT[r.id].priceYen * r.items.length)}</span>
-        </li>`).join('') : `<li class="none">${S.empty}<span class="en">${S.emptyEn}</span></li>`}</ul>
-      <div class="sum">
-        <span>${S.subtotal}<span class="en">${S.subtotalEn}</span></span><b class="${total > STORE.wallet ? 'over' : ''}">${yen(total)}</b>
-        <span>${S.wallet}<span class="en">${S.walletEn}</span></span><span>${yen(STORE.wallet)}</span>
-      </div>
-      <div class="keys">${S.keys}<span class="en">${S.keysEn}</span></div>`;
-    badge.querySelector('span').textContent = String(cart.length);
-    badge.classList.toggle('on', basket || cart.length > 0);
+        </li>`).join('') : `<li class="none">${S.empty}</li>`}</ul>
+      ${money(cart)}
+      ${keyRows(S.panelKeys.map(([k, t]) => [k, t, k !== 'X' || rows.length > 0]))}`;
+  }
+  function renderCard() {
+    card.classList.toggle('on', ctx.show && !open);
+    if (!ctx.show) return;
+    const on = {
+      take: ctx.aim === 'item',
+      door: ctx.aim === 'door' || ctx.nearDoor,
+      tab: true,
+      pay: false,                       // M5
+    };
+    card.innerHTML = money(last.cart) + keyRows(S.card
+      .filter(([id]) => id !== 'door' || ctx.nearDoor)
+      .map(([id, k, t]) => [k, t, on[id]]));
   }
 
   return {
@@ -92,16 +119,23 @@ export function createBasketPanel() {
       open = v;
       panel.classList.toggle('on', v);
       panel.setAttribute('aria-hidden', v ? 'false' : 'true');
-      if (v) render();
+      if (v) renderPanel();
+      renderCard();
     },
     /** The cart changed (a take, a put-back, a landing). */
     update(cart, basket) {
       last = { cart: cart.filter((c) => !c.flying), basket };
-      render();
+      if (open) renderPanel();
+      renderCard();
     },
-    move(d) { sel += d; render(); },
+    /** Each frame: is the card up, what is aimed at, is a fridge door near. */
+    setContext(next) {
+      if (next.show === ctx.show && next.aim === ctx.aim && next.nearDoor === ctx.nearDoor) return;
+      ctx = next;
+      renderCard();
+    },
+    move(d) { sel += d; renderPanel(); },
     /** The item to put back from the chosen row (the last one taken). */
     chosen() { const r = rows[sel]; return r ? r.items[r.items.length - 1] : null; },
-    setBadgeVisible(v) { badge.style.visibility = v ? '' : 'hidden'; },
   };
 }

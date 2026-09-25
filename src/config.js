@@ -17,6 +17,11 @@ export const PLAYER = {
 export const PLAYER_VFOV =
   2 * Math.atan(Math.tan((PLAYER.hfov * Math.PI) / 360) / (16 / 9)) * (180 / Math.PI);
 
+/* The store's name (M3d): a generic konbini in the Lawson-style blue design,
+ * no real chain's name or mark anywhere.  ホタル, the firefly: a small light
+ * at dusk below Fuji. */
+export const STORE_NAME = { mark: 'HOTARU', kana: 'ホタル', en: 'Hotaru' };
+
 export const LAWSON = {
   x: 0,
   frontZ: 0,       // storefront glass line
@@ -34,10 +39,10 @@ export const LAWSON = {
 export const STORE = {
   reach: 2.0,          // metres: what the crosshair can take
   carry: 2,            // items you can hold without a basket
-  wallet: 3000,        // yen you start with
+  wallet: 1000,        // yen you start with (Tan: ¥1,000 a visit)
   flight: 0.35,        // seconds, shelf to basket
   slide: 0.25,         // seconds for the next unit to come forward
-  door: { open: 1.66, ease: 0.3, hold: 4.0, away: 2.5 },   // fridge doors: radians, s, s, m
+  door: { open: 1.66, ease: 0.3, away: 2.5 },   // fridge doors: radians, s, m (shut when you walk off)
   basketShown: 12,     // items drawn in the basket; the count carries on
 };
 
@@ -374,6 +379,7 @@ export const SHOT_SPOTS = [
   { name: 'store-icecase', scene: 'town', pos: [5.0, 0, -4.3], yaw: 1.5708, pitch: -0.62, looks: ['day'], close: true, frame: 'world' },
   { name: 'store-selfserve', scene: 'town', pos: [6.2, 0, -9.5], yaw: -1.57, pitch: -0.05, looks: ['day'], close: true, frame: 'world' },
   { name: 'store-back', scene: 'town', pos: [4.9, 0, -2.4], yaw: 0.25, pitch: -0.08, looks: ['day'], close: true, frame: 'world' },
+  { name: 'store-baskets', scene: 'town', pos: [-3.3, 0, -2.1], yaw: 2.45, pitch: -0.55, looks: ['day'], close: true, frame: 'world' },
   { name: 'store-left', scene: 'town', pos: [-5.0, 0, -1.4], yaw: 1.0, pitch: -0.1, looks: ['day'], close: true, frame: 'world' },
   { name: 'town-overview', scene: 'town', pos: [0, 0, 95], yaw: 0, pitch: -0.5, lift: 95, looks: ['golden'], frame: 'world' },
   { name: 'town-overview-east', scene: 'town', pos: [170, 0, 90], yaw: -1.5708, pitch: -0.55, lift: 80, looks: ['day'] },
@@ -397,7 +403,7 @@ for (const s of SHOT_SPOTS) {
 /* The places worth walking to (the map now, the minimap in M2f).  `at` is
  * in the town's own frame unless `frame: 'world'`; placeAt() gives world. */
 export const PLACES = [
-  { id: 'lawson', kind: 'konbini', jp: 'ローソン', en: 'Lawson', at: [0, -5], frame: 'world' },
+  { id: 'lawson', kind: 'konbini', jp: 'ホタル', en: 'Hotaru konbini', at: [0, -5], frame: 'world' },
   { id: 'start', kind: 'view', jp: '富士山ビュー', en: 'The famous view', at: [0, 16.5], frame: 'world' },
   { id: 'spine', kind: 'shops', jp: '商店街', en: 'Shopping street', at: [-50, 70] },
   { id: 'shrine', kind: 'shrine', jp: '富士見稲荷神社', en: 'Inari shrine', at: [13, 88] },

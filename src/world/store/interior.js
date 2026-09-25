@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { LAWSON } from '../../config.js';
 import { rngKit } from '../../core/util.js';
 import { makePainter } from './painter.js';
-import { stockStore, CHILLED_SECTIONS, DOOR_SIGNS } from './planogram.js';
+import { paintBasketStack } from './basket.js';
+import { stockStore, CHILLED_SECTIONS, DOOR_SIGNS, AISLES } from './planogram.js';
 import {
   floorTex, FLOOR_TILE, ceilingTex, CEIL_TILE, hangingSign, popCard, cigaretteTex, magazineTex,
   machineFace, doorSign, registerScreen, counterLabel, batteryFace, stripSign, smallSign,
@@ -200,14 +201,21 @@ export function buildInterior(group, { lit, colliders }) {
       slots.push({ zone: 'endcap', gi, level: k, x0: x0 + 0.05, x1: x1 - 0.05, y, z: zB + 0.22, rail: zB + 0.37, face: { x: 0, z: 1 } });
     }
     p.quad(popCard(['new', 'rec', 'limited', 'sale'][gi]), cx, H + 0.2, zB + 0.2, 0.52, 0.39);
+    // each side's category on a strip along its top edge (M3d)
+    for (const side of [-1, 1]) {
+      const [, jp, en, col] = AISLES[gi][side];
+      for (const z of [zA + 1.2, (zA + zB) / 2, zB - 1.2]) p.quad(stripSign(jp, en, col), cx + side * 0.472, H + 0.055, z, 0.5, 0.1, { ry: side * Math.PI / 2 });
+    }
     p.box(cx - 0.01, cx + 0.01, H, H + 0.02, zB + 0.18, zB + 0.22, C.upright);
     block(x0, x1, zA, zB + 0.36, H);
   });
 
   /* ----------------------------- hanging signs ----------------------------- */
+  // one over each aisle, naming the two sides it runs between (AISLES, planogram.js)
   const signs = [
-    ['お菓子', 'Snacks', '#e8864a', -4.4], ['カップ麺', 'Instant noodles', '#e8453f', -2.1],
-    ['パン', 'Bread', '#d8a060', 0.2], ['お酒・日用品', 'Alcohol & daily', '#8a4aa8', 2.6],
+    ['パン', 'Bread', '#d8a060', -6.85], ['カップ麺・スナック', 'Instant food & snacks', '#e8864a', -4.4],
+    ['お菓子・医薬品', 'Sweets & medicine', '#2e8a5a', -2.1], ['コスメ・日用品', 'Cosmetics & daily goods', '#d86a8a', 0.2],
+    ['お酒・おつまみ', 'Wine, sake & snacks', '#8a4aa8', 2.6],
   ];
   for (const [jp, en, band, x] of signs) p.quad(hangingSign(jp, en, band), x, CEIL - 0.45, -4.4, 1.2, 0.375);
   p.quad(hangingSign('飲料・お酒', 'Drinks & alcohol', '#3a8ad0'), -2.4, CEIL - 0.3, -10.8, 1.6, 0.5);
@@ -257,14 +265,15 @@ export function buildInterior(group, { lit, colliders }) {
 
   /* ------------------- baskets, mat and umbrella bags ------------------- */
   {
-    const bx = -4.3, bz = -0.9;
-    p.box(bx - 0.25, bx + 0.25, FLOOR, 0.12, bz - 0.18, bz + 0.18, C.kick);
-    // five nested here; the sixth, on top, is the one you take (store/basket.js)
-    for (let k = 0; k < 5; k++) {
-      const y = 0.12 + k * 0.07;
-      p.box(bx - 0.24, bx + 0.24, y, y + 0.26, bz - 0.17, bz + 0.17, 0x2f6fb6, { shade: [0.8, 0.76, 1, 0.6, 0.86, 0.84] });
+    // two stacks of baskets on dollies, by the door and at the counter's end
+    // (M3d): real nested baskets; the top one of each is drawn on its own (shop.js)
+    const stacks = [];
+    for (const [bx, bz] of [[-4.3, -0.9], [5.55, -1.3]]) {
+      const top = paintBasketStack(p, bx, bz, 5, smallSign('baskets'));
+      stacks.push(top);
+      block(bx - 0.29, bx + 0.29, bz - 0.22, bz + 0.22, 0.6);
     }
-    block(bx - 0.28, bx + 0.28, bz - 0.2, bz + 0.2, 0.6);
+    group.userData.basketStacks = stacks;
     p.box(-3.3, -1.3, FLOOR, FLOOR + 0.012, -1.2, -0.1, C.mat);
     p.box(-0.9 - 0.12, -0.9 + 0.12, FLOOR, 0.9, -0.95, -0.75, C.steel);
     p.box(-0.9 - 0.1, -0.9 + 0.1, 0.9, 1.25, -0.9, -0.8, 0xeef2f6);
@@ -399,7 +408,6 @@ export function buildInterior(group, { lit, colliders }) {
   group.userData.slots = slots;
   group.userData.units = units;
   group.userData.doors = doors;
-  group.userData.basketStack = { x: -4.3, z: -0.9, y: 0.12 + 5 * 0.07 };
   return { slots, units, doors };
 }
 

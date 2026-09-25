@@ -12,8 +12,10 @@ import { FOOD } from '../foodart.js';
  * ------------------------------------------------------------------ */
 
 const JP = `'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, sans-serif`;
-const N = 8, CELL = 256, SIZE = N * CELL;
-export const WHITE = 63;
+/* M3d: about 370 products, so the cells are 192 px on 3072 pages (255 a
+ * page and a white cell); the painters still draw in a 256 box, scaled. */
+const N = 16, PX = 192, SIZE = N * PX, CELL = 256;
+export const WHITE = N * N - 1;
 const hex = (n) => '#' + n.toString(16).padStart(6, '0');
 let seed = 1;
 const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };   // seeded: labels never change between loads
@@ -99,7 +101,7 @@ const PAINT = {
   cupnoodle(c, p, m) {
     PAINT.wrap(c, p, m, { liquid: '#f2f2ea' });
     c.fillStyle = hex(m.band); c.fillRect(0, 0, CELL, CELL * 0.22);
-    for (const x of [CELL * 0.25, CELL * 0.75]) fit(c, 'ラーメン', x, CELL * 0.11, CELL * 0.4, 28, '#ffffff');
+    for (const x of [CELL * 0.25, CELL * 0.75]) fit(c, m.word ?? 'ラーメン', x, CELL * 0.11, CELL * 0.4, 28, '#ffffff');
   },
   melonpan(c, p, m) {
     // the crust from above: the criss-cross, sugar, the bag's sticker
@@ -128,10 +130,10 @@ const PAINT = {
     c.fillStyle = '#d8dce4'; c.fillRect(0, 0, CELL, CELL);
     c.fillStyle = 'rgba(255,255,255,0.5)'; c.fillRect(CELL * 0.1, 0, CELL * 0.06, CELL);
     for (const x of [CELL * 0.25, CELL * 0.75]) {
-      c.fillStyle = '#f2d02a'; c.beginPath(); c.ellipse(x, CELL * 0.36, 34, 26, 0, 0, 7); c.fill();
+      c.fillStyle = m.fruit ?? '#f2d02a'; c.beginPath(); c.ellipse(x, CELL * 0.36, 34, 26, 0, 0, 7); c.fill();
       c.strokeStyle = '#6a8a2a'; c.lineWidth = 3; c.stroke();
-      fit(c, '9%', x, CELL * 0.62, CELL * 0.44, 50, '#1a1a24');
-      fit(c, 'キリッと強レモン', x, CELL * 0.8, CELL * 0.46, 20, '#1a1a24');
+      fit(c, m.abv ?? '9%', x, CELL * 0.62, CELL * 0.44, 50, '#1a1a24');
+      fit(c, p.nameJa.replace(/ ?\d+%$/, ''), x, CELL * 0.8, CELL * 0.46, 20, '#1a1a24');
     }
   },
   fruitsando(c, p, m) {
@@ -180,6 +182,72 @@ const PAINT = {
     c.fillStyle = hex(m.band); c.fillRect(CELL * 0.14, CELL * 0.3, CELL * 0.72, CELL * 0.5);
     vfit(c, p.nameJa.split(' ')[0], CELL / 2, CELL * 0.33, CELL * 0.77, 38, hex(m.body) === '#3a1a24' ? '#3a1a24' : '#1a1a20');
   },
+  /* ---- M3d: medicine, cosmetics, daily goods, more snacks ---- */
+  medicine(c, p, m) {
+    // a pharmacy box: white, a coloured band, the name, the class of drug
+    c.fillStyle = '#fbfbf8'; c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = hex(m.band); c.fillRect(0, 0, CELL, CELL * 0.28);
+    c.fillStyle = 'rgba(255,255,255,0.85)'; c.beginPath(); c.arc(CELL * 0.82, CELL * 0.14, 22, 0, 7); c.fill();
+    c.fillStyle = hex(m.band); c.fillRect(CELL * 0.82 - 5, CELL * 0.14 - 14, 10, 28); c.fillRect(CELL * 0.82 - 14, CELL * 0.14 - 5, 28, 10);
+    fit(c, p.nameJa, CELL / 2, CELL * 0.46, CELL * 0.9, 38, '#1a1a24');
+    fit(c, p.nameEn, CELL / 2, CELL * 0.62, CELL * 0.88, 18, '#555', 'normal');
+    if (m.cls) {
+      c.strokeStyle = '#d8342f'; c.lineWidth = 3; c.strokeRect(CELL * 0.12, CELL * 0.76, CELL * 0.76, CELL * 0.16);
+      fit(c, `第${m.cls}類医薬品`, CELL / 2, CELL * 0.84, CELL * 0.7, 22, '#d8342f');
+    } else fit(c, 'SUPPLEMENT', CELL / 2, CELL * 0.84, CELL * 0.7, 20, hex(m.band), 'normal');
+  },
+  cosme(c, p, m) {
+    // soft and minimal: a pale ground, a fine rule, thin type, a small mark
+    c.fillStyle = hex(m.body); c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = hex(m.band); c.globalAlpha = 0.25; c.fillRect(0, CELL * 0.72, CELL, CELL * 0.28); c.globalAlpha = 1;
+    c.strokeStyle = hex(m.band); c.lineWidth = 2; c.beginPath(); c.moveTo(CELL * 0.2, CELL * 0.3); c.lineTo(CELL * 0.8, CELL * 0.3); c.stroke();
+    c.beginPath(); c.arc(CELL / 2, CELL * 0.17, 14, 0, 7); c.stroke();
+    const dark = (m.body >> 16) < 0x60;
+    fit(c, p.nameJa, CELL / 2, CELL * 0.46, CELL * 0.86, 30, dark ? '#f2f2f6' : '#3a3350', '500');
+    fit(c, p.nameEn.toUpperCase(), CELL / 2, CELL * 0.6, CELL * 0.84, 14, hex(m.band), 'normal');
+  },
+  card(c, p, m) {
+    // a hanging card: a coloured header with its peg hole, the goods in a clear bubble
+    const tech = m.style === 'tech';
+    c.fillStyle = tech ? '#f6f6f2' : '#ffffff'; c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = hex(m.band); c.fillRect(0, 0, CELL, CELL * 0.3);
+    c.fillStyle = '#2a2a30'; c.beginPath(); c.ellipse(CELL / 2, CELL * 0.08, 16, 7, 0, 0, 7); c.fill();
+    fit(c, p.nameJa, CELL / 2, CELL * 0.21, CELL * 0.9, 26, '#ffffff');
+    c.fillStyle = 'rgba(200,220,235,0.55)'; c.beginPath(); c.roundRect(CELL * 0.2, CELL * 0.38, CELL * 0.6, CELL * 0.42, 18); c.fill();
+    c.fillStyle = hex(m.body === 0xf6f6f2 ? m.band : m.body); c.beginPath(); c.roundRect(CELL * 0.3, CELL * 0.46, CELL * 0.4, CELL * 0.26, 10); c.fill();
+    fit(c, p.nameEn, CELL / 2, CELL * 0.9, CELL * 0.88, 16, '#333', 'normal');
+  },
+  wear(c, p, m) {
+    // clothes in a card sleeve: the colour of the goods, a band with the name
+    c.fillStyle = hex(m.body); c.fillRect(0, 0, CELL, CELL);
+    for (let y = 0; y < CELL; y += 14) { c.fillStyle = 'rgba(255,255,255,0.06)'; c.fillRect(0, y, CELL, 6); }
+    c.fillStyle = '#fbfbf8'; c.fillRect(0, CELL * 0.1, CELL, CELL * 0.3);
+    c.fillStyle = hex(m.band); c.fillRect(0, CELL * 0.1, CELL * 0.06, CELL * 0.3);
+    fit(c, p.nameJa, CELL / 2, CELL * 0.22, CELL * 0.84, 32, '#2a2a30');
+    fit(c, p.nameEn.toUpperCase(), CELL / 2, CELL * 0.34, CELL * 0.8, 14, '#555', 'normal');
+  },
+  bread(c, p, m) {
+    // a clear bag: the bread's colour, a sticker with the name
+    c.fillStyle = '#f2f4f6'; c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = hex(m.body); c.beginPath(); c.ellipse(CELL / 2, CELL * 0.58, CELL * 0.42, CELL * 0.3, 0, 0, 7); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.25)'; c.beginPath(); c.ellipse(CELL * 0.4, CELL * 0.5, CELL * 0.2, CELL * 0.08, -0.3, 0, 7); c.fill();
+    c.fillStyle = hex(m.band); c.beginPath(); c.roundRect(CELL * 0.1, CELL * 0.08, CELL * 0.8, CELL * 0.22, 14); c.fill();
+    fit(c, p.nameJa, CELL / 2, CELL * 0.19, CELL * 0.74, 32, '#ffffff');
+  },
+  senbei(c, p, m) {
+    // a tall bag of crackers: the crackers stacked in a window, the name down the side
+    c.fillStyle = hex(m.band); c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = hex(m.body); c.fillRect(CELL * 0.3, CELL * 0.08, CELL * 0.62, CELL * 0.84);
+    for (let i = 0; i < 4; i++) { c.fillStyle = i % 2 ? '#c89048' : '#b87838'; c.beginPath(); c.ellipse(CELL * 0.61, CELL * (0.22 + i * 0.19), 52, 22, 0, 0, 7); c.fill(); }
+    vfit(c, p.nameJa, CELL * 0.15, CELL * 0.06, CELL * 0.94, 34, '#ffffff');
+  },
+  bar(c, p, m) {
+    // a chocolate bar's wrapper: its colour, a stripe, the name large
+    c.fillStyle = hex(m.body); c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = hex(m.band); c.fillRect(0, CELL * 0.62, CELL, CELL * 0.14);
+    fit(c, p.nameJa, CELL / 2, CELL * 0.36, CELL * 0.9, 40, hex(m.band));
+    fit(c, p.nameEn, CELL / 2, CELL * 0.86, CELL * 0.86, 18, '#ffffff', 'normal');
+  },
   plainSticker(c, p, m, bg) {
     c.fillStyle = bg; c.fillRect(0, 0, CELL, CELL);
     c.fillStyle = hex(m.band); c.beginPath(); c.roundRect(CELL * 0.12, CELL * 0.34, CELL * 0.76, CELL * 0.32, 14); c.fill();
@@ -189,7 +257,18 @@ const PAINT = {
 
 function paintCell(c, p) {
   const m = p.mesh;
+  if (m.style === 'medicine') return PAINT.medicine(c, p, m);
+  if (m.style === 'cosme' && m.shape !== 'card') return PAINT.cosme(c, p, m);
+  if (m.style === 'wear') return PAINT.wear(c, p, m);
+  if (m.style === 'bread') return PAINT.bread(c, p, m);
+  if (m.style === 'senbei') return PAINT.senbei(c, p, m);
   switch (m.shape) {
+    case 'card': return PAINT.card(c, p, m);
+    case 'bar': return PAINT.bar(c, p, m);
+    case 'box': return PAINT.box(c, p, m, { vertical: m.h > m.w * 1.8 });
+    case 'tin': return PAINT.wrap(c, p, m, { liquid: '#d8dce4' });
+    case 'minibottle': return PAINT.wrap(c, p, m, { liquid: hex(m.body) });
+    case 'tube': case 'pump': case 'compact': return PAINT.cosme(c, p, m);
     case 'onigiri': return PAINT.onigiri(c, p, m);
     case 'bento': return PAINT.bento(c, p, m);
     case 'sandwich': return PAINT.sandwich(c, p, m);
@@ -210,7 +289,8 @@ function paintCell(c, p) {
     case 'pudding': return PAINT.pudding(c, p, m);
     case 'bag': return PAINT.bag(c, p, m);
     case 'slimbox': return PAINT.box(c, p, m, { vertical: true });
-    case 'carton': case 'smallbox': case 'pouch': case 'tissue': case 'tray': case 'karaagebox': return PAINT.box(c, p, m);
+    case 'smallbox': return PAINT.box(c, p, m, { vertical: (m.h ?? 0.075) > (m.w ?? 0.1) * 1.8 });
+    case 'carton': case 'pouch': case 'tissue': case 'tray': case 'karaagebox': return PAINT.box(c, p, m);
     case 'melonpan': return PAINT.melonpan(c, p, m);
     default: return PAINT.plainSticker(c, p, m, hex(m.body));
   }
@@ -223,19 +303,21 @@ export function labelAtlas() {
   if (atlas) return atlas;
   const pages = [], cellOf = {};
   const per = N * N - 1;
+  const k = PX / CELL;
   for (let pg = 0; pg * per < CATALOG.length; pg++) {
     const cv = document.createElement('canvas');
     cv.width = cv.height = SIZE;
     const c = cv.getContext('2d');
     CATALOG.slice(pg * per, (pg + 1) * per).forEach((p, i) => {
-      const x = (i % N) * CELL, y = Math.floor(i / N) * CELL;
+      const x = (i % N) * PX, y = Math.floor(i / N) * PX;
       seed = 1000 + pg * per + i;
-      c.save(); c.translate(x, y); c.beginPath(); c.rect(0, 0, CELL, CELL); c.clip();
+      c.save(); c.translate(x, y); c.beginPath(); c.rect(0, 0, PX, PX); c.clip();
+      c.scale(k, k);
       paintCell(c, p);
       c.restore();
       cellOf[p.id] = { page: pg, cell: i };
     });
-    c.fillStyle = '#ffffff'; c.fillRect((WHITE % N) * CELL, Math.floor(WHITE / N) * CELL, CELL, CELL);
+    c.fillStyle = '#ffffff'; c.fillRect((WHITE % N) * PX, Math.floor(WHITE / N) * PX, PX, PX);
     const tex = new THREE.CanvasTexture(cv);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
@@ -247,12 +329,12 @@ export function labelAtlas() {
 
 /** [u0, v0, u1, v1] of a cell (v up), inset so filtering never bleeds. */
 export function cellRect(i, inset = 3) {
-  const x = (i % N) * CELL, y = Math.floor(i / N) * CELL;
-  return [(x + inset) / SIZE, 1 - (y + CELL - inset) / SIZE, (x + CELL - inset) / SIZE, 1 - (y + inset) / SIZE];
+  const x = (i % N) * PX, y = Math.floor(i / N) * PX;
+  return [(x + inset) / SIZE, 1 - (y + PX - inset) / SIZE, (x + PX - inset) / SIZE, 1 - (y + inset) / SIZE];
 }
 
 /* ------------------------------ price tags ------------------------------ */
-const TW = 256, TH = 96, TC = 4, TR = 24;
+const TW = 256, TH = 96, TC = 8, TR = Math.ceil(CATALOG.length / TC);
 let tags = null;
 /** Shelf tags: white, the name small, the price in red, (税込). */
 export function tagAtlas() {

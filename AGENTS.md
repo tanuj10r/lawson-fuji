@@ -1,8 +1,8 @@
 # Lawson Fuji: agent rules
 
 First-person, anime-style browser game: a compact Japanese town at the foot
-of Mt. Fuji built around the famous Lawson. The player walks in, shops, pays,
-microwaves a bento and leaves. Full design: SPEC.md. Read only the sections
+of Mt. Fuji built around a konbini in the famous Lawson view. The player
+walks in, shops, pays, microwaves a bento and leaves. Full design: SPEC.md. Read only the sections
 the current milestone needs.
 
 ## Base
@@ -24,8 +24,11 @@ the current milestone needs.
   commit them; never add a soundboard or sound gallery; fall back to the
   procedural recipes when a file is missing. No chain jingles or station
   departure melodies.
-- Lawson branding only on the store, signs, uniform, receipt and bags.
-  Products and packaging are generic and fictional.
+- The store is ホタル / HOTARU (config.js STORE_NAME), a generic konbini in
+  Lawson-style blue design: no real chain's name or mark anywhere. Products
+  may evoke 7-Eleven, FamilyMart and Lawson, always under original names.
+- UI instructions (prompts, toasts, keys, choices) are English only;
+  Japanese only in the world and beside product and place names.
 - No requests to other domains at runtime. Fuji elevation is baked by
   scripts/fetch-fuji-dem.mjs.
 - No bloom by default.

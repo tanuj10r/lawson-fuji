@@ -1011,3 +1011,54 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   - the wallet in the HUD (M5).
 - **The code:** store/shop.js (aiming, taking, flights), store/doors.js,
   store/basket.js, ui/basketPanel.js. The test trip is scripts/_m3c.mjs.
+
+## M3d: Tan's store feedback: ホタル, English UI, a real range
+
+- **The store is ホタル / HOTARU.** Tan made the store generic and kept the
+  Lawson look. The name is a firefly: a small light at dusk below Fuji. It
+  is six letters, the same as LAWSON, so the wordmark panel is unchanged.
+  The milk can is Lawson's trademark, so our own emblem replaces it: a
+  firefly with a lit tail in a ring. The blue, the white panels and 野菜 /
+  くだもの stay. The name lives in config.js `STORE_NAME`. check-names now
+  refuses LAWSON / Lawson / ローソン in the bundle. The code keeps its
+  lawson.js file names (the identifiers aren't seen by players).
+- **The game's title is "Hotaru Fuji".** It follows the store; one string.
+- **Instructions are English only** (strings.js; SPEC 10 rewritten). Product
+  and place names show their Japanese as small secondary text.
+- **The ¥1,000 wallet refuses, it doesn't warn.** What would take the basket
+  over ¥1,000 stays on the shelf: the rim goes red and shakes, and a red
+  toast says how much is left and what the item costs.
+- **The shopping card** (top left) appears when you take a basket or pick
+  something up by hand. It shows the wallet, the basket and what's left,
+  and only the keys that work in the store, each lit when it applies. The
+  door line shows only near a fridge. "Pay at the counter" stays greyed
+  until M5. On walking in with nothing, a hint says where the baskets are
+  and what you have.
+- **Fridge doors stay open while you're at them.** They shut when you walk
+  2.5 m away, or when you aim at the open leaf ("Close the door") and press E.
+- **Petals:** both petal fields take an `exclude` rect, the store's
+  footprint under its roof. A petal that drifts in is respawned. Over 600
+  frames by the storefront, 0 of 24,000 samples were inside.
+- **Baskets:** the sides now flare, so a stack nests and shows every rim.
+  There are two stacks of six on grey dollies with an お買い物かご / BASKETS
+  card, one by the door and one at the counter's end.
+- **The range: 446 products in 27 sections**, written as family tables in
+  catalog.js (reference/konbini-details.md, section 9). Each product
+  appears once, with at most a second block, and never more than 18 units
+  (the STOCK check in shots.mjs). A facing's count is what you can see, the
+  front and the row behind. Shelves fill in catalogue order, so families
+  stand together, with tall things wherever they fit. The four gondolas
+  are bread | instant, snacks | chocolate and sweets, medicine | cosmetics,
+  daily goods | wine, sake and otsumami. Each side has category strips on
+  its top edge, and the hanging signs name the aisles. One ice multipack
+  doesn't fit.
+- **Stock batching.** 446 InstancedMeshes would have been about 440 draws
+  seen through the glass. Instead, all about 6,400 units bake into one mesh
+  per label page (2 draws). Each unit keeps its vertex range; hiding or
+  sliding one rewrites that range (`addUpdateRange`).
+- **Labels** are 192 px cells on 3072 px pages (255 a page), drawn in the
+  old 256 box scaled down, so the painters didn't change. That makes 2
+  pages of about 36 MB each on the GPU, and the JS heap is 457 MB (it was
+  400). Both are M7 work.
+- **The famous views move** (the wordmark, the emblem, the new stock
+  through the glass). They await Tan's OK.

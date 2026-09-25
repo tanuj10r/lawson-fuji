@@ -8,8 +8,8 @@ import { smallSign } from './tex.js';
  *
  * Each door hangs on a hinge recorded by interior.js: E opens it (a quick
  * eased swing out into the aisle and a puff of cold air), a second E takes
- * what you are looking at, and it shuts by itself after a few seconds or
- * once you walk off.  Shut, the doors are drawn exactly where the single
+ * what you are looking at; it stays open while you shop at it and shuts
+ * when you walk off, or when you aim at the open leaf and press E.  Shut, the doors are drawn exactly where the single
  * sheet of glass used to be, so the famous views do not move.
  *
  * The leaves do not block walking: they swing through the aisle for a
@@ -75,7 +75,7 @@ export function buildFridgeDoors(group, specs, { glassMat, lit }) {
     const local = new THREE.Box3(new THREE.Vector3(x0, d.y0, t0 - 0.01), new THREE.Vector3(x1, d.y1, t1 + 0.05));
     pivot.updateMatrix();
     const box = local.clone().applyMatrix4(pivot.matrix);
-    return { i, spec: d, pivot, leaf, box, open: 0, want: 0, timer: 0 };
+    return { i, spec: d, pivot, leaf, box, local, openBox: box.clone(), open: 0, want: 0 };
   });
 
   /* the cold-air puff: a few soft sprites breathing out of the opening */
@@ -112,21 +112,22 @@ export function buildFridgeDoors(group, specs, { glassMat, lit }) {
     list: doors,
     open(door) {
       if (door.want) return;
-      door.want = 1; door.timer = 0;
+      door.want = 1;
       puff(door);
     },
+    close(door) { door.want = 0; },
     /** Each frame, `p` the player's position in the interior's frame. */
     update(dt, p) {
       for (const d of doors) {
-        if (d.want) {
-          d.timer += dt;
-          const c = d.box.getCenter(_c);
-          if (d.timer > STORE.door.hold || Math.hypot(p.x - c.x, p.z - c.z) > STORE.door.away) d.want = 0;
-        }
+        // it stays open while you are at it; walk off and it swings shut
+        if (d.want && Math.hypot(p.x - d.box.getCenter(_c).x, p.z - _c.z) > STORE.door.away) d.want = 0;
         const to = d.want;
         if (d.open === to) continue;
         d.open = to > d.open ? Math.min(to, d.open + dt / STORE.door.ease) : Math.max(to, d.open - dt / (STORE.door.ease * 1.6));
         d.leaf.rotation.y = -d.spec.s * STORE.door.open * ease(d.open);
+        // where the leaf is now, for aiming at it to shut it
+        d.leaf.updateMatrix();
+        d.openBox.copy(d.local).applyMatrix4(_m.multiplyMatrices(d.pivot.matrix, d.leaf.matrix));
       }
       for (const q of puffs) {
         if (!q.sp.visible) continue;
@@ -140,4 +141,4 @@ export function buildFridgeDoors(group, specs, { glassMat, lit }) {
     },
   };
 }
-const _c = new THREE.Vector3();
+const _c = new THREE.Vector3(), _m = new THREE.Matrix4();

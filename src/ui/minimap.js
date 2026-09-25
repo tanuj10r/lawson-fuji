@@ -134,9 +134,9 @@ export function createMinimap(world) {
     for (const { p, x, y } of icons) {
       drawIcon(c, p.kind, x, y, r);
       c.font = `bold ${15 * dpr}px ${JP}`;
-      const w1 = c.measureText(p.jp).width;
+      const w1 = c.measureText(p.en).width;
       c.font = `${12 * dpr}px ${JP}`;
-      const bw = Math.max(w1, c.measureText(p.en).width) + 12 * dpr, bh = 38 * dpr;
+      const bw = Math.max(w1, c.measureText(p.jp).width) + 12 * dpr, bh = 38 * dpr;
       const tries = [
         [x + r + 4 * dpr, y - bh / 2], [x - r - 4 * dpr - bw, y - bh / 2],
         [x - bw / 2, y + r + 4 * dpr], [x - bw / 2, y - r - 4 * dpr - bh],
@@ -148,9 +148,9 @@ export function createMinimap(world) {
       c.beginPath(); c.roundRect(bx, by, bw, bh, 6 * dpr); c.fill();
       c.textAlign = 'left'; c.textBaseline = 'middle';
       c.fillStyle = '#2e2a3a'; c.font = `bold ${15 * dpr}px ${JP}`;
-      c.fillText(p.jp, bx + 6 * dpr, by + 12 * dpr);
+      c.fillText(p.en, bx + 6 * dpr, by + 12 * dpr);
       c.fillStyle = '#5a5468'; c.font = `${12 * dpr}px ${JP}`;
-      c.fillText(p.en, bx + 6 * dpr, by + 28 * dpr);
+      c.fillText(p.jp, bx + 6 * dpr, by + 28 * dpr);
     }
     c.save(); c.translate(ux, uy); c.rotate(-yaw);
     c.beginPath(); c.moveTo(0, -16 * dpr); c.lineTo(11 * dpr, 11 * dpr); c.lineTo(0, 5 * dpr); c.lineTo(-11 * dpr, 11 * dpr); c.closePath();
@@ -165,8 +165,8 @@ export function createMinimap(world) {
     c.fillStyle = 'rgba(255,250,240,0.92)';
     c.beginPath(); c.roundRect(16 * dpr, 16 * dpr, 300 * dpr, 64 * dpr, 10 * dpr); c.fill();
     c.fillStyle = '#2e2a3a'; c.textAlign = 'left'; c.textBaseline = 'middle';
-    c.font = `bold ${22 * dpr}px ${JP}`; c.fillText(STRINGS.map.titleJp, 30 * dpr, 38 * dpr);
-    c.font = `${13 * dpr}px ${JP}`; c.fillStyle = '#5a5468'; c.fillText(STRINGS.map.title + '  ·  ' + STRINGS.map.close, 30 * dpr, 62 * dpr);
+    c.font = `bold ${22 * dpr}px ${JP}`; c.fillText(STRINGS.map.title, 30 * dpr, 38 * dpr);
+    c.font = `${13 * dpr}px ${JP}`; c.fillStyle = '#5a5468'; c.fillText(STRINGS.map.titleJp + '  ·  ' + STRINGS.map.close, 30 * dpr, 62 * dpr);
     c.fillStyle = '#c0392b'; c.font = `bold ${26 * dpr}px ${JP}`; c.textAlign = 'center';
     c.fillText('北 ↑', W - 50 * dpr, 44 * dpr);
   }

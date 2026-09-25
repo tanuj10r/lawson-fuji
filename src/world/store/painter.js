@@ -23,7 +23,7 @@ export function makePainter() {
   const col = new THREE.Color();
 
   /** A box from min/max corners, `color` hex, faces shaded. `ry` turns it about its centre. */
-  function box(x0, x1, y0, y1, z0, z1, color, { ry = 0, rx = 0, shade = FACE } = {}) {
+  function box(x0, x1, y0, y1, z0, z1, color, { ry = 0, rx = 0, rz = 0, shade = FACE } = {}) {
     const g = new THREE.BoxGeometry(Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0));
     col.set(color);
     const n = g.attributes.position.count, c = new Float32Array(n * 3);
@@ -35,7 +35,7 @@ export function makePainter() {
       }
     }
     g.setAttribute('color', new THREE.BufferAttribute(c, 3));
-    const m = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx, ry, 0, 'YXZ')).setPosition((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+    const m = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx, ry, rz, 'YXZ')).setPosition((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
     solid.push({ geometry: g, matrix: m });
   }
   /** A cylinder standing at (x, y0, z), radius r, height h. */

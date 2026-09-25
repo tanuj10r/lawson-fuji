@@ -13,7 +13,8 @@ import { createBasketPanel } from './ui/basketPanel.js';
 import { buildKitTest } from './world/kit-test.js';
 import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
-import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI } from './config.js';
+import { PRODUCT } from './data/catalog.js';
+import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, STORE } from './config.js';
 
 /* ------------------------------------------------------------------ *
  * Lawson Fuji -- entry point.  Rendering is inherited from Sakura Crossing (MIT).
@@ -132,7 +133,11 @@ try {
 } catch { /* storage is optional; the game works without it */ }
 
 const hud = createHud({ volume: initialVolume });
-if (shop) shop.flash = (text) => hud.flash(text, 2500);
+if (shop) {
+  shop.flash = (text, error = false) => hud.flash(text, error ? 2800 : 2200, error);
+  // walking in with nothing: where the baskets are and what you have (M3d)
+  shop.onEnter = () => { if (!shop.hasBasket && !shop.cart.length) hud.flash(STRINGS.store.welcome(STORE.wallet), 4500); };
+}
 const music = createMusic({ volume: initialVolume, fadeIn: 3.0 });
 hud.setMuted(music.muted);
 const rememberVolume = () => {
@@ -410,6 +415,15 @@ function frame() {
     hovered = shop?.inside(camera) ? shop.pick(camera) : player.pick(world.interactables);
   }
   if (shop && !(hovered?.unit)) shop.clearAim();
+  // the shopping card: up while you shop in the store, its keys lit when they work
+  if (shop) {
+    const inStore = shop.inside(camera);
+    basketPanel.setContext({
+      show: player.locked && inStore && (shop.hasBasket || shop.cart.length > 0),
+      aim: hovered?.kind ?? null,
+      nearDoor: inStore && shop.nearDoor(),
+    });
+  }
   player.hovered = hovered;
   hud.setPrompt(hovered ? `E  ·  ${hovered.label.replace(/^.*?·\s*/, '')}` : '');
   // flat authoring coordinates, so what the readout says is what the code uses
@@ -427,7 +441,7 @@ window.__scene = {
   applyLook, enterHero,
 };
 window.__setOutlineRes = setOutlineResolution;
-if (import.meta.env?.DEV) window.__store = { shop, panel: basketPanel, setPanel };
+if (import.meta.env?.DEV) window.__store = { shop, panel: basketPanel, setPanel, price: (id) => PRODUCT[id].priceYen };
 
 if (import.meta.env?.DEV) {
   /**

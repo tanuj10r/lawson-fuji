@@ -216,6 +216,7 @@ export const smallSign = (kind) =>
       microwave: ['#f2f0ea', '#2a4a8a', 'ご自由にお使いください', 'Microwave: self-serve'],
       eatin: ['#6a3a22', '#f2e6c8', 'イートイン', 'EAT-IN'],
       ice: ['#3a8ad0', '#ffffff', 'アイスクリーム', 'ICE CREAM'],
+      baskets: ['#1f5fae', '#ffffff', 'お買い物かご', 'BASKETS'],
     }[kind];
     c.fillStyle = K[0]; c.beginPath(); c.roundRect(2, 2, w - 4, h - 4, 14); c.fill();
     fit(c, K[2], w / 2, h * 0.42, w - 24, 44, K[1]);

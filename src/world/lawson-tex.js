@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { FOOD } from './foodart.js';
+import { STORE_NAME } from '../config.js';
 
 /* ------------------------------------------------------------------ *
  * Canvas2D signage and painted surfaces for the Lawson (AGENTS.md: all
@@ -86,36 +87,41 @@ function roundRect(c, x, y, w, h, r) {
   c.closePath();
 }
 
-/** The milk can, white on whatever is under it.  (cx, cy) centre, s = height. */
-function milkCan(c, cx, cy, s, color = '#ffffff') {
+/**
+ * The store's emblem (M3d): a firefly, ホタル, in a ring -- white on
+ * whatever is under it, its tail lit yellow-green.  (cx, cy) centre, s = height.
+ */
+function firefly(c, cx, cy, s, color = '#ffffff') {
   c.save();
   c.translate(cx, cy);
   c.scale(s / 100, s / 100);
-  c.fillStyle = color;
-  c.beginPath();
-  // lid and neck
-  c.rect(-16, -50, 32, 8);
-  c.rect(-11, -42, 22, 12);
-  // shoulders out to the body
-  c.moveTo(-11, -30);
-  c.bezierCurveTo(-14, -22, -30, -20, -30, -10);
-  c.lineTo(-30, 42);
-  c.quadraticCurveTo(-30, 50, -22, 50);
-  c.lineTo(22, 50);
-  c.quadraticCurveTo(30, 50, 30, 42);
-  c.lineTo(30, -10);
-  c.bezierCurveTo(30, -20, 14, -22, 11, -30);
-  c.closePath();
-  c.fill();
-  // the two handles
-  c.lineWidth = 5;
+  // the ring
   c.strokeStyle = color;
-  c.beginPath();
-  c.arc(-30, 2, 9, Math.PI * 0.5, Math.PI * 1.5);
-  c.stroke();
-  c.beginPath();
-  c.arc(30, 2, 9, -Math.PI * 0.5, Math.PI * 0.5);
-  c.stroke();
+  c.lineWidth = 6;
+  c.beginPath(); c.arc(0, 0, 46, 0, Math.PI * 2); c.stroke();
+  c.rotate(-0.5);
+  // the glow of the tail, then the tail
+  const g = c.createRadialGradient(0, 18, 2, 0, 18, 30);
+  g.addColorStop(0, 'rgba(236,255,120,0.95)');
+  g.addColorStop(0.45, 'rgba(210,250,90,0.45)');
+  g.addColorStop(1, 'rgba(210,250,90,0)');
+  c.fillStyle = g;
+  c.beginPath(); c.arc(0, 18, 30, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#f2ff9a';
+  c.beginPath(); c.ellipse(0, 17, 9, 13, 0, 0, Math.PI * 2); c.fill();
+  // the body and head
+  c.fillStyle = color;
+  c.beginPath(); c.ellipse(0, -6, 8, 15, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.arc(0, -25, 7, 0, Math.PI * 2); c.fill();
+  // wings, open
+  c.globalAlpha = 0.9;
+  c.beginPath(); c.ellipse(-15, -10, 7, 17, 0.55, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(15, -10, 7, 17, -0.55, 0, Math.PI * 2); c.fill();
+  c.globalAlpha = 1;
+  // feelers
+  c.lineWidth = 3;
+  c.beginPath(); c.moveTo(-3, -31); c.quadraticCurveTo(-8, -40, -15, -41); c.stroke();
+  c.beginPath(); c.moveTo(3, -31); c.quadraticCurveTo(8, -40, 15, -41); c.stroke();
   c.restore();
 }
 
@@ -161,10 +167,10 @@ export const signBand = (widthM, heightM, panels) =>
       return { px, pw };
     };
 
-    // LAWSON wordmark panel
+    // the wordmark panel: the store's name (M3d: HOTARU, a generic konbini)
     {
       const { px, pw } = panel(...panels.wordmark);
-      text(c, 'LAWSON', px + pw / 2, h * 0.52, pw * 0.9, h * 0.56, LAWSON_BLUE,
+      text(c, STORE_NAME.mark, px + pw / 2, h * 0.52, pw * 0.9, h * 0.56, LAWSON_BLUE,
         { font: SLAB, weight: '900', spacing: h * 0.05 });
     }
     // two small category panels, as on the real fascia
@@ -180,7 +186,7 @@ export const signBand = (widthM, heightM, panels) =>
     small(panels.kudamono, '#ef7a2a', 'くだもの');
   });
 
-/** Side sign: the band's return round the left end, with ローソン. */
+/** Side sign: the band's return round the left end, with the emblem and ホタル. */
 export const sideBand = (widthM, heightM) =>
   make('sideBand', 1024, Math.round((1024 / widthM) * heightM), (c, w, h) => {
     c.fillStyle = LAWSON_BLUE;
@@ -188,11 +194,11 @@ export const sideBand = (widthM, heightM) =>
     c.fillStyle = '#f4f8fc';
     c.fillRect(0, 0, w, h * 0.07);
     c.fillRect(0, h * 0.93, w, h * 0.07);
-    milkCan(c, h * 0.62, h * 0.5, h * 0.62);
-    text(c, 'ローソン', w * 0.55, h * 0.52, w * 0.6, h * 0.5, '#ffffff', { spacing: h * 0.06 });
+    firefly(c, h * 0.62, h * 0.5, h * 0.66);
+    text(c, STORE_NAME.kana, w * 0.55, h * 0.52, w * 0.6, h * 0.5, '#ffffff', { spacing: h * 0.06 });
   });
 
-/** Small square logo plate above the door: milk can over the wordmark. */
+/** Small square logo plate above the door: the emblem over the wordmark. */
 export const logoPlate = () =>
   make('logoPlate', 256, 256, (c, w, h) => {
     c.fillStyle = LAWSON_BLUE;
@@ -200,8 +206,8 @@ export const logoPlate = () =>
     c.strokeStyle = '#ffffff';
     c.lineWidth = 6;
     c.strokeRect(10, 10, w - 20, h - 20);
-    milkCan(c, w / 2, h * 0.42, h * 0.46);
-    text(c, 'LAWSON', w / 2, h * 0.8, w * 0.78, 40, '#ffffff', { font: SLAB, weight: '900', spacing: 2 });
+    firefly(c, w / 2, h * 0.4, h * 0.5);
+    text(c, STORE_NAME.mark, w / 2, h * 0.82, w * 0.78, 40, '#ffffff', { font: SLAB, weight: '900', spacing: 2 });
   });
 
 /** Window posters (SPEC section 3), generic goods only. */

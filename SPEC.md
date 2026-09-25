@@ -2,6 +2,13 @@
 
 Sep 23, 2026 · @Tanuj
 
+> **M3d naming note (Tan, 2026-09-26).** The store in the game is ホタル /
+> HOTARU, a generic konbini that keeps Lawson's blue design language, with
+> our own firefly emblem; no real chain's name or mark appears. Where this
+> document says "the Lawson", read "the store". Products may evoke all three
+> big chains under original names. UI instructions are English only
+> (section 10). The wallet is ¥1,000 a visit.
+
 ## 1. Overview
 
 Lawson (ローソン) is a cozy, first-person 3D browser game set in a compact Japanese town at the foot of Mt. Fuji. The player wanders the town, walks into the famous Lawson with Fuji rising behind it, shops, pays, microwaves a bento, and walks back out into the evening. It is a nostalgia piece: the goal is for someone who has been to Japan to feel it within 10 seconds, mostly through visuals, sound, and light.
@@ -682,7 +689,7 @@ SFX 0.8, voice 0.9, outdoor ambience 0.5, indoor ambience 0.35, music 0.2. Setti
 
 ## 10. UI and HUD
 
-The UI is minimal, soft, and bilingual: Japanese first, small English underneath. HTML/CSS overlay above the canvas, rounded cards, white at 92% opacity with a subtle blur, Lawson-blue accents.
+The UI is minimal and soft. **Every instruction is English only** (M3d, Tan): prompts, toasts, key hints, buttons and choices. Japanese appears only in the world (signs, packaging, the clerk's spoken lines, which get English subtitles) and as small secondary text beside product and place names. HTML/CSS overlay above the canvas, rounded cards, white at 92% opacity with a subtle blur, Lawson-blue accents.
 
 **Screens**
 
@@ -894,6 +901,16 @@ M3c (picking up and the basket)
 - [x] Walking out with unpaid items puts them all back, and the basket on its stack.
 - [x] The famous views stay within the guard; aiming costs well under 0.1 ms a frame.
 
+M3d (Tan's store feedback)
+
+- [x] The store is ホタル / HOTARU: its own wordmark and firefly emblem in the Lawson-style blue; no real chain name in the bundle (check-names).
+- [x] Every instruction on screen is English.
+- [x] Fridge doors stay open while you shop at them; they shut when you walk off or aim at the open leaf and press E.
+- [x] No sakura petals fall inside the store.
+- [x] The basket stacks read as nested baskets on dollies, with a sign.
+- [x] About 440 products, grouped by aisle (snacks, chocolate, medicine, cosmetics, daily goods, alcohol...), never more than 18 of one in the store.
+- [x] A ¥1,000 wallet: what would go over it stays on the shelf, with an error; a shopping card shows the wallet, the basket and what is left, and the keys that work.
+
 M4
 
 - [ ] The door chime plays exactly once per entry and per exit.
@@ -929,7 +946,7 @@ M7
 - [ ] Hosted on a static CDN with long-lived caching of the hashed files.
 - [ ] Credits list Sakura Crossing (MIT) and GSI elevation data.
 - [ ] A first-time player completes a purchase within 3 minutes using only in-game hints.
-- [ ] No copied melodies or real product packaging; Lawson branding only on the store, signs, uniform, receipt and bags.
+- [ ] No copied melodies or real product packaging; no real chain's name or mark (the store is ホタル).
 
 ## 13. Kickoff prompt for Claude Code
 

@@ -1,70 +1,53 @@
 import { makeStock, footprint } from './products.js';
 import { tagAtlas } from './labels.js';
+import { GROUP, PRODUCT } from '../../data/catalog.js';
 
 /* ------------------------------------------------------------------ *
- * The planogram (M3b; rebuilt in M3b.2 from how real konbini stock).
+ * The planogram (M3b; M3b.2 from how real konbini stock; M3d: a real
+ * range, and never more than 18 of anything).
  *
- *   cooler      each door one category, a sign on its header; six gravity
- *               shelves: small cans on top, 500 ml in the middle, 2 L and
- *               6-packs at the bottom; each product a vertical block of
- *               facings, rows receding behind the front unit
- *   chilled     grouped by type in vertical sections along the case, not
- *               by deck: onigiri, sandwiches, bento and noodles, salads,
- *               sweets (fruit sando among them), dairy
- *   gondolas    snacks, noodles, bread, and the alcohol shelf (sake, whisky,
- *               wine, おつまみ) over the daily goods
- *   ice         the open flat case: a kind per wire basket, lying in rows
- *   and the upright freezer, the smoothie freezer, the hot case, coffee
- * Beer and chu-hi are cold in the cooler; sake, whisky and wine are on the
- * shelf, as in a real store.  A tag on the rail under every block.
+ *   cooler      each door one category (DOOR_SIGNS), six gravity shelves,
+ *               the tall bottles low and the cans high; each product a
+ *               block of facings with a row behind
+ *   chilled     grouped by type in sections along the case (CHILLED_SECTIONS)
+ *   gondolas    one category a side (AISLES): bread | instant food,
+ *               savoury snacks | chocolate and sweets, medicine |
+ *               cosmetics and care, daily goods | wine, sake and otsumami;
+ *               the end caps promote their own aisle
+ *   ice         the open flat case, a kind per wire basket; the upright
+ *               freezer the rest of the ice and the frozen food
+ *
+ * Every shelf is filled from its section's list in catalogue order, so
+ * families stand together.  A product gets a block of a few facings, a row
+ * behind where the shelf is deep enough, and at most a second block later;
+ * its units in the whole store never pass CAP.  A tag under every block.
  * ------------------------------------------------------------------ */
 
+export const CAP = 18;
+
 export const DOOR_SIGNS = [
-  ['水・お茶', 'Water & tea', '#3a8ad0'], ['お茶', 'Tea', '#3a8a4a'], ['スポーツ', 'Sports', '#1e5ab8'],
-  ['炭酸', 'Soda', '#d8342f'], ['コーヒー・紅茶', 'Coffee & tea', '#6a3a22'], ['乳飲料', 'Milk drinks', '#5a8ac8'],
-  ['ビール', 'Beer', '#b8862a'], ['チューハイ', 'Chu-hi & highball', '#8a4aa8'],
-];
-/* Each door's six shelves, bottom to top. */
-const DOORS = [
-  [['water_2l'], ['tea_2l'], ['water_500'], ['water_500', 'green_tea'], ['green_tea_take', 'green_tea'], ['jasmine', 'oolong']],
-  [['tea_2l'], ['barley_tea', 'oolong'], ['green_tea', 'green_tea_take'], ['jasmine', 'barley_tea'], ['oolong', 'green_tea_take'], ['green_tea']],
-  [['ion_water_2l'], ['ion_water'], ['ion_water', 'sports_drink'], ['sports_drink'], ['energy'], ['energy', 'ion_water']],
-  [['cola', 'cider'], ['cola'], ['cider', 'vitamin_lemon'], ['vitamin_lemon', 'ramune'], ['ramune', 'milky_soda'], ['cola_can']],
-  [['pet_coffee'], ['cafe_latte'], ['milk_tea'], ['pet_coffee', 'cafe_latte'], ['can_coffee'], ['can_coffee']],
-  [['milk_1l'], ['yogurt_drink', 'strawberry_milk'], ['strawberry_milk'], ['yogurt_drink'], ['milky_soda'], ['milk_tea']],
-  [['beer_6pack'], ['beer_gold_500'], ['beer_gold', 'beer_dry'], ['beer_premium', 'beer_dry'], ['beer_gold'], ['beer_premium']],
-  [['chuhi_lemon'], ['chuhi_lemon'], ['chuhi_peach', 'chuhi_grape'], ['highball'], ['highball', 'chuhi_lemon'], ['chuhi_peach']],
+  ['お水・炭酸水', 'Water', '#3a8ad0', 'water'], ['お茶', 'Tea', '#3a8a4a', 'tea'], ['スポーツ', 'Sports & energy', '#1e5ab8', 'sports'],
+  ['炭酸', 'Soda', '#d8342f', 'soda'], ['コーヒー・紅茶', 'Coffee & tea', '#6a3a22', 'coffee'], ['乳飲料・果汁', 'Milk & juice', '#5a8ac8', 'milk'],
+  ['ビール', 'Beer', '#b8862a', 'beer'], ['チューハイ', 'Chu-hi & highball', '#8a4aa8', 'chuhi'],
 ];
 
-/* The chilled case's sections, front (by the door) to back, with each
- * deck's products bottom to top. */
+/* The chilled case's sections, front (by the door) to back. */
 export const CHILLED_SECTIONS = [
-  { jp: 'おにぎり', en: 'Onigiri', col: '#3a8a4a', z0: -4.0, z1: -5.8,
-    decks: [['onigiri_salmon', 'onigiri_tuna'], ['onigiri_ume', 'onigiri_salmon'], ['onigiri_tuna', 'onigiri_ume'], ['onigiri_salmon', 'onigiri_tuna', 'onigiri_ume'], ['onigiri_tuna', 'onigiri_salmon']] },
-  { jp: 'サンドイッチ', en: 'Sandwiches', col: '#e8a018', z0: -5.9, z1: -7.0,
-    decks: [['sando_egg'], ['ham_sando'], ['sando_egg', 'ham_sando'], ['ham_sando'], ['sando_egg']] },
-  { jp: 'お弁当・麺', en: 'Bento & noodles', col: '#c8342f', z0: -7.1, z1: -8.6,
-    decks: [['bento_makunouchi'], ['bento_karaage'], ['cold_soba'], ['bento_makunouchi', 'bento_karaage'], ['cold_soba']] },
-  { jp: 'サラダ', en: 'Salads', col: '#5aa870', z0: -8.7, z1: -9.5,
-    decks: [['green_salad'], ['pasta_salad'], ['potato_salad'], ['green_salad'], ['pasta_salad']] },
-  { jp: 'スイーツ', en: 'Sweets', col: '#e8456a', z0: -9.6, z1: -10.8,
-    decks: [['fruit_sando'], ['roll_cake', 'cream_puff'], ['pudding', 'cheesecake'], ['fruit_sando', 'roll_cake'], ['cream_puff', 'pudding']] },
-  { jp: '乳製品', en: 'Dairy', col: '#3a8ad0', z0: -10.9, z1: -11.55,
-    decks: [['yogurt'], ['yogurt'], ['pudding'], ['yogurt'], ['yogurt']] },
+  { jp: 'おにぎり', en: 'Onigiri', col: '#3a8a4a', z0: -4.0, z1: -5.8, groups: ['onigiri'] },
+  { jp: 'サンドイッチ', en: 'Sandwiches', col: '#e8a018', z0: -5.9, z1: -7.0, groups: ['sando'] },
+  { jp: 'お弁当・麺', en: 'Bento & noodles', col: '#c8342f', z0: -7.1, z1: -8.6, groups: ['bento', 'noodle'] },
+  { jp: 'サラダ', en: 'Salads', col: '#5aa870', z0: -8.7, z1: -9.5, groups: ['salad'] },
+  { jp: 'スイーツ', en: 'Sweets', col: '#e8456a', z0: -9.6, z1: -10.8, groups: ['dessert'] },
+  { jp: '乳製品', en: 'Dairy', col: '#3a8ad0', z0: -10.9, z1: -11.55, groups: ['dairy'] },
 ];
 
-/* Gondola shelves, bottom to top, per run and side. */
-const SNACKS = ['potato_chips', 'choco_sticks', 'gummies', 'choco_mushrooms'];
-const GONDOLA = [
-  { [-1]: [SNACKS, SNACKS, SNACKS, SNACKS, SNACKS], [1]: [SNACKS, SNACKS, SNACKS, SNACKS, SNACKS] },
-  { [-1]: [SNACKS, SNACKS, SNACKS, SNACKS, SNACKS], [1]: [['cup_ramen'], ['cup_ramen', 'yakisoba'], ['yakisoba'], ['cup_ramen'], ['yakisoba', 'cup_ramen']] },
-  { [-1]: [['yakisoba'], ['cup_ramen'], ['cup_ramen', 'yakisoba'], ['yakisoba'], ['cup_ramen']], [1]: [['curry_pan'], ['melon_pan'], ['melon_pan', 'curry_pan'], ['curry_pan'], ['melon_pan']] },
-  { [-1]: [['melon_pan'], ['curry_pan', 'melon_pan'], ['melon_pan'], ['curry_pan'], ['melon_pan']], [1]: [['tissues'], ['tissues', 'otsumami'], ['sake_cup', 'otsumami'], ['whisky', 'sake_cup'], ['wine_red']] },
+/* Each gondola's two sides: -1 faces the chilled case, +1 the window. */
+export const AISLES = [
+  { [-1]: ['bread', 'パン', 'Bread', '#d8a060'], [1]: ['instant', 'カップ麺・食品', 'Instant food', '#e8453f'] },
+  { [-1]: ['snacks', 'スナック', 'Snacks', '#e8864a'], [1]: ['sweets', 'チョコ・お菓子', 'Chocolate & sweets', '#8a4a2a'] },
+  { [-1]: ['medicine', '医薬品', 'Medicine & health', '#2e8a5a'], [1]: ['cosmetics', 'コスメ', 'Cosmetics & care', '#d86a8a'] },
+  { [-1]: ['daily', '日用品', 'Daily goods', '#3a6ec8'], [1]: ['liquor', 'お酒・おつまみ', 'Wine, sake & snacks', '#8a4aa8'] },
 ];
-const ENDCAP = ['potato_chips', 'choco_mushrooms', 'cup_ramen', 'otsumami'];
-const ICE_BASKETS = ['ice_vanilla', 'ice_choco', 'ice_soda_bar', 'ice_choco_bar', 'ice_mochi', 'soft_cream',
-  'ice_choco', 'ice_vanilla', 'kakigori', 'ice_multipack', 'ice_soda_bar', 'ice_mochi'];
-const SELF = [['ice_cup'], ['smoothie_green'], ['smoothie_berry'], ['smoothie_mango']];
 
 const TAG_W = 0.1, TAG_H = 0.0375, Q = Math.PI / 2, SLOPE = 0.14;
 
@@ -73,82 +56,126 @@ export function stockStore(p, slots, group, lit) {
   const tags = tagAtlas();
   const tag = (id, x, y, z, ry, rx = 0) => p.quad(tags.tex, x, y, z, TAG_W, TAG_H, { ry, rx, uv: tags.rect(tags.cellOf[id]) });
 
-  /** Fill from..to with blocks of `block` facings of each product in `list`
-   *  (starting at `offset`), `place(id, t, fp)` per facing, `tagAt(id, t)`
-   *  once per block. */
-  const run = (from, to, list, block, offset, place, tagAt) => {
-    let t = from, b = 0;
-    while (t < to) {
-      const id = list[(b + offset) % list.length];
-      const fp = footprint(id);
-      const fw = fp.w + 0.01;
-      if (t + fw > to) break;
-      const n = Math.max(1, Math.min(block, Math.floor((to - t) / fw)));
-      tagAt?.(id, t + (n * fw) / 2);
-      for (let i = 0; i < n; i++) { place(id, t + fw / 2, fp); t += fw; }
-      t += 0.008; b++;
+  /* ---- what has been placed, product by product ---- */
+  const used = new Map(), blocks = new Map();
+  const left = (id) => CAP - (used.get(id) ?? 0);
+
+  /**
+   * A section's list, handed out a block at a time: `next(width, maxH,
+   * rowsFor)` gives the next product that fits (a block of `n` facings,
+   * `rows` deep) or null.  The first pass gives each product up to `maxF`
+   * facings; later passes place what is left of its CAP, once more.
+   */
+  const fillers = new Map();
+  function filler(key, ids, maxF = 6, maxF2 = maxF) {
+    if (fillers.has(key)) return fillers.get(key);
+    let i = 0, pass = 0;
+    const try1 = (id, width, maxH, rowsFor) => {
+      const fp = footprint(id), fw = fp.w + 0.01;
+      if (fp.h > maxH || fw > width || left(id) <= 0 || (blocks.get(id) ?? 0) >= 2) return null;
+      if (pass === 0 && blocks.get(id)) return null;
+      const rows = Math.max(1, Math.min(rowsFor(fp), left(id)));
+      const n = Math.min(pass === 0 ? maxF : maxF2, Math.floor(left(id) / rows), Math.floor(width / fw));
+      return n < 1 ? null : { id, n, rows, fp, fw };
+    };
+    const f = {
+      /* the next product in order that fits; one that does not fit here keeps
+       * its turn (the cursor moves only past what was placed) */
+      next(width, maxH, rowsFor) {
+        for (let again = 0; again < 2; again++) {
+          for (let t = 0; t < ids.length; t++) {
+            const j = (i + t) % ids.length;
+            const b = try1(ids[j], width, maxH, rowsFor);
+            if (!b) continue;
+            used.set(b.id, (used.get(b.id) ?? 0) + b.n * b.rows);
+            blocks.set(b.id, (blocks.get(b.id) ?? 0) + 1);
+            i = (j + 1) % ids.length;
+            return b;
+          }
+          // every product has its first block: a second pass for what is left
+          if (pass === 0 && ids.every((id) => blocks.get(id) || footprint(id).h > 0.5)) pass = 1; else break;
+        }
+        return null;
+      },
+    };
+    fillers.set(key, f);
+    return f;
+  }
+  /** Fill a run from..to with blocks from `fill`; `place(id, t, fp, row)` per unit, `tagAt(id, t)` per block. */
+  function run(from, to, fill, maxH, rowsFor, place, tagAt) {
+    let t = from;
+    for (;;) {
+      const b = fill.next(to - t, maxH, rowsFor);
+      if (!b) break;
+      tagAt?.(b.id, t + (b.n * b.fw) / 2);
+      for (let k = 0; k < b.n; k++) {
+        for (let r = 0; r < b.rows; r++) place(b.id, t + b.fw / 2, b.fp, r, r ? 0 : b.rows);
+        t += b.fw;
+      }
+      t += 0.012;
     }
-  };
-  /** Split a run evenly among the products listed, each a solid block. */
-  const blocks = (from, to, list, place, tagAt) => {
-    const w = (to - from) / list.length;
-    list.forEach((id, i) => run(from + i * w, from + (i + 1) * w, [id], 99, 0, place, tagAt));
-  };
+  }
+  // tall things first on a gondola side (they need the top shelf or the
+  // bottom), the rest in catalogue order so families stand together
+  const pool = (...groups) => groups.flatMap((g) => GROUP[g] ?? []);
+
+  const coolerDoors = DOOR_SIGNS.map(([, , , cat]) => [...pool(cat)].sort((a, b) => footprint(b).h - footprint(a).h));
+  const COOLER_GAP = [0.35, 0.31, 0.29, 0.29, 0.29, 0.39];
+  const ice = pool('ice'), iceInCase = ice.slice(0, 12);
 
   for (const s of slots) {
     stock.slot = s;
     switch (s.zone) {
       case 'drinks': {
-        // one door, one category; its shelf's products in solid blocks; the
-        // front unit and one behind it, on a shelf that falls toward you
-        const list = DOORS[s.bay][s.level];
-        blocks(s.x0, s.x1, list, (id, x, fp) => {
-          for (let r = 0; r < 2; r++) {
-            const dz = r * (fp.d + 0.012);
-            stock.add(id, x, s.y + dz * Math.tan(SLOPE), s.z - dz, 0, r ? 0 : undefined, SLOPE);
-          }
+        // one door, one category, big bottles low; a row behind each front unit
+        const fill = filler('door' + s.bay, coolerDoors[s.bay], 4, 6);
+        run(s.x0, s.x1, fill, COOLER_GAP[s.level], () => 2, (id, x, fp, r, count) => {
+          const dz = r * (fp.d + 0.012);
+          stock.add(id, x, s.y + dz * Math.tan(SLOPE), s.z - dz, 0, count, SLOPE);
         }, (id, x) => tag(id, x, s.y - 0.04, s.rail, 0));
         break;
       }
       case 'chilled': {
         for (const sec of CHILLED_SECTIONS) {
-          const list = sec.decks[s.level];
           const z1 = Math.max(sec.z0, sec.z1), z0 = Math.min(sec.z0, sec.z1);
-          // onigiri stand leaning back on sloped decks, in rows
-          const lean = list[0].startsWith('onigiri') ? -0.22 : 0;
-          blocks(z0 + 0.02, z1 - 0.02, list, (id, z, fp) => {
-            const rows = Math.max(1, Math.min(2, Math.floor((s.depth - 0.18) / (fp.d + 0.02))));
-            for (let r = 0; r < rows; r++) stock.add(id, s.rail - 0.03 - fp.d / 2 - r * (fp.d + 0.015), s.y, z, Q, r ? 0 : undefined, lean);
+          const fill = filler('chilled-' + sec.en, pool(...sec.groups), 3);
+          run(z0 + 0.02, z1 - 0.02, fill, 0.26, (fp) => Math.max(1, Math.min(2, Math.floor((s.depth - 0.18) / (fp.d + 0.02)))), (id, z, fp, r, count) => {
+            const lean = PRODUCT[id].mesh.shape === 'onigiri' ? -0.22 : 0;   // onigiri lean back on sloped decks
+            stock.add(id, s.rail - 0.03 - fp.d / 2 - r * (fp.d + 0.015), s.y, z, Q, count, lean);
           }, (id, z) => tag(id, s.rail + 0.002, s.y - 0.03, z, Q));
         }
         break;
       }
       case 'gondola': {
-        const list = GONDOLA[s.gi][s.side][s.level];
+        const [cat] = AISLES[s.gi][s.side];
         const ry = s.side > 0 ? Q : -Q;
-        run(s.z0, s.z1, list, 3, s.level, (id, z, fp) => stock.add(id, s.x - s.side * (fp.d / 2 + 0.03), s.y, z, ry),
-          (id, z) => tag(id, s.x + s.side * 0.012, s.y - 0.03, z, ry));
+        const fill = filler('g' + s.gi + s.side, pool(cat), 6);
+        run(s.z0, s.z1, fill, s.level === 4 ? 0.5 : 0.245, (fp) => Math.max(1, Math.min(2, Math.floor(0.38 / (fp.d + 0.012)))), (id, z, fp, r, count) =>
+          stock.add(id, s.x - s.side * (fp.d / 2 + 0.03 + r * (fp.d + 0.012)), s.y, z, ry, count),
+        (id, z) => tag(id, s.x + s.side * 0.012, s.y - 0.03, z, ry));
         break;
       }
       case 'endcap': {
-        const id = ENDCAP[s.gi];
-        run(s.x0, s.x1, [id], 9, 0, (i, x, fp) => stock.add(i, x, s.y, s.rail - 0.03 - fp.d / 2, 0),
-          (i, x) => tag(i, x, s.y - 0.03, s.rail + 0.004, 0));
+        // the aisle's own promotion: what is left of its two sides
+        const cats = [AISLES[s.gi][-1][0], AISLES[s.gi][1][0]];
+        const fill = filler('end' + s.gi, pool(...cats), 4);
+        run(s.x0, s.x1, fill, s.level === 3 ? 0.5 : 0.3, () => 1, (id, x, fp) => stock.add(id, x, s.y, s.rail - 0.03 - fp.d / 2, 0, 1),
+          (id, x) => tag(id, x, s.y - 0.03, s.rail + 0.004, 0));
         break;
       }
       case 'icecase': {
-        // a kind per basket, lying in rows (bars and boxes face up), or
-        // standing (cups, their lids up)
-        const id = ICE_BASKETS[s.basket % ICE_BASKETS.length];
+        // a kind per basket, standing in rows (bars and boxes lie flat); a
+        // second layer only for what the first could not hold
+        const id = iceInCase[s.basket % iceInCase.length];
         const fp = footprint(id);
-        const flat = /bar|multipack|soft_cream/.test(id);
+        const flat = /icebar|multipack|cone/.test(PRODUCT[id].mesh.shape);
         const w = fp.w + 0.01, l = (flat ? fp.h : fp.d) + 0.01;
-        for (let x = s.x0 + w / 2; x <= s.x1 - w / 2; x += w) {
-          for (let z = s.z0 + l / 2; z <= s.z1 - l / 2; z += l) {
-            // two layers, as a well-stocked case is piled
-            for (let k = 0; k < 2; k++) {
+        for (let k = 0; k < 2 && left(id) > 0; k++) {
+          for (let x = s.x0 + w / 2; x <= s.x1 - w / 2 && left(id) > 0; x += w) {
+            for (let z = s.z0 + l / 2; z <= s.z1 - l / 2 && left(id) > 0; z += l) {
               const y = s.y + k * ((flat ? fp.d : fp.h) + 0.004);
-              stock.add(id, x + k * 0.012, y + (flat ? fp.d / 2 : 0), z + (flat ? -fp.h / 2 : 0) + k * 0.01, 0, k ? 0 : undefined, flat ? -Q : 0);
+              stock.add(id, x + k * 0.012, y + (flat ? fp.d / 2 : 0), z + (flat ? -fp.h / 2 : 0) + k * 0.01, 0, 1, flat ? -Q : 0);
+              used.set(id, (used.get(id) ?? 0) + 1);
             }
           }
         }
@@ -156,30 +183,43 @@ export function stockStore(p, slots, group, lit) {
         break;
       }
       case 'freezer': {
-        const list = [['ice_bag'], ['ice_multipack'], ['ice_bag'], ['ice_multipack']][s.level];
-        blocks(s.x0, s.x1, list, (id, x) => stock.add(id, x, s.y, s.z, 0));
+        const fill = filler('freezer', [...pool('frozen'), ...ice.slice(12)], 4);
+        run(s.x0, s.x1, fill, 0.42, () => 2, (id, x, fp, r, count) => stock.add(id, x, s.y, s.z - r * (fp.d + 0.012), 0, count));
         break;
       }
       case 'selfserve': {
-        blocks(s.z0 + 0.02, s.z1 - 0.02, SELF[s.level], (id, z) => {
-          for (let r = 0; r < 2; r++) stock.add(id, s.x + r * 0.1, s.y, z, -Q, r ? 0 : undefined);
-        });
+        const fill = filler('self', pool('selfserve'), 5);
+        run(s.z0 + 0.02, s.z1 - 0.02, fill, 0.4, () => 2, (id, z, fp, r, count) => stock.add(id, s.x + r * 0.1, s.y, z, -Q, count));
         break;
       }
+      // the counter's own stock (served, not picked): as before
       case 'hot': {
-        run(s.z0, s.z1, [s.id], 20, 0, (id, z) => stock.add(id, s.x, s.y, z, -Q));
+        const fw = footprint(s.id).w + 0.01;
+        for (let z = s.z0 + fw / 2; z <= s.z1 - fw / 2; z += fw) stock.add(s.id, s.x, s.y, z, -Q, 1);
         break;
       }
       case 'coffee': {
-        for (let k = 0; k < 3; k++) stock.add('hot_coffee', s.x, s.y + k * 0.012, (s.z0 + s.z1) / 2, -Q);
+        for (let k = 0; k < 3; k++) stock.add('hot_coffee', s.x, s.y + k * 0.012, (s.z0 + s.z1) / 2, -Q, 1);
         break;
       }
       case 'umbrella': {
-        for (let k = 0; k < 6; k++) stock.add('umbrella', s.x - 0.12 + (k % 3) * 0.12, s.y, s.z - 0.05 + Math.floor(k / 3) * 0.1, k * 1.1);
+        for (let k = 0; k < 6; k++) stock.add('umbrella', s.x - 0.12 + (k % 3) * 0.12, s.y, s.z - 0.05 + Math.floor(k / 3) * 0.1, k * 1.1, 1);
         break;
       }
       default: break;
     }
   }
-  return stock.build(group, lit);
+  const units = stock.build(group, lit);
+
+  // what the shelves hold, for the STOCK check (scripts/shots.mjs)
+  const per = new Map();
+  const counter = (id) => ['hot', 'coffee', 'umbrella'].includes(PRODUCT[id].group);
+  for (const u of units) if (!counter(u.id)) per.set(u.id, (per.get(u.id) ?? 0) + 1);
+  const [maxId, max] = [...per].reduce((a, b) => (b[1] > a[1] ? b : a), ['', 0]);
+  const shelved = new Set(per.keys());
+  group.userData.stockStats = {
+    products: per.size, units: [...per.values()].reduce((a, b) => a + b, 0), max, maxId,
+    unplaced: Object.keys(PRODUCT).filter((id) => !shelved.has(id) && !counter(id)),
+  };
+  return units;
 }

@@ -90,6 +90,9 @@ export function buildPetals(ctx, opts = {}) {
    * blossom visibly drops from the sakura rather than out of the air. */
   const emitters = opts.emitters ?? [];
   const onlyTrees = !!opts.onlyTrees;
+  // `exclude` ([{ x0, x1, z0, z1, top }]): roofed places no petal falls into (the store, M3d)
+  const exclude = opts.exclude ?? [];
+  const indoors = (p) => exclude.some((r) => p.y < r.top && p.x > r.x0 && p.x < r.x1 && p.z > r.z0 && p.z < r.z1);
   function respawn(p) {
     const near = emitters.filter((e) => Math.abs(e.x - cxF) < HALF && Math.abs(e.z - czF) < HALF);
     if (near.length && (onlyTrees || rng.next() < 0.75)) {
@@ -138,6 +141,7 @@ export function buildPetals(ctx, opts = {}) {
       while (p.z < czF + Z0) p.z += Z1 - Z0;
       while (p.z > czF + Z1) p.z -= Z1 - Z0;
       if (p.y < (follow ? 0 : groundY(p.z)) + 0.04) respawn(p);   // a waiting petal (y -5) retries every frame
+      else if (exclude.length && indoors(p)) respawn(p);
 
       q.setFromAxisAngle(p.spin, p.angle);
       dummy.position.set(p.x, p.y, p.z);

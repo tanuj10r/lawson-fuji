@@ -248,6 +248,11 @@ export const TOWN = {
   /* The Lawson's ground, in the town's frame: no lot is cut here.  The
    * forecourt row along the main road, and the store with its back yard. */
   lawsonReserve: [[-42, 17, 42, 28], [-34, 28, 32, 44]],
+  /* The main road's far side, facing the store (world z 20.5-35): a row of
+   * frontage lots, all but the photographers' lot (world x -27..32), where
+   * the famous views stand. */
+  frontRow: { z0: -7.5, z1: 7.3 },
+  photoLot: [-32, -9, 27, 7.4],
 };
 
 /* The flat ground plane under everything. */

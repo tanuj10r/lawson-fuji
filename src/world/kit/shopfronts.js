@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { cel, flat } from '../../core/toon.js';
-import { rngKit, box, cyl } from '../../core/util.js';
+import { rngKit, box, cyl, bake, trs } from '../../core/util.js';
 import { makeGasMeter } from '../streetprops.js';
 import { makeShop, makeMenuBoard, makeShopFlag, makeFreezer, makeProduceStack, makePaperLantern } from '../shops.js';
 import {
@@ -45,15 +45,149 @@ let M = null;
 function mats() {
   if (M) return M;
   M = {
-    wood: cel({ color: 0xa88460, bands: 3, tint: 0x5c5680 }),
-    counter: cel({ color: 0xd8cfc0, bands: 3, tint: 0x6a6288 }),
-    shelf: cel({ color: 0xc9bfae, bands: 3, tint: 0x6a6288 }),
-    white: cel({ color: 0xeef0f4, bands: 3, tint: 0x6a6288 }),
+    wood: cel({ color: 0xa88460, bands: 3, tint: 0x7a6a88, emissive: 0xfff0d8, emissiveIntensity: 0.35 }),
+    counter: cel({ color: 0xd8cfc0, bands: 3, tint: 0x8a7a98, emissive: 0xfff0d8, emissiveIntensity: 0.45 }),
+    shelf: cel({ color: 0xd8cfbe, bands: 3, tint: 0x8a7a98, emissive: 0xfff0d8, emissiveIntensity: 0.45 }),
+    white: cel({ color: 0xeef0f4, bands: 3, tint: 0x8a7a98, emissive: 0xfff0d8, emissiveIntensity: 0.45 }),
     dark: cel({ color: 0x3c3a48, bands: 2, tint: 0x4b4560 }),
-    chair: cel({ color: 0x7a4a4a, bands: 3, tint: 0x5c5680 }),
+    chair: cel({ color: 0x7a4a4a, bands: 3, tint: 0x7a6a88, emissive: 0xfff0d8, emissiveIntensity: 0.3 }),
     light: flat({ color: 0xfff8e6 }),
   };
   return M;
+}
+
+/* ------------------------------------------------------------------ *
+ * Inside the shop (M2e): furniture you read through the glass.  Goods are
+ * baked per colour, so a shop's whole stock is a handful of draws.
+ * ------------------------------------------------------------------ */
+const GOODS = {
+  general: [0xd8504a, 0xf2c23c, 0x4f8fd0, 0x6fb86a, 0xf2f2f2, 0xe8864a],
+  bakery: [0xd8a060, 0xc07a3a, 0xf0d09a, 0xe8b878],
+  florist: [0xf28cb0, 0xf2d24a, 0xe85a5a, 0x9fd07a, 0xc090e0],
+  books: [0x4a6fa8, 0xc84a4a, 0xe8d8b0, 0x5a8a5a, 0x8a6aa0, 0xf2f2ea],
+  hardware: [0xc84a4a, 0x5a6a7a, 0xf2c23c, 0x4a8ac8, 0x8a8a8a],
+  greengrocer: [0x6fb86a, 0xe8453f, 0xf2a03c, 0xf2d24a, 0x8a5a9a],
+  wagashi: [0xf4d8e0, 0x9fc07a, 0xf2f2ea, 0x8a5a4a],
+};
+const goodsMats = new Map();
+/* A lit shop seen from the street is brighter and warmer than the shade
+ * under its awning: its stock and fittings take a little warm light of
+ * their own. */
+const LIT = { emissive: 0xfff0d8, emissiveIntensity: 0.45 };
+const goodsMat = (c) => goodsMats.get(c) ?? goodsMats.set(c, cel({ color: c, bands: 3, tint: 0x8a7a98, ...LIT })).get(c);
+
+function furnish(inner, kind, trade, { openW, back, front, REC, r }) {
+  const m = mats();
+  const byMat = new Map();
+  const put = (mat, w, h, d, x, y, z, ry = 0) => {
+    (byMat.get(mat) ?? byMat.set(mat, []).get(mat)).push({ geometry: new THREE.BoxGeometry(w, h, d), matrix: trs(x, y, z, 0, ry, 0) });
+  };
+  const cols = GOODS[trade] ?? GOODS.general;
+  /** A row of goods on a shelf from x0 to x1 at height y, depth z, dz deep. */
+  const stock = (x0, x1, y, z, dz, maxH = 0.28) => {
+    for (let x = x0; x < x1 - 0.06;) {
+      const w = r.range(0.07, 0.2), h = r.range(0.1, maxH);
+      put(goodsMat(r.pick(cols)), w, h, dz * r.range(0.6, 0.9), x + w / 2, y + h / 2, z);
+      x += w + r.range(0.005, 0.03);
+    }
+  };
+  /** Shelving: a unit from x0 to x1 at depth z, `levels` shelves, stocked. */
+  const shelving = (x0, x1, z, dz, h, levels) => {
+    put(m.shelf, x1 - x0, h, 0.04, (x0 + x1) / 2, h / 2, z - dz / 2);
+    for (let k = 0; k < levels; k++) {
+      const y = 0.12 + k * ((h - 0.2) / levels);
+      put(m.shelf, x1 - x0, 0.03, dz, (x0 + x1) / 2, y, z);
+      stock(x0 + 0.03, x1 - 0.03, y + 0.015, z, dz, Math.min(0.3, (h - 0.2) / levels - 0.06));
+      // the price rail along the shelf edge
+      put(goodsMat(0xf6f2e0), x1 - x0, 0.035, 0.01, (x0 + x1) / 2, y - 0.01, z + dz / 2 + 0.005);
+    }
+  };
+  const mid = back + REC / 2;
+  if (kind === 'shelves') {
+    // shelving along the back wall, and islands running back from the window
+    shelving(-openW / 2 + 0.1, openW / 2 - 0.1, back + 0.25, 0.4, 1.9, 5);
+    const islands = openW > 4 ? 2 : 1;
+    for (let i = 0; i < islands; i++) {
+      const x = islands === 1 ? -openW * 0.15 : (i === 0 ? -1 : 1) * openW * 0.2;
+      for (const s of [-1, 1]) {
+        // an island's two faces, low enough to see over (1.35 m)
+        const zc = mid + 0.1;
+        put(m.shelf, 0.04, 1.35, 1.6, x + s * 0.02, 0.68, zc);
+        for (let k = 0; k < 4; k++) {
+          const y = 0.12 + k * 0.3;
+          put(m.shelf, 0.36, 0.03, 1.6, x + s * 0.2, y, zc);
+          for (let zz = zc - 0.75; zz < zc + 0.75;) {
+            const w = r.range(0.08, 0.2), h = r.range(0.1, 0.24);
+            put(goodsMat(r.pick(cols)), r.range(0.18, 0.28), h, w, x + s * 0.2, y + 0.015 + h / 2, zz + w / 2);
+            zz += w + 0.02;
+          }
+        }
+      }
+    }
+    // the counter and register by the door side
+    const cx = openW / 2 - 0.7;
+    put(m.counter, 1.1, 0.95, 0.55, cx, 0.48, front - 1.1);
+    put(m.dark, 0.3, 0.12, 0.25, cx - 0.1, 1.02, front - 1.1);
+    put(m.dark, 0.26, 0.2, 0.03, cx - 0.1, 1.16, front - 1.2);
+    // general stores keep a drinks fridge on a side wall, lit from inside
+    if (trade === 'general' || trade === 'greengrocer') {
+      const fx = -openW / 2 + 0.35;
+      put(m.white, 0.6, 1.9, 1.2, fx, 0.95, back + 1.0);
+      put(m.light, 0.02, 1.6, 1.0, fx + 0.31, 1.0, back + 1.0);
+      for (let k = 0; k < 4; k++) for (let b = 0; b < 6; b++) {
+        put(goodsMat(r.pick([0x4f8fd0, 0xe8453f, 0xf2c23c, 0x6fb86a, 0xf2f2f2])), 0.06, 0.2, 0.06, fx + 0.22, 0.4 + k * 0.4, back + 0.6 + b * 0.16);
+      }
+    }
+  } else if (kind === 'counter') {
+    // a long counter with stools, the kitchen shelf behind it, a dark doorway through
+    put(m.wood, openW * 0.8, 1.0, 0.45, 0, 0.5, mid + 0.4);
+    put(m.wood, openW * 0.84, 0.05, 0.6, 0, 1.03, mid + 0.4);
+    for (let k = 0; k < 5; k++) {
+      const x = -openW * 0.32 + k * openW * 0.16;
+      put(m.chair, 0.34, 0.06, 0.34, x, 0.72, mid + 0.95);
+      put(m.dark, 0.05, 0.7, 0.05, x, 0.36, mid + 0.95);
+    }
+    put(m.shelf, openW * 0.7, 0.03, 0.3, 0, 1.55, back + 0.2);
+    for (let x = -openW * 0.33; x < openW * 0.33; x += 0.22) put(goodsMat(r.pick([0xf2f2ea, 0xc84a4a, 0x3a3a48, 0xe8d8b0])), 0.16, 0.12, 0.16, x, 1.63, back + 0.2);
+    put(m.dark, 0.9, 1.9, 0.03, openW / 2 - 0.7, 0.95, back + 0.02);
+  } else if (kind === 'tables') {
+    for (let k = 0; k < (openW > 4 ? 3 : 2); k++) {
+      const x = -openW * 0.3 + k * openW * 0.3, z = mid + (k % 2 ? 0.4 : -0.1);
+      put(m.wood, 0.7, 0.05, 0.7, x, 0.74, z);
+      put(m.dark, 0.06, 0.72, 0.06, x, 0.36, z);
+      for (const s of [-1, 1]) put(m.chair, 0.4, 0.05, 0.4, x + s * 0.55, 0.45, z);
+    }
+    put(m.counter, openW * 0.6, 1.0, 0.5, openW * 0.1, 0.5, back + 0.45);
+    put(m.dark, 0.35, 0.45, 0.35, openW * 0.25, 1.23, back + 0.45);   // the coffee machine
+  } else if (kind === 'machines') {
+    const n = Math.max(2, Math.floor(openW / 0.75));
+    for (let k = 0; k < n; k++) {
+      const x = -openW / 2 + 0.4 + k * ((openW - 0.8) / (n - 1));
+      put(m.white, 0.68, 0.9, 0.65, x, 0.45, back + 0.4);
+      put(m.dark, 0.36, 0.36, 0.02, x, 0.5, back + 0.73);
+      put(m.white, 0.68, 0.7, 0.65, x, 1.25, back + 0.4);
+      put(m.dark, 0.3, 0.3, 0.02, x, 1.3, back + 0.73);
+    }
+    put(m.wood, openW * 0.5, 0.05, 0.6, 0, 0.8, mid + 0.6);
+    put(m.chair, openW * 0.4, 0.4, 0.35, 0, 0.2, front - 0.8);
+  } else if (kind === 'chairs') {
+    for (let k = 0; k < 2; k++) {
+      const x = -openW * 0.2 + k * openW * 0.4;
+      put(m.chair, 0.6, 0.5, 0.6, x, 0.55, back + 0.8);
+      put(m.chair, 0.6, 0.7, 0.12, x, 1.0, back + 0.55);
+      put(goodsMat(0xc8dcec), 0.8, 1.0, 0.04, x, 1.5, back + 0.08);
+      put(m.shelf, 0.8, 0.04, 0.25, x, 1.0, back + 0.15);
+    }
+    put(m.chair, openW * 0.4, 0.42, 0.4, 0, 0.21, front - 0.8);          // the waiting bench
+  }
+  // fluorescent strips across the ceiling
+  for (let z = back + 0.5; z < front - 0.4; z += 1.1) put(m.light, openW * 0.55, 0.03, 0.18, 0, 2.43, z);
+  for (const [mat, parts] of byMat) {
+    const mesh = new THREE.Mesh(bake(parts), mat);
+    mesh.receiveShadow = true;
+    mesh.userData.noOutline = true;
+    inner.add(mesh);
+  }
 }
 
 /**
@@ -69,7 +203,7 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
   const w = Math.max(5.6, lot.w - r.range(0.2, 0.6));
   const d = Math.min(lot.depth - setback - 0.4, r.range(8.5, 11));
   const c = F.at(r.range(-0.2, 0.2), setback + d / 2);
-  const REC = 1.9;
+  const REC = 3.4;               // deep enough to read as a room (M2e; was 1.9)
   const floors = o.maxFloors === 1 ? 1 : 2;
   const balcony = floors === 2 && r.chance(0.5);
 
@@ -121,45 +255,9 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
   g.add(inner);
   const openW = w - 1.0;
   if (T.inside !== 'none' && !T.shutter) {
-    // a lit panel under the soffit
-    inner.add(box(openW * 0.6, 0.03, 0.4, m.light, 0, 2.43, back + REC * 0.45));
-    if (T.inside === 'shelves') {
-      for (const s of [-1, 1]) {
-        const sh = box(0.45, 1.6, REC * 0.7, m.shelf, s * (openW / 2 - 0.35), 0.8, back + REC * 0.4);
-        inner.add(sh);
-        for (let k = 0; k < 3; k++) {
-          inner.add(box(0.46, 0.2, REC * 0.66, cel({ color: r.pick([0xd8504a, 0xf2c23c, 0x4f8fd0, 0x6fb86a, 0xe8864a]), bands: 3 }),
-            s * (openW / 2 - 0.35), 0.45 + k * 0.5, back + REC * 0.4));
-        }
-      }
-      inner.add(box(openW * 0.35, 0.95, 0.5, m.counter, openW * 0.15, 0.48, back + 0.4));
-    } else if (T.inside === 'counter') {
-      inner.add(box(openW * 0.8, 1.0, 0.45, m.wood, 0, 0.5, back + 0.55));
-      for (let k = 0; k < 4; k++) inner.add(cyl(0.16, 0.16, 0.08, 10, m.chair, -openW * 0.3 + k * openW * 0.2, 0.7, back + 1.05));
-    } else if (T.inside === 'tables') {
-      for (const s of [-1, 1]) {
-        inner.add(box(0.7, 0.06, 0.7, m.wood, s * openW * 0.25, 0.74, back + REC * 0.55));
-        inner.add(cyl(0.05, 0.05, 0.72, 6, m.dark, s * openW * 0.25, 0.37, back + REC * 0.55));
-      }
-    } else if (T.inside === 'machines') {
-      const n = Math.max(2, Math.floor(openW / 0.75));
-      for (let k = 0; k < n; k++) {
-        const x = -openW / 2 + 0.4 + k * ((openW - 0.8) / (n - 1));
-        inner.add(box(0.68, 0.9, 0.65, m.white, x, 0.45, back + 0.35));
-        const door = new THREE.Mesh(new THREE.CircleGeometry(0.2, 16), m.dark);
-        door.position.set(x, 0.5, back + 0.68);
-        inner.add(door);
-        inner.add(box(0.68, 0.7, 0.65, m.white, x, 1.25, back + 0.35));
-      }
-    } else if (T.inside === 'chairs') {
-      for (let k = 0; k < 2; k++) {
-        const x = -openW * 0.2 + k * openW * 0.4;
-        inner.add(box(0.6, 0.5, 0.6, m.chair, x, 0.55, back + 0.6));
-        inner.add(box(0.6, 0.7, 0.12, m.chair, x, 1.0, back + 0.35));
-        inner.add(box(0.8, 1.0, 0.04, cel({ color: 0xc8dcec, bands: 2 }), x, 1.5, back + 0.08));
-      }
-    }
-    inner.traverse((n) => { if (n.isMesh) n.userData.noOutline = true; });
+    // a room you can read through the glass (M2e): furniture by trade,
+    // fluorescent strips on the ceiling, the painted back wall behind
+    furnish(inner, T.inside, trade, { openW, back, front, REC, r });
     // at night the shop is lit from inside: a warm glow just behind the glass
     ctx.night?.glow(g, openW - 0.1, 2.3, 0, 1.35, front - 0.14);
   }

@@ -227,8 +227,9 @@ export function buildOldTown(ctx) {
    * a town under Fuji actually is: three vegetable fields. */
   {
     const fields = [
-      [-114, -42, -24, 4, 0],     // west, between the lane and the main road
-      [76, 114, -56, -6, 1],      // east of the park
+      // (pulled back from the main road: its far side is a row of shops now, M2e)
+      [-114, -42, -24, -9, 0],    // west, between the lane and the main road
+      [76, 114, -56, -9, 1],      // east of the park
     ];
     for (const [x0, x1, z0, z1, v] of fields) {
       const tex = fieldTex(v).clone();

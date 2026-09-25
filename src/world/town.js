@@ -6,7 +6,6 @@ import { buildLawson } from './lawson.js';
 import { buildFuji } from './fuji.js';
 import { buildEdge } from './town-edge.js';
 import { buildCore } from './town-core.js';
-import { buildRail } from './town-rail.js';
 import { buildPetals } from './petals.js';
 import { mergeStatic } from './merge.js';
 
@@ -52,7 +51,6 @@ export function buildTown(scene) {
   ctx.registry.push({ kind: 'building', x: 0, z: -5, rect: [-8.5, -10, 11.1, 0] });
   buildEdge(ctx);
   const core = buildCore(ctx);
-  const rail = buildRail(ctx);
   // bottles behind a vending machine's glass shadow only its own insides
   root.traverse((o) => {
     if (o.isInstancedMesh && o.parent?.name === 'vending') o.castShadow = false;
@@ -83,7 +81,7 @@ export function buildTown(scene) {
     core,
     registry: ctx.registry,
     fuji,
-    rail,
+    line: core.line,
     batching,
     /** Ground height at (x, z); see ctx.heightAt for `fromY`. */
     heightAt: ctx.heightAt,
@@ -91,12 +89,14 @@ export function buildTown(scene) {
       groundMat.color.set(look.ground);
       lawson.setLook(look);
       core.kit.setLook(look);
+      core.line.setLook(look);
       fuji.setLook(look);
     },
     update(dt, camera) {
       if (camera) camPos.copy(camera.position);
       for (const fn of ctx.updaters) fn(dt);
-      petals.update(dt, rail.train.gust, rail.train.dir);
+      const air = core.line.gustAt(camPos);
+      petals.update(dt, air.gust, air.dir);
       if (camera) fuji.follow(camera);
     },
   };

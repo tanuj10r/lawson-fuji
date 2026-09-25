@@ -195,7 +195,9 @@ export const LOOKS = {
 export const TOWN = {
   bounds: { x0: -122, x1: 122, z0: -97, z1: 174 },
   core: { x0: -97, x1: 97, z0: 20.5, z1: 168 },
-  rail: { crossX: -80, z: 158, interval: 180 },   // a train every 3 minutes (M2c rebuilds)
+  /* The line (M2c, world/line/): double track along the south edge, the
+   * station at the spine's end, the level crossing on lane x -80. */
+  rail: { crossX: -80, z: 162, gauge: 1.067, spacing: 3.8 },
   crosswalk: { x: -35, width: 4 },              // zebra and signals on the main road
   residential: { laneZ: -41, laneX0: -110, sideLaneX: -21.5 },
   park: { x0: 22, x1: 70, z0: -58, z1: -12 },
@@ -208,24 +210,31 @@ export const TOWN = {
     ns: [
       { x: -80, cls: 'lane', z1: 172 },           // crosses the railway
       { x: -50, cls: 'shopping', z1: 126 },       // the spine, to the plaza
-      { x: -25, cls: 'lane', z1: 146 },
-      { x: 0, cls: 'lane', z0: 45, z1: 146 },
-      { x: 30, cls: 'lane', z1: 146 },
-      { x: 62, cls: 'lane', z1: 146 },
-      { x: 92, cls: 'lane', z1: 146 },
+      { x: -25, cls: 'lane', z1: 144 },
+      { x: 0, cls: 'lane', z0: 45, z1: 144 },
+      { x: 30, cls: 'lane', z1: 144 },
+      { x: 62, cls: 'lane', z1: 144 },
+      { x: 92, cls: 'lane', z1: 144 },
     ],
     ew: [
       { z: 45, x0: -80, x1: 92 },
       { z: 80, x0: -80, x1: 92 },
       { z: 112, x0: -80, x1: 92 },
-      { z: 146, x0: -25, x1: 92 },
+      { z: 144, x0: -25, x1: 92 },
     ],
   },
-  plaza: { x0: -78, x1: -27, z0: 126, z1: 152 },
+  plaza: { x0: -78, x1: -27, z0: 126, z1: 148 },
+  /* The station (M2c): building on the plaza's south side, platform 1 behind
+   * its ticket gates, platform 2 across the tracks (in-station crossing). */
+  station: {
+    building: { x0: -64, x1: -38, z0: 148, z1: 155 },
+    platforms: { x0: -74, x1: -26, depth: 3.5 },
+    stopX: -50,
+  },
   /* Quiet zones: no poles, signs or road words.  The hero window, reaching
    * east to x 55 because the golden-hour sun (from the east, 14° up) throws a
    * pole's shadow 35 m west across the forecourt; and the railway. */
-  quiet: [[-30, -20, 55, 24], [-200, 151, 200, 166]],
+  quiet: [[-30, -20, 55, 24], [-200, 153, 200, 171]],
 };
 
 /* The flat ground plane under everything. */
@@ -302,8 +311,18 @@ export const SHOT_SPOTS = [
   { name: 'town-apartment', scene: 'town', pos: [28.2, 0, 83], yaw: -2.4, pitch: 0.06, looks: ['day'] },
   { name: 'town-vacant', scene: 'town', pos: [47, 0, 113.6], yaw: 0.35, pitch: 0.0, looks: ['golden'] },
   { name: 'town-park', scene: 'town', pos: [14.5, 0, 110.6], yaw: 3.1416, pitch: 0.02, looks: ['day'], ref: '11-plaza-zebra-sakura.png' },
-  { name: 'town-plaza', scene: 'town', pos: [-50, 0, 121], yaw: 3.1416, pitch: 0.05, looks: ['day'], ref: '12-station-plaza-big-sakura.png' },
-  { name: 'town-crossing', scene: 'town', pos: [-80.6, 0, 138], yaw: 3.1416, pitch: 0.02, looks: ['golden'], ref: '20-level-crossing-fence.png' },
+  { name: 'town-plaza', scene: 'town', pos: [-50, 0, 125.5], yaw: 3.1416, pitch: 0.05, looks: ['day'], ref: '12-station-plaza-big-sakura.png' },
+  // M2c: the station and the line (`train` stands the service in a moment)
+  { name: 'station-plaza-clock', scene: 'town', pos: [-50, 0, 134], yaw: 2.2, pitch: 0.08, looks: ['day'], ref: '13-plaza-clock.png' },
+  { name: 'station-entrance', scene: 'town', pos: [-41.8, 0, 136.5], yaw: 2.82, pitch: 0.1, looks: ['day'], ref: '14-station-entrance.png' },
+  { name: 'station-gates', scene: 'town', pos: [-52.5, 0, 150.3], yaw: 3.1416, pitch: 0.04, looks: ['day'], train: 'platform', ref: '15-station-gates.png' },
+  { name: 'station-to-platform', scene: 'town', pos: [-50, 0, 152.6], yaw: 3.1416, pitch: 0.02, looks: ['day'], train: 'platform', ref: '16-station-to-platform.png' },
+  { name: 'platform-departures', scene: 'town', pos: [-29, 0, 157.2], yaw: 1.5708, pitch: 0.03, looks: ['day'], train: 'platform', ref: '17-platform-departures.png' },
+  { name: 'train-at-platform', scene: 'town', pos: [-47, 0, 166.4], yaw: 0, pitch: 0.02, looks: ['day', 'blue'], train: 'platform', ref: '18-train-at-platform.png' },
+  { name: 'crossing-train', scene: 'town', pos: [-80.6, 0, 150], yaw: 3.1416, pitch: 0.03, looks: ['golden'], train: 'crossing', ref: '19-level-crossing-train.png' },
+  { name: 'crossing-fence', scene: 'town', pos: [-78.4, 0, 155.6], yaw: -2.5, pitch: 0.0, looks: ['day'], train: 'approach', ref: '20-level-crossing-fence.png' },
+  { name: 'crossing-path', scene: 'town', pos: [-28.5, 0, 156.6], yaw: -2.3, pitch: -0.05, looks: ['day'], ref: '21-crossing-path-fence.png' },
+  { name: 'platform-canopy', scene: 'town', pos: [-56, 0, 167.2], yaw: -1.5708, pitch: 0.06, looks: ['day'], train: 'platform', ref: '22-platform-canopy.png' },
   { name: 'town-overview', scene: 'town', pos: [0, 0, 215], yaw: 0, pitch: -0.62, lift: 95, looks: ['golden'] },
   { name: 'town-overview-east', scene: 'town', pos: [170, 0, 90], yaw: -1.5708, pitch: -0.55, lift: 80, looks: ['day'] },
 

@@ -399,3 +399,91 @@ Judgement calls, newest milestone last.
   - Walk routes: 0 stuck points on all four.
   - Fuji's peak is in line of sight from 67% of walkable points (M2:
     87%; the bar is "most").
+
+## M2c: Station and trains
+
+- **Layout (config.js TOWN.rail, TOWN.station).**
+  - The line runs along the south edge: double track at z 160.1 (track 1,
+    eastbound) and z 163.9 (track 2, westbound). Trains keep left.
+  - The station building (x −64..−38, z 148–155) closes the plaza at the
+    end of the spine. Its concourse is at platform height, up six steps
+    from the plaza, and platform 1 is through its ticket gates.
+  - Platform 2 is reached by an in-station crossing (構内踏切) at the east
+    end, not a footbridge (SPEC allows either). It is lighter and can be
+    walked end to end.
+  - The public level crossing is on lane x −80, 6 m west of the platform
+    ends.
+  - Lane z 146 moved to 144, so the lots south of it stay 7 m deep.
+- **Our own line, not Sakura Crossing's.** Its railway is single-track and
+  built round its own street constants; `line/track.js` and
+  `line/crossing.js` are new. `railway.js` and `train.js` stay in the parts
+  library, and `town-rail.js` (M2's placement of them) is gone.
+- **Our own train (`line/emu.js`).** It keeps the library EMU's
+  proportions, but every car is a shell:
+  - side walls are built between the door and window openings, with a
+    cream lining inside;
+  - the interior is real: long bench seats, poles, racks, straps, lit
+    ceiling strips;
+  - door leaves slide into the wall pocket;
+  - at night the interior glows (`setNight`, driven by the look).
+  - **Passengers:** a few dark silhouettes, seated and standing. SPEC asks
+    for them. The library train's "no people" note was Sakura Crossing's
+    own rule.
+- **Two sets, one per track.** One set can't manage the SPEC headway: it
+  needs about 30 s to run out and 30 s to run back in, so the next arrival
+  60 s after a departure has to be the other set. Each set runs out into
+  the fog and waits there for its next turn.
+- **Service timings (line/service.js SERVICE).**
+  - Cruise 22 m/s; brake 1.0 m/s²; accelerate 0.9 m/s².
+  - Doors open over 1.6 s; dwell 60 s; chime 1.4 s; doors close over 2.2 s.
+  - The set holds 3 s, then departs.
+  - The next arrival is timed for 60 s after the departure.
+- **Crossing logic.**
+  - For each set, the service steps a copy of its motion forward (0.25 s
+    steps, 25 s horizon) to predict when the front will be within 4 m of
+    the crossing. That covers cruising, braking to a stop short of it, and
+    sitting at the platform about to depart over it.
+  - The crossing closes under 25 s and stays closed while any part of a
+    train is within 4 m.
+  - Lamps and bells come first; the arms follow 5 s later, lower over 6 s
+    and rise over 5 s. The direction arrows show which way the train is
+    going.
+  - Westbound trains stop 10 m short of the crossing, so the gates come
+    down about 20 s before they leave: what real stations beside a crossing
+    do.
+- **Checked by `?traincheck`** (in `npm run shots`): 20 min of service in
+  1/20 s steps.
+  - Dwell 60.0–60.1 s; the chime always comes before the doors close.
+  - Headway 59.6–59.7 s; tracks and directions alternate.
+  - The crossing was open with a train within 4 m at 0 of 24,001 steps;
+    lamps were off while the arms were down at 0 steps.
+- **Sound, minimal until M4 (`core/sfx.js`).**
+  - Crossing bells: positional, from assets/audio/crossing-bells.mp3 when
+    it loads, else SPEC 9's procedural FM bell.
+  - Door chime: an original three-note phrase.
+  - Started by the same click as the music. M4 folds this into its
+    engine.
+- **Density at the station.**
+  - Catenary masts register as poles (they are poles with wires). They
+    stand every 20 m, skipping the level crossing and the ticket-gate
+    aisles, plus one at x −42.
+  - Added, as real stations have: a waiting room on platform 2, a toilet
+    annex, a kiosk beside the entrance, a police box and a café on the
+    plaza, a light by the steps.
+  - A row of houses beyond the line, out of bounds, faces the tracks,
+    like the reference frames.
+  - `town-crossing` is retired: it was M2b's placeholder view of the same
+    crossing, which `crossing-train` now covers from 12 m closer.
+  - Several spots were re-aimed. The 25 m / 70° cone is strict at the
+    edge of an open plaza, so each spot looks the way its reference frame
+    looks.
+- **Names.** Station 「さくら富士」 (M2); the line 富士見線; the stations in
+  between (ふじみ台, こもれび野, 富士山麓) are ours, and the termini (大月,
+  河口湖) are real towns. Also ours: ふじみ売店, 富士見交通 and the
+  community bus plate. The parts library's bus-stop plate said ひばり台;
+  it doesn't now.
+- **Measured.**
+  - Heroes unchanged (1 and 3: 0.000%; 2: 0.356%, as M2b).
+  - Frame time 6.0–8.1 ms at 1440p at every spot.
+  - Draw calls rise to 500–650 where a train stands at the platform: the
+    two sets, their glass and doors. Still M2d's performance pass.

@@ -98,7 +98,7 @@ for (const spot of spots) {
   for (const look of looks) {
     const name = spot.looks.length > 1 ? `${spot.name}-${look}` : spot.name;
     const opts = {
-      hero: spot.hero, look, pos: spot.pos, yaw: spot.yaw, pitch: spot.pitch, lift: spot.lift,
+      hero: spot.hero, look, pos: spot.pos, yaw: spot.yaw, pitch: spot.pitch, lift: spot.lift, train: spot.train,
       png: true, scale: 2, returnData: true,
     };
     const r = await page.evaluate(([n, w, h, o]) => window.__shot(n, w, h, o), [name, W, H, opts]);
@@ -153,6 +153,21 @@ if (!baseline && densityRows.length) {
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 120000, polling: 250 });
   bare = (await page.evaluate(() => window.__density()))?.bare ?? null;
   stats._bare = bare;
+}
+// the train service (M2c): dwell, headway, and the crossing against the trains
+if (!baseline && spots.some((s) => s.scene === 'town')) {
+  await page.goto(`${base}?traincheck`);
+  await page.waitForFunction(() => window.__traincheck, null, { timeout: 120000, polling: 500 });
+  const tc = await page.evaluate(() => window.__traincheck);
+  stats._traincheck = tc;
+  const dw = tc.dwell, hw = tc.headway.map((h) => h.s);
+  const alt = tc.headway.every((h) => h.from !== h.to);
+  const okDwell = dw.length && dw.every((d) => Math.abs(d - 60) <= 1);
+  const okOrder = tc.order.length && tc.order.every((o) => o === 'chime-then-close');
+  const okHead = hw.length && hw.every((h) => Math.abs(h - 60) <= 5);
+  const okCross = tc.crossing.openWhileNear === 0 && tc.crossing.lampsOffWhileDown === 0;
+  console.log(`TRAIN dwell ${Math.min(...dw)}-${Math.max(...dw)} s ${okDwell ? 'pass' : 'FAIL'}; chime before doors close ${okOrder ? 'pass' : 'FAIL'}; headway ${Math.min(...hw)}-${Math.max(...hw)} s ${okHead ? 'pass' : 'FAIL'}; alternating tracks ${alt ? 'pass' : 'FAIL'}`);
+  console.log(`TRAIN crossing: open with a train near it ${tc.crossing.openWhileNear} steps, lamps off while down ${tc.crossing.lampsOffWhileDown} steps ${okCross ? 'pass' : 'FAIL'} (${tc.crossing.steps} steps)`);
 }
 if (!baseline) {
   fs.writeFileSync(path.join(outDir, 'stats.json'), JSON.stringify(stats, null, 2));

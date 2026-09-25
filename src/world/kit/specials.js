@@ -504,11 +504,5 @@ function plaza(ctx, net, kit, s) {
     ctx.collide(x - 0.6, z - 0.6, x + 0.6, z + 0.6, y + 0.8);
     reg(ctx, 'prop', { x, z });
   }
-  // bike racks along the plaza's east side, full
-  for (let k = 0; k < 2; k++) {
-    const p = { x: s.x1 - 1.5, z: s.z0 + 5 + k * 6 };
-    ctx.add(makeBikeRack({ x: p.x, y, z: p.z, ry: Math.PI / 2, n: 6, seed: 8810 + k }));
-    ctx.collide(p.x - 1.0, p.z - 2.2, p.x + 1.0, p.z + 2.2, y + 1.0);
-    reg(ctx, 'prop', p);
-  }
+  // (the station's side of the plaza -- racks, taxi, shop -- is line/station.js)
 }

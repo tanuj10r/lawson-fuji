@@ -91,4 +91,6 @@ export const SPECIALS = [
   { kind: 'vacant', x0: 40, z0: 98, x1: 51, z1: 112 - lane - 0.3, face: 'z+' },
   { kind: 'park', x0: 5, z0: 112 + lane + 0.4, x1: 24, z1: 132, face: 'z-' },
   { kind: 'plaza', x0: TOWN.plaza.x0, z0: TOWN.plaza.z0, x1: TOWN.plaza.x1, z1: TOWN.plaza.z1, face: 'z-' },
+  // the station building's strip between the plaza and the tracks (world/line/station.js builds it)
+  { kind: 'station', x0: TOWN.plaza.x0, z0: TOWN.plaza.z1, x1: TOWN.plaza.x1, z1: 154, face: 'z-' },
 ];

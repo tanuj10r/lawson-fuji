@@ -8,6 +8,8 @@ import { planNetwork, SPECIALS } from './town-plan.js';
 import { makeTimberFence } from './buildings.js';
 import { makeGuardrail } from './props.js';
 import { buildGrove } from './trees.js';
+import { buildLine } from './line/index.js';
+import { FENCE_OFF } from './line/track.js';
 
 /* ------------------------------------------------------------------ *
  * The dense core south of the main road (SPEC section 3, M2b).
@@ -29,7 +31,7 @@ export function buildCore(ctx) {
   const reserved = [
     ...SPECIALS.map((s) => [s.x0, s.z0, s.x1, s.z1]),
     [-300, -300, 300, C.z0],                 // the main road and everything north of it
-    [-300, 150.5, 300, 300],                 // the railway corridor and beyond
+    [-300, 154, 300, 300],                   // the railway corridor and beyond
   ];
   const inside = (r) => r[0] >= C.x0 && r[2] <= C.x1 && r[1] >= C.z0 && r[3] <= C.z1;
   // the main road only has a south side in the core
@@ -40,19 +42,24 @@ export function buildCore(ctx) {
   const built = lots.map((lot) => buildLot(ctx, net, kit, lot));
   for (const s of SPECIALS) buildSpecial(ctx, net, kit, s);
   dressStreets(ctx, net, kit, lots, SPECIALS);
+  const line = buildLine(ctx, { kit });
   kit.finish();
   buildCoreEdge(ctx);
 
-  return { kit, net, lots, built, specials: SPECIALS };
+  return { kit, net, lots, built, specials: SPECIALS, line };
 }
 
 /** Fences and tree lines round the core: the edge is always something you see. */
 function buildCoreEdge(ctx) {
   const C = TOWN.core;
   const zTop = 20.5, zEnd = TOWN.bounds.z1 - 2;
+  // the line leaves town through its own right-of-way (line/track.js closes it)
+  const rw = [TOWN.rail.z - FENCE_OFF, TOWN.rail.z + FENCE_OFF];
   for (const x of [C.x0, C.x1]) {
-    ctx.add(makeTimberFence({ x, z: (zTop + zEnd) / 2, y: 0, len: zEnd - zTop, axis: 'z', h: 1.2 }));
-    ctx.collide(x - 0.2, zTop, x + 0.2, zEnd, 1.2);
+    for (const [a, b] of [[zTop, rw[0]], [rw[1], zEnd]]) {
+      ctx.add(makeTimberFence({ x, z: (a + b) / 2, y: 0, len: b - a, axis: 'z', h: 1.2 }));
+      ctx.collide(x - 0.2, a, x + 0.2, b, 1.2);
+    }
     const spots = [];
     for (let z = zTop + 4, i = 0; z < zEnd; z += 11, i++) {
       spots.push({ x: x + Math.sign(x) * (4 + (i % 3)), z, y: 0, scale: 1.25 + (i % 5) / 8, seed: 4100 + i + (x > 0 ? 50 : 0) });

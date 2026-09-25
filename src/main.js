@@ -6,6 +6,7 @@ import { setOutlineResolution } from './core/outline.js';
 import { Player } from './core/player.js';
 import { createHud } from './core/hud.js';
 import { createMusic } from './core/audio.js';
+import { createSfx } from './core/sfx.js';
 import { buildTown } from './world/town.js';
 import { buildKitTest } from './world/kit-test.js';
 import { atSpot, bareStretches } from './world/kit/density.js';
@@ -104,7 +105,15 @@ const rememberVolume = () => {
   try { localStorage.setItem(VOLUME_STORAGE_KEY, String(music.volume)); } catch { /* optional */ }
 };
 
+/* Positional effects (M2c: the crossing bells and the train's door chime),
+ * started by the same first click as the music. */
+const sfx = createSfx({ volume: initialVolume });
+world.line?.onEvent((name, run) => {
+  if (name === 'chime') sfx.chime(Math.hypot(camera.position.x - run.x, camera.position.z - run.z));
+});
+
 hud.onVolumeChange = (value) => {
+  sfx.setVolume(value);
   hud.setMuted(music.setVolume(value));
   rememberVolume();
 };
@@ -113,11 +122,13 @@ hud.onVolumeChange = (value) => {
 // takes the pointer lock rather than on load.
 hud.onStart = () => {
   music.start();
+  sfx.start();
   player.lock();
 };
 player.onLockChange = (locked) => hud.setLocked(locked);
 canvas.addEventListener('click', () => {
   music.start();
+  sfx.start();
   if (!player.locked) player.lock();
 });
 
@@ -313,6 +324,10 @@ function frame() {
   }
   world.update(dt, camera);
   seatLights();
+  if (world.line) {
+    const c = world.line.crossingPos;
+    sfx.bells(world.line.service.cross.bells, Math.hypot(camera.position.x - c.x, camera.position.z - c.z));
+  }
 
   // the sky dome is centred on the flat origin, so it has to trail the camera
   sky.dome.position.copy(camera.position);
@@ -344,6 +359,7 @@ if (import.meta.env?.DEV) {
   window.__shot = async (name = 'shot', W = 1600, H = 900, opts = {}) => {
     refOn = false;
     if (opts.hero) enterHero(opts.hero);
+    if (opts.train) window.__train?.(opts.train);
     if (opts.look) applyLook(opts.look);
     if (opts.pos) player.pos.set(opts.pos[0], player.pos.y, opts.pos[2]);
     if (opts.y !== undefined) player.pos.y = opts.y;
@@ -418,6 +434,50 @@ if (import.meta.env?.DEV) {
    * it to .shots/ (those carry the third-party photo, so they stay local). */
   const params = devParams;
   window.__lastView = () => lastView;
+  /** Stand the trains in a moment: 'platform', 'platform2', 'crossing', 'approach'. */
+  window.__train = (kind) => world.line?.service.stage(kind);
+
+  /* ?traincheck: run the service fast in fixed steps and check it (SPEC M2c).
+   * Events with their times, the dwell and headway, and at every step: is
+   * the crossing shut whenever a train is within the margin of it? */
+  if (params.has('traincheck')) {
+    world.fuji.ready.then(() => {
+      const L = world.line, S = L.service;
+      const dt = 1 / 20;
+      const cx = L.crossingPos.x;
+      let openWhileNear = 0, lampsOffWhileDown = 0, steps = 0;
+      for (let t = 0; t < 1200; t += dt) {
+        S.update(dt);
+        steps++;
+        for (const r of S.runs) {
+          if (r.phase === 'idle') continue;
+          const lo = Math.min(r.x - r.len / 2, r.x + r.len / 2) - 4, hi = Math.max(r.x - r.len / 2, r.x + r.len / 2) + 4;
+          if (cx > lo && cx < hi && S.cross.armT < 0.999) openWhileNear++;
+        }
+        if (S.cross.armT >= 0.999 && !S.cross.bells) lampsOffWhileDown++;
+      }
+      const ev = S.events;
+      const find = (name, from = 0) => ev.findIndex((e, i) => i >= from && e.name === name);
+      const out = { events: ev.map((e) => `${e.t}s ${e.name} set${e.set} track${e.track} ${e.dir}`), dwell: [], headway: [], order: [] };
+      for (let i = 0; i < ev.length; i++) {
+        const e = ev[i];
+        if (e.name === 'doorsOpen') {
+          const c = find('chime', i);
+          if (c >= 0) out.dwell.push(+(ev[c].t - e.t).toFixed(1));
+          const cl = find('doorsClosed', i);
+          if (c >= 0 && cl >= 0) out.order.push(ev[c].t < ev[cl].t ? 'chime-then-close' : 'WRONG');
+        }
+        if (e.name === 'depart') {
+          const a = find('arrive', i);
+          if (a >= 0) out.headway.push({ s: +(ev[a].t - e.t).toFixed(1), from: e.track, to: ev[a].track });
+        }
+      }
+      out.crossing = { steps, openWhileNear, lampsOffWhileDown };
+      window.__traincheck = out;
+      console.log('traincheck ' + JSON.stringify(out));
+      document.title = 'traincheck done';
+    });
+  }
   /* The density budget (SPEC section 3), from a spot and town-wide. */
   window.__density = (spot) => {
     const kit = world.core?.kit ?? world.kit;
@@ -428,78 +488,6 @@ if (import.meta.env?.DEV) {
     return out;
   };
   world.fuji.ready.then(() => { window.__ready = true; });
-
-  /* ?tour: frames round the town (M2 review), with draw-call and triangle
-   * counts in the console. */
-  if (params.has('tour')) {
-    world.fuji.ready.then(async () => {
-      const W = 1600, H = 900;
-      const stops = [
-        ['overview', 'golden', { pos: [0, 0, 150], yaw: 0, pitch: -0.42, lift: 95 }],
-        ['overview-west', 'morning', { pos: [60, 0, 110], yaw: 0.75, pitch: -0.4, lift: 70 }],
-        ['road-east', 'morning', { pos: [-60, 0, 14], yaw: -1.35, pitch: 0.05 }],
-        ['shotengai', 'golden', { pos: [-40, 0, 40], yaw: 1.57, pitch: 0.05 }],
-        ['residential', 'morning', { pos: [-22, 0, -41], yaw: 1.57, pitch: 0.05 }],
-        ['park', 'morning', { pos: [46, 0, 4], yaw: 0, pitch: 0.08 }],
-        ['sideroad', 'golden', { pos: [30, 0, 24], yaw: Math.PI, pitch: 0.02 }],
-        ['station', 'morning', { pos: [40, 0, 55], yaw: -1.6, pitch: 0.03 }],
-        ['lawson-side', 'morning', { pos: [-16, 0, 2], yaw: 1.15, pitch: 0.0 }],
-        ['train', 'golden', { pos: [30, 0, 46], yaw: Math.PI, pitch: 0.04, train: -12 }],
-        ['night-road', 'night', { pos: [-8, 0, 19], yaw: -0.5, pitch: 0.06 }],
-      ];
-      for (const [name, view, opts] of stops) {
-        enterHero(view);
-        if (opts.train !== undefined) {
-          // stage the train on the crossing with the gates down
-          const { train, crossing } = world.rail;
-          train.x = opts.train;
-          train.group.position.x = train.x;
-          train.group.visible = true;
-          crossing.setArms(1);
-          crossing.setLamps(true, 0.2);
-        }
-        await window.__shot(`m2-${name}`, W, H, { ...opts, quality: 0.85 });
-        const i = window.__frameInfo;
-        console.log(`tour ${name}: calls ${i.calls} triangles ${i.triangles}`);
-        if (name === 'road-east' || name === 'shotengai') {
-          renderer.shadowMap.enabled = false;
-          await window.__shot(`m2-${name}-noshadow`, 320, 180, { ...opts, quality: 0.5 });
-          renderer.shadowMap.enabled = true;
-          // same framing at full size, main pass only
-          const j = window.__frameInfo;
-          console.log(`tour ${name} (no shadow pass, small): calls ${j.calls}`);
-        }
-      }
-      console.log('batching ' + JSON.stringify(world.batching));
-      // what is heavy: meshes grouped by their nearest named ancestor
-      const agg = new Map();
-      scene.traverse((o) => {
-        if (!o.isMesh || !o.visible) return;
-        let a = o;
-        while (a.parent && !a.name) a = a.parent;
-        const key = (a.name || 'anon') + (o.isInstancedMesh ? '[inst]' : '');
-        const g = o.geometry;
-        const tris = (g.index ? g.index.count : g.attributes.position.count) / 3 * (o.isInstancedMesh ? o.count : 1);
-        const e = agg.get(key) ?? { n: 0, tris: 0 };
-        e.n++; e.tris += tris;
-        agg.set(key, e);
-      });
-      const rows = [...agg.entries()].sort((a, b) => b[1].tris - a[1].tris).slice(0, 18);
-      for (const [k, e] of rows) console.log(`heavy ${k}: meshes ${e.n} tris ${Math.round(e.tris)}`);
-      const kinds = new Map();
-      scene.traverse((o) => {
-        if (o.name !== 'merged') return;
-        const m = o.material;
-        const k = m.isShaderMaterial ? 'hull' : `${m.type}${m.vertexColors ? '-vc' : ''}${m.map ? '-map' : ''}${o.castShadow ? '-cast' : ''}`;
-        kinds.set(k, (kinds.get(k) ?? 0) + 1);
-      });
-      console.log('kinds ' + JSON.stringify([...kinds.entries()]));
-      const byN = [...agg.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 12);
-      for (const [k, e] of byN) console.log(`many ${k}: meshes ${e.n} tris ${Math.round(e.tris)}`);
-      document.title = 'tour done';
-      console.log('tour done');
-    });
-  }
 
   /* ?m2check: the M2 acceptance measurements, printed to the console.
    *   walk   the player controller driven along the town's longest routes at

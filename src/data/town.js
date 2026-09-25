@@ -67,3 +67,21 @@ export const COIN_PARKING = { t: 'ふじみパーク', s: '20分 100円', foot: 
 export const SHRINE = { name: '富士見稲荷神社', nobori: '正一位稲荷大明神' };
 export const FOR_SALE = { t: '富士見不動産', tel: '0555-23-0770' };
 export const PARK_NAME = 'ふじみ ちびっこ広場';
+
+/* ---- the line (M2c) ----
+ * West to east.  The termini are real towns (a local line under Fuji
+ * would run there); every station in between is ours. */
+export const LINE = {
+  name: '富士見線',
+  stations: [
+    { jp: '大月', en: 'OTSUKI', fare: 520 },
+    { jp: 'ふじみ台', en: 'FUJIMIDAI', fare: 180 },
+    { jp: 'さくら富士', en: 'SAKURA-FUJI', fare: 0 },
+    { jp: 'こもれび野', en: 'KOMOREBINO', fare: 160 },
+    { jp: '富士山麓', en: 'FUJISANROKU', fare: 230 },
+    { jp: '河口湖', en: 'KAWAGUCHIKO', fare: 310 },
+  ],
+  /** by direction of travel: +x (track 1) runs east to 河口湖 */
+  dest: { east: { kind: '各停', jp: '河口湖', en: 'Kawaguchiko' }, west: { kind: '各停', jp: '大月', en: 'Otsuki' } },
+};
+export const TAXI = '富士見交通';

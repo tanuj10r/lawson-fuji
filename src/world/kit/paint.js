@@ -228,3 +228,97 @@ export function chipTex() {
   chips.anisotropy = 16;
   return chips;
 }
+
+/* ------------------------------------------------------------ blossom
+ * Painted sakura (M2e Phase 3).  The reference canopies are faceted
+ * clumps too; what makes them read as blossom is the paint on them:
+ * hundreds of small five-petalled florets, a few shades of pink, pale
+ * centres and the odd white one catching the light. */
+
+/** One floret: five round petals about a centre, with a pale middle. */
+function floret(c, x, y, s, rot, col, mid) {
+  c.fillStyle = col;
+  for (let k = 0; k < 5; k++) {
+    const a = rot + (k / 5) * Math.PI * 2;
+    c.beginPath();
+    c.ellipse(x + Math.cos(a) * s * 0.55, y + Math.sin(a) * s * 0.55, s * 0.5, s * 0.36, a, 0, Math.PI * 2);
+    c.fill();
+  }
+  c.fillStyle = mid;
+  c.beginPath(); c.arc(x, y, s * 0.22, 0, Math.PI * 2); c.fill();
+}
+
+let floretT = null;
+/** The clumps' skin: florets over a pale ground, tiling.  Drawn in pinks
+ * near white, so the material's tone (light / mid / deep by height) sets
+ * the overall shade and this adds the flowers. */
+export function floretTex() {
+  if (floretT) return floretT;
+  const S = 512;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  const r = rng(7707);
+  c.fillStyle = '#f7ecf0'; c.fillRect(0, 0, S, S);
+  // shade blotches: clusters within the clump, deeper between them
+  for (let i = 0; i < 26; i++) {
+    const x = r() * S, y = r() * S, rad = 30 + r() * 60;
+    for (const [ox, oy] of [[0, 0], [S, 0], [-S, 0], [0, S], [0, -S]]) {
+      const g = c.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, rad);
+      g.addColorStop(0, 'rgba(214,170,196,0.45)'); g.addColorStop(1, 'rgba(214,170,196,0)');
+      c.fillStyle = g; c.fillRect(x + ox - rad, y + oy - rad, rad * 2, rad * 2);
+    }
+  }
+  const cols = ['#fff6f9', '#fbe3ec', '#f3d0de', '#ecbfd2', '#ffffff'];
+  for (let i = 0; i < 900; i++) {
+    const x = r() * S, y = r() * S, s = 5 + r() * 7, rot = r() * 6.3;
+    const col = cols[Math.floor(r() * cols.length)];
+    const mid = r() < 0.7 ? '#e7a3bd' : '#fff4c8';
+    for (const [ox, oy] of [[0, 0], [S, 0], [-S, 0], [0, S], [0, -S]]) {
+      if (x + ox < -20 || x + ox > S + 20 || y + oy < -20 || y + oy > S + 20) continue;
+      floret(c, x + ox, y + oy, s, rot, col, mid);
+    }
+  }
+  // tiny deep specks: buds and the gaps between flowers
+  for (let i = 0; i < 700; i++) {
+    c.fillStyle = r() < 0.6 ? 'rgba(196,120,158,0.55)' : 'rgba(150,110,150,0.4)';
+    c.fillRect(r() * S, r() * S, 1.5 + r() * 1.5, 1.5 + r() * 1.5);
+  }
+  floretT = new THREE.CanvasTexture(cv);
+  floretT.colorSpace = THREE.SRGBColorSpace;
+  floretT.wrapS = floretT.wrapT = THREE.RepeatWrapping;
+  floretT.anisotropy = 8;
+  return floretT;
+}
+
+let cardT = null;
+/** A lacy cluster for the canopy's rim, alpha-cut: a ragged spray of
+ * florets on a few thin twigs, sky showing between them. */
+export function blossomCardTex() {
+  if (cardT) return cardT;
+  const S = 256;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  const r = rng(8808);
+  // twigs first, so florets sit on them
+  c.strokeStyle = '#5e4a52'; c.lineCap = 'round';
+  for (let i = 0; i < 4; i++) {
+    let x = S / 2 + (r() - 0.5) * 30, y = S * 0.85, a = -Math.PI / 2 + (r() - 0.5) * 1.4;
+    c.lineWidth = 3;
+    c.beginPath(); c.moveTo(x, y);
+    for (let k = 0; k < 8; k++) { a += (r() - 0.5) * 0.5; x += Math.cos(a) * 14; y += Math.sin(a) * 14; c.lineTo(x, y); c.lineWidth *= 0.9; }
+    c.stroke();
+  }
+  // florets in overlapping sprays, thinning to the edge
+  const cols = ['#fff6f9', '#fbe3ec', '#f3d0de', '#ecbfd2', '#ffffff'];
+  for (let i = 0; i < 260; i++) {
+    const a = r() * Math.PI * 2, d = Math.pow(r(), 0.8) * S * 0.44;
+    const x = S / 2 + Math.cos(a) * d, y = S * 0.5 + Math.sin(a) * d * 0.85;
+    floret(c, x, y, 5 + r() * 6, r() * 6.3, cols[Math.floor(r() * cols.length)], r() < 0.7 ? '#e7a3bd' : '#fff4c8');
+  }
+  cardT = new THREE.CanvasTexture(cv);
+  cardT.colorSpace = THREE.SRGBColorSpace;
+  cardT.anisotropy = 8;
+  return cardT;
+}

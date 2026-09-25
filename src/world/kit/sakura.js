@@ -3,6 +3,7 @@ import { PAL } from '../../core/palette.js';
 import { cel } from '../../core/toon.js';
 import { rngKit, bake, trs } from '../../core/util.js';
 import { LAYER } from './decals.js';
+import { floretTex, blossomCardTex } from './paint.js';
 
 /* ------------------------------------------------------------------ *
  * The town's sakura (SPEC section 3, trees; M2d).
@@ -22,13 +23,17 @@ import { LAYER } from './decals.js';
  * instanced blossom draws.  Generators queue their trees in ctx.sakura.
  * ------------------------------------------------------------------ */
 
-const TONES = [PAL.blossomLight, PAL.blossom, PAL.blossomDeep];
-const TINTS = [0xe2c3d2, 0xd8b2c6, 0xc99cba];
+/* Pale, as the reference paints them: the florets (floretTex) bring the
+ * pink, the tones only lift or deepen it by height, and the shade side is a
+ * soft lilac rather than a darker pink. */
+const TONES = [0xfff6f8, 0xfde4ec, 0xf6cfdd];
+const TINTS = [0xe8d8e6, 0xdfcbe0, 0xd2bcd8];
 
 export function buildTownSakura(ctx, spots, { decals } = {}) {
   if (!spots.length) return null;
   const wood = [];
   const blobs = [[], [], []];
+  const cards = [[], [], []];      // lacy rim sprays, by tone
   const trunkGeo = new THREE.CylinderGeometry(0.7, 1.0, 1, 8, 1);
   const limbGeo = new THREE.CylinderGeometry(0.3, 0.6, 1, 6, 1);
   const twigGeo = new THREE.CylinderGeometry(0.14, 0.32, 1, 5, 1);
@@ -62,13 +67,17 @@ export function buildTownSakura(ctx, spots, { decals } = {}) {
 
     // limbs, each forking; cluster centres at the ends and along the way
     const centres = [];
-    const limbs = r.int(4, hero ? 7 : 5);
+    const limbs = r.int(hero ? 6 : 4, hero ? 8 : 6);
     for (let i = 0; i < limbs; i++) {
       const a = (i / limbs) * Math.PI * 2 + r.range(-0.35, 0.35);
-      const tilt = r.range(0.85, 1.25);                    // from vertical: an umbrella, not a vase
-      const len = 2.3 * S * r.range(0.85, 1.2);
+      // from vertical: an umbrella, not a vase; the big old trees spread lower and wider
+      const tilt = hero ? r.range(1.0, 1.35) : r.range(0.85, 1.25);
+      const len = (hero ? 2.7 : 2.3) * S * r.range(0.85, 1.2);
       const end = top.clone().add(new THREE.Vector3(Math.cos(a) * Math.sin(tilt) * len, Math.cos(tilt) * len, Math.sin(a) * Math.sin(tilt) * len));
-      branch(limbGeo, top, end, 0.12 * S);
+      // limbs bend: rise first, then reach out (a kink part way, off the straight line)
+      const knee2 = top.clone().lerp(end, r.range(0.4, 0.55)).add(new THREE.Vector3(r.range(-0.3, 0.3) * S, r.range(0.25, 0.6) * S, r.range(-0.3, 0.3) * S));
+      branch(limbGeo, top, knee2, 0.12 * S);
+      branch(twigGeo, knee2, end, 0.2 * S);
       centres.push({ p: end, w: 1 });
       centres.push({ p: top.clone().lerp(end, 0.55).add(new THREE.Vector3(0, 0.5 * S, 0)), w: 0.6 });
       for (let k = 0; k < 2; k++) {
@@ -78,12 +87,18 @@ export function buildTownSakura(ctx, spots, { decals } = {}) {
         const e2 = end.clone().addScaledVector(d2, l2);
         branch(twigGeo, end, e2, 0.08 * S);
         centres.push({ p: e2, w: 1 });
+        // fine twigs fanning out past the blossom: the dark lines the
+        // reference shows crossing every clump
+        for (let t = 0; t < 3; t++) {
+          const d3 = new THREE.Vector3(d2.x + r.range(-0.6, 0.6), d2.y + r.range(-0.2, 0.5), d2.z + r.range(-0.6, 0.6)).normalize();
+          branch(twigGeo, e2, e2.clone().addScaledVector(d3, S * r.range(0.9, 1.6)), 0.028 * S);
+        }
       }
     }
 
     // blossom: clusters round every centre; outer ones droop; tone by height
     // many small blobs, not a few big ones: that is what reads as blossom
-    const perTree = Math.round((hero ? 150 : 85) * Math.min(1.3, S) * r.range(0.9, 1.1));
+    const perTree = Math.round((hero ? 200 : 95) * Math.min(1.3, S) * r.range(0.9, 1.1));
     let yMin = Infinity, yMax = -Infinity;
     for (const c of centres) { yMin = Math.min(yMin, c.p.y); yMax = Math.max(yMax, c.p.y); }
     const reach = centres.reduce((m, c) => Math.max(m, Math.hypot(c.p.x - top.x, c.p.z - top.z)), 0.1);
@@ -98,7 +113,17 @@ export function buildTownSakura(ctx, spots, { decals } = {}) {
       const hi = (py - yMin) / Math.max(0.5, yMax + S - yMin);
       let tone = hi > 0.6 ? 0 : hi < 0.25 ? 2 : 1;
       if (r.next() < 0.2) tone = (tone + 1) % 3;
-      blobs[tone].push({ m: trs(px, py, pz, r.range(0, 3), r.range(0, 3), r.range(0, 3), rad, rad * r.range(0.7, 0.9), rad), x: base.x, z: base.z, px, py, pz });
+      // flattened cushions, not balls: tilted a little, wide and low
+      blobs[tone].push({ m: trs(px, py, pz, r.range(-0.35, 0.35), r.range(0, 3), r.range(-0.35, 0.35), rad * 1.15, rad * r.range(0.55, 0.7), rad * 1.15), x: base.x, z: base.z, px, py, pz });
+      // the rim: lacy sprays standing out past the outer clumps, sky between
+      if (out > 0.55 || py > yMax + 0.2 * S) {
+        const ox = (px - top.x) / Math.max(0.1, Math.hypot(px - top.x, pz - top.z)), oz = (pz - top.z) / Math.max(0.1, Math.hypot(px - top.x, pz - top.z));
+        const cs = rad * r.range(1.5, 2.2);
+        cards[tone].push({
+          m: trs(px + ox * rad * 0.7, py + r.range(-0.2, 0.3) * rad, pz + oz * rad * 0.7, r.range(-0.3, 0.3), Math.atan2(ox, oz) + r.range(-0.7, 0.7), r.range(-0.4, 0.4), cs, cs, cs),
+          x: base.x, z: base.z, px, py, pz,
+        });
+      }
     }
 
     emitters.push({ x: top.x, y: top.y + 0.8 * S, z: top.z, r: 2.6 * S });
@@ -107,6 +132,9 @@ export function buildTownSakura(ctx, spots, { decals } = {}) {
 
     // petals on the ground: a ring of drifts, deeper under the big ones
     if (decals) {
+      // the carpet: fallen petals spread wide under the crown, thinning out
+      const cr = (hero ? 4.2 : 3.0) * S;
+      decals.add('petalCarpet', base.x + r.range(-0.5, 0.5), base.z + r.range(-0.5, 0.5), cr * 2, cr * 2, { x: r.range(-1, 1), z: 1 }, spot.y ?? 0, LAYER.petals);
       const n = hero ? 16 : 8;
       for (let k = 0; k < n; k++) {
         const a = r.range(0, Math.PI * 2), d = r.range(0.6, 2.8) * S;
@@ -143,10 +171,25 @@ export function buildTownSakura(ctx, spots, { decals } = {}) {
     ctx.add(inst);
     return inst;
   };
+  // the florets: a painted skin tiled over each ball (M2e Phase 3)
+  const skin = floretTex().clone();
+  skin.repeat.set(2, 1);
+  skin.needsUpdate = true;
+  const cardGeo = new THREE.PlaneGeometry(1, 1);
+  {
+    // cards take light as if they faced up and out, so both sides shade alike
+    const nr = cardGeo.attributes.normal;
+    for (let i = 0; i < nr.count; i++) nr.setXYZ(i, 0, 0.8, 0.6);
+  }
   const sets = blobs.map((list, i) => {
-    const mat = cel({ color: TONES[i], bands: 'soft', tint: TINTS[i], flat: false, emissive: TONES[i], emissiveIntensity: 0, cache: false });   // smooth: cel() is flat by default
+    const mat = cel({ color: TONES[i], map: skin, bands: 'blossom', tint: TINTS[i], flat: false, emissive: TONES[i], emissiveIntensity: 0, cache: false });   // smooth: cel() is flat by default
     ctx.night?.glowing(mat, TONES[i], 0.28);        // after dark the blossom keeps some of its pink
-    return { list, near: make(nearGeo, mat, 'townSakuraNear' + i, list.length), far: make(farGeo, mat, 'townSakuraFar' + i, list.length) };
+    const cardMat = cel({ color: TONES[i], map: blossomCardTex(), bands: 'blossom', tint: TINTS[i], alphaTest: 0.5, side: THREE.DoubleSide, emissive: TONES[i], emissiveIntensity: 0, cache: false });
+    ctx.night?.glowing(cardMat, TONES[i], 0.28);
+    return {
+      list, near: make(nearGeo, mat, 'townSakuraNear' + i, list.length), far: make(farGeo, mat, 'townSakuraFar' + i, list.length),
+      cardList: cards[i], cards: make(cardGeo, cardMat, 'townSakuraCards' + i, cards[i].length),
+    };
   });
   const all = blobs.flat();
   // near the player the shadow is the clump itself (its scalloped edge shows
@@ -189,6 +232,17 @@ export function buildTownSakura(ctx, spots, { decals } = {}) {
       set.far.count = f;
       set.near.instanceMatrix.needsUpdate = true;
       set.far.instanceMatrix.needsUpdate = true;
+      let c = 0;
+      for (const b of set.cardList) {
+        const d = Math.hypot(b.px - p.x, b.pz - p.z);
+        if (d > 8 && cone > -1) {
+          to.set(b.px - p.x, b.py - p.y, b.pz - p.z).normalize();
+          if (to.dot(fwd) < cone) continue;
+        }
+        set.cards.setMatrixAt(c++, b.m);
+      }
+      set.cards.count = c;
+      set.cards.instanceMatrix.needsUpdate = true;
     }
     // only what can fall inside the sun's shadow box (main.js: +-40 m round a
     // point 16 m ahead of the player), with room for the turn before the next sort

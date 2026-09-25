@@ -441,6 +441,31 @@ const CELLS = {
       c.fillStyle = 'rgba(150,110,20,0.6)'; c.fillRect(0, 0, w, 4); c.fillRect(0, 0, 4, h);
     },
   },
+  // a carpet of fallen petals under a tree, thinning out at its edge (M2e)
+  petalCarpet: {
+    at: [3, 4], span: [2, 2], draw: (c, w, h) => {
+      // a pink wash first (the ground under a tree in full fall is tinted
+      // all over), then fine petals, dense in drifts, thinning to a ragged edge
+      const r = rng(19);
+      const edge = (a) => 0.78 + 0.22 * Math.sin(a * 5 + 1.3) * Math.sin(a * 3 + 0.4);
+      for (let i = 0; i < 9; i++) {
+        const a = r() * Math.PI * 2, d = r() * w * 0.22;
+        const x = w / 2 + Math.cos(a) * d, y = h / 2 + Math.sin(a) * d, rad = w * (0.18 + r() * 0.16);
+        const g = c.createRadialGradient(x, y, 0, x, y, rad);
+        g.addColorStop(0, 'rgba(244,190,210,0.4)'); g.addColorStop(1, 'rgba(244,190,210,0)');
+        c.fillStyle = g; c.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+      }
+      const cols = ['#f8c8d8', '#f4b4c8', '#fbd8e4', '#eea6bd', '#fde8ef', '#ffffff', '#e89ab4'];
+      for (let i = 0; i < 9000; i++) {
+        const a = r() * Math.PI * 2, d = Math.pow(r(), 0.6) * w * 0.48 * edge(a);
+        const x = w / 2 + Math.cos(a) * d, y = h / 2 + Math.sin(a) * d;
+        c.fillStyle = cols[Math.floor(r() * cols.length)];
+        c.beginPath();
+        c.ellipse(x, y, 1.2 + r() * 1.4, 0.8 + r() * 0.8, r() * Math.PI, 0, Math.PI * 2);
+        c.fill();
+      }
+    },
+  },
   oil: {
     at: [1, 4], draw: (c, w, h) => {
       // where cars stand: a dark drip pool, a drier ring, a few splashes

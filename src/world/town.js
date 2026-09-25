@@ -10,6 +10,7 @@ import { buildFrame, buildOldTown } from './town-edge.js';
 import { buildCore } from './town-core.js';
 import { buildPetals } from './petals.js';
 import { mergeStatic } from './merge.js';
+import { buildTownSakura } from './kit/sakura.js';
 
 /* ------------------------------------------------------------------ *
  * The town (SPEC section 3).
@@ -64,7 +65,8 @@ export function buildTown(scene) {
   ctx.registry = { push: (e) => registry.push({ ...e, ...T.toLocal(e), ...(e.rect ? { rect: localRect(e.rect) } : {}) }) };
   // the Lawson counts toward the density budget like any building
   ctx.registry.push({ kind: 'building', x: 0, z: -5, rect: [-8.5, -10, 11.1, 0] });
-  buildFrame(ctx);
+  const frame = buildFrame(ctx);
+  T.sakura = [];                 // the old town's trees join the town's batch
   buildOldTown(T);
   // the Lawson's lot is worn with the town's own decals (oil, scuffs,
   // patches), placed in world terms and turned into the town's frame
@@ -79,6 +81,9 @@ export function buildTown(scene) {
   /* The line, seen from the world: its crossing, its trains' events and
    * their gusts in world terms (`local` is the line itself, for checks
    * that run in its own frame). */
+  // the two cherries framing the famous view: the town's painted tree, in
+  // the world's frame (its own small batch; lit at night like the rest)
+  const frameSakura = buildTownSakura({ ...ctx, night: T.night }, frame.sakura);
   const L = core.line;
   const line = Object.create(L, {
     local: { value: L },
@@ -104,7 +109,7 @@ export function buildTown(scene) {
   const railZ = T.toWorld({ x: 0, z: TOWN.rail.z }).z;
   const fall = buildPetals(ctx, {
     count: TOWN.petals.trees, half: 24, trackZ: railZ, follow: () => camPos,
-    emitters: (core.sakura?.emitters ?? []).map((e) => T.toWorld(e)), onlyTrees: true, seed: 8211,
+    emitters: [...(core.sakura?.emitters ?? []).map((e) => T.toWorld(e)), ...(frameSakura?.emitters ?? [])], onlyTrees: true, seed: 8211,
   });
   for (const m of fall.meshes) m.userData.dynamic = true;
   for (const m of petals.meshes) m.userData.dynamic = true;
@@ -160,6 +165,7 @@ export function buildTown(scene) {
         camLocal.getWorldDirection = (v) => v.set(-camDir.x, camDir.y, -camDir.z);
       }
       core.sakura?.update(camera ? camLocal : camLocal.position);
+      frameSakura?.update(camera ?? camPos);
       core.life?.update(dt, camLocal.position);
       const air = line.gustAt(camPos);
       petals.update(dt, air.gust, air.dir);

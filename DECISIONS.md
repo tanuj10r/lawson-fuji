@@ -625,3 +625,33 @@ Judgement calls, newest milestone last.
   was running the game read 2–4× slower. The pane is blanked for
   measurements now.
 - **Next.** M2f (added to SPEC) draws the minimap from config.js PLACES.
+
+## M2e Phase 3: the sakura, painted
+
+- **What the reference does.** Its canopies are still faceted clumps; the
+  difference is the paint. Florets over each clump, pink shading to lilac
+  underneath, lacy rims with sky between, many thin twigs, and the ground
+  washed pink under each tree.
+- **Florets** (kit/paint.js `floretTex`). A tiling skin of about 900
+  five-petalled florets with pale centres, over soft cluster blotches. The
+  tones (light, mid, deep by height) are now pale; the florets bring the
+  pink. The shade side is a soft lilac, and the new `blossom` ramp
+  (202/230/255) turns a clump gently instead of in a hard band.
+- **Cushions, not balls.** Clumps are flattened (y 0.55–0.7) and widened.
+  Hero trees carry 200 of them, others 95.
+- **Lacy rim** (`blossomCardTex`). Alpha-cut sprays of florets on twigs
+  stand out past the outer clumps. They are instanced per tone, culled with
+  the view like the clumps, and their normals face up and out, so both
+  sides shade alike.
+- **Wood.** Limbs bend: they rise to a knee, then reach out. Hero trees
+  have 6–8 limbs spreading lower and wider. Three fine twigs fan out from
+  every branch end, past the blossom.
+- **Petal carpet** (decal `petalCarpet`, 2 × 2 cells). A pink wash, then
+  9000 fine petals with a ragged edge, 6 m across under an ordinary tree
+  and 8.4 m under a hero tree (× its scale), on top of the old drifts.
+- **Every cherry is the painted one now.** The old park's trees join the
+  town's batch. The two framing the famous view get their own small batch
+  in the world's frame (town.js). The famous views changed 1.6–2.0% at
+  their left and right edges; re-baselined.
+- **Checks.** Density 27 of 27, bare stretches, traincheck; 5.5–9.7 ms at
+  1440p.

@@ -21,6 +21,8 @@ const RAMPS = {
   // even on the shadow side
   soft: [180, 255],
   soft3: [172, 214, 255],
+  // painted blossom: three close steps, so a clump turns gently (M2e)
+  blossom: [202, 230, 255],
 };
 
 const rampCache = new Map();

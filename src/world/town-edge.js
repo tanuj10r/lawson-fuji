@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { cel, flat } from '../core/toon.js';
 import { TOWN, STREET, LAWSON, mainRoadGaps } from '../config.js';
 import { makeHouse, makeWall, makeTimberFence, makeBlockFence } from './buildings.js';
-import { buildSakura, buildGrove, buildShrubs } from './trees.js';
+import { buildGrove, buildShrubs } from './trees.js';
 import {
   makePole, makeWires, makeBicycle, makePlanter, makeBarrier, makeCone,
   makeBench, makeTapPost, makeLaundryPole, makeBikeRack, makeSignPost, makeAircon,
@@ -144,17 +144,14 @@ export function buildFrame(ctx) {
     for (const c of cars) parkVehicle(ctx, { kind: 'kei', x: c.x, z: 5.1, y: 0, ry: 0, color: c.color });
   }
 
-  /* ============ the two sakura that frame the view (M2, mood ref 2) ============ */
-  {
-    const spots = [
-      // the frame's left edge, behind the store's corner, kept low
-      { x: -17.5, z: -9.5, scale: 0.82, seed: 1101, lean: 0.08 },
-      // right of the store, just outside the frame
-      { x: 20.0, z: -5.0, scale: 1.0, seed: 1102, lean: 0.1 },
-    ];
-    buildSakura(ctx, spots.map((p) => ({ ...p, y: 0 })));
-    for (const p of spots) ctx.collide(p.x - 0.3, p.z - 0.3, p.x + 0.3, p.z + 0.3, 2.5);
-  }
+  /* ============ the two sakura that frame the view (M2, mood ref 2) ============
+   * town.js builds them (the painted cherry, in the world's frame) */
+  out.sakura = [
+    // the frame's left edge, behind the store's corner, kept low
+    { x: -17.5, z: -9.5, y: 0, scale: 0.82, seed: 1101 },
+    // right of the store, just outside the frame
+    { x: 20.0, z: -5.0, y: 0, scale: 1.0, seed: 1102 },
+  ];
 
   // trees across the main road's ends, behind the barricades
   for (const sx of [-1, 1]) {
@@ -299,8 +296,8 @@ export function buildOldTown(ctx) {
       { x: 50, z: -50, scale: 1.25, seed: 1107, lean: 0.05 },
       { x: 63, z: -40, scale: 1.0, seed: 1108, lean: 0.08 },
     ];
-    buildSakura(ctx, spots.map((s) => ({ ...s, y: 0 })));
-    for (const s of spots) ctx.collide(s.x - 0.3, s.z - 0.3, s.x + 0.3, s.z + 0.3, 2.5);
+    // the town's painted cherry (kit/sakura.js), batched with the rest
+    ctx.sakura.push(...spots.map((s) => ({ ...s, y: 0 })));
   }
 
   /* ============================ poles and wires ============================ */

@@ -42,7 +42,7 @@ export function buildCore(ctx) {
   const sides = (e) => (e.cls === 'hero' ? [1] : [-1, 1]);
   const lots = cutLots(net, reserved, { inside, sides });
   ctx.hedges = [];               // the houses queue hedges; dress builds them in one go
-  ctx.sakura = [];               // every town sakura, built in one batch below
+  ctx.sakura ??= [];             // every town sakura (the old town's too), built in one batch below
   ctx.night = makeNight(ctx);    // window glass and pools of light, after dark
   ctx.cats = [];                 // the dressing's cats, whose tails life.js swishes
 

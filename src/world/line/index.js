@@ -36,6 +36,7 @@ export function buildLine(ctx, { kit }) {
   const service = makeService({ sets, crossing, onEvent: (name, run) => listeners.forEach((f) => f(name, run)) });
   const station = buildStation(ctx, { kit, service });
   buildBeyond(ctx, kit);
+  lineCherries(ctx);
   ctx.update((dt) => service.update(dt));
   return {
     track, crossing, sets, service, station,
@@ -66,6 +67,17 @@ export function buildLine(ctx, { kit }) {
  * platforms and the crossing look across at.  The town's own house
  * generator, on lots facing the tracks.
  */
+/* Cherries along the line (M2e, reference 18-22): a row between the south
+ * fence and the houses beyond, clear of the level crossing. */
+function lineCherries(ctx) {
+  const r = rngKit(7400);
+  const z = TOWN.rail.z + 7.4 + 1.5;
+  for (let x = TOWN.core.x0 + 6; x < TOWN.core.x1 - 4; x += r.range(11, 16)) {
+    if (Math.abs(x - TOWN.rail.crossX) < 9) continue;
+    ctx.sakura?.push({ x, z: z + r.range(-0.2, 0.3), y: 0, scale: r.range(0.95, 1.25), seed: 7400 + Math.round(x) });
+  }
+}
+
 function buildBeyond(ctx, kit) {
   const r = rngKit(7300);
   const z0 = TOWN.bounds.z1 - 1.6;            // just behind the town's south fence

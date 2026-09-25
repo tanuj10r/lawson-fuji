@@ -4,6 +4,9 @@ import { cel, flat } from '../../core/toon.js';
 import { box, bake, trs } from '../../core/util.js';
 import { TOWN } from '../../config.js';
 import { meshFence } from '../ground.js';
+import { gravelTex, GRAVEL_TILE } from '../kit/paint.js';
+
+const ballastMap = () => gravelTex();
 import { makeWires } from '../props.js';
 import { buildGrove } from '../trees.js';
 import { noEntryPlate } from '../town-tex.js';
@@ -31,7 +34,7 @@ const LOCAL = [-260, 260];                  // sleepers and gantries only this f
 
 function mats() {
   return {
-    ballast: cel({ color: PAL.ballast, bands: 3, tint: 0x655d84 }),
+    ballast: cel({ color: 0xe8e4ee, map: ballastMap(), bands: 3, tint: 0x655d84, cache: false }),
     sleeper: cel({ color: PAL.sleeper, bands: 3, tint: 0x5d5878 }),
     rail: cel({ color: PAL.railMetal, bands: 3, tint: 0x5f5878 }),
     head: cel({ color: PAL.railHead, bands: 2, tint: 0x6f6890 }),
@@ -66,6 +69,9 @@ export function buildTrack(ctx, o = {}) {
     const geo = new THREE.ExtrudeGeometry(shape, { depth: len, bevelEnabled: false });
     geo.rotateY(Math.PI / 2);
     geo.translate(X0, 0, R.z);
+    // the extrusion's UVs are in metres: scale them to the gravel's tile
+    const uv = geo.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / GRAVEL_TILE, uv.getY(i) / GRAVEL_TILE);
     const b = new THREE.Mesh(geo, m.ballast);
     b.receiveShadow = true;
     b.userData.noOutline = true;

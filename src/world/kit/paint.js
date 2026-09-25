@@ -753,3 +753,34 @@ export function wornShutterTex() {
   shutT.anisotropy = 8;
   return shutT;
 }
+
+let gravelT = null;
+/** Track ballast: packed grey-violet stones, lit tops and dark gaps, with
+ * the rust-brown stain the line leaves. Tiles every 1.4 m. */
+export const GRAVEL_TILE = 1.4;
+export function gravelTex() {
+  if (gravelT) return gravelT;
+  const S = 256;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  const r = rng(8484);
+  c.fillStyle = '#6a6474'; c.fillRect(0, 0, S, S);
+  for (let i = 0; i < 1400; i++) {
+    const x = r() * S, y = r() * S, s = 3 + r() * 5;
+    const t = r();
+    for (const [ox, oy] of [[0, 0], [S, 0], [-S, 0], [0, S], [0, -S]]) {
+      c.fillStyle = t < 0.3 ? '#8e8898' : t < 0.6 ? '#a8a2b0' : t < 0.85 ? '#c2bcc8' : '#9a7f70';
+      c.beginPath();
+      for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2 + t; c.lineTo(x + ox + Math.cos(a) * s * (0.7 + ((k * 37) % 5) / 10), y + oy + Math.sin(a) * s * 0.8); }
+      c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.35)';
+      c.fillRect(x + ox - s * 0.3, y + oy - s * 0.5, s * 0.5, 1.5);
+    }
+  }
+  gravelT = new THREE.CanvasTexture(cv);
+  gravelT.colorSpace = THREE.SRGBColorSpace;
+  gravelT.wrapS = gravelT.wrapT = THREE.RepeatWrapping;
+  gravelT.anisotropy = 16;
+  return gravelT;
+}

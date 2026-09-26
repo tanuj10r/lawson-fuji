@@ -127,6 +127,33 @@ for (const [view, bed] of [['morning', 'birds'], ['golden', 'crows'], ['night', 
 // the crossing's bells are never heard at the store (its range)
 s = await st();
 check('the crossing bells: not playing at the store', !s.bells, { bells: s.bells });
+// the keys on screen follow where the player is (M4, Tan)
+const ctl = await page.evaluate(async () => {
+  const { player } = window.__scene;
+  const read = () => [...document.querySelectorAll('.controls.on kbd')].map((k) => k.textContent);
+  player.locked = true;
+  const seen = {};
+  player.pos.set(50, player.pos.y, -38);
+  await new Promise((r) => setTimeout(r, 600));
+  seen.town = read();
+  player.pos.set(-4, player.pos.y, -8);
+  await new Promise((r) => setTimeout(r, 600));
+  seen.store = read();
+  window.__store.setPanel(true);
+  await new Promise((r) => setTimeout(r, 500));
+  seen.panel = read();
+  window.__store.setPanel(false);
+  await new Promise((r) => setTimeout(r, 500));
+  window.__scene.enterHero('golden');
+  await new Promise((r) => setTimeout(r, 600));
+  seen.famousView = read();
+  return seen;
+});
+check('the keys shown follow the place',
+  ctl.town.includes('M') && ctl.town.includes('Shift') && !ctl.town.includes('Tab')
+  && ctl.store.includes('Tab') && ctl.store.includes('E') && !ctl.store.includes('Shift')
+  && ctl.panel.join() === 'W / S,X,Tab' && ctl.famousView.join() === 'WASD,1 2 3', ctl);
+
 check('no 404s', missing.length === 0, missing);
 check('the first frame did not wait on audio', firstFrame < 60 && before.fetched === 0, { readyS: firstFrame });
 if (errs.length) console.log('PAGE ERRORS', errs);

@@ -10,6 +10,7 @@ import { WALK_SIGNALS } from './world/signals.js';
 import { buildTown } from './world/town.js';
 import { createMinimap } from './ui/minimap.js';
 import { createBasketPanel } from './ui/basketPanel.js';
+import { createControls } from './ui/controls.js';
 import { buildKitTest } from './world/kit-test.js';
 import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
@@ -114,6 +115,7 @@ const player = new Player(camera, canvas, world);
  * basket in view and its panel on Tab. */
 const shop = world.lawson?.shop ?? null;
 const basketPanel = shop ? createBasketPanel() : null;
+const controls = createControls();
 if (shop) {
   scene.add(shop.view, shop.fx);
   shop.onChange = () => basketPanel.update(shop.cart, shop.hasBasket);
@@ -350,6 +352,15 @@ function seatLights() {
 }
 
 window.addEventListener('keydown', (e) => {
+  /* Space pauses and plays (Tan).  Pausing is letting the pointer go, which
+   * raises the same card Esc does; pressing it again takes the pointer back. */
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (e.repeat) return;
+    if (player.locked) document.exitPointerLock?.();
+    else { sound.start(); player.lock(); }
+    return;
+  }
   // Tab: the basket panel (never moves the page's focus)
   if (e.code === 'Tab') {
     e.preventDefault();
@@ -393,6 +404,31 @@ window.addEventListener('keydown', (e) => {
     hud.flash(refOn ? STRINGS.refOn : STRINGS.refOff, 900);
   }
 });
+
+/** Which keys do something where the player is standing (ui/controls.js). */
+const K = STRINGS.keys;
+function controlRows(hovered) {
+  if (!player.locked || FROZEN) return [];
+  if (minimap?.fullOpen) return [['M', K.closeMap]];
+  if (basketPanel?.open) {
+    return [['W / S', K.choose, shop.cart.length > 0], ['X', K.putBack, shop.cart.length > 0], ['Tab', K.close]];
+  }
+  // standing on a famous view the shot is the point (the minimap keeps off
+  // it too): only how to take the camera back
+  if (hero || famousView) return [['WASD', K.leaveView], ['1 2 3', K.views]];
+  const rows = [['WASD', K.move], ['Mouse', K.look]];
+  if (shop?.inside(camera)) {
+    // in the store: what E does here, and the basket
+    rows.push(['E', K.interact, !!hovered]);
+    rows.push(['Tab', K.basketPanel, shop.hasBasket || shop.cart.length > 0]);
+  } else {
+    rows.push(['Shift', K.run]);
+    if (hovered) rows.push(['E', K.interact]);
+    rows.push(['M', K.map]);
+  }
+  rows.push(['N', K.sound], ['Space', K.pause]);
+  return rows;
+}
 
 function frame() {
   const dt = FROZEN ? 0 : Math.min(clock.getDelta(), 1 / 20);
@@ -443,6 +479,7 @@ function frame() {
     });
   }
   player.hovered = hovered;
+  controls.set(controlRows(hovered));
   // the sound: where you are and what time of day it is; a footstep each stride
   const inStore = !!shop?.inside(camera);
   sound.update(dt, { camera, inside: inStore, look: lookName, cooler: shop?.coolerAt });

@@ -376,10 +376,11 @@ The player explores in first person with Sakura Crossing's controller (`src/core
 | Famous view (hero camera for the current time of day) | F |
 | Photo mode | P |
 | Ambience / music | M |
-| Pause and settings | Esc |
+| Pause and settings | Space (Esc also releases the pointer) |
 
 **First-person details**
 
+- The keys that do something where the player is are listed in the bottom-left corner and change with the place: walking the town it is moving, the map, sound and pause; in the store it is what E does here and the basket; with a panel open it is that panel's keys. One that belongs there but cannot be used this second is dimmed, not removed (M4, Tan; `src/ui/controls.js`).
 - A small dot crosshair. The interactable under it, within 2 m, gets a soft rim highlight and a label, e.g. "おにぎり を取る \[E\]".
 - The red basket sits in the lower-left of the view once taken, with picked items visibly stacking inside. No hands are drawn; actions are shown by the objects moving.
 - At checkout and the microwave, the view eases to frame the clerk and register, then hands control back.

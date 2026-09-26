@@ -108,9 +108,9 @@ export function createBasketPanel() {
       tab: true,
       pay: false,                       // M5
     };
-    card.innerHTML = money(last.cart) + keyRows(S.card
-      .filter(([id]) => id !== 'door' || ctx.nearDoor)
-      .map(([id, k, t]) => [k, t, on[id]]));
+    // only what is in the basket and what is left: the keys are listed
+    // by ui/controls.js, where every context's keys are shown together
+    card.innerHTML = money(last.cart) + keyRows([['', S.card.find(([id]) => id === 'pay')[2], on.pay]]);
   }
 
   return {

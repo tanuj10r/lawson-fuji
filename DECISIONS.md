@@ -1309,3 +1309,30 @@ Tan asked whether we use three.js's positional audio, with more places
   a village would need next is a way to *release* what a place holds once
   you are far from it; buffers are never freed today. At 16 MB that is not
   yet a problem, and it is a small addition when it is.
+
+### M4, round 8: the keys on screen, and Space
+
+- **Space pauses and plays** (Tan). Pausing is letting the pointer go,
+  which raises the same card Esc does, so both work and neither fights the
+  browser (Esc is the browser's own way out of a pointer lock and cannot
+  be taken away).
+- **The keys that do something where you are, in the bottom-left corner**
+  (`src/ui/controls.js`), changing with the place:
+  - walking the town: move, look, run, the map, sound, pause;
+  - inside the store: move, look, E, the basket panel, sound, pause -- no
+    run (SPEC 5: no running indoors) and no map;
+  - with the basket panel open: choose, put one back, close;
+  - standing on a famous view: only how to take the camera back, so the
+    shot stays clean, as the minimap already does there;
+  - paused, or in a screenshot run: nothing.
+  A key that belongs to the place but cannot be used this second -- E with
+  nothing under the crosshair, or the basket before you have one -- is
+  dimmed rather than removed, so the list does not jump about.
+- **Where the name of a thing appears.** The list names the key and what it
+  does in general ("E: take / open"); the prompt under the crosshair still
+  names the thing itself ("E · Take Matcha sticks"), so the two do not say
+  the same words twice. The shopping card keeps the money and gave its key
+  rows to the list.
+- **E stays the one interact key.** Tan's note sketched X for taking a
+  basket; asked, he chose to keep E for taking a basket, opening a fridge
+  and taking an item, with X still putting one back from the panel.

@@ -16,6 +16,9 @@ npm run size    # what a first visit downloads
 Desktop browsers only.
 
 ## Controls
+The keys that do something where you are standing are always listed in the
+corner of the screen, so this table is only for reference.
+
 | Action | Input |
 | --- | --- |
 | Move | W A S D |
@@ -26,7 +29,7 @@ Desktop browsers only.
 | Famous views: morning, golden hour, night | 1 2 3 |
 | Town map | M |
 | Sound on/off | N |
-| Pause | Esc |
+| Pause / resume | Space (Esc also pauses) |
 
 ## Audio
 Sound files are not included in this repository and are not covered by the

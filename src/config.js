@@ -450,7 +450,10 @@ export const SOUND = {
   storeChime: { near: 3, far: 22 },         // from a speaker just inside the door: fades as you walk away
   // each zebra's piyo-piyo while its walk light is green: carried down the
   // street, so you hear it as you come up to the crossing, never only on top of it
-  walkSignal: { near: 20, far: 70 },
+  /* Each crossing's call reaches the street it is on, and no further: the
+   * crossings are about 55 m apart at the closest, so from the famous view
+   * you hear the main road's alone, never two at once (M4, Tan). */
+  walkSignal: { near: 14, far: 40 },
   autoDoor: { near: 4, far: 18 },
   fridge: { near: 2.5, far: 9 },           // the cooler: its doors and its compressor
   shelf: { near: 3, far: 10 },             // taking and putting back

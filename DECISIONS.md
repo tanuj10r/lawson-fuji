@@ -1246,3 +1246,28 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   of static files, so a hundred thousand players cost bandwidth, not
   memory. It is still more than the M7 budget of 300 MB, and the
   breakdown is now recorded in SPEC M7 so the cut is a known job.
+
+### M4, round 6 (Tan's review)
+
+- **Two voices, one per direction.** Japan's crossings call with two
+  different sounds so you can tell which way you are crossing: the cuckoo
+  (カッコー) and the chick (ピヨピヨ). Which is which varies by
+  prefecture; the common pairing is the cuckoo on the main road, walked
+  one way, and the chick on the side streets, walked across it. Tan's
+  recording is of a junction calling to itself, so it holds both: the
+  chick's falling chirps (2,580 → 1,900 Hz) at 0.1, 1.15 and 1.45 s, and
+  the cuckoo's two notes (1,200 then 960 Hz) at 2.3 and 3.35 s, over one
+  4.39 s cycle.
+  `npm run audio` now takes a `keep` list of stretches and silences the
+  rest, so the one recording makes both loops, each keeping the original
+  cycle and therefore its real rhythm: `walk-kakko` (15 KB) and
+  `walk-piyo` (12 KB). Which one a crossing calls with follows the road it
+  crosses: over an east-west road it is walked north-south, so the cuckoo;
+  over the north-south shopping spine, the chick. Our main-road crossing
+  is the cuckoo, the two spine crossings the chick.
+- **The ranges no longer overlap.** From where the game starts you stood
+  33 m from the main road's crossing and 57 m from the shopping street's,
+  and the 70 m range meant both called at once. The call now carries
+  14 m at full and fades out by 40 m, which is the street it is on and no
+  further: measured at the spawn point, only the cuckoo is ever heard, and
+  never two crossings at a time.

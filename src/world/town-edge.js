@@ -112,7 +112,8 @@ export function buildFrame(ctx) {
   }
 
   /* ========================= crosswalk and signals ========================= */
-  buildSignals(ctx, { x: TOWN.crosswalk.x, zNear: S.forecourtZ, zFar: S.roadZ, width: TOWN.crosswalk.width });
+  // the main road runs east-west, so this crossing is walked north-south: the cuckoo
+  buildSignals(ctx, { x: TOWN.crosswalk.x, zNear: S.forecourtZ, zFar: S.roadZ, width: TOWN.crosswalk.width, sound: 'kakko' });
 
   /* =============================== the Lawson =============================== */
   const hw = LAWSON.width / 2;

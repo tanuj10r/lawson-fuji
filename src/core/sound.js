@@ -263,7 +263,7 @@ export function createSound({ volume = 0.5 } = {}) {
       manifestReady = fetch(import.meta.env.BASE_URL + 'audio/manifest.json').then((r) => r.json()).then((m) => { manifest = m; }, () => { manifest = {}; });
       await manifestReady;
       // the short sounds are fetched now, quietly, so the first of each is ready
-      for (const k of ['lawson-chime', 'door-chime', 'auto-door', 'fridge-door', 'ui-tap', 'railway-bells', 'walk-signal']) buffer(k);
+      for (const k of ['lawson-chime', 'door-chime', 'auto-door', 'fridge-door', 'ui-tap', 'railway-bells', 'walk-kakko', 'walk-piyo']) buffer(k);
     },
     setVolume(v) {
       volume = Math.max(0, Math.min(1, v));
@@ -372,7 +372,7 @@ export function createSound({ volume = 0.5 } = {}) {
     /**
      * The zebras' walk lights (M4, Tan): each plays the pedestrian signal
      * (piyo-piyo, kakko) while it is green, heard only near it.
-     * `list` [{ x, z, on }] in world terms, the same order every frame.
+     * `list` [{ x, z, on, sound }] in world terms, the same order every frame.
      */
     walkSignals(list) {
       if (!ac) return;
@@ -387,10 +387,11 @@ export function createSound({ volume = 0.5 } = {}) {
           n.g.connect(p).connect(outBus);
         }
         if (on && !n.src && !n.timer) {
-          const b = buffers.get('walk-signal');
+          const file = 'walk-' + (w.sound ?? 'piyo');
+          const b = buffers.get(file);
           if (b) {
             n.src = ac.createBufferSource(); n.src.buffer = b; n.src.loop = true;
-            [n.src.loopStart, n.src.loopEnd] = loopSpan('walk-signal', b);
+            [n.src.loopStart, n.src.loopEnd] = loopSpan(file, b);
             n.src.connect(n.g); n.src.start(now(), n.src.loopStart);
           } else {
             // SPEC 9's recipe: an original two-tone "pi-yo" chirp every 0.6 s
@@ -398,7 +399,7 @@ export function createSound({ volume = 0.5 } = {}) {
             chirp(); n.timer = setInterval(chirp, 600);
           }
           state.walk = (state.walk ?? 0) + 1;
-          log.push({ name: 'walk-signal', t: +now().toFixed(3), loop: true, i });
+          log.push({ name: 'walk-' + (w.sound ?? 'piyo'), t: +now().toFixed(3), loop: true, i });
         } else if (!on && (n.src || n.timer)) {
           const src = n.src, timer = n.timer;
           n.src = null; n.timer = null;

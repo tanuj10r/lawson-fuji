@@ -84,6 +84,22 @@ for (const [name, c] of Object.entries(files)) {
   for (let i = 0; i < n; i++) y[i] = x[s0 + i];
   // a loop: the tail past the end crossfades into the head, so it repeats seamlessly
   for (let i = 0; i < nx; i++) { const t = i / nx; y[i] = y[i] * t + x[s0 + n + i] * (1 - t); }
+  /* `keep`: only these stretches of the source (seconds, absolute) sound;
+   * the rest is silenced with short fades.  It splits one recording of a
+   * junction calling to itself into its two separate calls. */
+  if (c.keep) {
+    const fade = Math.round(0.02 * SR);
+    const on = new Float32Array(n);
+    for (const [a0, b0] of c.keep) {
+      const i0 = Math.max(0, Math.round((a0 - start) * SR)), i1 = Math.min(n, Math.round((b0 - start) * SR));
+      for (let i = i0; i < i1; i++) on[i] = 1;
+      for (let k = 0; k < fade; k++) {
+        if (i0 + k < n) on[i0 + k] = Math.max(on[i0 + k] * (k / fade), k / fade * (i0 + k < i1 ? 1 : 0));
+        if (i1 - 1 - k >= 0 && i1 - 1 - k >= i0) on[i1 - 1 - k] = Math.min(on[i1 - 1 - k], k / fade);
+      }
+    }
+    for (let i = 0; i < n; i++) y[i] *= on[i];
+  }
   // one-shots: a short fade in, and a fade out
   if (!c.loop) {
     const fi = Math.round(0.004 * SR), fo = Math.round((c.fadeOut ?? 0.05) * SR);

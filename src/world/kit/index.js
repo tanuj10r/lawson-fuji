@@ -28,7 +28,9 @@ export function buildKit(ctx, def) {
     const ends = [-1, 1].map((side) => net.at(c.e, s, side * (c.e.a + 0.35)));
     // the crossings on one street are nearly in step, as coordinated signals
     // are, so the town is quiet between greens instead of one always calling
-    buildWalkSignal(ctx, { ends, offset: 6 + i * 3 });
+    // a crossing over an east-west road is walked north-south: the cuckoo.
+    // Over a north-south road (the shopping spine) it is the chick.
+    buildWalkSignal(ctx, { ends, offset: 6 + i * 3, sound: c.e.axis === 'x' ? 'kakko' : 'piyo' });
   });
   let done = false;
   return {

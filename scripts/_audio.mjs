@@ -88,6 +88,27 @@ const heard = await page.evaluate(async () => {
 });
 check('each zebra plays its signal while green', heard.every((h) => h.green && h.playing >= 1), heard);
 
+// each crossing calls with its own voice: the cuckoo on the main road it is
+// walked across, the chick on the shopping street's
+const voices = await page.evaluate(() => window.__walkList.map((w) => ({ sound: w.sound, x: Math.round(w.x), z: Math.round(w.z) })));
+check('the main road crossing calls kakko, the side streets piyo', voices[0].sound === 'kakko' && voices.slice(1).every((v) => v.sound === 'piyo'), voices);
+
+// from where the game starts you hear one crossing, never two at once
+const spawnHeard = await page.evaluate(async () => {
+  const { player, sound, camera } = window.__scene;
+  player.pos.set(-2.3, player.pos.y, 16.5); player.locked = true;
+  let most = 0;
+  const names = new Set();
+  const before = sound.debug.log.length;
+  for (let k = 0; k < 160; k++) {
+    await new Promise((r) => setTimeout(r, 250));
+    most = Math.max(most, sound.debug.state.walking ?? 0);
+  }
+  for (const l of sound.debug.log.slice(before)) if (l.name.startsWith('walk-')) names.add(l.name);
+  return { most, names: [...names], distances: window.__walkList.map((w) => Math.round(Math.hypot(w.x - camera.position.x, w.z - camera.position.z))) };
+});
+check('at the spawn point only one crossing is ever heard', spawnHeard.most <= 1, spawnHeard);
+
 // the bed follows the time of day
 for (const [view, bed] of [['morning', 'birds'], ['golden', 'crows'], ['night', 'night-insects']]) {
   await page.evaluate((v) => window.__scene.enterHero(v), view);

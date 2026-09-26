@@ -15,9 +15,11 @@ const LIT = { green: 0x3ff0c0, amber: 0xffc23a, red: 0xff4636, walk: 0x40e8b0, s
 const DIM = 0x39404f;
 
 /**
- * Every zebra's walk light, for its sound (M4, Tan): the pedestrian signal's
- * piyo-piyo and kakko play while its walk light is green, heard only near it.
- * Each is { marker: Object3D at the zebra's middle, walk: () => bool }.
+ * Every zebra's walk light, for its sound (M4, Tan).  Japan's crossings call
+ * with two voices so you can tell which way you are crossing: the cuckoo on
+ * the main road, the chick on the side streets (警察庁; the pairing varies by
+ * force, and this is the common one).  Each is
+ * { marker: Object3D at the zebra's middle, walk: () => bool, sound }.
  */
 export const WALK_SIGNALS = [];
 
@@ -125,7 +127,7 @@ export function buildSignals(ctx, o) {
   const marker = new THREE.Object3D();
   marker.position.set(o.x, 0, (o.zNear + o.zFar) / 2);
   ctx.add(marker);
-  WALK_SIGNALS.push({ marker, walk: () => walk });
+  WALK_SIGNALS.push({ marker, walk: () => walk, sound: o.sound ?? 'kakko' });
   return g;
 }
 
@@ -135,7 +137,7 @@ export function buildSignals(ctx, o) {
  * every 47, starting `offset` seconds in, so no two crossings keep time).
  * `ends` are the two kerb points [{ x, z }] in the builder's frame.
  */
-export function buildWalkSignal(ctx, { ends, offset = 0 }) {
+export function buildWalkSignal(ctx, { ends, offset = 0, sound = 'piyo' }) {
   const pole = cel({ color: 0xb9bcc6, bands: 3, tint: 0x666090 });
   const housing = cel({ color: 0x3e4250, bands: 2, tint: 0x4b4560 });
   const walkLamp = flat({ color: DIM, cache: false }), stopLamp = flat({ color: DIM, cache: false });
@@ -165,5 +167,5 @@ export function buildWalkSignal(ctx, { ends, offset = 0 }) {
   const marker = new THREE.Object3D();
   marker.position.set((ends[0].x + ends[1].x) / 2, 0, (ends[0].z + ends[1].z) / 2);
   ctx.add(marker);
-  WALK_SIGNALS.push({ marker, walk: () => walk });
+  WALK_SIGNALS.push({ marker, walk: () => walk, sound });
 }

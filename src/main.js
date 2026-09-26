@@ -158,7 +158,7 @@ const CHIME_AT = { x: LAWSON.x + LAWSON.doorX, y: 2.7, z: LAWSON.frontZ - 1.2 };
 // every zebra's walk light (signals.js), in world terms once the town stands
 scene.updateMatrixWorld(true);
 const walkAt = WALK_SIGNALS.map((w) => ({ w, p: w.marker.getWorldPosition(new THREE.Vector3()) }));
-const walkList = walkAt.map(({ p }) => ({ x: p.x, z: p.z, on: false }));
+const walkList = walkAt.map(({ w, p }) => ({ x: p.x, z: p.z, on: false, sound: w.sound }));
 if (import.meta.env?.DEV) window.__walkList = walkList;
 if (shop) {
   // the chime once as you come in and once as you go out, at the door

@@ -73,7 +73,6 @@ export const STRINGS = {
     wallet: 'Wallet',
     left: 'Left to spend',
     items: (n) => `${n} item${n === 1 ? '' : 's'}`,
-    panelKeys: [['W / S', 'Choose'], ['X', 'Put one back'], ['Tab', 'Close']],
     card: [
       ['take', 'E', 'Take the item you aim at'],
       ['door', 'E', 'Open or close a fridge door'],

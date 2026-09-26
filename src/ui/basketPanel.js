@@ -96,8 +96,7 @@ export function createBasketPanel() {
           <span class="q">× ${r.items.length}</span>
           <span class="p">${yen(PRODUCT[r.id].priceYen * r.items.length)}</span>
         </li>`).join('') : `<li class="none">${S.empty}</li>`}</ul>
-      ${money(cart)}
-      ${keyRows(S.panelKeys.map(([k, t]) => [k, t, k !== 'X' || rows.length > 0]))}`;
+      ${money(cart)}`;        // its keys are in the corner list (ui/controls.js)
   }
   function renderCard() {
     card.classList.toggle('on', ctx.show && !open);

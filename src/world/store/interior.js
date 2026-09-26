@@ -448,19 +448,23 @@ export function buildDoor(root, { alu, glassMat, colliders, near = 1.8, hold = 2
   }
   const block = { x0: d0, x1: d1, z0: -0.2, z1: 0.35, top: 3 };
   colliders.push(block);
-  let open = 0, clear = 0;
-  return {
+  let open = 0, clear = hold, was = 0;         // shut to begin with: nobody has walked up yet
+  const api = {
     d0, d1,
+    /** Called as the door starts to open (true) or close (false): its sound (M4). */
+    onMove: null,
     get open() { return open; },
     /** `p` the player's position (the store's frame is the world's). */
     update(dt, p) {
       const dist = Math.hypot(Math.max(0, Math.abs(p.x - LAWSON.doorX) - lw), p.z);
       if (dist < near) clear = 0; else clear += dt;
       const want = dist < near || clear < hold ? 1 : 0;
+      if (want !== was) { was = want; api.onMove?.(want === 1); }
       open = Math.max(0, Math.min(1, open + (want ? 1 : -1) * dt / ease));
       const e = open * open * (3 - 2 * open);
       for (const l of leaves) l.g.position.x = l.x + l.side * e * (lw - 0.06);
       block.top = open > 0.8 ? -1 : 3;          // walk through once it is mostly open
     },
   };
+  return api;
 }

@@ -1079,3 +1079,56 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   (assets/audio/lawson-chime.mp3, never committed). AGENTS.md and SPEC M4
   are updated. If it's ever taken down, the procedural chime is the
   fallback.
+
+## M4: audio
+
+- **Encoding needs nothing installed.** There's no ffmpeg on the machine,
+  so `npm run audio` uses macOS's `afconvert` for decoding and AAC
+  encoding. Node does the cutting, loop crossfades, fades and levels,
+  following scripts/audio-cuts.json. The output goes to public/audio/
+  (git-ignored, so Vite ships it in dist/) with a manifest. The set is
+  **2.28 MB** in 15 files (the store music alone is 1.68 MB, the whole 5.6
+  minutes at 40 kbps). Chrome decodes each file to exactly its cut length,
+  so the loops are seamless.
+- **Everything is mono.** Konbini sound comes from a place or a ceiling
+  speaker; positional sounds are panned in the engine (HRTF).
+- **What was cut from the packs:**
+  - one stamp of the seventeen;
+  - a whole number of bell periods (4 s) from the middle of the 145 s
+    crossing recording;
+  - the chime's full phrase (5.9 s of 7.7 s). It was very quiet, so it is
+    normalised.
+- **`scan-beep.mp3` isn't used.** It is 107 s of continuous low-level sound,
+  not a single beep. M5 uses the procedural beep until a single-beep file
+  is chosen.
+- **One engine, `core/sound.js`**, replacing Sakura Crossing's playlist
+  (audio.js) and the M2c sfx.js:
+  - the buses of SPEC 9: sfx with a reverb made in code, outdoor through a
+    lowpass, indoor, music, then a compressor;
+  - every placed sound uses the local-sound falloff and doesn't play at all
+    beyond its `far`;
+  - the procedural recipes remain as fallbacks for every file.
+- **The mix:**
+  - stepping in: the town's lowpass reaches 930 Hz in under a second
+    (measured), the store hum and the music come up over 1.5 s, and the
+    reverb goes wetter;
+  - the beds are chosen by the look: birds in the morning, crows at golden
+    hour, insects at night, and wind always, low.
+- **No cicadas.** They're summer insects, and this is sakura season.
+- **The door chime** plays when you cross the door line, in or out, not on
+  proximity, so it's exactly once each way. The automatic door now starts
+  shut instead of opening for its first 2 s after load, which you'd have
+  heard from the famous view. The famous views didn't move.
+- **Sounds hooked up:**
+  - the automatic door, the fridge doors (a softer, lower close) and the
+    cooler's cycling compressor;
+  - taking and putting back, by each product's material;
+  - the basket, a refused take, the Tab panel;
+  - footsteps, one per stride, grittier outdoors;
+  - scan, drawer, coins, microwave and stamp are encoded but unplayed until
+    M5 and M6 (there is no soundboard).
+- **Not yet verified in Safari or Firefox.** Playwright has only Chromium
+  here; their browsers are about 250 MB to install, which needs Tan's OK.
+  The M4 item stays open.
+- **The store music's source is unknown**, so its licence to be served
+  publicly is still open (README, SPEC 9).

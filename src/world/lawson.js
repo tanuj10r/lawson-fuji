@@ -396,6 +396,8 @@ export function buildLawson(parent) {
     update(dt, p) { root.userData.door.update(dt, p); },
     /** Shopping inside (M3c): aiming, taking, the fridge doors, the basket. */
     get shop() { return root.userData.shop; },
+    /** The automatic door (its onMove drives its sound, M4). */
+    get door() { return root.userData.door; },
     setLook(look) {
       const s = look.store;
       for (const m of lit) m.color.setScalar(s.interior);

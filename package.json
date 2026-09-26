@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "play": "vite build && vite preview --port 5179 --open",
     "shots": "node scripts/shots.mjs",
-    "check:names": "node scripts/check-names.mjs"
+    "check:names": "node scripts/check-names.mjs",
+    "audio": "node scripts/encode-audio.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

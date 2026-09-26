@@ -1,0 +1,364 @@
+/* ------------------------------------------------------------------ *
+ * The sound of the town and the store (M4; SPEC section 9).
+ *
+ * One AudioContext, made on the first click (browsers start no audio
+ * before a gesture).  The graph:
+ *
+ *   sfx bus  ──┬─────────────────────────▶ master ─▶ compressor ─▶ out
+ *              └─▶ reverb (made in code) ──┘
+ *   outdoor  ───▶ lowpass ─▶ gain ────────▶ master     (muffled indoors)
+ *   indoor   ───▶ gain ───────────────────▶ master     (hum, fridge; up indoors)
+ *   music    ───▶ gain ───────────────────▶ master     (the store's music)
+ *
+ * Files are public/audio/*.m4a (npm run audio), fetched after the game has
+ * started and decoded on first need; a missing one falls back to its
+ * procedural recipe, so a fresh clone still makes every sound.
+ *
+ * Every placed sound is local (config.js SOUND): full within `near`, eased
+ * to nothing at `far`, and not played at all beyond it.  Only the ambience
+ * beds and the store's own music are heard wherever they apply.
+ * ------------------------------------------------------------------ */
+
+import { Vector3 } from 'three';
+import { SOUND } from '../config.js';
+
+/** 1 within `near`, easing to 0 at `far`. */
+export function falloff(d, { near, far }) {
+  if (d <= near) return 1;
+  if (d >= far) return 0;
+  const t = 1 - (d - near) / (far - near);
+  return t * t * (3 - 2 * t);
+}
+
+const BEDS = { wind: 0.16, birds: 0.3, crows: 0.26, 'night-insects': 0.24 };
+const BED_OF_LOOK = { day: 'birds', golden: 'crows', blue: 'night-insects' };
+
+export function createSound({ volume = 0.5 } = {}) {
+  let ac = null, master, sfxBus, outBus, outLow, outGain, inGain, musicGain, reverb, wet;
+  let manifest = {}, muted = volume <= 0.001, lastAudible = volume > 0.001 ? volume : 0.5;
+  const buffers = new Map(), loading = new Map();
+  const log = [];                    // dev: every sound started, for the audio check
+  const now = () => ac.currentTime;
+  const state = { inside: false, look: null, bells: false, music: false, lowpass: 20000 };
+  const listener = { x: 0, y: 1.6, z: 0 };
+
+  /* --------------------------- loading --------------------------- */
+  let manifestReady = null;
+  async function buffer(name) {
+    if (buffers.has(name)) return buffers.get(name);
+    await manifestReady;
+    if (!manifest[name]) return null;
+    if (!loading.has(name)) {
+      loading.set(name, (async () => {
+        try {
+          const res = await fetch(import.meta.env.BASE_URL + 'audio/' + manifest[name].file);
+          if (!res.ok) return null;
+          const b = await ac.decodeAudioData(await res.arrayBuffer());
+          buffers.set(name, b);
+          return b;
+        } catch { return null; }
+      })());
+    }
+    return loading.get(name);
+  }
+  /** The loop's span inside a decoded buffer: AAC's encoder delay may pad the head. */
+  function loopSpan(name, b) {
+    const d = manifest[name]?.duration ?? b.duration;
+    const pad = Math.min(2112 / b.sampleRate, Math.max(0, b.duration - d));
+    return [pad, Math.min(b.duration, pad + d)];
+  }
+
+  /* ------------------------ the procedural sounds ------------------------ */
+  const noiseBuf = () => {
+    const n = ac.sampleRate, b = ac.createBuffer(1, n, n), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    return b;
+  };
+  let noise = null;
+  function tone(dest, freq, t, dur, { type = 'sine', level = 0.3, attack = 0.004 } = {}) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(level, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    o.connect(g).connect(dest);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  function burst(dest, t, dur, { freq = 2000, q = 1, level = 0.3, type = 'bandpass' } = {}) {
+    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = noise; s.loop = true;
+    f.type = type; f.frequency.value = freq; f.Q.value = q;
+    g.gain.setValueAtTime(level, t);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    s.connect(f).connect(g).connect(dest);
+    s.start(t, Math.random()); s.stop(t + dur + 0.02);
+  }
+  const RECIPES = {
+    // an original phrase on a soft electric piano (SPEC 9), if the file is missing
+    'store-chime'(d, t) { [659.3, 554.4, 440, 493.9, 659.3, 880].forEach((f, i) => { tone(d, f, t + i * 0.28, 1.2, { level: 0.22 }); tone(d, f * 2, t + i * 0.28, 0.6, { level: 0.06 }); }); },
+    'auto-door'(d, t) { burst(d, t, 0.6, { freq: 900, q: 0.6, level: 0.12 }); tone(d, 60, t, 0.6, { level: 0.08 }); },
+    'fridge-door'(d, t) { tone(d, 80, t, 0.08, { level: 0.35 }); burst(d, t + 0.02, 0.07, { freq: 1200, q: 2, level: 0.2 }); },
+    'ui-tap'(d, t) { tone(d, 1200, t, 0.05, { level: 0.15 }); },
+    stamp(d, t) { tone(d, 400, t, 0.06, { type: 'triangle', level: 0.3 }); },
+    // taking and putting back, by what it is made of (catalog `sound`)
+    plastic(d, t) { for (let i = 0; i < 4; i++) burst(d, t + i * 0.035 + Math.random() * 0.02, 0.05, { freq: 5000 + Math.random() * 2000, q: 1.5, level: 0.12 }); },
+    soft(d, t) { burst(d, t, 0.12, { freq: 3500, q: 0.8, level: 0.1 }); burst(d, t + 0.06, 0.1, { freq: 4500, q: 1, level: 0.07 }); },
+    can(d, t) { tone(d, 900, t, 0.12, { level: 0.14 }); tone(d, 2380, t, 0.08, { level: 0.05 }); },
+    bottle(d, t) { tone(d, 300, t, 0.12, { level: 0.2 }); burst(d, t, 0.05, { freq: 900, q: 3, level: 0.08 }); },
+    paper(d, t) { burst(d, t, 0.14, { freq: 1500, q: 0.5, level: 0.1, type: 'lowpass' }); },
+    box(d, t) { tone(d, 180, t, 0.06, { level: 0.2 }); burst(d, t, 0.06, { freq: 1200, q: 0.7, level: 0.1 }); },
+    basket(d, t) { for (let i = 0; i < 3; i++) { tone(d, 220 + i * 60, t + i * 0.05, 0.08, { type: 'triangle', level: 0.12 }); burst(d, t + i * 0.05, 0.05, { freq: 2600, q: 2, level: 0.08 }); } },
+    refuse(d, t) { tone(d, 330, t, 0.16, { type: 'triangle', level: 0.16 }); tone(d, 247, t + 0.15, 0.22, { type: 'triangle', level: 0.16 }); },
+    step(d, t, o = {}) {
+      burst(d, t, o.inside ? 0.05 : 0.08, { freq: o.inside ? 2400 : 900, q: o.inside ? 1.2 : 0.7, level: o.inside ? 0.05 : 0.07 });
+      tone(d, o.inside ? 140 : 90, t, 0.05, { level: 0.05 });
+    },
+  };
+
+  /* ------------------------------ playing ------------------------------ */
+  /**
+   * A one-shot.  `file` the manifest name (else the recipe `recipe ?? file`);
+   * `at` a world position (heard only inside its `range`), or none for a
+   * sound at the listener; `bus` sfx (default) or outdoor.
+   */
+  function play(file, { at = null, range = null, recipe = null, gain = 1, rate = 1, bus = null, o = {} } = {}) {
+    if (!ac || muted) return;
+    let k = 1;
+    if (at && range) {
+      const d = Math.hypot(at.x - listener.x, at.z - listener.z);
+      if (d >= range.far) return;             // beyond its range it does not play at all
+      k = falloff(d, range);
+    }
+    log.push({ name: file ?? recipe, t: +now().toFixed(3) });
+    const g = ac.createGain();
+    g.gain.value = gain * k;
+    let dest = g;
+    if (at) {
+      const p = ac.createPanner();
+      p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.rolloffFactor = 0;   // the level is ours (falloff)
+      p.positionX.value = at.x; p.positionY.value = at.y ?? 1.2; p.positionZ.value = at.z;
+      g.connect(p); p.connect(bus ?? sfxBus);
+    } else g.connect(bus ?? sfxBus);
+    const t = now() + 0.01;
+    const b = file && buffers.get(file);
+    if (b) {
+      const s = ac.createBufferSource();
+      s.buffer = b; s.playbackRate.value = rate;
+      const [a] = loopSpan(file, b);
+      s.connect(dest); s.start(t, a);
+    } else {
+      if (file && manifest[file]) buffer(file);            // next time
+      (RECIPES[recipe ?? file] ?? RECIPES['ui-tap'])(dest, t, o);
+    }
+  }
+
+  /* ------------------------------ loops ------------------------------ */
+  function loopNode(name, dest, level) {
+    const g = ac.createGain();
+    g.gain.value = 0;
+    g.connect(dest);
+    const L = { name, g, src: null, level, on: false };
+    L.set = async (on, fade = 2) => {
+      if (on === L.on) return;
+      L.on = on;
+      if (on && !L.src) {
+        const b = await buffer(name);
+        if (!b || !L.on || L.src) return;
+        const s = ac.createBufferSource();
+        s.buffer = b; s.loop = true;
+        [s.loopStart, s.loopEnd] = loopSpan(name, b);
+        s.connect(g); s.start(now(), s.loopStart + (L.offset ?? 0));
+        L.src = s; L.started = now();
+        log.push({ name, t: +now().toFixed(3), loop: true });
+      }
+      g.gain.cancelScheduledValues(now());
+      g.gain.setTargetAtTime(on ? L.level : 0, now(), fade / 4);
+      if (!on) {
+        const s = L.src;
+        clearTimeout(L.stopT);
+        L.stopT = setTimeout(() => {
+          if (L.on || L.src !== s || !s) return;
+          const span = s.loopEnd - s.loopStart;
+          L.offset = span > 0 ? ((L.offset ?? 0) + now() - L.started) % span : 0;   // pick up where it left off
+          try { s.stop(); } catch { /* stopped */ }
+          L.src = null;
+        }, fade * 1000 + 200);
+      }
+    };
+    return L;
+  }
+  let beds = {}, music = null, hum = null, fridge = null;
+  const bell = { src: null, timer: null, gain: null, on: false };
+
+  /* the store's own hum and the cooler's compressor, made in code */
+  function makeHum() {
+    const g = ac.createGain(); g.gain.value = 0; g.connect(inGain);
+    for (const [f, l] of [[60, 0.02], [120, 0.012], [2000, 0.0025]]) {
+      const o = ac.createOscillator(), og = ac.createGain();
+      o.frequency.value = f; og.gain.value = l; o.connect(og).connect(g); o.start();
+    }
+    return g;
+  }
+  function makeFridge() {
+    const g = ac.createGain(); g.gain.value = 0;
+    const p = ac.createPanner(); p.panningModel = 'HRTF'; p.rolloffFactor = 0;
+    g.connect(p).connect(inGain);
+    const s = ac.createBufferSource(); s.buffer = noise; s.loop = true;
+    const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 110;
+    const o = ac.createOscillator(); o.frequency.value = 50; const og = ac.createGain(); og.gain.value = 0.25;
+    s.connect(f).connect(g); o.connect(og).connect(g); s.start(); o.start();
+    return { g, p, cycle: 0 };
+  }
+
+  /* ------------------------------ the api ------------------------------ */
+  const api = {
+    get ready() { return !!ac; },
+    get muted() { return muted; },
+    get volume() { return volume; },
+    get available() { return true; },
+    /** From the first click: make the context, the graph, and start loading. */
+    async start() {
+      if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+      try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
+      if (ac.state === 'suspended') ac.resume();
+      noise = noiseBuf();
+      const comp = ac.createDynamicsCompressor();
+      comp.threshold.value = -14; comp.ratio.value = 3;
+      comp.connect(ac.destination);
+      master = ac.createGain(); master.gain.value = muted ? 0 : volume; master.connect(comp);
+      sfxBus = ac.createGain(); sfxBus.connect(master);
+      // a small room, made in code: decaying noise (SPEC 9)
+      reverb = ac.createConvolver();
+      const n = Math.round(ac.sampleRate * 0.8), ir = ac.createBuffer(2, n, ac.sampleRate);
+      for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n) ** 3; }
+      reverb.buffer = ir;
+      wet = ac.createGain(); wet.gain.value = 0.05;
+      sfxBus.connect(wet).connect(reverb).connect(master);
+      outBus = ac.createGain();
+      outLow = ac.createBiquadFilter(); outLow.type = 'lowpass'; outLow.frequency.value = 20000; outLow.Q.value = 0.5;
+      outGain = ac.createGain(); outGain.gain.value = 1;
+      outBus.connect(outLow).connect(outGain).connect(master);
+      inGain = ac.createGain(); inGain.gain.value = 0; inGain.connect(master);
+      musicGain = ac.createGain(); musicGain.gain.value = 1; musicGain.connect(master);
+      bell.gain = ac.createGain(); bell.gain.gain.value = 0; bell.gain.connect(outBus);
+      hum = makeHum();
+      fridge = makeFridge();
+      // the loops exist at once (they wait for their files); the list of files comes after
+      for (const [k, lvl] of Object.entries(BEDS)) beds[k] = loopNode(k, outBus, lvl);
+      music = loopNode('store-bgm', musicGain, 0.2);
+      manifestReady = fetch(import.meta.env.BASE_URL + 'audio/manifest.json').then((r) => r.json()).then((m) => { manifest = m; }, () => { manifest = {}; });
+      await manifestReady;
+      // the short sounds are fetched now, quietly, so the first of each is ready
+      for (const k of ['lawson-chime', 'door-chime', 'auto-door', 'fridge-door', 'ui-tap', 'crossing-bells']) buffer(k);
+    },
+    setVolume(v) {
+      volume = Math.max(0, Math.min(1, v));
+      muted = volume <= 0.001;
+      if (!muted) lastAudible = volume;
+      if (master) master.gain.setTargetAtTime(muted ? 0 : volume, now(), 0.05);
+      return muted;
+    },
+    toggle() {
+      muted = !muted;
+      if (!muted && volume <= 0.001) volume = lastAudible;
+      if (master) master.gain.setTargetAtTime(muted ? 0 : volume, now(), 0.1);
+      return muted;
+    },
+
+    /**
+     * Each frame: the listener (the camera), inside the store or not, the
+     * look (the ambience bed), and where the cooler is (its compressor).
+     */
+    update(dt, { camera, inside, look, cooler }) {
+      if (!ac || !music) return;
+      const t = now(), L = ac.listener;
+      listener.x = camera.position.x; listener.y = camera.position.y; listener.z = camera.position.z;
+      camera.getWorldDirection(_f);
+      if (L.positionX) {
+        L.positionX.setTargetAtTime(listener.x, t, 0.02); L.positionY.setTargetAtTime(listener.y, t, 0.02); L.positionZ.setTargetAtTime(listener.z, t, 0.02);
+        L.forwardX.setTargetAtTime(_f.x, t, 0.02); L.forwardY.setTargetAtTime(_f.y, t, 0.02); L.forwardZ.setTargetAtTime(_f.z, t, 0.02);
+      } else { L.setPosition(listener.x, listener.y, listener.z); L.setOrientation(_f.x, _f.y, _f.z, 0, 1, 0); }
+
+      // stepping in muffles the town within a second; the store's own sound comes up
+      if (inside !== state.inside) {
+        state.inside = inside;
+        outLow.frequency.cancelScheduledValues(t);
+        outLow.frequency.setTargetAtTime(inside ? 900 : 20000, t, 0.15);
+        outGain.gain.setTargetAtTime(inside ? 0.3 : 1, t, 0.15);
+        inGain.gain.setTargetAtTime(inside ? 1 : 0, t, 0.4);
+        hum.gain.setTargetAtTime(inside ? 1 : 0, t, 0.4);
+        wet.gain.setTargetAtTime(inside ? 0.22 : 0.05, t, 0.3);
+        music.set(inside, 1.5);
+        state.music = inside;
+      }
+      state.lowpass = Math.round(outLow.frequency.value);
+      // the bed for the time of day, crossfaded; the wind always, low
+      if (look !== state.look) {
+        state.look = look;
+        beds.wind.set(true, 2);
+        for (const [k, name] of Object.entries(BED_OF_LOOK)) if (beds[name]) beds[name].set(k === look, 3);
+      }
+      // the cooler's compressor, heard near the drinks wall, cycling on and off
+      if (cooler) {
+        fridge.p.positionX.value = cooler.x; fridge.p.positionY.value = 1; fridge.p.positionZ.value = cooler.z;
+        fridge.cycle = (fridge.cycle + dt) % 60;
+        const on = fridge.cycle < 40 ? 1 : 0;
+        const d = Math.hypot(cooler.x - listener.x, cooler.z - listener.z);
+        fridge.g.gain.setTargetAtTime(0.05 * on * falloff(d, SOUND.fridge), t, 0.8);
+      }
+    },
+
+    /* ---- the store ---- */
+    /** The chime: once as you come in, once as you go out, at the door. */
+    storeChime(at) {
+      play(manifest['lawson-chime'] ? 'lawson-chime' : manifest['door-chime'] ? 'door-chime' : null,
+        { at, range: SOUND.storeChime, recipe: 'store-chime', gain: 0.55 });
+    },
+    autoDoor(at, opening) { play('auto-door', { at, range: SOUND.autoDoor, gain: opening ? 0.35 : 0.25, rate: opening ? 1 : 0.96 }); },
+    fridgeDoor(at, opening) { play('fridge-door', { at, range: SOUND.fridge, gain: opening ? 0.5 : 0.3, rate: opening ? 1 : 0.85 }); },
+    /** Taking or putting back: by what it is made of. */
+    item(material, at) { play(null, { at, range: SOUND.shelf, recipe: RECIPES[material] ? material : 'plastic', gain: 0.9 }); },
+    basket() { play(null, { recipe: 'basket', gain: 0.8 }); },
+    refuse() { play(null, { recipe: 'refuse', gain: 0.8 }); },
+    ui() { play('ui-tap', { gain: 0.4 }); },
+    step(inside) { play(null, { recipe: 'step', gain: 0.9, o: { inside } }); },
+
+    /* ---- the railway (M2c), now through the engine ---- */
+    /** The crossing: ringing or not, and how far the listener is. */
+    bells(on, distance) {
+      if (!ac) return;
+      const audible = on && distance < SOUND.crossingBells.far;
+      state.bells = audible;
+      if (audible && !bell.on) {
+        bell.on = true;
+        const b = buffers.get('crossing-bells');
+        if (b) {
+          bell.src = ac.createBufferSource(); bell.src.buffer = b; bell.src.loop = true;
+          [bell.src.loopStart, bell.src.loopEnd] = loopSpan('crossing-bells', b);
+          bell.src.connect(bell.gain); bell.src.start(now(), bell.src.loopStart);
+        } else {
+          let k = 0;
+          const tick = () => { tone(bell.gain, k++ % 2 ? 860 : 730, now() + 0.01, 0.45, { type: 'sine', level: 0.3 }); };
+          tick(); bell.timer = setInterval(tick, 250);
+        }
+        log.push({ name: 'crossing-bells', t: +now().toFixed(3), loop: true });
+      } else if (!audible && bell.on) {
+        bell.on = false;
+        if (bell.src) { try { bell.src.stop(); } catch { /* stopped */ } bell.src = null; }
+        if (bell.timer) { clearInterval(bell.timer); bell.timer = null; }
+      }
+      bell.gain.gain.setTargetAtTime(audible ? falloff(distance, SOUND.crossingBells) * 0.7 : 0, now(), 0.1);
+    },
+    /** The train's door chime: three notes of our own (never a station melody). */
+    chime(distance) {
+      if (!ac || muted || distance >= SOUND.doorChime.far) return;
+      const g = ac.createGain(); g.gain.value = 0.6 * falloff(distance, SOUND.doorChime); g.connect(outBus);
+      const t = now() + 0.02;
+      [[659.3, 0], [880.0, 0.28], [784.0, 0.56]].forEach(([f, dt]) => tone(g, f, t + dt, 0.45, { level: 0.4 }));
+      log.push({ name: 'train-chime', t: +now().toFixed(3) });
+    },
+  };
+  if (import.meta.env?.DEV) api.debug = { log, state, get ac() { return ac; }, get manifest() { return manifest; }, buffers };
+  return api;
+}
+const _f = new Vector3();

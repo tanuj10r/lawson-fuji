@@ -108,19 +108,22 @@ export function buildFridgeDoors(group, specs, { glassMat, lit }) {
   }
 
   const ease = (t) => t * t * (3 - 2 * t);
-  return {
+  const api = {
     list: doors,
+    /** (door, opening): its sound (M4). */
+    onSound: null,
     open(door) {
       if (door.want) return;
       door.want = 1;
       puff(door);
+      api.onSound?.(door, true);
     },
-    close(door) { door.want = 0; },
+    close(door) { if (door.want) { door.want = 0; api.onSound?.(door, false); } },
     /** Each frame, `p` the player's position in the interior's frame. */
     update(dt, p) {
       for (const d of doors) {
         // it stays open while you are at it; walk off and it swings shut
-        if (d.want && Math.hypot(p.x - d.box.getCenter(_c).x, p.z - _c.z) > STORE.door.away) d.want = 0;
+        if (d.want && Math.hypot(p.x - d.box.getCenter(_c).x, p.z - _c.z) > STORE.door.away) api.close(d);
         const to = d.want;
         if (d.open === to) continue;
         d.open = to > d.open ? Math.min(to, d.open + dt / STORE.door.ease) : Math.max(to, d.open - dt / (STORE.door.ease * 1.6));
@@ -140,5 +143,6 @@ export function buildFridgeDoors(group, specs, { glassMat, lit }) {
       }
     },
   };
+  return api;
 }
 const _c = new THREE.Vector3(), _m = new THREE.Matrix4();

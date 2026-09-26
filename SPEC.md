@@ -586,6 +586,8 @@ The outdoor bus lowpass drops from 20 kHz to 900 Hz and gains down 70% when the 
 
 **Local sounds (town-wide rule).** Every sound or interactive cue that belongs to a place is heard only as the player nears that place, never across town: full volume within a short `near` range, eased to silence at `far`, and not playing at all beyond it (ranges in `config.js` `SOUND`). The crossing bells, for example, carry to the station plaza's south edge and the platforms, not to the Lawson. Only the ambience beds (birds, wind, night insects) and the in-store music are heard everywhere they apply.
 
+**Format and pipeline (M4).** `npm run audio` (scripts/encode-audio.mjs, macOS `afconvert`, nothing to install) cuts, loops, levels and encodes `assets/audio/*.mp3` as mono AAC in `public/audio/*.m4a` (40–48 kbps; the cuts in scripts/audio-cuts.json), with a manifest of lengths and loops. The whole set is 2.28 MB and the script fails above 3 MB. Files are fetched only after the first click. The engine is `src/core/sound.js`.
+
 **Audio list (Tan downloads, Claude Code wires in)**
 
 Tan listens and picks each sound on 効果音ラボ using the search terms below, then saves it into `assets/audio/` under the given file name. Choosing by ear is the point: pick the version that feels most like Japan. Claude Code loads whatever exists and falls back to the procedural recipe for anything missing.
@@ -636,7 +638,7 @@ committed; its source and any credit it needs go in the README.
 - **No redistribution, including edited files.** `assets/audio/` is git-ignored and never committed to the public repo. The README states that audio files are not covered by the MIT licence and lists how to get them.
 - **No soundboard.** Sounds only play from gameplay. No sound test, sound gallery, or free-play menu, since content where the sounds themselves are the point counts as redistribution under the site's terms.
 - **No hotlinking.** Files are served from our own site, never linked from theirs.
-- No real store chain jingles or station departure melodies from any source; the door chime must be a generic chime.
+- No station departure melodies from any source. The store's door chime is the one exception, by Tan's choice (M3d): lawson-chime.mp3, the FamilyMart melody.
 - Trimming, fading and setting loop points is fine.
 
 **Clerk voice (VOICEVOX)**
@@ -913,15 +915,17 @@ M3d (Tan's store feedback)
 
 M4
 
-- [ ] The door chime plays exactly once per entry and per exit.
-- [ ] Stepping inside audibly muffles the outdoors within 1 s.
+- [x] The door chime plays exactly once per entry and per exit.
+- [x] Stepping inside audibly muffles the outdoors within 1 s.
 - [ ] Audio starts after the first click in every supported browser.
-- [ ] Audio is re-encoded and trimmed (Opus or AAC, mono where the sound is
+      (Chromium checked by scripts/_audio.mjs; Safari and Firefox not yet.)
+- [x] Audio is re-encoded and trimmed (Opus or AAC, mono where the sound is
       positional, loops cut to the loop), 2-3 MB in all, and fetched after the
       game starts, never blocking the first frame.
-- [ ] The door chime is Tan's lawson-chime.mp3 (the FamilyMart melody, his
+- [ ] The door chime is Tan's lawson-chime.mp3 (the FamilyMart melody, their
       call, M3d; rights noted in DECISIONS.md). Every other file's source
-      terms allow serving it from a public site.
+      terms allow serving it from a public site. (Open: store-bgm.mp3's
+      source is unknown; the 効果音ラボ files are fine.)
 
 M5
 

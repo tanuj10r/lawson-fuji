@@ -154,7 +154,7 @@ export function makeShop(inside, { doors, lit }) {
     if (!hasBasket && cart.length >= STORE.carry) { api.flash?.(STRINGS.store.handsFull); return; }
     // the wallet (¥1,000, Tan): what would take you over it stays on the shelf
     const price = PRODUCT[u.id].priceYen, left = STORE.wallet - total();
-    if (price > left) { api.flash?.(STRINGS.store.noMoney(left, price), true); refuse = 0.5; return; }
+    if (price > left) { api.flash?.(STRINGS.store.noMoney(left, price), true); refuse = 0.5; api.onSound?.('refuse', u); return; }
     const from = unitWorld(u, new THREE.Matrix4());
     u.count--;
     const item = { id: u.id, u, flying: true };
@@ -162,6 +162,7 @@ export function makeShop(inside, { doors, lit }) {
     const mesh = itemMesh(u);
     fx.add(mesh);
     flights.push({ item, mesh, t: 0, from, into: true });
+    api.onSound?.('take', u);
     // the next one comes forward; the rows behind thin out; the gap shows
     refreshSlot(u);
     if (u.count > 0 && u.slot.zone !== 'icecase') slides.push({ u, t: -0.08 });
@@ -262,8 +263,8 @@ export function makeShop(inside, { doors, lit }) {
     if (!best) return null;
     return target(best, () => ({ label: STRINGS.store.take(PRODUCT[best.id].nameEn), action: () => take(best), unit: best, kind: 'item' }));
   }
-  function takeBasket(st = stacks[0]) { hasBasket = true; from = st; st.top.visible = false; layout(); }
-  function dropBasket() { hasBasket = false; if (from) from.top.visible = true; layout(); }
+  function takeBasket(st = stacks[0]) { hasBasket = true; from = st; st.top.visible = false; layout(); api.onSound?.('basket'); }
+  function dropBasket() { hasBasket = false; if (from) from.top.visible = true; layout(); api.onSound?.('basket'); }
 
   /* ------------------------------- frame ------------------------------- */
   const ease = (t) => t * t * (3 - 2 * t);
@@ -282,6 +283,12 @@ export function makeShop(inside, { doors, lit }) {
   api.clearAim = () => highlight(null);
   api.putBack = putBack;
   api.stats = inside.userData.stockStats;
+  /** A unit's place in world terms (where its sound comes from). */
+  api.unitAt = (u) => inside.localToWorld(new THREE.Vector3(u.x, u.y, u.z));
+  /** The walk-in cooler's middle, for its compressor's hum. */
+  api.coolerAt = inside.localToWorld(new THREE.Vector3(-2.4, 1, -12.3));
+  api.doors = doors;
+  api.onSound = null;          // main.js: (kind, unit?) -> the sound engine
   api.total = total;
   /** Is a fridge door within reach (the card shows its line then)? */
   api.nearDoor = () => doors.list.some((d) => d.box.distanceToPoint(local) < STORE.reach);
@@ -302,6 +309,7 @@ export function makeShop(inside, { doors, lit }) {
       if (had) api.flash?.(STRINGS.store.notOut);
     }
     if (inNow && !wasInside) api.onEnter?.();
+    if (!inNow && wasInside) api.onExit?.();
     wasInside = inNow;
     doors.update(dt, local);
     // a refused take: the rim turns red and shakes
@@ -337,7 +345,7 @@ export function makeShop(inside, { doors, lit }) {
         fx.remove(f.mesh);
         flights.splice(k, 1);
         if (f.into) { f.item.flying = false; layout(); }
-        else { f.item.u.count++; refreshSlot(f.item.u); api.onChange?.(); }
+        else { f.item.u.count++; refreshSlot(f.item.u); api.onChange?.(); api.onSound?.('put', f.item.u); }
       }
     }
   };

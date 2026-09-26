@@ -1,0 +1,23 @@
+{
+  "_": "How each file in assets/audio/ is cut for the web (scripts/encode-audio.mjs). start/len in seconds; loop: crossfade the tail into the head so it repeats seamlessly; peak: normalise to this peak (0..1); kbps: AAC bitrate. Everything is mono: sounds in a konbini come from a place or a ceiling speaker.",
+  "files": {
+    "lawson-chime":    { "start": 0.0,  "len": 5.9,  "peak": 0.8,  "kbps": 48, "fadeOut": 0.4, "_": "the door chime (Tan's call, M3d): the whole phrase" },
+    "door-chime":      { "start": 0.0,  "len": 1.7,  "peak": 0.8,  "kbps": 40, "fadeOut": 0.2, "_": "fallback chime" },
+    "auto-door":       { "start": 0.15, "len": 1.85, "peak": 0.7,  "kbps": 40, "fadeOut": 0.15 },
+    "fridge-door":     { "start": 0.02, "len": 0.5,  "peak": 0.7,  "kbps": 40, "fadeOut": 0.05 },
+    "ui-tap":          { "start": 0.0,  "len": 0.14, "peak": 0.6,  "kbps": 40, "fadeOut": 0.03 },
+    "coins":           { "start": 0.0,  "len": 1.45, "peak": 0.7,  "kbps": 40, "fadeOut": 0.1 },
+    "register-drawer": { "start": 0.0,  "len": 1.0,  "peak": 0.7,  "kbps": 40, "fadeOut": 0.08 },
+    "microwave-ding":  { "start": 0.0,  "len": 1.1,  "peak": 0.7,  "kbps": 40, "fadeOut": 0.2 },
+    "stamp":           { "event": 2,    "len": 0.4,  "peak": 0.7,  "kbps": 40, "fadeOut": 0.05, "_": "one stamp of the seventeen" },
+    "crossing-bells":  { "start": 60,   "len": 4,    "loop": "period", "peak": 0.8, "kbps": 40, "_": "a whole number of bell periods from the middle" },
+    "birds":           { "start": 0.3,  "len": 12.5, "loop": 0.8, "peak": 0.5,  "kbps": 40 },
+    "crows":           { "start": 0.0,  "len": 24.5, "loop": 1.0, "peak": 0.5,  "kbps": 40 },
+    "night-insects":   { "start": 0.3,  "len": 34.5, "loop": 1.0, "peak": 0.45, "kbps": 40 },
+    "wind":            { "start": 0.3,  "len": 37.0, "loop": 1.5, "peak": 0.45, "kbps": 40 },
+    "store-bgm":       { "start": 0.0,  "len": 0,    "loop": 2.0, "peak": 0.7,  "kbps": 40, "_": "the whole track (len 0), looping" }
+  },
+  "skip": {
+    "scan-beep": "107 s of continuous low-level sound, not a single beep: M5 uses the procedural beep until a single-beep file is chosen"
+  }
+}

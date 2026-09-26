@@ -5,8 +5,7 @@ import { buildSky } from './core/sky.js';
 import { setOutlineResolution } from './core/outline.js';
 import { Player } from './core/player.js';
 import { createHud } from './core/hud.js';
-import { createMusic } from './core/audio.js';
-import { createSfx } from './core/sfx.js';
+import { createSound } from './core/sound.js';
 import { buildTown } from './world/town.js';
 import { createMinimap } from './ui/minimap.js';
 import { createBasketPanel } from './ui/basketPanel.js';
@@ -14,7 +13,7 @@ import { buildKitTest } from './world/kit-test.js';
 import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
 import { PRODUCT } from './data/catalog.js';
-import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, STORE } from './config.js';
+import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, STORE, LAWSON } from './config.js';
 
 /* ------------------------------------------------------------------ *
  * Lawson Fuji -- entry point.  Rendering is inherited from Sakura Crossing (MIT).
@@ -119,6 +118,7 @@ if (shop) {
   shop.onChange = () => basketPanel.update(shop.cart, shop.hasBasket);
 }
 function setPanel(open) {
+  if (basketPanel.open !== open) sound.ui();
   basketPanel.setOpen(open);
   player.suspended = open;
 }
@@ -138,30 +138,41 @@ if (shop) {
   // walking in with nothing: where the baskets are and what you have (M3d)
   shop.onEnter = () => { if (!shop.hasBasket && !shop.cart.length) hud.flash(STRINGS.store.welcome(STORE.wallet), 4500); };
 }
-const music = createMusic({ volume: initialVolume, fadeIn: 3.0 });
-hud.setMuted(music.muted);
+/* The sound (M4): one engine for the town and the store, started by the
+ * same first click that takes the pointer lock (browsers start no audio
+ * before a gesture).  Every sound of a place is local to it. */
+const sound = createSound({ volume: initialVolume });
+hud.setMuted(sound.muted);
 const rememberVolume = () => {
-  try { localStorage.setItem(VOLUME_STORAGE_KEY, String(music.volume)); } catch { /* optional */ }
+  try { localStorage.setItem(VOLUME_STORAGE_KEY, String(sound.volume)); } catch { /* optional */ }
 };
-
-/* Positional effects (M2c: the crossing bells and the train's door chime),
- * started by the same first click as the music. */
-const sfx = createSfx({ volume: initialVolume });
 world.line?.onEvent((name, run) => {
-  if (name === 'chime') sfx.chime(Math.hypot(camera.position.x - run.x, camera.position.z - run.z));
+  if (name === 'chime') sound.chime(Math.hypot(camera.position.x - run.x, camera.position.z - run.z));
 });
+const _v = new THREE.Vector3();
+let lastStride = 0;
+const DOOR_AT = { x: LAWSON.x + LAWSON.doorX, y: 2.2, z: LAWSON.frontZ };
+if (shop) {
+  // the chime once as you come in and once as you go out, at the door
+  const enter = shop.onEnter;
+  shop.onEnter = () => { enter?.(); sound.storeChime(DOOR_AT); };
+  shop.onExit = () => sound.storeChime(DOOR_AT);
+  shop.doors.onSound = (door, opening) => sound.fridgeDoor({ x: door.box.getCenter(_v).x, y: 1.2, z: _v.z }, opening);
+  shop.onSound = (kind, u) => {
+    if (kind === 'take' || kind === 'put') sound.item(PRODUCT[u.id].sound, shop.unitAt(u));
+    else if (kind === 'basket') sound.basket();
+    else if (kind === 'refuse') sound.refuse();
+  };
+}
+if (world.lawson?.door) world.lawson.door.onMove = (opening) => sound.autoDoor(DOOR_AT, opening);
 
 hud.onVolumeChange = (value) => {
-  sfx.setVolume(value);
-  hud.setMuted(music.setVolume(value));
+  hud.setMuted(sound.setVolume(value));
   rememberVolume();
 };
 
-// Autoplay needs a user gesture, so the music starts on the same click that
-// takes the pointer lock rather than on load.
 hud.onStart = () => {
-  music.start();
-  sfx.start();
+  sound.start();
   player.lock();
 };
 player.onLockChange = (locked) => {
@@ -171,8 +182,7 @@ player.onLockChange = (locked) => {
   if (!locked && basketPanel?.open) setPanel(false);
 };
 canvas.addEventListener('click', () => {
-  music.start();
-  sfx.start();
+  sound.start();
   if (!player.locked) player.lock();
 });
 
@@ -342,7 +352,7 @@ window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyS' || e.code === 'ArrowDown') basketPanel.move(1);
     if (!e.repeat && ['KeyX', 'Delete', 'Backspace'].includes(e.code)) {
       const item = basketPanel.chosen();
-      if (item) shop.putBack(item);
+      if (item) { sound.ui(); shop.putBack(item); }
     }
     return;
   }
@@ -354,11 +364,11 @@ window.addEventListener('keydown', (e) => {
     player.suspended = open;
   }
   if (e.code === 'KeyN') {
-    const off = music.toggle();
+    const off = sound.toggle();
     hud.setMuted(off);
-    hud.setVolume(music.volume);
+    hud.setVolume(sound.volume);
     rememberVolume();
-    if (music.available) hud.flash(off ? STRINGS.soundOff : STRINGS.soundOn);
+    hud.flash(off ? STRINGS.soundOff : STRINGS.soundOn);
   }
   // two quiet toggles, handy for seeing what the ink and grade passes do
   if (e.code === 'KeyO') pipeline.enabled.ink = !pipeline.enabled.ink;
@@ -392,7 +402,7 @@ function frame() {
   seatLights();
   if (world.line) {
     const c = world.line.crossingPos;
-    sfx.bells(world.line.service.cross.bells, Math.hypot(camera.position.x - c.x, camera.position.z - c.z));
+    sound.bells(world.line.service.cross.bells, Math.hypot(camera.position.x - c.x, camera.position.z - c.z));
   }
 
   // the sky dome is centred on the flat origin, so it has to trail the camera
@@ -425,6 +435,11 @@ function frame() {
     });
   }
   player.hovered = hovered;
+  // the sound: where you are and what time of day it is; a footstep each stride
+  const inStore = !!shop?.inside(camera);
+  sound.update(dt, { camera, inside: inStore, look: lookName, cooler: shop?.coolerAt });
+  const stride = Math.floor(player.bob / Math.PI);
+  if (stride !== lastStride) { lastStride = stride; if (player.locked) sound.step(inStore); }
   hud.setPrompt(hovered ? `E  ·  ${hovered.label.replace(/^.*?·\s*/, '')}` : '');
   // flat authoring coordinates, so what the readout says is what the code uses
   hud.setCoords(player.pos, player.yaw, player.pitch, dt);
@@ -437,7 +452,7 @@ frame();
 
 // expose a little for tuning from the console
 window.__scene = {
-  scene, camera, renderer, pipeline, world, player, music, hud, sun, fill, bounce, hemi, THREE,
+  scene, camera, renderer, pipeline, world, player, sound, hud, sun, fill, bounce, hemi, THREE,
   applyLook, enterHero,
 };
 window.__setOutlineRes = setOutlineResolution;

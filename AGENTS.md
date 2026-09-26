@@ -56,4 +56,5 @@ the current milestone needs.
 ## Commands
 - npm install
 - npm run dev     (dev server)
+- npm run audio   (assets/audio/ -> public/audio/, AAC, 3 MB budget)
 - npm run build   (static dist/)

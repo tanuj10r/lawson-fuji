@@ -3,8 +3,13 @@
 // plays the chime once each way, muffles the town within a second, and
 // runs the store's music only inside; the bed follows the time of day;
 // nothing local plays out of its range.   usage: node scripts/_audio.mjs
-import { chromium } from 'playwright';
-const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=metal', '--autoplay-policy=user-gesture-required'] });
+// BROWSER=webkit (Safari's engine) or firefox; Chrome by default
+import { chromium, webkit, firefox } from 'playwright';
+const which = process.env.BROWSER ?? 'chrome';
+const browser = which === 'webkit' ? await webkit.launch({ headless: true })
+  : which === 'firefox' ? await firefox.launch({ headless: true, firefoxUserPrefs: { 'media.autoplay.default': 5, 'media.autoplay.blocking_policy': 0 } })
+  : await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=metal', '--autoplay-policy=user-gesture-required'] });
+console.log('browser', which, browser.version());
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const errs = [], missing = [];
 page.on('pageerror', (e) => errs.push(String(e)));
@@ -56,10 +61,38 @@ await walk(-2.3, 1.2, 3.14); await page.waitForTimeout(1000);
 s = await st();
 check('out: the chime again, the town open, the music off', count(s.log, 'lawson-chime') === 2 && s.lowpass > 15000 && !s.music && !s.inside, { chimes: count(s.log, 'lawson-chime'), lowpass: s.lowpass, music: s.music });
 
+// walking out: the chime fades behind you, and comes through the glass muffled
+await walk(-2.3, -1.0, 3.14); await page.waitForTimeout(600);
+await walk(-2.3, 1.2, 3.14); await page.waitForTimeout(150);
+const v1 = await page.evaluate(() => window.__scene.sound.debug.voiceLevels());
+await walk(-2.3, 12, 3.14); await page.waitForTimeout(600);
+const v2 = await page.evaluate(() => window.__scene.sound.debug.voiceLevels());
+const chime = (v) => v.find((x) => x.indoor);
+check('the exit chime fades as you walk away, muffled through the glass', chime(v1) && chime(v2) && chime(v2).k < chime(v1).k * 0.5 && chime(v1).f <= 1400, { atDoor: chime(v1), at12m: chime(v2) });
+
+// the zebras: the walk signal plays while a walk light is green, near it only
+const zebras = await page.evaluate(() => window.__walkList?.length ?? 0);
+check('every zebra has a walk light', zebras >= 3, { zebras });
+const heard = await page.evaluate(async () => {
+  const list = window.__walkList;
+  const out = [];
+  for (let i = 0; i < list.length; i++) {
+    const w = list[i];
+    const p = window.__scene.player; p.pos.set(w.x + 3, p.pos.y, w.z + 3);
+    // wait for a green (the cycle is 47 s: step time on quickly)
+    let tries = 0;
+    while (!list[i].on && tries++ < 60) await new Promise((r) => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 700));
+    out.push({ i, green: list[i].on, playing: window.__scene.sound.debug.state.walking });
+  }
+  return out;
+});
+check('each zebra plays its signal while green', heard.every((h) => h.green && h.playing >= 1), heard);
+
 // the bed follows the time of day
 for (const [view, bed] of [['morning', 'birds'], ['golden', 'crows'], ['night', 'night-insects']]) {
   await page.evaluate((v) => window.__scene.enterHero(v), view);
-  await page.waitForTimeout(1200);
+  await page.waitForFunction((b) => window.__scene.sound.debug.log.some((l) => l.name === b), bed, { timeout: 8000 }).catch(() => {});
   s = await st();
   check(`look ${view}: ${bed} plays`, s.look && s.log.includes(bed), { look: s.look });
 }

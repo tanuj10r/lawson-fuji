@@ -15,6 +15,13 @@ const LIT = { green: 0x3ff0c0, amber: 0xffc23a, red: 0xff4636, walk: 0x40e8b0, s
 const DIM = 0x39404f;
 
 /**
+ * Every zebra's walk light, for its sound (M4, Tan): the pedestrian signal's
+ * piyo-piyo and kakko play while its walk light is green, heard only near it.
+ * Each is { marker: Object3D at the zebra's middle, walk: () => bool }.
+ */
+export const WALK_SIGNALS = [];
+
+/**
  * @param o.x       crossing centre along the road
  * @param o.zNear   kerb line on the store side
  * @param o.zFar    kerb line on the far side
@@ -109,9 +116,53 @@ export function buildSignals(ctx, o) {
     set(lamps.green, phase === 'green', 'green');
     set(lamps.amber, phase === 'amber', 'amber');
     set(lamps.red, phase === 'red', 'red');
-    const walk = phase === 'red' && t - (24 + 3) > 2 && t - (24 + 3) < 18;
+    walk = phase === 'red' && t - (24 + 3) > 2 && t - (24 + 3) < 18;
     set(lamps.walk, walk, 'walk');
     set(lamps.stop, !walk, 'stop');
   });
+  let walk = false;
+  const marker = new THREE.Object3D();
+  marker.position.set(o.x, 0, (o.zNear + o.zFar) / 2);
+  ctx.add(marker);
+  WALK_SIGNALS.push({ marker, walk: () => walk });
   return g;
+}
+
+/**
+ * Pedestrian signals for a zebra on a side street (M4): a post at each end
+ * with a walk / stop head facing across, on its own cycle (walk 16 s of
+ * every 47, starting `offset` seconds in, so no two crossings keep time).
+ * `ends` are the two kerb points [{ x, z }] in the builder's frame.
+ */
+export function buildWalkSignal(ctx, { ends, offset = 0 }) {
+  const pole = cel({ color: 0xb9bcc6, bands: 3, tint: 0x666090 });
+  const housing = cel({ color: 0x3e4250, bands: 2, tint: 0x4b4560 });
+  const walkLamp = flat({ color: DIM, cache: false }), stopLamp = flat({ color: DIM, cache: false });
+  walkLamp.userData.live = stopLamp.userData.live = true;
+  ends.forEach((a, i) => {
+    const b = ends[1 - i];
+    const s = new THREE.Group();
+    s.position.set(a.x, 0, a.z);
+    s.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);        // the head faces the far kerb
+    s.add(cyl(0.06, 0.07, 2.9, 8, pole, 0, 1.45, 0));
+    s.add(box(0.34, 0.62, 0.2, housing, 0, 2.5, 0.08));
+    for (const [m, y] of [[stopLamp, 2.66], [walkLamp, 2.34]]) {
+      const lamp = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.24), m);
+      lamp.position.set(0, y, 0.185);
+      s.add(lamp);
+    }
+    ctx.add(s);
+    ctx.collide(a.x - 0.12, a.z - 0.12, a.x + 0.12, a.z + 0.12, 3);
+  });
+  let t = offset, walk = false;
+  ctx.update((dt) => {
+    t = (t + dt) % 47;
+    walk = t > 29 && t < 45;
+    walkLamp.color.set(walk ? LIT.walk : DIM);
+    stopLamp.color.set(walk ? DIM : LIT.stop);
+  });
+  const marker = new THREE.Object3D();
+  marker.position.set((ends[0].x + ends[1].x) / 2, 0, (ends[0].z + ends[1].z) / 2);
+  ctx.add(marker);
+  WALK_SIGNALS.push({ marker, walk: () => walk });
 }

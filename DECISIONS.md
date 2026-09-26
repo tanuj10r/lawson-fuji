@@ -1132,3 +1132,36 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   The M4 item stays open.
 - **The store music's source is unknown**, so its licence to be served
   publicly is still open (README, SPEC 9).
+
+### M4, round 2 (Tan's review)
+
+- **The exit chime fades behind you.** The chime now comes from a speaker
+  in the ceiling just inside the door. A placed sound that is still playing
+  follows the listener every frame, so walking out it drops away (0.22 at
+  the door, 0.10 at 12 m, silent by 22 m). From outside it comes through
+  the glass: lowpassed to 1.4 kHz at 40%.
+- **The beds are 12% quieter.**
+- **Footsteps come half as often**, one every other head-bob swing, so
+  walking no longer sounds like running.
+- **Zebra crossings have a walk-signal sound.** Tan says crossing-bells.mp3
+  is the pedestrian signal (piyo-piyo and kakko). Every zebra plays it (a
+  16 s loop) while its walk light is green, heard only within 34 m. The
+  town has three zebras: the signalled one on the main road, and two on
+  the shopping spine, which had only crossing signs. Those two now have
+  walk-signal posts at both ends (buildWalkSignal, signals.js), each on
+  its own offset cycle.
+- **The level crossing** uses Tan's new railway-crossing-bells.mp3, 3.8 s
+  looped on the bell period (23 KB).
+- **The store music's credit:** "Sounds of Japanese Lawson" by Joonas on
+  YouTube, in the README. Crediting isn't a licence. The recording is made
+  inside a Lawson, so it probably carries the chain's own in-store music,
+  and permission to serve it is not confirmed. That's the same kind of
+  decision as the chime; Tan knows.
+- **Browsers:** Playwright's WebKit (Safari's engine) and Firefox are
+  installed (about 590 MB in the cache, not in the project). Every audio
+  check passes in Chrome, WebKit 26.6 and Firefox 155. A refused pointer
+  lock (the window not focused) is now caught, not an unhandled rejection.
+- **Size (`npm run size`):** 3.00 MB in all. 0.64 MB loads before the
+  first click (code 0.36 MB gzip, Fuji 0.28 MB) and the audio's 2.36 MB
+  after it. The SPEC 7 budget is 5 MB. Not counted in download: start-up is
+  6–9 s and the JS heap about 457 MB (M7 targets 5 s and 300 MB).

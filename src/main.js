@@ -6,6 +6,7 @@ import { setOutlineResolution } from './core/outline.js';
 import { Player } from './core/player.js';
 import { createHud } from './core/hud.js';
 import { createSound } from './core/sound.js';
+import { WALK_SIGNALS } from './world/signals.js';
 import { buildTown } from './world/town.js';
 import { createMinimap } from './ui/minimap.js';
 import { createBasketPanel } from './ui/basketPanel.js';
@@ -152,11 +153,18 @@ world.line?.onEvent((name, run) => {
 const _v = new THREE.Vector3();
 let lastStride = 0;
 const DOOR_AT = { x: LAWSON.x + LAWSON.doorX, y: 2.2, z: LAWSON.frontZ };
+// the chime's speaker, in the ceiling just inside the door (it is heard through the glass from outside)
+const CHIME_AT = { x: LAWSON.x + LAWSON.doorX, y: 2.7, z: LAWSON.frontZ - 1.2 };
+// every zebra's walk light (signals.js), in world terms once the town stands
+scene.updateMatrixWorld(true);
+const walkAt = WALK_SIGNALS.map((w) => ({ w, p: w.marker.getWorldPosition(new THREE.Vector3()) }));
+const walkList = walkAt.map(({ p }) => ({ x: p.x, z: p.z, on: false }));
+if (import.meta.env?.DEV) window.__walkList = walkList;
 if (shop) {
   // the chime once as you come in and once as you go out, at the door
   const enter = shop.onEnter;
-  shop.onEnter = () => { enter?.(); sound.storeChime(DOOR_AT); };
-  shop.onExit = () => sound.storeChime(DOOR_AT);
+  shop.onEnter = () => { enter?.(); sound.storeChime(CHIME_AT); };
+  shop.onExit = () => sound.storeChime(CHIME_AT);
   shop.doors.onSound = (door, opening) => sound.fridgeDoor({ x: door.box.getCenter(_v).x, y: 1.2, z: _v.z }, opening);
   shop.onSound = (kind, u) => {
     if (kind === 'take' || kind === 'put') sound.item(PRODUCT[u.id].sound, shop.unitAt(u));
@@ -438,7 +446,10 @@ function frame() {
   // the sound: where you are and what time of day it is; a footstep each stride
   const inStore = !!shop?.inside(camera);
   sound.update(dt, { camera, inside: inStore, look: lookName, cooler: shop?.coolerAt });
-  const stride = Math.floor(player.bob / Math.PI);
+  walkAt.forEach(({ w }, i) => { walkList[i].on = w.walk(); });
+  sound.walkSignals(walkList);
+  // a footstep every other swing of the head-bob (Tan: half the old rate)
+  const stride = Math.floor(player.bob / (2 * Math.PI));
   if (stride !== lastStride) { lastStride = stride; if (player.locked) sound.step(inStore); }
   hud.setPrompt(hovered ? `E  ·  ${hovered.label.replace(/^.*?·\s*/, '')}` : '');
   // flat authoring coordinates, so what the readout says is what the code uses

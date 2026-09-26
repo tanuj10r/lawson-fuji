@@ -4,6 +4,7 @@ import { buildRoads } from './roads.js';
 import { paintMarkings } from './markings.js';
 import { buildPoles, lampMaterial } from './poles.js';
 import { placeSigns } from './signs.js';
+import { buildWalkSignal } from '../signals.js';
 
 /* ------------------------------------------------------------------ *
  * The town kit (SPEC section 3, M2a).  Give it a road network; it lays
@@ -21,6 +22,12 @@ export function buildKit(ctx, def) {
   const features = paintMarkings(net, decals);
   const poles = buildPoles(ctx, net, decals);
   const signs = placeSigns(ctx, net, features);
+  // a walk signal at each end of every zebra (M4): its green has a sound
+  features.crossings.forEach((c, i) => {
+    const s = c.s + c.L / 2 + 1.2;
+    const ends = [-1, 1].map((side) => net.at(c.e, s, side * (c.e.a + 0.35)));
+    buildWalkSignal(ctx, { ends, offset: 11 + i * 17 });
+  });
   let done = false;
   return {
     net, roads, features, poles: poles.list, signs, decals,

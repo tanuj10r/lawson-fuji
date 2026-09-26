@@ -440,7 +440,8 @@ export const SOUND = {
   crossingBells: { near: 10, far: 45 },    // the crossing, the plaza's south edge, the platforms' west end
   doorChime: { near: 5, far: 28 },         // the platform, the gates
   // the store (M4): its chime and door carry across the forecourt to the famous view, no further
-  storeChime: { near: 6, far: 32 },
+  storeChime: { near: 3, far: 22 },         // from a speaker just inside the door: fades as you walk away
+  walkSignal: { near: 8, far: 34 },          // each zebra's piyo-piyo while its walk light is green
   autoDoor: { near: 4, far: 18 },
   fridge: { near: 2.5, far: 9 },           // the cooler: its doors and its compressor
   shelf: { near: 3, far: 10 },             // taking and putting back

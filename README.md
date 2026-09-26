@@ -10,6 +10,7 @@ step back out.
 npm install
 npm run audio   # optional: encode assets/audio/ for the web (see Audio)
 npm run dev
+npm run size    # what a first visit downloads
 ```
 
 Desktop browsers only.
@@ -47,6 +48,9 @@ chose to use it (DECISIONS.md, M3d).
   Authority of Japan), elevation tiles
 - Sound effects: 効果音ラボ (soundeffect-lab.info)
 - Door chime melody: Yasushi Inada, "Melody Chime No.1 大盛況"
+- In-store music: from "Sounds of Japanese Lawson" by Joonas
+  (https://www.youtube.com/@JoonasGebhard,
+  https://www.youtube.com/watch?v=9Lott0KfVLg), used with credit
 - Clerk voice: VOICEVOX:<character name>
 - three.js and Vite (MIT)
 

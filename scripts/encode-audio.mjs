@@ -68,7 +68,7 @@ const manifest = {};
 let total = 0;
 const rows = [];
 for (const [name, c] of Object.entries(files)) {
-  const mp3 = path.join(SRC, name + '.mp3');
+  const mp3 = path.join(SRC, (c.src ?? name) + '.mp3');     // `src`: the file it is cut from, if not its own name
   if (!fs.existsSync(mp3)) { rows.push([name, 'missing (the procedural sound is used)']); continue; }
   const wav = path.join(tmp, name + '.wav');
   execFileSync('afconvert', ['-f', 'WAVE', '-d', `LEI16@${SR}`, '-c', '1', mp3, wav]);
@@ -103,6 +103,8 @@ for (const [name, c] of Object.entries(files)) {
   rows.push([name, `${len.toFixed(2)} s${c.loop ? ' loop' : ''}  ${(size / 1024).toFixed(1)} KB  (from ${dur.toFixed(1)} s, gain ${g.toFixed(2)})`]);
 }
 fs.writeFileSync(path.join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 1));
+// files from earlier cuts that are no longer made
+for (const f of fs.readdirSync(OUT)) if (f.endsWith('.m4a') && !Object.values(manifest).some((m) => m.file === f)) fs.rmSync(path.join(OUT, f));
 fs.rmSync(tmp, { recursive: true, force: true });
 
 for (const [n, r] of rows) console.log(`  ${n.padEnd(16)} ${r}`);

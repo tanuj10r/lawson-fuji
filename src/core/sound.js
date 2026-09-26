@@ -30,7 +30,8 @@ export function falloff(d, { near, far }) {
   return t * t * (3 - 2 * t);
 }
 
-const BEDS = { wind: 0.16, birds: 0.3, crows: 0.26, 'night-insects': 0.24 };
+// the beds, quiet (Tan: another 10-15% down, M4 review)
+const BEDS = { wind: 0.14, birds: 0.26, crows: 0.23, 'night-insects': 0.21 };
 const BED_OF_LOOK = { day: 'birds', golden: 'crows', blue: 'night-insects' };
 
 export function createSound({ volume = 0.5 } = {}) {
@@ -121,23 +122,35 @@ export function createSound({ volume = 0.5 } = {}) {
    * `at` a world position (heard only inside its `range`), or none for a
    * sound at the listener; `bus` sfx (default) or outdoor.
    */
-  function play(file, { at = null, range = null, recipe = null, gain = 1, rate = 1, bus = null, o = {} } = {}) {
+  /* Placed sounds that are still playing: their level follows the listener
+   * as they move (walk out of the store and the chime fades behind you), and
+   * one inside the store heard from outside comes through the glass,
+   * muffled and quieter. */
+  const voices = new Set();
+  const voiceLevel = (v) => {
+    const d = Math.hypot(v.at.x - listener.x, v.at.z - listener.z);
+    const through = v.indoor && !state.inside;
+    return { k: v.gain * falloff(d, v.range) * (through ? 0.4 : 1), f: through ? 1400 : 20000 };
+  };
+  function play(file, { at = null, range = null, recipe = null, gain = 1, rate = 1, bus = null, indoor = false, o = {} } = {}) {
     if (!ac || muted) return;
-    let k = 1;
-    if (at && range) {
-      const d = Math.hypot(at.x - listener.x, at.z - listener.z);
-      if (d >= range.far) return;             // beyond its range it does not play at all
-      k = falloff(d, range);
+    const v = at && range ? { at, range, gain, indoor } : null;
+    let k = gain, f = 20000;
+    if (v) {
+      if (Math.hypot(at.x - listener.x, at.z - listener.z) >= range.far) return;   // beyond its range it does not play at all
+      ({ k, f } = voiceLevel(v));
     }
     log.push({ name: file ?? recipe, t: +now().toFixed(3) });
     const g = ac.createGain();
-    g.gain.value = gain * k;
+    g.gain.value = k;
     let dest = g;
     if (at) {
       const p = ac.createPanner();
       p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.rolloffFactor = 0;   // the level is ours (falloff)
       p.positionX.value = at.x; p.positionY.value = at.y ?? 1.2; p.positionZ.value = at.z;
-      g.connect(p); p.connect(bus ?? sfxBus);
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = f;
+      g.connect(lp).connect(p); p.connect(bus ?? sfxBus);
+      if (v) { v.g = g; v.lp = lp; voices.add(v); setTimeout(() => voices.delete(v), 8000); }
     } else g.connect(bus ?? sfxBus);
     const t = now() + 0.01;
     const b = file && buffers.get(file);
@@ -188,6 +201,7 @@ export function createSound({ volume = 0.5 } = {}) {
     return L;
   }
   let beds = {}, music = null, hum = null, fridge = null;
+  const walks = [];
   const bell = { src: null, timer: null, gain: null, on: false };
 
   /* the store's own hum and the cooler's compressor, made in code */
@@ -249,7 +263,7 @@ export function createSound({ volume = 0.5 } = {}) {
       manifestReady = fetch(import.meta.env.BASE_URL + 'audio/manifest.json').then((r) => r.json()).then((m) => { manifest = m; }, () => { manifest = {}; });
       await manifestReady;
       // the short sounds are fetched now, quietly, so the first of each is ready
-      for (const k of ['lawson-chime', 'door-chime', 'auto-door', 'fridge-door', 'ui-tap', 'crossing-bells']) buffer(k);
+      for (const k of ['lawson-chime', 'door-chime', 'auto-door', 'fridge-door', 'ui-tap', 'railway-bells', 'walk-signal']) buffer(k);
     },
     setVolume(v) {
       volume = Math.max(0, Math.min(1, v));
@@ -292,6 +306,11 @@ export function createSound({ volume = 0.5 } = {}) {
         state.music = inside;
       }
       state.lowpass = Math.round(outLow.frequency.value);
+      for (const v of voices) {
+        const { k, f } = voiceLevel(v);
+        v.g.gain.setTargetAtTime(k, t, 0.06);
+        v.lp.frequency.setTargetAtTime(f, t, 0.06);
+      }
       // the bed for the time of day, crossfaded; the wind always, low
       if (look !== state.look) {
         state.look = look;
@@ -312,7 +331,7 @@ export function createSound({ volume = 0.5 } = {}) {
     /** The chime: once as you come in, once as you go out, at the door. */
     storeChime(at) {
       play(manifest['lawson-chime'] ? 'lawson-chime' : manifest['door-chime'] ? 'door-chime' : null,
-        { at, range: SOUND.storeChime, recipe: 'store-chime', gain: 0.55 });
+        { at, range: SOUND.storeChime, recipe: 'store-chime', gain: 0.55, indoor: true });
     },
     autoDoor(at, opening) { play('auto-door', { at, range: SOUND.autoDoor, gain: opening ? 0.35 : 0.25, rate: opening ? 1 : 0.96 }); },
     fridgeDoor(at, opening) { play('fridge-door', { at, range: SOUND.fridge, gain: opening ? 0.5 : 0.3, rate: opening ? 1 : 0.85 }); },
@@ -331,17 +350,17 @@ export function createSound({ volume = 0.5 } = {}) {
       state.bells = audible;
       if (audible && !bell.on) {
         bell.on = true;
-        const b = buffers.get('crossing-bells');
+        const b = buffers.get('railway-bells');
         if (b) {
           bell.src = ac.createBufferSource(); bell.src.buffer = b; bell.src.loop = true;
-          [bell.src.loopStart, bell.src.loopEnd] = loopSpan('crossing-bells', b);
+          [bell.src.loopStart, bell.src.loopEnd] = loopSpan('railway-bells', b);
           bell.src.connect(bell.gain); bell.src.start(now(), bell.src.loopStart);
         } else {
           let k = 0;
           const tick = () => { tone(bell.gain, k++ % 2 ? 860 : 730, now() + 0.01, 0.45, { type: 'sine', level: 0.3 }); };
           tick(); bell.timer = setInterval(tick, 250);
         }
-        log.push({ name: 'crossing-bells', t: +now().toFixed(3), loop: true });
+        log.push({ name: 'railway-bells', t: +now().toFixed(3), loop: true });
       } else if (!audible && bell.on) {
         bell.on = false;
         if (bell.src) { try { bell.src.stop(); } catch { /* stopped */ } bell.src = null; }
@@ -349,6 +368,47 @@ export function createSound({ volume = 0.5 } = {}) {
       }
       bell.gain.gain.setTargetAtTime(audible ? falloff(distance, SOUND.crossingBells) * 0.7 : 0, now(), 0.1);
     },
+    /**
+     * The zebras' walk lights (M4, Tan): each plays the pedestrian signal
+     * (piyo-piyo, kakko) while it is green, heard only near it.
+     * `list` [{ x, z, on }] in world terms, the same order every frame.
+     */
+    walkSignals(list) {
+      if (!ac) return;
+      list.forEach((w, i) => {
+        const n = walks[i] ?? (walks[i] = { g: null, src: null, timer: null });
+        const d = Math.hypot(w.x - listener.x, w.z - listener.z);
+        const on = w.on && d < SOUND.walkSignal.far && !muted;
+        if (on && !n.g) {
+          n.g = ac.createGain(); n.g.gain.value = 0;
+          const p = ac.createPanner(); p.panningModel = 'HRTF'; p.rolloffFactor = 0;
+          p.positionX.value = w.x; p.positionY.value = 3; p.positionZ.value = w.z;
+          n.g.connect(p).connect(outBus);
+        }
+        if (on && !n.src && !n.timer) {
+          const b = buffers.get('walk-signal');
+          if (b) {
+            n.src = ac.createBufferSource(); n.src.buffer = b; n.src.loop = true;
+            [n.src.loopStart, n.src.loopEnd] = loopSpan('walk-signal', b);
+            n.src.connect(n.g); n.src.start(now(), n.src.loopStart);
+          } else {
+            // SPEC 9's recipe: an original two-tone "pi-yo" chirp every 0.6 s
+            const chirp = () => { const t0 = now() + 0.01; tone(n.g, 2800, t0, 0.08, { level: 0.25 }); tone(n.g, 3600, t0 + 0.12, 0.08, { level: 0.25 }); };
+            chirp(); n.timer = setInterval(chirp, 600);
+          }
+          state.walk = (state.walk ?? 0) + 1;
+          log.push({ name: 'walk-signal', t: +now().toFixed(3), loop: true, i });
+        } else if (!on && (n.src || n.timer)) {
+          const src = n.src, timer = n.timer;
+          n.src = null; n.timer = null;
+          n.g.gain.setTargetAtTime(0, now(), 0.08);
+          setTimeout(() => { if (src) { try { src.stop(); } catch { /* stopped */ } } if (timer) clearInterval(timer); }, 400);
+        }
+        if (n.g && on) n.g.gain.setTargetAtTime(0.5 * falloff(d, SOUND.walkSignal), now(), 0.1);
+      });
+      state.walking = walks.filter((n) => n.src || n.timer).length;
+    },
+
     /** The train's door chime: three notes of our own (never a station melody). */
     chime(distance) {
       if (!ac || muted || distance >= SOUND.doorChime.far) return;
@@ -358,7 +418,7 @@ export function createSound({ volume = 0.5 } = {}) {
       log.push({ name: 'train-chime', t: +now().toFixed(3) });
     },
   };
-  if (import.meta.env?.DEV) api.debug = { log, state, get ac() { return ac; }, get manifest() { return manifest; }, buffers };
+  if (import.meta.env?.DEV) api.debug = { voiceLevels: () => [...voices].map((v) => ({ indoor: v.indoor, ...voiceLevel(v) })), log, state, get ac() { return ac; }, get manifest() { return manifest; }, buffers };
   return api;
 }
 const _f = new Vector3();

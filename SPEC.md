@@ -608,7 +608,8 @@ Tan listens and picks each sound on 効果音ラボ using the search terms below
 | Microwave running and ding | Heating the bento | 電子レンジ | `microwave-run.mp3`, `microwave-ding.mp3` |
 | Coffee machine | Self-serve coffee | コーヒーメーカー | `coffee.mp3` |
 | Vending machine | Buying a drink outside | 自動販売機, 自販機 | `vending.mp3` |
-| Level crossing bells | Before and during each train | 踏切 | `crossing-bells.mp3` (loopable) |
+| Pedestrian signal (piyo-piyo, kakko) | Every zebra, while its walk light is green (M4, Tan) | 信号, 横断歩道 | `crossing-bells.mp3` (loopable) |
+| Level crossing bells | Before and during each train | 踏切 | `railway-crossing-bells.mp3` (loopable) |
 | Train passing | Every \~3 min | 電車, 通過 | `train-pass.mp3` |
 | Station ambience | Station platform | 駅, ホーム | `station-amb.mp3` |
 | Crosswalk signal chirp | Green light | 信号, 横断歩道 | `crosswalk.mp3` |
@@ -917,15 +918,16 @@ M4
 
 - [x] The door chime plays exactly once per entry and per exit.
 - [x] Stepping inside audibly muffles the outdoors within 1 s.
-- [ ] Audio starts after the first click in every supported browser.
-      (Chromium checked by scripts/_audio.mjs; Safari and Firefox not yet.)
+- [x] Audio starts after the first click in every supported browser
+      (scripts/_audio.mjs in Chrome, WebKit 26.6 and Firefox 155).
 - [x] Audio is re-encoded and trimmed (Opus or AAC, mono where the sound is
       positional, loops cut to the loop), 2-3 MB in all, and fetched after the
       game starts, never blocking the first frame.
 - [ ] The door chime is Tan's lawson-chime.mp3 (the FamilyMart melody, their
       call, M3d; rights noted in DECISIONS.md). Every other file's source
-      terms allow serving it from a public site. (Open: store-bgm.mp3's
-      source is unknown; the 効果音ラボ files are fine.)
+      terms allow serving it from a public site. (Open: store-bgm.mp3 is
+      from "Sounds of Japanese Lawson" by Joonas on YouTube, credited;
+      permission to serve it is not confirmed.)
 
 M5
 

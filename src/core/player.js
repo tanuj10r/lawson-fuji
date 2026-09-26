@@ -94,7 +94,9 @@ export class Player {
   }
 
   lock() {
-    this.dom.requestPointerLock?.();
+    // a refusal (the window not focused yet, say) is not an error: the next click tries again
+    const r = this.dom.requestPointerLock?.();
+    r?.catch?.(() => {});
   }
 
   /** Push the player out of any collider it overlaps, one axis at a time. */

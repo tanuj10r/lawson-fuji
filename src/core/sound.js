@@ -405,7 +405,7 @@ export function createSound({ volume = 0.5 } = {}) {
           n.g.gain.setTargetAtTime(0, now(), 0.08);
           setTimeout(() => { if (src) { try { src.stop(); } catch { /* stopped */ } } if (timer) clearInterval(timer); }, 400);
         }
-        if (n.g && on) n.g.gain.setTargetAtTime(0.8 * falloff(d, SOUND.walkSignal), now(), 0.1);
+        if (n.g && on) n.g.gain.setTargetAtTime(1.1 * falloff(d, SOUND.walkSignal), now(), 0.1);
       });
       state.walking = walks.filter((n) => n.src || n.timer).length;
     },
@@ -419,7 +419,22 @@ export function createSound({ volume = 0.5 } = {}) {
       log.push({ name: 'train-chime', t: +now().toFixed(3) });
     },
   };
-  if (import.meta.env?.DEV) api.debug = { voiceLevels: () => [...voices].map((v) => ({ indoor: v.indoor, ...voiceLevel(v) })), log, state, get ac() { return ac; }, get manifest() { return manifest; }, buffers };
+  if (import.meta.env?.DEV) api.debug = {
+    get _beds() { return beds; },
+    /** What is actually coming out: the master's level over `ms` (dev only). */
+    async level(ms = 1500) {
+      if (!ac) return 0;
+      if (!api.debug._an) { api.debug._an = ac.createAnalyser(); api.debug._an.fftSize = 2048; master.connect(api.debug._an); }
+      const an = api.debug._an, buf = new Float32Array(an.fftSize);
+      let peak = 0, sum = 0, n = 0;
+      const t0 = performance.now();
+      while (performance.now() - t0 < ms) {
+        an.getFloatTimeDomainData(buf);
+        for (const v of buf) { peak = Math.max(peak, Math.abs(v)); sum += v * v; n++; }
+        await new Promise((r) => setTimeout(r, 30));
+      }
+      return { rms: +Math.sqrt(sum / n).toFixed(5), peak: +peak.toFixed(4) };
+    }, voiceLevels: () => [...voices].map((v) => ({ indoor: v.indoor, ...voiceLevel(v) })), log, state, get ac() { return ac; }, get manifest() { return manifest; }, buffers };
   return api;
 }
 const _f = new Vector3();

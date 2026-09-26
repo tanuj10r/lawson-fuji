@@ -1206,3 +1206,35 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   while it ramps, so a real fade looked like a failure. The check now
   asserts what the engine asked for and that the measured value is well
   muffled. All three browsers pass.
+
+### M4, round 4 (Tan's review)
+
+- **The gondolas are closed at the back, as Tan asked.** Seen end-on from
+  the back of the store, a gondola showed a long run of half-bare shelf:
+  goods are faced at the aisle edge, and the rest of a 0.45 m board is
+  empty, with nothing closing the end. Now:
+  - a solid panel closes each gondola's back end, carrying the two aisle
+    names and a POP card, the way a real gondola end does;
+  - the shelf board reaches 0.3 m back instead of 0.45, so what you see
+    end-on is stock rather than board.
+  No products were added and nothing grew: the store is still 439 products
+  and 5,950 units.
+- **The walk signal was playing but too quiet to notice.** Measuring the
+  master output (a new dev-only `sound.debug.level()`) at Tan's 25%
+  setting settled it: the cut I took from his recording was from one of
+  its quietest stretches (RMS 0.061 against 0.136 in the loudest). The
+  encoder can now level a sound by loudness rather than by its loudest
+  transient (`rms` in audio-cuts.json), and the walk signal is cut from
+  the loudest 14 s. With the level raised to 1.1 and the range widened to
+  20 m / 70 m, at 25% volume it measures 0.014 at 30 m, 0.022 at 12 m and
+  0.031 at 3 m, against 0.0027 for the ambience bed: five to fourteen
+  times the bed, where before it was under it.
+- **The town has three zebra crossings**: one on the main road by the
+  store and two on the shopping spine toward the station. All three are
+  now drawn on the map as their own black-and-white bars (mapArt.js), no
+  label.
+- **Memory, asked and answered.** 501 MB of JS heap and about 432 MB of
+  textures. It is all on the player's own machine: the server sends 3 MB
+  of static files, so a hundred thousand players cost bandwidth, not
+  memory. It is still more than the M7 budget of 300 MB, and the
+  breakdown is now recorded in SPEC M7 so the cut is a known job.

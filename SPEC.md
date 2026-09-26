@@ -945,10 +945,14 @@ M6
 M7
 
 - [ ] Locked 60 fps at 1440p on the Ultra tier.
-- [ ] First visit downloads under 5 MB (M3a: 0.6 MB before audio); start-up
-      under 5 s on an M1-class machine (M3a: 6.6 s on an M2), by caching the
+- [ ] First visit downloads under 5 MB (M4: 3.0 MB, `npm run size`); start-up
+      under 5 s on an M1-class machine (M4: 5.7 s on an M2), by caching the
       generated textures and building the far town after the first frame;
-      browser memory under 300 MB (M3a: 400 MB).
+      browser memory under 300 MB (M4: about 500 MB, nearly all of it
+      textures -- measured 432 MB in 129 textures, the biggest being two
+      4096x4096 town atlas pages at 89 MB each, the store's quad sheet at
+      60 MB, and two 3072x3072 product-label pages at 50 MB each. Halving
+      the atlas page and the label pages is the obvious first cut).
 - [ ] Hosted on a static CDN with long-lived caching of the hashed files.
 - [ ] Credits list Sakura Crossing (MIT) and GSI elevation data.
 - [ ] A first-time player completes a purchase within 3 minutes using only in-game hints.

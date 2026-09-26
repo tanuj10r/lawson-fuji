@@ -101,6 +101,30 @@ export function paintMap(world) {
     }
   }
 
+  /* ---- the zebra crossings: their own bars, as on the road ---- */
+  const zebra = (ax, az, bx, bz, width) => {
+    const [px0, pz0] = toPx(ax, az), [px1, pz1] = toPx(bx, bz);
+    const len = Math.hypot(px1 - px0, pz1 - pz0);
+    c.save();
+    c.translate(px0, pz0);
+    c.rotate(Math.atan2(pz1 - pz0, px1 - px0));
+    const w = Math.max(3, width * PPM), bar = Math.max(1.6, 0.45 * PPM), gap = bar;
+    c.fillStyle = '#3a3448';
+    c.fillRect(0, -w / 2, len, w);
+    c.fillStyle = '#f4f2ee';
+    for (let t = bar / 2; t < len - bar / 2; t += bar + gap) c.fillRect(t, -w / 2, bar, w);
+    c.restore();
+  };
+  // the one on the main road by the store (world frame), then the kit's
+  if (net) {
+    const cw = TOWN.crosswalk;
+    zebra(cw.x, STREET.forecourtZ, cw.x, STREET.roadZ, cw.width);
+    for (const cr of world.core?.kit?.features?.crossings ?? []) {
+      const a = F.toWorld(net.at(cr.e, cr.s, -cr.e.a)), b = F.toWorld(net.at(cr.e, cr.s, cr.e.a));
+      zebra(a.x, a.z, b.x, b.z, cr.L);
+    }
+  }
+
   /* ---- buildings (the density registry: footprints) ---- */
   for (const r of world.registry ?? []) {
     if (r.kind !== 'building' || !r.rect) continue;

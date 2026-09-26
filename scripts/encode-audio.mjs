@@ -90,9 +90,14 @@ for (const [name, c] of Object.entries(files)) {
     for (let i = 0; i < fi && i < n; i++) y[i] *= i / fi;
     for (let i = 0; i < fo && i < n; i++) y[n - 1 - i] *= i / fo;
   }
-  let pk = 0;
-  for (const v of y) pk = Math.max(pk, Math.abs(v));
-  const g = pk > 0 ? (c.peak ?? 0.8) / pk : 1;
+  let pk = 0, sq = 0;
+  for (const v of y) { pk = Math.max(pk, Math.abs(v)); sq += v * v; }
+  /* `rms`: level by loudness, not by the loudest transient, so a recording
+   * whose peaks are much louder than its body still comes out audible; the
+   * `peak` then only keeps it from clipping. */
+  const g = pk <= 0 ? 1
+    : c.rms ? Math.min(c.rms / Math.sqrt(sq / n), (c.peak ?? 0.95) / pk)
+      : (c.peak ?? 0.8) / pk;
   for (let i = 0; i < n; i++) y[i] *= g;
   const cut = path.join(tmp, name + '-cut.wav'), m4a = path.join(OUT, name + '.m4a');
   writeWav(cut, y);
@@ -100,7 +105,7 @@ for (const [name, c] of Object.entries(files)) {
   const size = fs.statSync(m4a).size;
   total += size;
   manifest[name] = { file: name + '.m4a', duration: +len.toFixed(4), loop: !!c.loop };
-  rows.push([name, `${len.toFixed(2)} s${c.loop ? ' loop' : ''}  ${(size / 1024).toFixed(1)} KB  (from ${dur.toFixed(1)} s, gain ${g.toFixed(2)})`]);
+  rows.push([name, `${len.toFixed(2)} s${c.loop ? ' loop' : ''}  ${(size / 1024).toFixed(1)} KB  (from ${dur.toFixed(1)} s, gain ${g.toFixed(2)}, rms ${(Math.sqrt(sq / n) * g).toFixed(3)})`]);
 }
 fs.writeFileSync(path.join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 1));
 // files from earlier cuts that are no longer made

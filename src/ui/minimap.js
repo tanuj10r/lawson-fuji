@@ -20,6 +20,7 @@ const RANGE = 60;             // metres from the centre to the rim
 
 export function createMinimap(world) {
   const art = paintMap(world);
+  if (import.meta.env?.DEV) window.__mapArt = art;
   const dpr = Math.min(2, window.devicePixelRatio || 1);
 
   /* ---- DOM ---- */

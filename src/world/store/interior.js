@@ -175,6 +175,7 @@ export function buildInterior(group, { lit, colliders }) {
 
   /* ------------------------------ gondolas ------------------------------ */
   const H = 1.5, runs = [-5.55, -3.25, -0.95, 1.35], zA = -9.8, zB = -2.6;
+  const SHELF_D = 0.3;                 // how deep each side's shelf board is
   runs.forEach((cx, gi) => {
     const x0 = cx - 0.45, x1 = cx + 0.45;
     p.box(cx - 0.03, cx + 0.03, FLOOR, H, zA, zB, C.upright);                        // the spine
@@ -184,11 +185,24 @@ export function buildInterior(group, { lit, colliders }) {
       const xs = side < 0 ? x0 : x1;
       for (let k = 0; k < 5; k++) {
         const y = 0.16 + k * 0.27;
-        p.box(Math.min(cx, xs), Math.max(cx, xs), y - 0.02, y, zA, zB, C.shelf);
+        // the board reaches only as far back as the goods do, with the spine
+        // panel behind it: a shelf seen end-on is stock, not a bare plane
+        p.box(xs - side * SHELF_D, xs, y - 0.02, y, zA, zB, C.shelf);
         p.box(xs - 0.01, xs + 0.01, y - 0.06, y, zA, zB, C.rail);                     // the price rail
         slots.push({ zone: 'gondola', gi, side, level: k, x: xs, y, z0: zA + 0.05, z1: zB - 0.05, face: { x: side, z: 0 } });
       }
     }
+    // the back end is closed by a panel, as a gondola's ends are: from the
+    // back of the store you meet a solid end, not a run of half-empty boards
+    p.box(x0, x1, FLOOR, H, zA - 0.04, zA, 0xeef0f4);
+    p.box(x0 - 0.02, x1 + 0.02, FLOOR, 0.12, zA - 0.05, zA, C.kick);
+    p.box(x0 - 0.02, x1 + 0.02, H - 0.03, H, zA - 0.05, zA, C.upright);
+    // what the aisle holds, named on its end, and a poster below
+    [-1, 1].forEach((side, k) => {
+      const [, jp, en, col] = AISLES[gi][side];
+      p.quad(stripSign(jp, en, col), cx, H - 0.14 - k * 0.19, zA - 0.045, 0.8, 0.16, { ry: Math.PI });
+    });
+    p.quad(popCard(['limited', 'new', 'sale', 'rec'][gi]), cx, 0.62, zA - 0.045, 0.52, 0.39, { ry: Math.PI });
     // the end cap toward the front, and its POP card on top
     p.box(x0, x1, FLOOR, H, zB, zB + 0.04, C.shelf);                                // its back panel
     p.box(x0, x0 + 0.03, FLOOR, H, zB, zB + 0.36, C.upright);
@@ -207,7 +221,7 @@ export function buildInterior(group, { lit, colliders }) {
       for (const z of [zA + 1.2, (zA + zB) / 2, zB - 1.2]) p.quad(stripSign(jp, en, col), cx + side * 0.472, H + 0.055, z, 0.5, 0.1, { ry: side * Math.PI / 2 });
     }
     p.box(cx - 0.01, cx + 0.01, H, H + 0.02, zB + 0.18, zB + 0.22, C.upright);
-    block(x0, x1, zA, zB + 0.36, H);
+    block(x0, x1, zA - 0.05, zB + 0.36, H);
   });
 
   /* ----------------------------- hanging signs ----------------------------- */

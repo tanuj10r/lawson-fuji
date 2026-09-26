@@ -165,7 +165,8 @@ export function stockStore(p, slots, group, lit) {
          * is; a shorter section is faced one deep instead, so its shelves
          * still run to the end rather than trailing off empty. */
         const deep = pool(cat).length * CAP * 0.11 >= 2 * 5 * Math.abs(s.z1 - s.z0);
-        run(s.z0, s.z1, fill, s.level === 4 ? 0.5 : 0.245, (fp) => (deep ? Math.max(1, Math.min(2, Math.floor(0.38 / (fp.d + 0.012)))) : 1), (id, z, fp, r, count) =>
+        const depth = 0.27;                       // the shelf board, less its lip
+        run(s.z0, s.z1, fill, s.level === 4 ? 0.5 : 0.245, (fp) => (deep ? Math.max(1, Math.min(2, Math.floor(depth / (fp.d + 0.012)))) : 1), (id, z, fp, r, count) =>
           stock.add(id, s.x - s.side * (fp.d / 2 + 0.03 + r * (fp.d + 0.012)), s.y, z, ry, count),
         (id, z) => tag(id, s.x + s.side * 0.012, s.y - 0.03, z, ry));
         break;

@@ -53,6 +53,14 @@ await walk(-2.3, -1.2, 0);
 await page.waitForTimeout(1000);
 s = await st();
 check('in: the chime once, the town muffled within 1 s, the music on', count(s.log, 'lawson-chime') === 1 && s.lowpassTarget === 900 && s.lowpass <= 2000 && s.music && s.inside, { chimes: count(s.log, 'lawson-chime'), lowpass: s.lowpass, target: s.lowpassTarget, music: s.music, door: count(s.log, 'auto-door') });
+// the music really streams: the element is playing and sound is coming out
+const mus = await page.evaluate(async () => {
+  const m = window.__scene.sound.debug._music;
+  await new Promise((r) => setTimeout(r, 1500));
+  return { streaming: !!m.el && !m.el.paused, at: +(m.el?.currentTime ?? 0).toFixed(1), decoded: window.__scene.sound.debug.buffers.has('store-bgm'), level: await window.__scene.sound.debug.level(1500) };
+});
+check('the store music streams (not decoded) and is audible', mus.streaming && !mus.decoded && mus.at > 0 && mus.level.rms > 0.002, mus);
+
 await walk(-4, -8, 0); await page.waitForTimeout(3000);
 s = await st();
 check('shopping: still one chime', count(s.log, 'lawson-chime') === 1, { chimes: count(s.log, 'lawson-chime') });

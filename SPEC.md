@@ -569,6 +569,15 @@ stateDiagram-v2
 
 Sound is the heart of the nostalgia, so audio gets as much care as visuals. Real recordings come first: sound effects from 効果音ラボ (Sound Effect Lab, soundeffect-lab.info) and clerk voice lines from VOICEVOX, following the audio list below. The procedural recipes further down remain as fallbacks, so the game still runs when a file is missing, for example from a fresh clone of the public repo.
 
+**Method.** The engine (`src/core/sound.js`) drives the Web Audio API
+directly rather than through `THREE.PositionalAudio`: each placed sound
+carries a `near`/`far` range (config `SOUND`), its level is ours, and
+beyond `far` no source exists at all, so a world full of emitters costs
+only the handful within earshot. Panners give direction (HRTF) with their
+own rolloff off. Short sounds and ambience beds are decoded once and
+shared; long music streams through an `<audio>` element instead of being
+decoded, which a 5.6-minute track would cost 65 MB of memory to do.
+
 **Audio graph**
 
 ```mermaid

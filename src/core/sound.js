@@ -166,6 +166,43 @@ export function createSound({ volume = 0.5 } = {}) {
   }
 
   /* ------------------------------ loops ------------------------------ */
+  /**
+   * A long loop that streams instead of being decoded (M4, the store's
+   * music): an <audio> element through the graph, so the browser keeps only
+   * a little of it in memory.  A decoded 5.6-minute track costs about 65 MB
+   * of PCM; streamed it costs almost nothing.  Short loops stay decoded,
+   * where a buffer's loop is seamless and a media element's is not.
+   */
+  function streamNode(name, dest, level) {
+    const g = ac.createGain();
+    g.gain.value = 0;
+    g.connect(dest);
+    const L = { name, g, level, on: false, el: null };
+    L.arm = () => {                              // from the first click, so playback is allowed later
+      if (L.el || !manifest[name]) return;
+      L.el = new Audio(import.meta.env.BASE_URL + 'audio/' + manifest[name].file);
+      L.el.loop = true;
+      L.el.preload = 'none';
+      L.el.crossOrigin = 'anonymous';
+      ac.createMediaElementSource(L.el).connect(g);
+    };
+    L.set = (on, fade = 2) => {
+      if (on === L.on) return;
+      L.on = on;
+      L.arm();
+      if (!L.el) return;
+      if (on) {
+        L.el.play().then(() => log.push({ name, t: +now().toFixed(3), loop: true, stream: true }), () => {});
+      } else {
+        clearTimeout(L.stopT);
+        L.stopT = setTimeout(() => { if (!L.on) L.el.pause(); }, fade * 1000 + 200);
+      }
+      g.gain.cancelScheduledValues(now());
+      g.gain.setTargetAtTime(on ? L.level : 0, now(), fade / 4);
+    };
+    return L;
+  }
+
   function loopNode(name, dest, level) {
     const g = ac.createGain();
     g.gain.value = 0;
@@ -259,9 +296,10 @@ export function createSound({ volume = 0.5 } = {}) {
       fridge = makeFridge();
       // the loops exist at once (they wait for their files); the list of files comes after
       for (const [k, lvl] of Object.entries(BEDS)) beds[k] = loopNode(k, outBus, lvl);
-      music = loopNode('store-bgm', musicGain, 0.2);
+      music = streamNode('store-bgm', musicGain, 0.2);
       manifestReady = fetch(import.meta.env.BASE_URL + 'audio/manifest.json').then((r) => r.json()).then((m) => { manifest = m; }, () => { manifest = {}; });
       await manifestReady;
+      music.arm();                              // while the click that started us is still in hand
       // the short sounds are fetched now, quietly, so the first of each is ready
       for (const k of ['lawson-chime', 'door-chime', 'auto-door', 'fridge-door', 'ui-tap', 'railway-bells', 'walk-kakko', 'walk-piyo']) buffer(k);
     },
@@ -421,6 +459,8 @@ export function createSound({ volume = 0.5 } = {}) {
     },
   };
   if (import.meta.env?.DEV) api.debug = {
+    get _voices() { return voices; },
+    get _music() { return music; },
     get _beds() { return beds; },
     /** What is actually coming out: the master's level over `ms` (dev only). */
     async level(ms = 1500) {

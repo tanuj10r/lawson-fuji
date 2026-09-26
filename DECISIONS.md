@@ -1271,3 +1271,41 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   14 m at full and fades out by 40 m, which is the street it is on and no
   further: measured at the spawn point, only the cuckoo is ever heard, and
   never two crossings at a time.
+
+### M4, round 7: the audio method, and a 65 MB waste found
+
+Tan asked whether we use three.js's positional audio, with more places
+(a deer park, a village) in mind.
+
+- **We use the Web Audio API directly, not `THREE.PositionalAudio`,** and
+  that is the right call here. three.js's wrapper hangs an Object3D on
+  each emitter and leans on Web Audio's physical distance models, which
+  taper but never reach zero, so every emitter in the world keeps a live,
+  processing voice. Ours does the thing game audio actually wants: each
+  place's sound has a `near` and a `far` (config.js SOUND), the level is
+  our own smoothstep between them, and **beyond `far` no source exists at
+  all** -- we stop it and free the nodes. The panner is used only for
+  direction (HRTF), with its own rolloff switched off. That is what lets
+  the town hold many sound sources while only a handful are ever running:
+  measured at eight at once while grabbing things off the shelves as fast
+  as the code allows, and one or two while walking.
+- **The listener** is driven from the camera each frame (position and
+  forward), so what three.js's wrapper would have given us for free costs
+  six parameter writes.
+- **The waste this turned up: the in-store music was being decoded whole.**
+  A 5.6-minute track is 1.7 MB as a file and **64.7 MB as raw audio in
+  memory** -- four fifths of all the audio memory we held. It now streams
+  through an `<audio>` element into the same graph, so the browser keeps
+  only a little of it. Decoded audio fell from **80.6 MB to 15.9 MB**.
+  The short sounds and the ambience beds stay decoded, because a buffer
+  loops seamlessly and a media element does not; that matters for a
+  continuous bed and not for a five-minute track.
+  Worth being precise: this memory sits outside the JS heap, so the heap
+  figure Tan asked about does not move. It is still 65 MB less for the
+  browser to hold.
+- **What this means for more places.** The shape already fits: sounds are
+  named in one manifest, loaded on first need, shared by every user of
+  them, culled by distance, and answer to one master. What a deer park or
+  a village would need next is a way to *release* what a place holds once
+  you are far from it; buffers are never freed today. At 16 MB that is not
+  yet a problem, and it is a small addition when it is.

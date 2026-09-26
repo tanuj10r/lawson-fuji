@@ -1,11 +1,12 @@
 import { STRINGS } from '../data/strings.js';
+import { VOLUME_STEPS } from '../config.js';
 
 /* ------------------------------------------------------------------ *
  * Minimal HUD: a start card, a small crosshair and an interaction
  * prompt.  Nothing else -- the frame is the point.
  * ------------------------------------------------------------------ */
 
-export function createHud({ volume = 0.34 } = {}) {
+export function createHud({ volume = 50 } = {}) {
   const el = (tag, cls, parent, html) => {
     const n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -43,10 +44,11 @@ export function createHud({ volume = 0.34 } = {}) {
       <label class="audio-control pause-only pause-stack">
         <span class="audio-head">
           <span>${STRINGS.volume}</span>
-          <output for="music-volume">34%</output>
+          <output for="music-volume">50%</output>
         </span>
         <input id="music-volume" class="volume-slider" type="range"
-          min="0" max="100" step="1" value="34" aria-label="${STRINGS.volumeAria}" />
+          min="0" max="100" step="25" value="50" list="volume-steps" aria-label="${STRINGS.volumeAria}" />
+      <datalist id="volume-steps">${VOLUME_STEPS.map((v) => `<option value="${v}"></option>`).join('')}</datalist>
       </label>
       <button class="menu-action" type="button">
         <span class="start-only">${STRINGS.start}</span>
@@ -58,8 +60,10 @@ export function createHud({ volume = 0.34 } = {}) {
   const audioControl = overlay.querySelector('.audio-control');
   const volumeSlider = overlay.querySelector('.volume-slider');
   const volumeOutput = overlay.querySelector('.audio-head output');
+  /* Five settings, not a free slider (M4, Tan): the value is the setting
+   * itself (0, 25, 50, 75, 100), and config's volumeGain turns it into gain. */
   const setVolumeReadout = (value) => {
-    const percent = Math.round(Math.max(0, Math.min(1, value)) * 100);
+    const percent = VOLUME_STEPS.reduce((a, b) => (Math.abs(b - value) < Math.abs(a - value) ? b : a));
     volumeSlider.value = String(percent);
     volumeSlider.style.setProperty('--volume', `${percent}%`);
     volumeOutput.value = `${percent}%`;
@@ -192,7 +196,7 @@ export function createHud({ volume = 0.34 } = {}) {
     audioControl.addEventListener(event, (e) => e.stopPropagation());
   }
   volumeSlider.addEventListener('input', () => {
-    const next = Number(volumeSlider.value) / 100;
+    const next = VOLUME_STEPS.reduce((a, b) => (Math.abs(b - Number(volumeSlider.value)) < Math.abs(a - Number(volumeSlider.value)) ? b : a));
     setVolumeReadout(next);
     api.onVolumeChange?.(next);
   });

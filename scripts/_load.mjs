@@ -1,0 +1,13 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=metal'] });
+const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+const t0 = Date.now();
+await page.goto('http://localhost:5199/', { waitUntil: 'domcontentloaded' });
+await page.waitForFunction(() => document.querySelector('canvas'), null, { timeout: 60000 });
+const tCanvas = Date.now() - t0;
+await page.waitForFunction(() => window.__scene?.world, null, { timeout: 120000 });
+const tWorld = Date.now() - t0;
+const mem = await page.evaluate(() => performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : null);
+const gl = await page.evaluate(() => { const r = window.__scene.renderer.info.memory; return `${r.geometries} geometries, ${r.textures} textures`; });
+console.log(`canvas ${tCanvas} ms, world built ${tWorld} ms, JS heap ${mem} MB, ${gl}`);
+await browser.close();

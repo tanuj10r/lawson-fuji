@@ -72,19 +72,26 @@ export function stockStore(p, slots, group, lit) {
     let i = 0, pass = 0;
     const try1 = (id, width, maxH, rowsFor) => {
       const fp = footprint(id), fw = fp.w + 0.01;
-      if (fp.h > maxH || fw > width || left(id) <= 0 || (blocks.get(id) ?? 0) >= 2) return null;
+      if (fp.h > maxH || fw > width || left(id) <= 0) return null;
+      // the first pass gives every product a block before any gets a second
       if (pass === 0 && blocks.get(id)) return null;
       const rows = Math.max(1, Math.min(rowsFor(fp), left(id)));
       const n = Math.min(pass === 0 ? maxF : maxF2, Math.floor(left(id) / rows), Math.floor(width / fw));
       return n < 1 ? null : { id, n, rows, fp, fw };
     };
     const f = {
-      /* the next product in order that fits; one that does not fit here keeps
-       * its turn (the cursor moves only past what was placed) */
+      /* The next product in order that fits.  One that does not fit here keeps
+       * its turn (the cursor moves only past what was placed), and when every
+       * product has had a block the section goes round again, so a shelf is
+       * filled to its end rather than stopping when the list runs out. */
       next(width, maxH, rowsFor) {
-        for (let again = 0; again < 2; again++) {
-          for (let t = 0; t < ids.length; t++) {
-            const j = (i + t) % ids.length;
+        // on a tall shelf, what only fits there goes up first (bottles, 2 L)
+        const order = maxH > 0.3
+          ? [...ids.keys()].sort((a, b) => (footprint(ids[b]).h > 0.245) - (footprint(ids[a]).h > 0.245))
+          : [...ids.keys()];
+        for (let again = 0; again < 3; again++) {
+          for (let t = 0; t < order.length; t++) {
+            const j = order[(order.indexOf(i % ids.length) + t) % order.length];
             const b = try1(ids[j], width, maxH, rowsFor);
             if (!b) continue;
             used.set(b.id, (used.get(b.id) ?? 0) + b.n * b.rows);
@@ -92,8 +99,10 @@ export function stockStore(p, slots, group, lit) {
             i = (j + 1) % ids.length;
             return b;
           }
-          // every product has its first block: a second pass for what is left
-          if (pass === 0 && ids.every((id) => blocks.get(id) || footprint(id).h > 0.5)) pass = 1; else break;
+          // nothing fits: once every product has had its block, go round again
+          // and give the ones with stock left another, so the shelf fills to its end
+          if (pass === 0 && ids.every((id) => blocks.get(id) || left(id) <= 0 || footprint(id).h > maxH)) pass = 1;
+          else break;
         }
         return null;
       },
@@ -149,8 +158,14 @@ export function stockStore(p, slots, group, lit) {
       case 'gondola': {
         const [cat] = AISLES[s.gi][s.side];
         const ry = s.side > 0 ? Q : -Q;
-        const fill = filler('g' + s.gi + s.side, pool(cat), 6);
-        run(s.z0, s.z1, fill, s.level === 4 ? 0.5 : 0.245, (fp) => Math.max(1, Math.min(2, Math.floor(0.38 / (fp.d + 0.012)))), (id, z, fp, r, count) =>
+        const fill = filler('g' + s.gi + s.side, pool(cat), 5, 4);
+        /* How deep to stock: a side is 5 shelves of 7.2 m, and CAP units of a
+         * product make about a metre of facings per row.  A section with the
+         * range to fill it twice over is stocked two deep, as a real gondola
+         * is; a shorter section is faced one deep instead, so its shelves
+         * still run to the end rather than trailing off empty. */
+        const deep = pool(cat).length * CAP * 0.11 >= 2 * 5 * Math.abs(s.z1 - s.z0);
+        run(s.z0, s.z1, fill, s.level === 4 ? 0.5 : 0.245, (fp) => (deep ? Math.max(1, Math.min(2, Math.floor(0.38 / (fp.d + 0.012)))) : 1), (id, z, fp, r, count) =>
           stock.add(id, s.x - s.side * (fp.d / 2 + 0.03 + r * (fp.d + 0.012)), s.y, z, ry, count),
         (id, z) => tag(id, s.x + s.side * 0.012, s.y - 0.03, z, ry));
         break;

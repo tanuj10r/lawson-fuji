@@ -1165,3 +1165,44 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   first click (code 0.36 MB gzip, Fuji 0.28 MB) and the audio's 2.36 MB
   after it. The SPEC 7 budget is 5 MB. Not counted in download: start-up is
   6–9 s and the JS heap about 457 MB (M7 targets 5 s and 300 MB).
+
+### M4, round 3 (Tan's review)
+
+- **The shelves were running out, not the stock.** The filler gave each
+  product at most two blocks, so an aisle whose section is short on range
+  (bread 22, medicine 28, liquor 31) trailed off into bare shelf at the
+  front, which is what Tan saw. Two fixes, no fixture changes:
+  - once every product in a section has its block, the filler goes round
+    again and gives the ones with stock left another, so a run fills to
+    its end;
+  - how deep a side is stocked now follows its range: a section with
+    enough products to fill its five shelves twice over is faced two
+    deep, as a real gondola is, and a shorter one is faced one deep.
+    Nobody can see the row behind, and it frees that product's stock to
+    cover more shelf.
+  Every gondola run is now 82-93% full and none is empty (it was 16-93%
+  with two bare). Total units fell from 6,403 to 5,950 (less hidden
+  depth), so this also costs less memory. Three products still find no
+  shelf: two tall bottles and an ice multipack.
+- **Five sound settings, not a slider** (Tan): 0, 25, 50, 75, 100%,
+  playing at 0, 0.15, 0.30, 0.45 and 0.60 of full scale, so 100% is the
+  old free slider's 60%. The default is 50%, the 0.30 Tan liked. A value
+  between settings snaps to the nearest.
+- **A real bug this found:** with nothing saved in the browser,
+  `Number(null)` is 0, which is a valid setting, so a first-time player
+  started the game silent. Only a setting that was really saved is used now.
+- **The zebras' signal, tuned.** It was there but easy to miss: green 16 s
+  of every 47, at 0.5 level within 34 m. Now:
+  - the junction's cycle is 36 s with 12 s of walk, and the side-street
+    signals 36 s with 11 s;
+  - the crossings on one street run nearly in step, as coordinated signals
+    do, so the town is quiet between greens instead of one always calling;
+  - it carries 62 m instead of 34, at 0.8, so it reaches you as you come
+    up the street rather than only on top of it.
+  Measured standing in the shopping street and at the famous view: heard
+  42-43% of the time, in long stretches with quiet between.
+- **The audio checks were flaky, in two ways worth naming.** One raced the
+  green light; the other read an audio value that Firefox does not update
+  while it ramps, so a real fade looked like a failure. The check now
+  asserts what the engine asked for and that the measured value is well
+  muffled. All three browsers pass.

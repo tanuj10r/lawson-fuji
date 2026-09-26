@@ -104,8 +104,9 @@ export function buildSignals(ctx, o) {
   post(o.x - (o.width ?? 4) / 2 - 1.2, o.zNear - 0.6, 1, -Math.PI / 2);
   post(o.x + (o.width ?? 4) / 2 + 1.2, o.zFar + 0.6, -1, Math.PI / 2);
 
-  /* Cycle: cars green 24 s, amber 3 s, red 20 s (pedestrians walk 16 s of it). */
-  const CYCLE = [['green', 24], ['amber', 3], ['red', 20]];
+  /* Cycle: cars green 17 s, amber 3 s, red 16 s (pedestrians walk 12 s of it).
+   * Short, so someone walking through town meets a green often (M4, Tan). */
+  const CYCLE = [['green', 17], ['amber', 3], ['red', 16]];
   const total = CYCLE.reduce((a, [, t]) => a + t, 0);
   let t = 0;
   const set = (m, on, key) => m.color.set(on ? LIT[key] : DIM);
@@ -116,7 +117,7 @@ export function buildSignals(ctx, o) {
     set(lamps.green, phase === 'green', 'green');
     set(lamps.amber, phase === 'amber', 'amber');
     set(lamps.red, phase === 'red', 'red');
-    walk = phase === 'red' && t - (24 + 3) > 2 && t - (24 + 3) < 18;
+    walk = phase === 'red' && t - (17 + 3) > 1.5 && t - (17 + 3) < 13.5;
     set(lamps.walk, walk, 'walk');
     set(lamps.stop, !walk, 'stop');
   });
@@ -156,8 +157,8 @@ export function buildWalkSignal(ctx, { ends, offset = 0 }) {
   });
   let t = offset, walk = false;
   ctx.update((dt) => {
-    t = (t + dt) % 47;
-    walk = t > 29 && t < 45;
+    t = (t + dt) % 36;
+    walk = t > 22 && t < 33;
     walkLamp.color.set(walk ? LIT.walk : DIM);
     stopLamp.color.set(walk ? DIM : LIT.stop);
   });

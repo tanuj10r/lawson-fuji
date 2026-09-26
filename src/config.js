@@ -35,6 +35,13 @@ export const LAWSON = {
   wingWidth: 2.6,  // tiled wall section at the right end
 };
 
+/* Sound (M4, Tan's review): five settings, not a free slider.  The number
+ * shown is the setting; the gain is what it actually plays at, scaled so
+ * 100% is comfortable (the old free slider's 60%). */
+export const VOLUME_STEPS = [0, 25, 50, 75, 100];
+export const volumeGain = (step) => (step / 100) * 0.6;
+export const DEFAULT_VOLUME = 50;                      // 30% of full scale: the level Tan liked
+
 /* Shopping in the store (M3c; SPEC 5 and 6.3). */
 export const STORE = {
   reach: 2.0,          // metres: what the crosshair can take
@@ -441,7 +448,9 @@ export const SOUND = {
   doorChime: { near: 5, far: 28 },         // the platform, the gates
   // the store (M4): its chime and door carry across the forecourt to the famous view, no further
   storeChime: { near: 3, far: 22 },         // from a speaker just inside the door: fades as you walk away
-  walkSignal: { near: 8, far: 34 },          // each zebra's piyo-piyo while its walk light is green
+  // each zebra's piyo-piyo while its walk light is green: carried down the
+  // street, so you hear it as you come up to the crossing, never only on top of it
+  walkSignal: { near: 12, far: 62 },
   autoDoor: { near: 4, far: 18 },
   fridge: { near: 2.5, far: 9 },           // the cooler: its doors and its compressor
   shelf: { near: 3, far: 10 },             // taking and putting back

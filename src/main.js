@@ -14,7 +14,7 @@ import { buildKitTest } from './world/kit-test.js';
 import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
 import { PRODUCT } from './data/catalog.js';
-import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, STORE, LAWSON } from './config.js';
+import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, STORE, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain } from './config.js';
 
 /* ------------------------------------------------------------------ *
  * Lawson Fuji -- entry point.  Rendering is inherited from Sakura Crossing (MIT).
@@ -123,17 +123,17 @@ function setPanel(open) {
   basketPanel.setOpen(open);
   player.suspended = open;
 }
+/* The sound setting: one of the five (config VOLUME_STEPS), not a free
+ * slider.  What is saved is the setting; volumeGain turns it into gain. */
 const VOLUME_STORAGE_KEY = 'lawson-fuji-volume';
-let initialVolume = 0.34;
+let volumeStep = DEFAULT_VOLUME;
 try {
-  const savedValue = localStorage.getItem(VOLUME_STORAGE_KEY);
-  if (savedValue !== null) {
-    const savedVolume = Number(savedValue);
-    if (Number.isFinite(savedVolume)) initialVolume = Math.max(0, Math.min(1, savedVolume));
-  }
+  // only a setting that was really saved counts: an empty store must not read as 0 (muted)
+  const saved = localStorage.getItem(VOLUME_STORAGE_KEY);
+  if (saved !== null && VOLUME_STEPS.includes(Number(saved))) volumeStep = Number(saved);
 } catch { /* storage is optional; the game works without it */ }
 
-const hud = createHud({ volume: initialVolume });
+const hud = createHud({ volume: volumeStep });
 if (shop) {
   shop.flash = (text, error = false) => hud.flash(text, error ? 2800 : 2200, error);
   // walking in with nothing: where the baskets are and what you have (M3d)
@@ -142,10 +142,10 @@ if (shop) {
 /* The sound (M4): one engine for the town and the store, started by the
  * same first click that takes the pointer lock (browsers start no audio
  * before a gesture).  Every sound of a place is local to it. */
-const sound = createSound({ volume: initialVolume });
+const sound = createSound({ volume: volumeGain(volumeStep) });
 hud.setMuted(sound.muted);
 const rememberVolume = () => {
-  try { localStorage.setItem(VOLUME_STORAGE_KEY, String(sound.volume)); } catch { /* optional */ }
+  try { localStorage.setItem(VOLUME_STORAGE_KEY, String(volumeStep)); } catch { /* optional */ }
 };
 world.line?.onEvent((name, run) => {
   if (name === 'chime') sound.chime(Math.hypot(camera.position.x - run.x, camera.position.z - run.z));
@@ -174,8 +174,9 @@ if (shop) {
 }
 if (world.lawson?.door) world.lawson.door.onMove = (opening) => sound.autoDoor(DOOR_AT, opening);
 
-hud.onVolumeChange = (value) => {
-  hud.setMuted(sound.setVolume(value));
+hud.onVolumeChange = (step) => {
+  volumeStep = step;
+  hud.setMuted(sound.setVolume(volumeGain(step)));
   rememberVolume();
 };
 
@@ -374,8 +375,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyN') {
     const off = sound.toggle();
     hud.setMuted(off);
-    hud.setVolume(sound.volume);
-    rememberVolume();
+    hud.setVolume(off ? 0 : volumeStep);
     hud.flash(off ? STRINGS.soundOff : STRINGS.soundOn);
   }
   // two quiet toggles, handy for seeing what the ink and grade passes do

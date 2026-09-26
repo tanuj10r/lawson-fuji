@@ -26,7 +26,9 @@ export function buildKit(ctx, def) {
   features.crossings.forEach((c, i) => {
     const s = c.s + c.L / 2 + 1.2;
     const ends = [-1, 1].map((side) => net.at(c.e, s, side * (c.e.a + 0.35)));
-    buildWalkSignal(ctx, { ends, offset: 11 + i * 17 });
+    // the crossings on one street are nearly in step, as coordinated signals
+    // are, so the town is quiet between greens instead of one always calling
+    buildWalkSignal(ctx, { ends, offset: 6 + i * 3 });
   });
   let done = false;
   return {

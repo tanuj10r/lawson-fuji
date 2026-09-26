@@ -47,19 +47,19 @@ const count = (log, n) => log.filter((x) => x === n).length;
 
 await walk(-2.3, 16.5); await page.waitForTimeout(1500);
 let s = await st();
-check('the famous view: no chime, the town open', count(s.log, 'lawson-chime') === 0 && s.lowpass > 15000 && !s.inside, s);
+check('the famous view: no chime, the town open', count(s.log, 'lawson-chime') === 0 && !s.inside, s);
 await walk(-2.3, 1.2); await page.waitForTimeout(1500);
 await walk(-2.3, -1.2, 0);
 await page.waitForTimeout(1000);
 s = await st();
-check('in: the chime once, the town muffled within 1 s, the music on', count(s.log, 'lawson-chime') === 1 && s.lowpass <= 1000 && s.music && s.inside, { chimes: count(s.log, 'lawson-chime'), lowpass: s.lowpass, music: s.music, door: count(s.log, 'auto-door') });
+check('in: the chime once, the town muffled within 1 s, the music on', count(s.log, 'lawson-chime') === 1 && s.lowpassTarget === 900 && s.lowpass <= 2000 && s.music && s.inside, { chimes: count(s.log, 'lawson-chime'), lowpass: s.lowpass, target: s.lowpassTarget, music: s.music, door: count(s.log, 'auto-door') });
 await walk(-4, -8, 0); await page.waitForTimeout(3000);
 s = await st();
 check('shopping: still one chime', count(s.log, 'lawson-chime') === 1, { chimes: count(s.log, 'lawson-chime') });
 await walk(-2.3, -1.0, 3.14); await page.waitForTimeout(800);
 await walk(-2.3, 1.2, 3.14); await page.waitForTimeout(1000);
 s = await st();
-check('out: the chime again, the town open, the music off', count(s.log, 'lawson-chime') === 2 && s.lowpass > 15000 && !s.music && !s.inside, { chimes: count(s.log, 'lawson-chime'), lowpass: s.lowpass, music: s.music });
+check('out: the chime again, the town open, the music off', count(s.log, 'lawson-chime') === 2 && s.lowpassTarget === 20000 && !s.music && !s.inside, { chimes: count(s.log, 'lawson-chime'), lowpass: s.lowpass, music: s.music });
 
 // walking out: the chime fades behind you, and comes through the glass muffled
 await walk(-2.3, -1.0, 3.14); await page.waitForTimeout(600);
@@ -81,8 +81,7 @@ const heard = await page.evaluate(async () => {
     const p = window.__scene.player; p.pos.set(w.x + 3, p.pos.y, w.z + 3);
     // wait for a green (the cycle is 47 s: step time on quickly)
     let tries = 0;
-    while (!list[i].on && tries++ < 60) await new Promise((r) => setTimeout(r, 1000));
-    await new Promise((r) => setTimeout(r, 700));
+    while (!(list[i].on && window.__scene.sound.debug.state.walking) && tries++ < 400) await new Promise((r) => setTimeout(r, 250));
     out.push({ i, green: list[i].on, playing: window.__scene.sound.debug.state.walking });
   }
   return out;

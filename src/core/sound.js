@@ -298,6 +298,7 @@ export function createSound({ volume = 0.5 } = {}) {
         state.inside = inside;
         outLow.frequency.cancelScheduledValues(t);
         outLow.frequency.setTargetAtTime(inside ? 900 : 20000, t, 0.15);
+        state.lowpassTarget = inside ? 900 : 20000;      // Firefox does not report a ramping value
         outGain.gain.setTargetAtTime(inside ? 0.3 : 1, t, 0.15);
         inGain.gain.setTargetAtTime(inside ? 1 : 0, t, 0.4);
         hum.gain.setTargetAtTime(inside ? 1 : 0, t, 0.4);
@@ -404,7 +405,7 @@ export function createSound({ volume = 0.5 } = {}) {
           n.g.gain.setTargetAtTime(0, now(), 0.08);
           setTimeout(() => { if (src) { try { src.stop(); } catch { /* stopped */ } } if (timer) clearInterval(timer); }, 400);
         }
-        if (n.g && on) n.g.gain.setTargetAtTime(0.5 * falloff(d, SOUND.walkSignal), now(), 0.1);
+        if (n.g && on) n.g.gain.setTargetAtTime(0.8 * falloff(d, SOUND.walkSignal), now(), 0.1);
       });
       state.walking = walks.filter((n) => n.src || n.timer).length;
     },

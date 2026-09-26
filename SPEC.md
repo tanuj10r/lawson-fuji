@@ -707,7 +707,7 @@ The UI is minimal and soft. **Every instruction is English only** (M3d, Tan): pr
 | Receipt | Card that slides up: store name, address line ("山梨県 富士河口湖町 風の丘 1-2-3", fictional), date/time, item lines, subtotal, tax 8%, total, paid, change, barcode drawn with random bars, "またのご来店をお待ちしております" |
 | Receipt book | Grid of saved receipts, tap to expand |
 | Stamp card | Paper-card look with 10 hanko circles, red ink stamp animation when earned |
-| Pause / settings | Volume sliders, graphics quality (Ultra / High), time speed (Normal / Slow / Locked at golden hour), in-store music on/off, subtitles language (JA+EN / EN only), controls reference, reset progress |
+| Pause / settings | Sound: five settings (0, 25, 50, 75, 100%; M4, Tan), not a free slider, graphics quality (Ultra / High), time speed (Normal / Slow / Locked at golden hour), in-store music on/off, subtitles language (JA+EN / EN only), controls reference, reset progress |
 | Photo mode | HUD hidden, small shutter button, filters: None / Film / Evening; saves via `canvas.toBlob` + share sheet (`navigator.share` where supported, else a PNG download) |
 
 **Typography**

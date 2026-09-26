@@ -608,7 +608,7 @@ Tan listens and picks each sound on 効果音ラボ using the search terms below
 | Microwave running and ding | Heating the bento | 電子レンジ | `microwave-run.mp3`, `microwave-ding.mp3` |
 | Coffee machine | Self-serve coffee | コーヒーメーカー | `coffee.mp3` |
 | Vending machine | Buying a drink outside | 自動販売機, 自販機 | `vending.mp3` |
-| Pedestrian signal (piyo-piyo, kakko) | Every zebra, while its walk light is green (M4, Tan) | 信号, 横断歩道 | `crossing-bells.mp3` (loopable) |
+| Pedestrian signal (piyo-piyo, kakko) | Every zebra, while its walk light is green (M4, Tan) | 信号, 横断歩道 | `zebracrossing.mp3` (loopable) |
 | Level crossing bells | Before and during each train | 踏切 | `railway-crossing-bells.mp3` (loopable) |
 | Train passing | Every \~3 min | 電車, 通過 | `train-pass.mp3` |
 | Station ambience | Station platform | 駅, ホーム | `station-amb.mp3` |

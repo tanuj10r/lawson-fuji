@@ -1229,6 +1229,14 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   20 m / 70 m, at 25% volume it measures 0.014 at 30 m, 0.022 at 12 m and
   0.031 at 3 m, against 0.0027 for the ambience bed: five to fourteen
   times the bed, where before it was under it.
+- **The walk signal is Tan's zebracrossing.mp3** (round 5). Tan replaced
+  the recording: the old one was a railway bell, not a pedestrian signal.
+  The new one calls on a 4.39 s cycle, so the loop is exactly one cycle,
+  which is also a third of the size (30 KB, was 88 KB). Its chirps peak
+  far above their body, so the peak limit binds before the loudness
+  target; the in-game level is 1.6 to make up for it. Measured at the 25%
+  setting: 3.3 times the ambience bed in loudness and 5.5 times in peak,
+  at full strength from 25 m in.
 - **The town has three zebra crossings**: one on the main road by the
   store and two on the shopping spine toward the station. All three are
   now drawn on the map as their own black-and-white bars (mapArt.js), no

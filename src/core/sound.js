@@ -405,7 +405,7 @@ export function createSound({ volume = 0.5 } = {}) {
           n.g.gain.setTargetAtTime(0, now(), 0.08);
           setTimeout(() => { if (src) { try { src.stop(); } catch { /* stopped */ } } if (timer) clearInterval(timer); }, 400);
         }
-        if (n.g && on) n.g.gain.setTargetAtTime(1.1 * falloff(d, SOUND.walkSignal), now(), 0.1);
+        if (n.g && on) n.g.gain.setTargetAtTime(1.6 * falloff(d, SOUND.walkSignal), now(), 0.1);
       });
       state.walking = walks.filter((n) => n.src || n.timer).length;
     },

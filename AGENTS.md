@@ -22,10 +22,12 @@ the current milestone needs.
   drawn with Canvas2D.
 - Sound files live in assets/audio/ (SPEC section 9 audio list). Never
   commit them; never add a soundboard or sound gallery; fall back to the
-  procedural recipes when a file is missing. No chain jingles or station
-  departure melodies.
-- The store is ホタル / HOTARU (config.js STORE_NAME), a generic konbini in
-  Lawson-style blue design: no real chain's name or mark anywhere. Products
+  procedural recipes when a file is missing. No station departure
+  melodies. The one chain jingle is Tan's call: the door chime uses their
+  assets/audio/lawson-chime.mp3 (the FamilyMart melody; rights noted in
+  DECISIONS.md M3d).
+- The store is NIPPON / ニッポン (config.js STORE_NAME), a generic konbini
+  in Lawson-style blue design: no real chain's name or mark anywhere. Products
   may evoke 7-Eleven, FamilyMart and Lawson, always under original names.
 - UI instructions (prompts, toasts, keys, choices) are English only;
   Japanese only in the world and beside product and place names.

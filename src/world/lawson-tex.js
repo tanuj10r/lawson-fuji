@@ -88,40 +88,25 @@ function roundRect(c, x, y, w, h, r) {
 }
 
 /**
- * The store's emblem (M3d): a firefly, ホタル, in a ring -- white on
- * whatever is under it, its tail lit yellow-green.  (cx, cy) centre, s = height.
+ * The store's emblem (M3d, Tan): the rising sun behind 日本 -- a red disc,
+ * the two characters over it, black with a white keyline and a black
+ * edge.  On a white round plate, so it reads on the blue.  (cx, cy)
+ * centre, s = height.
  */
-function firefly(c, cx, cy, s, color = '#ffffff') {
+function nipponMark(c, cx, cy, s) {
   c.save();
   c.translate(cx, cy);
   c.scale(s / 100, s / 100);
-  // the ring
-  c.strokeStyle = color;
-  c.lineWidth = 6;
-  c.beginPath(); c.arc(0, 0, 46, 0, Math.PI * 2); c.stroke();
-  c.rotate(-0.5);
-  // the glow of the tail, then the tail
-  const g = c.createRadialGradient(0, 18, 2, 0, 18, 30);
-  g.addColorStop(0, 'rgba(236,255,120,0.95)');
-  g.addColorStop(0.45, 'rgba(210,250,90,0.45)');
-  g.addColorStop(1, 'rgba(210,250,90,0)');
-  c.fillStyle = g;
-  c.beginPath(); c.arc(0, 18, 30, 0, Math.PI * 2); c.fill();
-  c.fillStyle = '#f2ff9a';
-  c.beginPath(); c.ellipse(0, 17, 9, 13, 0, 0, Math.PI * 2); c.fill();
-  // the body and head
-  c.fillStyle = color;
-  c.beginPath(); c.ellipse(0, -6, 8, 15, 0, 0, Math.PI * 2); c.fill();
-  c.beginPath(); c.arc(0, -25, 7, 0, Math.PI * 2); c.fill();
-  // wings, open
-  c.globalAlpha = 0.9;
-  c.beginPath(); c.ellipse(-15, -10, 7, 17, 0.55, 0, Math.PI * 2); c.fill();
-  c.beginPath(); c.ellipse(15, -10, 7, 17, -0.55, 0, Math.PI * 2); c.fill();
-  c.globalAlpha = 1;
-  // feelers
-  c.lineWidth = 3;
-  c.beginPath(); c.moveTo(-3, -31); c.quadraticCurveTo(-8, -40, -15, -41); c.stroke();
-  c.beginPath(); c.moveTo(3, -31); c.quadraticCurveTo(8, -40, 15, -41); c.stroke();
+  c.fillStyle = '#ffffff';
+  c.beginPath(); c.arc(0, 0, 50, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#d8202a';
+  c.beginPath(); c.arc(-6, -8, 27, 0, Math.PI * 2); c.fill();
+  c.font = `900 46px ${JP}`;
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.lineJoin = 'miter';
+  for (const [w, col] of [[10, '#111114'], [5.5, '#ffffff']]) { c.lineWidth = w; c.strokeStyle = col; c.strokeText('日本', 0, 6); }
+  c.fillStyle = '#111114';
+  c.fillText('日本', 0, 6);
   c.restore();
 }
 
@@ -167,7 +152,7 @@ export const signBand = (widthM, heightM, panels) =>
       return { px, pw };
     };
 
-    // the wordmark panel: the store's name (M3d: HOTARU, a generic konbini)
+    // the wordmark panel: the store's name (M3d: NIPPON, a generic konbini)
     {
       const { px, pw } = panel(...panels.wordmark);
       text(c, STORE_NAME.mark, px + pw / 2, h * 0.52, pw * 0.9, h * 0.56, LAWSON_BLUE,
@@ -186,7 +171,7 @@ export const signBand = (widthM, heightM, panels) =>
     small(panels.kudamono, '#ef7a2a', 'くだもの');
   });
 
-/** Side sign: the band's return round the left end, with the emblem and ホタル. */
+/** Side sign: the band's return round the left end, with the emblem and the name in kana. */
 export const sideBand = (widthM, heightM) =>
   make('sideBand', 1024, Math.round((1024 / widthM) * heightM), (c, w, h) => {
     c.fillStyle = LAWSON_BLUE;
@@ -194,7 +179,7 @@ export const sideBand = (widthM, heightM) =>
     c.fillStyle = '#f4f8fc';
     c.fillRect(0, 0, w, h * 0.07);
     c.fillRect(0, h * 0.93, w, h * 0.07);
-    firefly(c, h * 0.62, h * 0.5, h * 0.66);
+    nipponMark(c, h * 0.62, h * 0.5, h * 0.8);
     text(c, STORE_NAME.kana, w * 0.55, h * 0.52, w * 0.6, h * 0.5, '#ffffff', { spacing: h * 0.06 });
   });
 
@@ -206,7 +191,7 @@ export const logoPlate = () =>
     c.strokeStyle = '#ffffff';
     c.lineWidth = 6;
     c.strokeRect(10, 10, w - 20, h - 20);
-    firefly(c, w / 2, h * 0.4, h * 0.5);
+    nipponMark(c, w / 2, h * 0.4, h * 0.56);
     text(c, STORE_NAME.mark, w / 2, h * 0.82, w * 0.78, 40, '#ffffff', { font: SLAB, weight: '900', spacing: 2 });
   });
 

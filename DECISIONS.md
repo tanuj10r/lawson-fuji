@@ -1062,3 +1062,20 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   400). Both are M7 work.
 - **The famous views move** (the wordmark, the emblem, the new stock
   through the glass). They await Tan's OK.
+
+### M3d, round 2 (Tan)
+
+- **NIPPON, not HOTARU.** Tan didn't like the firefly. The store is NIPPON
+  / ニッポン, with a mark from Tan's sketch: a red rising-sun disc behind 日本
+  in heavy black type with a white keyline, on a white round plate so it
+  reads on the blue. It's drawn in Canvas2D, not taken from the image. The
+  wordmark panel reads NIPPON (six letters, like LAWSON), and the side sign
+  reads ニッポン. The title is "Nippon Fuji".
+- **The door chime is the FamilyMart melody, by Tan's choice (option a).**
+  Tan was told: the melody is Yasushi Inada's "Melody Chime No.1 '大盛況'"
+  (1978, written for a Panasonic doorbell) and is still under copyright;
+  the recording may have its own owner; serving it from a public site
+  carries a small risk of a takedown. Tan chose to use their file
+  (assets/audio/lawson-chime.mp3, never committed). AGENTS.md and SPEC M4
+  are updated. If it's ever taken down, the procedural chime is the
+  fallback.

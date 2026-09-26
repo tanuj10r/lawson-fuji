@@ -1,8 +1,8 @@
 /* All player-facing UI text (AGENTS.md). */
 
 export const STRINGS = {
-  title: 'Hotaru Fuji',
-  titleJp: 'ホタル富士',
+  title: 'Nippon Fuji',
+  titleJp: 'ニッポン富士',
   intro: 'Work in progress.',
   paused: 'Paused.',
   start: 'Start',

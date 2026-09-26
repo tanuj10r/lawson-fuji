@@ -2,9 +2,9 @@
 
 Sep 23, 2026 · @Tanuj
 
-> **M3d naming note (Tan, 2026-09-26).** The store in the game is ホタル /
-> HOTARU, a generic konbini that keeps Lawson's blue design language, with
-> our own firefly emblem; no real chain's name or mark appears. Where this
+> **M3d naming note (Tan, 2026-09-26).** The store in the game is NIPPON /
+> ニッポン, a generic konbini that keeps Lawson's blue design language, its
+> mark the rising sun behind 日本; no real chain's name or mark appears. Where this
 > document says "the Lawson", read "the store". Products may evoke all three
 > big chains under original names. UI instructions are English only
 > (section 10). The wallet is ¥1,000 a visit.
@@ -903,7 +903,7 @@ M3c (picking up and the basket)
 
 M3d (Tan's store feedback)
 
-- [x] The store is ホタル / HOTARU: its own wordmark and firefly emblem in the Lawson-style blue; no real chain name in the bundle (check-names).
+- [x] The store is NIPPON / ニッポン: its own wordmark and rising-sun 日本 mark in the Lawson-style blue; no real chain name in the bundle (check-names).
 - [x] Every instruction on screen is English.
 - [x] Fridge doors stay open while you shop at them; they shut when you walk off or aim at the open leaf and press E.
 - [x] No sakura petals fall inside the store.
@@ -919,9 +919,9 @@ M4
 - [ ] Audio is re-encoded and trimmed (Opus or AAC, mono where the sound is
       positional, loops cut to the loop), 2-3 MB in all, and fetched after the
       game starts, never blocking the first frame.
-- [ ] Only licensed files are loaded: no chain jingle (AGENTS.md; the
-      game's door chime is ours), and each source's terms allow serving
-      the file from a public site.
+- [ ] The door chime is Tan's lawson-chime.mp3 (the FamilyMart melody, his
+      call, M3d; rights noted in DECISIONS.md). Every other file's source
+      terms allow serving it from a public site.
 
 M5
 
@@ -946,7 +946,7 @@ M7
 - [ ] Hosted on a static CDN with long-lived caching of the hashed files.
 - [ ] Credits list Sakura Crossing (MIT) and GSI elevation data.
 - [ ] A first-time player completes a purchase within 3 minutes using only in-game hints.
-- [ ] No copied melodies or real product packaging; no real chain's name or mark (the store is ホタル).
+- [ ] No copied melodies or real product packaging; no real chain's name or mark (the store is NIPPON).
 
 ## 13. Kickoff prompt for Claude Code
 

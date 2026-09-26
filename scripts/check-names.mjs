@@ -10,7 +10,7 @@ const NAMES = [
   '桜ヶ丘', 'ひだまり', 'HIDAMARI', '桜川電鉄', '春風', '桜守', 'はるかぜ',
 ];
 /* And no real product brands on the shelves (AGENTS.md: products are
- * generic), and no real chain's name: the store is ホタル (M3d). */
+ * generic), and no real chain's name: the store is NIPPON (M3d). */
 const BRANDS = [
   'Pocari', 'ポカリ', 'Strong Zero', 'ストロングゼロ', '-196', 'Suntory', 'サントリー', '伊右衛門', 'BOSS',
   'Calpis', 'カルピス', 'Kirin', 'キリン', 'Asahi', 'アサヒ', 'Sapporo', 'サッポロ', 'Yebisu', 'ヱビス',

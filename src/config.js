@@ -17,10 +17,10 @@ export const PLAYER = {
 export const PLAYER_VFOV =
   2 * Math.atan(Math.tan((PLAYER.hfov * Math.PI) / 360) / (16 / 9)) * (180 / Math.PI);
 
-/* The store's name (M3d): a generic konbini in the Lawson-style blue design,
- * no real chain's name or mark anywhere.  ホタル, the firefly: a small light
- * at dusk below Fuji. */
-export const STORE_NAME = { mark: 'HOTARU', kana: 'ホタル', en: 'Hotaru' };
+/* The store's name (M3d, Tan): a generic konbini in the Lawson-style blue
+ * design, no real chain's name or mark anywhere.  NIPPON, its mark the
+ * rising sun behind 日本. */
+export const STORE_NAME = { mark: 'NIPPON', kana: 'ニッポン', en: 'Nippon' };
 
 export const LAWSON = {
   x: 0,
@@ -403,7 +403,7 @@ for (const s of SHOT_SPOTS) {
 /* The places worth walking to (the map now, the minimap in M2f).  `at` is
  * in the town's own frame unless `frame: 'world'`; placeAt() gives world. */
 export const PLACES = [
-  { id: 'lawson', kind: 'konbini', jp: 'ホタル', en: 'Hotaru konbini', at: [0, -5], frame: 'world' },
+  { id: 'lawson', kind: 'konbini', jp: 'ニッポン', en: 'Nippon konbini', at: [0, -5], frame: 'world' },
   { id: 'start', kind: 'view', jp: '富士山ビュー', en: 'The famous view', at: [0, 16.5], frame: 'world' },
   { id: 'spine', kind: 'shops', jp: '商店街', en: 'Shopping street', at: [-50, 70] },
   { id: 'shrine', kind: 'shrine', jp: '富士見稲荷神社', en: 'Inari shrine', at: [13, 88] },

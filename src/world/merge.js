@@ -357,20 +357,28 @@ function atlasTextures(root) {
   }
   // shelf packing, tallest first
   const order = [...slots.entries()].sort((a, b) => b[1].h - a[1].h);
-  const pages = [];
+  /* Pack first, then make the pages.  The last page is only as tall as what
+   * landed on it: a square 4096 page that is a third full still costs 89 MB
+   * of texture memory, all of it for empty space (M4, Tan's slowdown). */
+  const pageH = [];
   let page = -1, x = PAGE, y = 0, shelf = 0;
   for (const [, s] of order) {
     if (x + s.w + PAD * 2 > PAGE) { x = 0; y += shelf; shelf = 0; }
     if (page < 0 || y + s.h + PAD * 2 > PAGE) {
+      if (page >= 0) pageH[page] = PAGE;
       page++; x = 0; y = 0; shelf = 0;
-      const cv = document.createElement('canvas');
-      cv.width = PAGE; cv.height = PAGE;
-      pages.push(cv);
     }
     s.page = page; s.x = x + PAD; s.y = y + PAD;
     x += s.w + PAD * 2;
     shelf = Math.max(shelf, s.h + PAD * 2);
   }
+  if (page >= 0) pageH[page] = Math.min(PAGE, Math.ceil((y + shelf) / 16) * 16);
+  const pages = pageH.map((h) => {
+    const cv = document.createElement('canvas');
+    cv.width = PAGE; cv.height = h;
+    return cv;
+  });
+  if (import.meta.env?.DEV) window.__atlasPages = pageH.map((h) => `${PAGE}x${h}`);
   // paint: the texture stretched over its padding first, so mips bleed its own edge
   const ctxs = pages.map((cv) => cv.getContext('2d'));
   for (const [t, s] of slots) {
@@ -411,7 +419,7 @@ function atlasTextures(root) {
     const uv = geo.attributes.uv;
     for (let i = 0; i < uv.count; i++) {
       const u = uv.getX(i), v = uv.getY(i);
-      uv.setXY(i, (s.x + u * s.w) / PAGE, 1 - (s.y + (1 - v) * s.h) / PAGE);
+      uv.setXY(i, (s.x + u * s.w) / PAGE, 1 - (s.y + (1 - v) * s.h) / pageH[s.page]);
     }
     o.geometry = geo;
     o.material = matFor(o.material, s);

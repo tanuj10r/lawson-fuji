@@ -303,6 +303,12 @@ export function createSound({ volume = 0.5 } = {}) {
       // the short sounds are fetched now, quietly, so the first of each is ready
       for (const k of ['lawson-chime', 'door-chime', 'auto-door', 'fridge-door', 'ui-tap', 'railway-bells', 'walk-kakko', 'walk-piyo']) buffer(k);
     },
+    /** The tab went away or came back: an unheard graph should not be running. */
+    setAwake(awake) {
+      if (!ac) return;
+      if (awake) ac.resume();
+      else if (ac.state === 'running') ac.suspend();
+    },
     setVolume(v) {
       volume = Math.max(0, Math.min(1, v));
       muted = volume <= 0.001;

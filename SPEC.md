@@ -740,7 +740,7 @@ The game targets desktop browsers only, so quality comes first: every visual fea
 | --- | --- | --- |
 | Target | 60 fps at 1440p, RTX 3060 / Apple M1 Pro class | 60 fps at 1080p, GTX 1660 / Apple M1 class |
 | Render scale | 2x, then FXAA (as Sakura Crossing) | 1.5x, then FXAA |
-| Shadow map | 4096, hard edges | 2048, hard edges |
+| Shadow map | 2048, hard edges, redrawn only when its snapped 4 m square changes (M4: was 4096 redrawn every frame; see below) | 2048, hard edges |
 | Ink pass and outlines | On | On |
 | Night glow (emissive only) | Full resolution | Half resolution |
 | Painted wet-road reflections | On | On |
@@ -755,6 +755,40 @@ The game targets desktop browsers only, so quality comes first: every visual fea
 - Town: instance every repeated prop (poles, signs, bikes, AC units, planters), merge static town geometry per material, and use distance-based detail for far buildings.
 - Auto quality: only ever steps Ultra → High, if average frame time is above 17 ms over 5 s. Never lower. Manual override in settings.
 - No allocations in the render loop; dispose geometries and textures properly; pause rendering and suspend audio when the tab is hidden.
+
+**Only draw what is seen (M4, measured).** The game once rendered flat out
+whenever the page was open -- behind the pause card, behind another
+window, in a background tab -- and redrew a 4096 shadow map every frame
+because the shadow camera followed every twitch of the mouse. On a
+machine short of memory that made the whole laptop slow. Now:
+
+| State | Frames drawn a second |
+| --- | --- |
+| Playing | every display frame |
+| Paused, or the window not focused | 10 |
+| Tab hidden or minimised | 0, and the audio suspended |
+
+The shadow camera snaps to a 4 m grid and the map is redrawn only when it
+lands on a new square, and four times a second for moving things: 35%
+less GPU work per frame (4.86 ms to 3.14 ms at the famous view).
+
+**Memory budget: 300 MB for the whole game** (M7). Measured in M4: JS heap
+about 500 MB and textures about 380 MB. Textures dominate, and a
+texture's cost is its pixels: 4096 square is 89 MB with mipmaps, 2048 is
+22 MB, 1024 is 6 MB. Rules for everything added from here on (the deer
+park, the village):
+- make a texture the size it is seen at, and never allocate texture you
+  do not fill (the town atlas's last page was 41% used; trimmed, 53 MB);
+- a place is loaded as you approach it and freed when you leave;
+- one instanced or batched mesh per kind of thing, never one per copy;
+- long audio streams, short audio decodes;
+- every change is measured before and after (`npm run size`, frame GPU
+  time, texture MB) and the numbers go in its commit.
+
+The next large saving, for M7: three.js keeps a CPU copy of every
+geometry buffer after it is uploaded. Static geometry (the merged town,
+the store) never reads it again, so freeing it on upload should cut a
+large part of the JS heap.
 
 **Desktop specifics**
 

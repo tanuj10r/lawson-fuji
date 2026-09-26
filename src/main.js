@@ -40,6 +40,8 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
+// the shadow pass is asked for by seatLights(), not run every frame
+renderer.shadowMap.autoUpdate = false;
 renderer.setClearColor(new THREE.Color(PAL.fog), 1);
 
 const scene = new THREE.Scene();
@@ -53,7 +55,7 @@ camera.rotation.order = 'YXZ';
 const sun = new THREE.DirectionalLight(PAL.sun, 2.25);
 sun.position.set(-52, 62, 56);
 sun.castShadow = true;
-sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -40;
 sun.shadow.camera.right = 40;
 sun.shadow.camera.top = 40;
@@ -329,6 +331,8 @@ function resize() {
   setOutlineResolution(pipeline.size.x, pipeline.size.y);
 }
 window.addEventListener('resize', resize);
+// a hidden tab keeps no audio graph running either
+document.addEventListener('visibilitychange', () => sound.setAwake(!document.hidden));
 resize();
 
 /* --------------------------------- loop --------------------------------- */
@@ -342,13 +346,29 @@ function seatLight(light, dir, origin) {
 }
 
 /* The shadow camera follows the player so cast shadows stay crisp near them.
- * It centres a little ahead, so a hero camera's storefront 30 m out is in it. */
-function seatLights() {
+ * It centres a little ahead, so a hero camera's storefront 30 m out is in it.
+ *
+ * Snapped to a 4 m grid, and the map is redrawn only when it lands on a new
+ * square (or now and then, for the things that move).  Left to itself it
+ * followed every twitch of the mouse, which redrew a whole shadow pass 60
+ * times a second -- 2.5 ms of a 6.6 ms frame -- and made the shadows crawl. */
+const SNAP = 4;
+let shadowAt = null, shadowAge = 1e9;
+function seatLights(dt = 0) {
   shadowTarget.set(
     player.pos.x - Math.sin(player.yaw) * 16, 0, player.pos.z - Math.cos(player.yaw) * 16);
+  shadowTarget.x = Math.round(shadowTarget.x / SNAP) * SNAP;
+  shadowTarget.z = Math.round(shadowTarget.z / SNAP) * SNAP;
   seatLight(sun, SUN_DIR, shadowTarget);
   seatLight(fill, FILL_DIR, shadowTarget);
   seatLight(bounce, BOUNCE_DIR, shadowTarget);
+  shadowAge += dt;
+  const moved = !shadowAt || shadowAt.x !== shadowTarget.x || shadowAt.z !== shadowTarget.z;
+  if (moved || shadowAge > 0.25) {           // and four times a second for the train and the doors
+    shadowAt = { x: shadowTarget.x, z: shadowTarget.z };
+    shadowAge = 0;
+    renderer.shadowMap.needsUpdate = true;
+  }
 }
 
 window.addEventListener('keydown', (e) => {
@@ -430,7 +450,20 @@ function controlRows(hovered) {
   return rows;
 }
 
-function frame() {
+/* Drawing only when it is worth drawing.
+ *
+ * The game used to render flat out whenever the page was open -- behind the
+ * pause card, behind another window, in a background tab -- which is why it
+ * made the whole machine feel slow.  Hidden, it draws nothing; paused or
+ * unfocused, ten frames a second, enough to look alive. */
+let lastDraw = 0;
+function frame(now = 0) {
+  requestAnimationFrame(frame);
+  if (document.hidden) return;
+  const idle = !player.locked && !FROZEN;
+  if (idle && now - lastDraw < 100) return;
+  lastDraw = now;
+  if (import.meta.env?.DEV) window.__drawn = (window.__drawn ?? 0) + 1;
   const dt = FROZEN ? 0 : Math.min(clock.getDelta(), 1 / 20);
 
   player.update(dt);
@@ -443,7 +476,7 @@ function frame() {
     updateProjection();
   }
   world.update(dt, camera);
-  seatLights();
+  seatLights(dt);
   if (world.line) {
     const c = world.line.crossingPos;
     sound.bells(world.line.service.cross.bells, Math.hypot(camera.position.x - c.x, camera.position.z - c.z));
@@ -541,6 +574,7 @@ if (import.meta.env?.DEV) {
     pipeline.setSize(W, H);
     setOutlineResolution(pipeline.size.x, pipeline.size.y);
     world.update(0, camera);
+    renderer.shadowMap.needsUpdate = true;      // this one frame draws its own shadows
     // the shop: `opts.shop` seconds pass (flights land, doors swing), and what you carry follows the camera
     if (shop) {
       const steps = Math.round((opts.shop ?? 0) * 60);

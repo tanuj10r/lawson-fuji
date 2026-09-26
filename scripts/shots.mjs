@@ -68,6 +68,9 @@ try {
   browser = await chromium.launch({ headless: true, args: launchArgs });
 }
 const page = await browser.newPage({ viewport: { width: W, height: H } });
+// this run starts its own dev server, which compiles cold: on a machine short
+// of memory a page can take well over the default 30 s to load
+page.setDefaultNavigationTimeout(180000);
 page.on('console', (m) => { if (m.type() === 'error') console.log('  [page]', m.text()); });
 page.on('pageerror', (e) => console.log('  [page error]', e.message));
 

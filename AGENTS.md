@@ -42,6 +42,19 @@ the current milestone needs.
 - UI text in src/data/strings.js, products in src/data/catalog.js,
   tunables in src/config.js.
 
+## Performance (read before adding anything; SPEC section 11)
+- Draw only what is seen: hidden draws nothing, paused draws 10 fps. New
+  animation hooks into the main loop, never its own rAF or setInterval.
+- Budget: whole game 300 MB memory, 5 MB download. Measure before and
+  after every change (npm run size, frame GPU ms) and put the numbers in
+  the commit. Textures are most of the memory: 4096^2 = 89 MB, 2048^2 =
+  22 MB. Make a texture the size it is seen at; never pad a page.
+- Only what is near exists: a place loads when approached, frees when
+  left (sounds already stop beyond `far`). One instanced mesh per kind.
+- Long audio streams; short audio decodes. Nothing redraws every frame
+  that does not change every frame (shadows redraw on a snapped grid).
+- Test tools clean up their servers and browsers.
+
 ## Reference images
 - reference/real-day.png, reference/real-bluehour.png: exact hero-view
   composition.

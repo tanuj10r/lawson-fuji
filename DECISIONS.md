@@ -1336,3 +1336,44 @@ Tan asked whether we use three.js's positional audio, with more places
 - **E stays the one interact key.** Tan's note sketched X for taking a
   basket; asked, he chose to keep E for taking a basket, opening a fridge
   and taking an item, with X still putting one back from the panel.
+
+### M4, round 9: why the laptop slowed down (Tan)
+
+Tan: the whole laptop slows while the game is open, and recovers when it
+is closed. Measured rather than guessed:
+
+- **The machine was out of memory.** 9.6 GB of a 10 GB swap in use, 23%
+  free, later 10.9 GB of swap. Everything slows when a machine pages, and
+  the game was one of its largest single tabs: about 500 MB of JS heap and
+  430 MB of textures. That is the root cause, and the budget of SPEC 11
+  (300 MB) is now a rule in AGENTS.md, not an M7 wish.
+- **It drew when nobody was looking.** The loop rendered every display
+  frame whether playing, paused behind the card, in a window behind
+  another, or in a hidden tab. SPEC 11 asked for a pause on a hidden tab;
+  it had never been built. Now the loop draws nothing while hidden (and
+  suspends the audio), 10 frames a second while paused or unfocused, and
+  every frame only while playing. Measured in a real window: 230 drawn a
+  second playing, 10 paused, 0 hidden.
+- **The shadow map redrew every frame, and followed the mouse.** The
+  code's own comment said the shadow camera sat on a snapped grid; it did
+  not, so every turn of the head moved it and forced a full shadow pass
+  (and made shadows crawl). It now snaps to 4 m and redraws only on a new
+  square, plus four times a second for the train and the doors: GPU time
+  per frame 4.86 ms to 3.14 ms (35% less).
+- **The shadow map is 2048, not SPEC's 4096.** That is a quality trade,
+  so it is Tan's to keep or reverse: it frees about 50 MB of GPU memory,
+  and the famous views move 0.14-0.24% (inside the guard). One line in
+  main.js puts it back.
+- **The town atlas allocated a full page it did not fill.** Its second
+  4096 page was 41% used; pages are now packed first and the last trimmed
+  to what landed on it (4096 x 1664): textures 432 MB to 379 MB, signs
+  checked on the famous view.
+- **My test tools were adding to it.** Killing a screenshot run left its
+  own dev server and headless Chrome behind; two dev servers from
+  sessions a day old were still running too. All cleared, and the
+  harness now allows a slow cold start instead of timing out and being
+  retried. Worth being blunt: the full screenshot suite could not finish
+  this round because the machine was out of memory. What was verified:
+  the famous views (0.14% and 0.24%), the train service, the atlas signs,
+  and the frame rates above. The rest are rendering-only changes that do
+  not touch the stock, the density or the sound.

@@ -42,3 +42,16 @@
   with the changes on (0.25/0.35/0.15 %); the diff is shadow edges on the
   store canopy and wires, not the houses, so no hero exclusion was needed.
 - Two close-up spots added: `close-facade-shop`, `close-facade-house`.
+- **Review fixes.** The fascia texture was never mirrored (checked by
+  dumping the canvases): a shop balcony's slab stood in front of the board's
+  upper half, so only the feet of the glyphs showed and the name read as
+  garbled. The balcony now stands 0.45 m higher with a lower rail. The noren
+  hangs from the door head under the transom (it was cut by it) and in the
+  doorway. The corner flank sign z-fought its case; now 2 cm clear.
+  "PayPay" in SHOP_NOTICES became "QR決済" (coordinator's OK).
+- **Stepped shadow striping on house walls is not ours and not acne.** It is
+  the same at close-facade-house on main before this pass; normalBias 0.08
+  and 0.15 leave it unchanged; a 4096 shadow map halves it. It is the eave's
+  shadow edge on a 2048 map over 80 m (3.9 cm texels) through PCF, banded by
+  the toon ramp. The fix is in main.js (a tighter shadow frustum near the
+  player, a larger map, or softer filtering), which facades does not own.

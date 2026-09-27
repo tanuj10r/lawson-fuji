@@ -92,7 +92,7 @@ export const SHOP_NOTICES = [
   { t: '本日のおすすめ', s: '季節の和菓子 あります', paper: '#fdf6e0', ink: '#2e3a6a' },
   { t: '営業時間', s: '10:00〜19:00 水曜定休', paper: '#ffffff', ink: '#222222' },
   { t: '臨時休業のお知らせ', s: '4月12日（金）は お休みします', paper: '#fffef8', ink: '#222222' },
-  { t: 'PayPay 使えます', s: 'キャッシュレス対応', paper: '#ffffff', ink: '#d8342f' },
+  { t: 'QR決済 使えます', s: 'キャッシュレス対応', paper: '#ffffff', ink: '#d8342f' },
   { t: '桜まつり', s: '4月6日・7日 商店街にて', paper: '#fde8ef', ink: '#b6413a' },
 ];
 export const FOR_RENT = { t: '貸店舗', s: '富士見不動産', tel: '0555-23-0770' };

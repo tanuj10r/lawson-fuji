@@ -92,6 +92,7 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
     doorX: f.pick([0, 0, -1, 1]) * Math.max(0, w / 2 - 1.8),
   };
   if (trade === 'closed') look.shutter = 1;
+  look.norenX = look.doorX;          // the curtain hangs in the doorway
   const g = makeShop(ctx, {
     x: c.x, y: 0, z: c.z, w, d, face: F.faceKey, kind: trade, floors, seed: lot.seed,
     roofKind: r.pick(['flat', 'gable', 'flat']), awning: T.awning ?? false,
@@ -267,18 +268,19 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
     }
   }
   // the family's washing out on the balcony, now and then
-  if (balcony && r.chance(0.6)) hangLaundry(ctx, F.at(0, setback - 0.3), ry + Math.PI / 2, r, 4.55);
+  if (balcony && r.chance(0.6)) hangLaundry(ctx, F.at(0, setback - 0.3), ry + Math.PI / 2, r, 4.95);
 
   /* (town pass) on a corner, the name again flat on the flank up high, for
    * the cross street (the blade's own art: no new texture) */
   if (lot.corner && floors === 2) {
     for (const s of [-1, 1]) {
       const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 2.26), flat({ color: 0xffffff, map: bladeTex(trade), cache: false }));
-      pl.position.set(s * (w / 2 + 0.025), 3.2 + 1.35, front - 1.0);
+      pl.position.set(s * (w / 2 + 0.04), 3.2 + 1.35, front - 1.0);
       pl.rotation.y = s * Math.PI / 2;
       pl.userData.noOutline = true;
       g.add(pl);
-      const rim = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.36, 0.72), m.side);
+      // the board's case, its face a clear 2 cm behind the sign (no z-fight)
+      const rim = new THREE.Mesh(new THREE.BoxGeometry(0.03, 2.36, 0.72), m.side);
       rim.position.set(s * (w / 2 + 0.005), 3.2 + 1.35, front - 1.0);
       g.add(rim);
     }

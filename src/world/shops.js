@@ -379,12 +379,13 @@ export function makeShop(ctx, o) {
       new THREE.PlaneGeometry(nw, 0.72),
       flat({ color: 0xffffff, map: norenTex(o.noren), side: THREE.DoubleSide, cache: false })
     );
-    cloth.position.set(o.norenX ?? 0, 2.06, front - 0.22);
+    // (town pass) hung from the door head, under the transom, so the name reads
+    cloth.position.set(o.norenX ?? 0, 1.72, front - 0.22);
     // a slight lift on one side: the doorway curtain is always caught by air
     cloth.rotation.z = 0.025;
     cloth.castShadow = true;
     g.add(cloth);
-    push('metalDark', new THREE.BoxGeometry(nw + 0.2, 0.05, 0.05), trs(o.norenX ?? 0, 2.44, front - 0.22));
+    push('metalDark', new THREE.BoxGeometry(nw + 0.2, 0.05, 0.05), trs(o.norenX ?? 0, 2.1, front - 0.22));
   }
 
   /* ---------------------------- upper storey windows ---------------------------- */
@@ -410,12 +411,17 @@ export function makeShop(ctx, o) {
     }
     // a balcony rail on some units, and the laundry pole that goes with it
     if (o.balcony) {
-      push('trim', new THREE.BoxGeometry(w - 0.6, 0.1, 0.8), trs(0, H1 + 0.5, front + 0.2));
-      push('metal', new THREE.BoxGeometry(w - 0.6, 0.06, 0.06), trs(0, H1 + 1.42, front + 0.58));
-      push('metalDark', new THREE.BoxGeometry(w - 0.6, 0.06, 0.06), trs(0, H1 + 0.62, front + 0.58));
+      /* (town pass) the balcony stands clear above the fascia (its slab used
+       * to sit in front of the board's upper half, hiding the name from the
+       * street), with a lower rail in front of the upstairs windows */
+      const by = o.kind && o.fascia !== false ? 0.45 : 0;
+      const rh = by ? 0.7 : 0.9;
+      push('trim', new THREE.BoxGeometry(w - 0.6, 0.1, 0.8), trs(0, H1 + 0.5 + by, front + 0.2));
+      push('metal', new THREE.BoxGeometry(w - 0.6, 0.06, 0.06), trs(0, H1 + 0.55 + by + rh - 0.03, front + 0.58));
+      push('metalDark', new THREE.BoxGeometry(w - 0.6, 0.06, 0.06), trs(0, H1 + 0.62 + by, front + 0.58));
       const nb = Math.round((w - 0.6) / 0.24);
       for (let i = 0; i <= nb; i++) {
-        push('metal', new THREE.BoxGeometry(0.04, 0.9, 0.04), trs(-(w - 0.6) / 2 + ((w - 0.6) / nb) * i, H1 + 0.98, front + 0.58));
+        push('metal', new THREE.BoxGeometry(0.04, rh, 0.04), trs(-(w - 0.6) / 2 + ((w - 0.6) / nb) * i, H1 + 0.55 + by + rh / 2, front + 0.58));
       }
     }
   }

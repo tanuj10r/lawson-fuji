@@ -6,6 +6,7 @@ import { LAND_SIGNS } from '../../data/town.js';
 import { asphaltTex, ASPHALT_TILE } from '../kit/tex.js';
 import { parkVehicle } from '../vehicles.js';
 import { sheetGeo } from './geo.js';
+import { HAN_BAY } from '../han/index.js';
 import { noticeTex } from './tex.js';
 
 /* ------------------------------------------------------------------ *
@@ -49,6 +50,7 @@ export function buildParking(ctx, parts) {
     for (let k = 0; k < 20; k++) { b = bays[r.int(0, bays.length - 1)]; if (!taken.has(b)) break; }
     if (taken.has(b)) continue;
     taken.add(b);
+    if (b.back > 0 && Math.abs(b.x - HAN_BAY.x) < HAN_BAY.keep) continue;   // Han's bay and its neighbours (world/han/)
     parkVehicle(ctx, { kind: kinds[i], x: b.x, z: b.z, y: 0.03, ry: b.back > 0 ? 0 : Math.PI, color: cols[i] });
   }
 

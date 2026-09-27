@@ -1516,3 +1516,33 @@ gate, painted hill rings, the bridge 富士見橋). Mine, at merge:
 - Not done, noted: the north fence's plinth reads as a long low wall
   behind the far paddies; the land is built once (no load-by-distance).
 - Walks all stuck 0; guard 0.258 / 0.353 / 0.148%; stock pass.
+
+## Town pass, wave 2c: Tan's layout, the sunken river and 鏡池 (2026-09-27)
+- **Tan's layout:** turn round at the spawn and the river is right there,
+  in a sunken channel (河川敷): stone stairs down behind the spawn, lower
+  walks on both banks, stepping stones (飛び石) across, stairs up the far
+  side to the paddies, the pond and the Deer Park gate. The raised levee
+  and far bank went. The track's bridge spans the channel at street level
+  and can be walked under.
+- **鏡池 (Kagami-ike)** replaces the regimented paddies west of the track:
+  Tan's afternoon on a bench by Sarusawa-ike in Nara, made our own (no
+  real names or buildings). A rounded-triangle pond of olive water, a
+  granite promenade to the edge, post pairs, a white lantern string, black
+  pines and a weeping willow, a lotus patch, かがみ茶屋 and low houses
+  behind, benches facing the water (M6's sit-and-eat will use them).
+- **Engine:** ctx.sink lowers the base ground over a rect; town.js builds
+  the ground plane last with a hole over each sink. Tan asked that walking
+  below ground not cost weight or smoothness: measured, it costs nothing
+  (one rect test per height lookup; the channel replaces the levee's
+  geometry).
+- **The builder was stopped by a usage limit** mid-task; I finished its
+  work: the noren's name fits its cloth (かがみ茶屋 was cut to いがみ茶屋),
+  shoji lattice, a denser lotus patch, and a spawn-to-pond route in
+  ?m2check (down the stairs' left lane: a handrail runs down the middle).
+- **Honest limit:** from the spawn, turned round, the channel's far rail
+  and cherries show across the road, not the water; the water shows as you
+  reach the edge. That is what sunken means.
+- **Cost** (1440p): famous view 7.49 ms (7.43), 781 calls; spawn turned
+  round 5.3 ms; stepping stones 4.4 ms; pond bench 3.4 ms. Heap 400 MB
+  (378); textures (estimate) 381 MB; ready 4.0 s. Download 3.45 MB (fonts
+  477 KB). Guard 0.258 / 0.353 / 0.148%; all five walks stuck 0.

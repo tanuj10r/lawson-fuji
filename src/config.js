@@ -388,6 +388,10 @@ export const SHOT_SPOTS = [
   { name: 'close-lawson-side', scene: 'town', pos: [15.5, 0, 3.5], yaw: 0.75, pitch: 0.1, looks: ['day'], close: true },
   { name: 'close-forecourt', scene: 'town', pos: [-5, 0, 7], yaw: 0.35, pitch: -0.42, looks: ['day'], close: true },
   { name: 'close-house-wall', scene: 'town', pos: [60, 0, 77.5], yaw: 1.9, pitch: 0.1, looks: ['day'], close: true },
+  // streets & poles (town quality pass): the spine's kerb at arm's length
+  { name: 'close-street-spine', scene: 'town', pos: [-45.2, 0, 113.5], yaw: 2.8, pitch: -0.16, looks: ['day'], close: true },
+  { name: 'close-street-pole', scene: 'town', pos: [-45.3, 0, 104], yaw: 2.85, pitch: 0.45, looks: ['day'], close: true },
+  { name: 'close-street-kerb', scene: 'town', pos: [-46.6, 0, 56], yaw: 2.5, pitch: -0.08, looks: ['day'], close: true },
   { name: 'close-sakura', scene: 'town', pos: [-50, 0, 128], yaw: 3.1416, pitch: 0.55, looks: ['day'], close: true, ref: '12-station-plaza-big-sakura.png' },
   // M3a: inside the Lawson (world frame; judged against reference/konbini-details.md)
   { name: 'store-door', scene: 'town', pos: [-2.3, 0, -0.6], yaw: 0, pitch: -0.05, looks: ['day'], close: true, frame: 'world' },

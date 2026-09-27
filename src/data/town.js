@@ -105,3 +105,25 @@ export const RIVER = { jp: '桜川', kana: 'さくらがわ' };
 /** The board on the closed gate at the far side of the paddies: a place to
  * come (Tan's Deer Park).  The English line is for players, on purpose. */
 export const DEER_PARK = { jp: '鹿公園', soon: '近日公開', en: 'Deer Park · coming soon' };
+
+/* ---- streets and poles (town quality pass) ---- */
+
+/** Words cast into lids and painted on the road. */
+export const STREET_WORDS = {
+  sewer: 'おすい', town: 'ふじみ', gas: 'ガス', valve: '制水弁', hydrant: '消火栓', tomare: '止まれ', noBikes: '駐輪禁止',
+};
+/** 電柱番号札: the owner's line name and number on every pole. */
+export const POLE_TAG = { line: '富士見幹', branch: ['右', '左'] };
+/** A-frame boards outside shops: head line, two lines, ground, ink. */
+export const A_BOARDS = [
+  { t: '本日のおすすめ', l: ['日替わり定食', '850円'], bg: '#2f4a3c', ink: '#f6f2e4', chalk: true },
+  { t: 'ランチ', l: ['11:30〜14:00', '大盛無料'], bg: '#2c3a2e', ink: '#fff6d8', chalk: true },
+  { t: '営業中', l: ['どうぞ', 'お入りください'], bg: '#fbf7ec', ink: '#c0392b' },
+  { t: 'セール', l: ['全品', '2割引'], bg: '#fff4d6', ink: '#d0402a' },
+  { t: 'コーヒー', l: ['テイクアウト', '350円'], bg: '#3a2c26', ink: '#f8ecd8', chalk: true },
+  { t: 'やきたて', l: ['メロンパン', '160円'], bg: '#fdf1dc', ink: '#8a5a20' },
+];
+/** Standalone plates on the walks. */
+export const WALK_SIGNS = { noBikes: '駐輪禁止', removal: '放置自転車は撤去します', station: 'さくら富士駅', thisWay: 'この先' };
+/** The capsule-toy machines' header cards. */
+export const GASHAPON = ['ガチャ', '100円', '200円', '300円'];

@@ -4,6 +4,7 @@ import { buildRoads } from './roads.js';
 import { paintMarkings } from './markings.js';
 import { buildPoles, lampMaterial } from './poles.js';
 import { placeSigns } from './signs.js';
+import { makeClutter } from './street/clutter.js';
 import { buildWalkSignal } from '../signals.js';
 
 /* ------------------------------------------------------------------ *
@@ -20,7 +21,8 @@ export function buildKit(ctx, def) {
   const decals = makeDecals();
   const roads = buildRoads(ctx, net, decals);
   const features = paintMarkings(net, decals);
-  const poles = buildPoles(ctx, net, decals);
+  const clutter = makeClutter(ctx);        // street clutter, one instanced mesh per kind
+  const poles = buildPoles(ctx, net, decals, clutter);
   const signs = placeSigns(ctx, net, features);
   // a walk signal at each end of every zebra (M4): its green has a sound
   features.crossings.forEach((c, i) => {
@@ -34,7 +36,7 @@ export function buildKit(ctx, def) {
   });
   let done = false;
   return {
-    net, roads, features, poles: poles.list, signs, decals,
+    net, roads, features, poles: poles.list, signs, decals, clutter,
     serviceDrop: poles.serviceDrop,
     lamps: poles.lamps,
     wireRuns: poles.runs,
@@ -44,6 +46,7 @@ export function buildKit(ctx, def) {
       if (done) return;
       done = true;
       poles.finish();
+      clutter.finish();
       ctx.add(decals.build('kit-decals'));
     },
     /** Lamps glow from dusk (the look's store sign level stands in for it). */

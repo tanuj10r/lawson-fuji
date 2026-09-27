@@ -29,3 +29,38 @@ untouched.
   cuff put them in the middle of the view, so they stay low.
 - **Items unchanged.** The anchors (where a held thing sits) are where they
   were, so shop.js, eat.js and the checkout choreography need nothing.
+
+## The RX-7 (han/rx7.js)
+- **The proportion was the fault, not the detail.** The belt sat at 0.74 m
+  under a 1.25 m roof: a 0.5 m glasshouse on a shallow body, a balloon
+  cabin on a soap bar. A real FD's belt is about 0.85 m at the door under a
+  1.23 m roof. The shoulder spline is now 0.78-0.885 m (highest over the
+  hips), the bonnet's centre 0.855 at the cowl falling to 0.535 at the
+  nose, the roof 1.235 peaking over the seats; the windscreen is a fast,
+  nearly straight run rounding only into the header, the hatch glass holds
+  the roofline then sweeps to the deck.
+- **A curved side.** The section's side was a vertical line to the
+  shoulder, which with the taller body read as a slab with a crease. It
+  now bulges: 9 cm in at the sill, fullest just above the middle, rolling
+  7.5 cm in to the shoulder (less at the narrow nose), and the top curve's
+  superellipse is 2.6 rather than 3 for a softer turn. The ink still finds
+  the belt line; that is the FD's own character line and stays.
+- **The double bubble is a roof, not a windscreen.** The two shallow
+  domes (3 cm) were laid along the whole cabin; they are now windowed to
+  x -1.05..0.05, over the seats.
+- **Two paint bands.** The one side-projected map smeared any line on the
+  bonnet or deck. The map is now 1024 x 460: a 300 px side band (as
+  before) and a 160 px plan band for the tops, with the belt point doubled
+  in the section so the two bands meet on a zero-width quad (their normals
+  averaged, or the ink drew the seam). The plan band carries the bonnet's
+  outline (wide at the nose, as the FD's is; my first pointed U read as a
+  Ferrari), the bumper seams over the fender tops, the hatch's edge on the
+  deck and the cowl strip. +0.6 MB of texture, no extra draw.
+- **Tail, mouth, wing, glass.** Three round lamps a side (the inner one
+  the reverse lamp), as the FD's; the Fortune's wide low mouth; the wing
+  on swept uprights with rounded end plates; the fender gills behind the
+  front wheels in the paint; the black sweep rising to 0.77 m on the rear
+  quarter now the body is taller. Glass tint lightened enough that the
+  seats read through it, with the sky pale in its top; the windscreen's
+  streaks now run across it (its own u), so it no longer reads as an open
+  cockpit from the front.

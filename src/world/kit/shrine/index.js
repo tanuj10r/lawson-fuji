@@ -137,7 +137,7 @@ export function buildShrine(ctx, net, kit, s, F) {
       stoneLantern(P, { x, z }, sc);
       col(x - 0.35, z - 0.35, x + 0.35, z + 0.35, 1.9);
       const w = town(x, z);
-      ctx.night?.pool(w.x, w.z, 2.4, { strength: 0.85 });
+      ctx.night?.pool(w.x, w.z, 2.7, { strength: 1.15 });
       reg(x, z);
     }
   }
@@ -208,7 +208,7 @@ export function buildShrine(ctx, net, kit, s, F) {
   /* ---- the hanging lanterns (提灯) at the hall, lit at night ---- */
   const chochin = cel({ color: 0xffffff, map: chochinTex(), emissiveMap: chochinTex(), emissive: 0xffd09a, emissiveIntensity: 0, bands: 3, tint: 0x9a7a88, cache: false });
   ctx.night?.glowing(chochin, 0xffcf96, 0.95);
-  ctx.night?.glowing(m.lamp, 0xffb45a, 1.3);
+  ctx.night?.glowing(m.lamp, 0xffb45a, 1.6);
   m.chochin = chochin;
   for (const sx of [-1, 1]) {
     const x = sx * 0.95, z = hall.zK;

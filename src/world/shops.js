@@ -8,6 +8,9 @@ import {
 } from '../core/textures.js';
 import { box, cyl, bake, trs, rngKit } from '../core/util.js';
 import { hullOutline } from '../core/outline.js';
+import { chamferBox } from './kit/facade/forms.js';
+import { sidingTex } from './kit/tex.js';
+import { tileTex, TILE_TILE } from './kit/facade/skins.js';
 
 /* ------------------------------------------------------------------ *
  * One shop generator, nine tenants.
@@ -30,7 +33,7 @@ import { hullOutline } from '../core/outline.js';
 
 const WALLS = [PAL.wallWhite, PAL.wallCream, PAL.wallBlue, PAL.wallBeige, PAL.wallGray, PAL.wallPink];
 const ROOFS = [PAL.roofSlate, PAL.roofBlue, PAL.roofBrown, PAL.roofTeal];
-const AWNINGS = [PAL.awningGreen, PAL.awningOrange, PAL.awningBlue, PAL.awningCream, PAL.red];
+export const AWNINGS = [PAL.awningGreen, PAL.awningOrange, PAL.awningBlue, PAL.awningCream, PAL.red];
 
 const M = {};
 function mats() {
@@ -46,6 +49,18 @@ function mats() {
   M.wood = cel({ color: 0x9c7f5e, bands: 3, tint: 0x5c5680 });
   M.concrete = cel({ color: PAL.concrete, bands: 3, tint: 0x6f6790 });
   return M;
+}
+
+const sidings = new Map();
+function sidingMat(c) {
+  if (!sidings.has(c)) sidings.set(c, cel({ color: c, map: sidingTex(), bands: 3, tint: 0x6f6790, cache: false }));
+  return sidings.get(c);
+}
+
+const tiles = new Map();
+function tileMat(c) {
+  if (!tiles.has(c)) tiles.set(c, cel({ color: c, map: tileTex(), bands: 3, tint: 0x6f6790, cache: false }));
+  return tiles.get(c);
 }
 
 const FACE_RY = { 'z+': 0, 'z-': Math.PI, 'x+': Math.PI / 2, 'x-': -Math.PI / 2 };
@@ -81,11 +96,13 @@ export function makeShop(ctx, o) {
   const push = (k, geo, mx) => parts[k].push({ geometry: geo, matrix: mx });
 
   /* ------------------------------ main volume ------------------------------ */
-  push('wall', new THREE.BoxGeometry(w, H1, d - REC), trs(0, H1 / 2, -REC / 2));
+  // (town pass) the main volume's upright edges are chamfered: a cut corner
+  // takes its own cel band, where a box edge is only a line
+  push('wall', chamferBox(w, H1, d - REC), trs(0, H1 / 2, -REC / 2));
   push('trim', new THREE.BoxGeometry(w + 0.16, 0.4, d + 0.16), trs(0, 0.2, 0));
   if (floors === 2) {
     // upper storey, set back so the fascia and awning have somewhere to sit
-    push('wall', new THREE.BoxGeometry(w, H2, d - 0.4), trs(0, H1 + H2 / 2, -0.2));
+    push('wall', chamferBox(w, H2, d - 0.4), trs(0, H1 + H2 / 2, -0.2));
     push('trim', new THREE.BoxGeometry(w + 0.12, 0.16, d - 0.3), trs(0, H1, -0.2));
   }
 
@@ -101,6 +118,11 @@ export function makeShop(ctx, o) {
       push('roof', new THREE.BoxGeometry(slab, 0.15, rd), trs(s * (rw / 4), H + rh / 2, -0.2, 0, 0, -s * slope));
     }
     push('roof', new THREE.BoxGeometry(0.24, 0.18, rd), trs(0, H + rh + 0.04, -0.2));
+    // (town pass) the eaves' fascia board and the gutter under each
+    for (const s of [-1, 1]) {
+      push('trim', new THREE.BoxGeometry(0.05, 0.2, rd), trs(s * (rw / 2 + 0.01), H - 0.02, -0.2));
+      push('metal', new THREE.BoxGeometry(0.13, 0.1, rd), trs(s * (rw / 2 + 0.1), H - 0.09, -0.2));
+    }
     const tri = new THREE.Shape();
     tri.moveTo(-w / 2, 0);
     tri.lineTo(w / 2, 0);
@@ -119,6 +141,8 @@ export function makeShop(ctx, o) {
       push('roof', new THREE.BoxGeometry(w + 0.3, 0.34, 0.14), trs(0, H + 0.37, -0.2 + s * ((floors === 2 ? d - 0.4 : d) / 2 + 0.14)));
       push('roof', new THREE.BoxGeometry(0.14, 0.34, (floors === 2 ? d - 0.4 : d) + 0.3), trs(s * (w / 2 + 0.14), H + 0.37, -0.2));
     }
+    // (town pass) the aluminium coping along the parapet's front, catching the light
+    push('metal', new THREE.BoxGeometry(w + 0.38, 0.05, 0.22), trs(0, H + 0.56, -0.2 + ((floors === 2 ? d - 0.4 : d) / 2 + 0.14)));
   }
 
   /* --------------------------- the shopfront recess --------------------------- */
@@ -143,7 +167,7 @@ export function makeShop(ctx, o) {
       // `interiorMap` lets a tenant supply its own: the two Showa units on the
       // shopping street need shelves stacked to the ceiling, which is the one
       // thing `shopInterior` deliberately does not draw
-      flat({ color: 0x8b8598, map: o.interiorMap ?? shopInterior(o.interior ?? 0), cache: false })
+      flat({ color: o.interiorTint ?? 0x8b8598, map: o.interiorMap ?? shopInterior(o.interior ?? 0), cache: false })
     );
     inner.position.set(0, 1.35, front - REC + 0.03);
     inner.userData.noOutline = true;
@@ -163,6 +187,16 @@ export function makeShop(ctx, o) {
     }
     push('metal', new THREE.BoxGeometry(glassW + 0.1, 0.1, 0.14), trs(0, 2.5, front - 0.07));
     push('metal', new THREE.BoxGeometry(glassW + 0.1, 0.14, 0.16), trs(0, 0.2, front - 0.07));
+    /* (town pass) a transom bar, a kick panel along the foot, and the
+     * sliding door pair with its pull handles: the glass wall becomes a
+     * shopfront you could walk into */
+    push('metal', new THREE.BoxGeometry(glassW + 0.06, 0.07, 0.12), trs(0, 2.12, front - 0.07));
+    push('metalDark', new THREE.BoxGeometry(glassW, 0.2, 0.05), trs(0, 0.37, front - 0.05));
+    {
+      const dx = o.doorX ?? 0;
+      push('metal', new THREE.BoxGeometry(0.08, 2.0, 0.12), trs(dx, 1.1, front - 0.05));
+      for (const sx of [-1, 1]) push('metalDark', new THREE.BoxGeometry(0.035, 0.42, 0.05), trs(dx + sx * 0.13, 1.1, front + 0.02));
+    }
     // one angled highlight, the way glass is painted
     const hi = new THREE.Mesh(
       new THREE.PlaneGeometry(glassW * 0.24, 2.5),
@@ -177,6 +211,13 @@ export function makeShop(ctx, o) {
   /* ---------------------------- shutter, if any ----------------------------
    * Half down is the useful state: it says the shop exists and is between
    * shifts, without needing anybody to be standing in the doorway. */
+  if (o.shutter || o.shutterBox) {
+    /* (town pass) the roll shutter's box over the opening and its two guide
+     * rails: most small shops have one, rolled up out of sight by day */
+    push('metalDark', new THREE.BoxGeometry(openW + 0.2, 0.3, 0.24), trs(0, 2.7, front + 0.08));
+    push('metal', new THREE.BoxGeometry(openW + 0.2, 0.04, 0.26), trs(0, 2.86, front + 0.08));
+    for (const sx of [-1, 1]) push('metalDark', new THREE.BoxGeometry(0.07, 2.55, 0.08), trs(sx * (openW / 2 + 0.05), 1.28, front + 0.04));
+  }
   if (o.shutter) {
     // thirty years of use: grime, rust, a scuff and a sticker (M2e)
     const tex = wornShutterTex();
@@ -185,9 +226,9 @@ export function makeShop(ctx, o) {
       cel({ color: 0xffffff, bands: 3, map: tex, tint: 0x4b4560, cache: false }),
       0, 2.55 - SH / 2, front - 0.16);
     sl.castShadow = sl.receiveShadow = true;
+    sl.position.z = front + 0.04;          // down its guide rails, in front of the glass
     g.add(sl);
-    push('metalDark', new THREE.BoxGeometry(openW + 0.14, 0.28, 0.2), trs(0, 2.66, front - 0.16));
-    push('metalDark', new THREE.BoxGeometry(openW, 0.1, 0.1), trs(0, 2.55 - SH, front - 0.16));
+    push('metalDark', new THREE.BoxGeometry(openW, 0.1, 0.1), trs(0, 2.55 - SH, front + 0.04));
   }
 
   /* ------------------------------ fascia sign ------------------------------
@@ -211,7 +252,7 @@ export function makeShop(ctx, o) {
     const board = new THREE.Mesh(
       new THREE.BoxGeometry(w - 0.2, 0.72, dep),
       [side, side, top, side,
-       flat({ color: lit ? 0xfff0d2 : 0xffffff, map: shopFascia(o.kind), cache: false }),
+       flat({ color: lit ? 0xfff0d2 : 0xffffff, map: o.fasciaMap ?? shopFascia(o.kind), cache: false }),
        top]
     );
     board.position.set(0, H1 + 0.44, front + out);
@@ -256,7 +297,11 @@ export function makeShop(ctx, o) {
 
     const edgeZ = front + out * Math.cos(grp.rotation.x);
     const edgeY = yA - out * Math.sin(grp.rotation.x);
-    const fascia = box(w, 0.3, 0.07, cA, 0, edgeY - 0.13, edgeZ - 0.03);
+    // (town pass) the drop carries the shop's name when it has one to show
+    const fascia = o.valanceMap
+      ? new THREE.Mesh(new THREE.BoxGeometry(w, 0.3, 0.07), [cA, cA, cA, cA, flat({ color: 0xffffff, map: o.valanceMap, cache: false }), cA])
+      : box(w, 0.3, 0.07, cA, 0, edgeY - 0.13, edgeZ - 0.03);
+    fascia.position.set(0, edgeY - 0.13, edgeZ - 0.03);
     fascia.castShadow = true;
     g.add(fascia);
     // scalloped lower edge
@@ -275,12 +320,41 @@ export function makeShop(ctx, o) {
     }
   }
 
+  /* ------------------------- (town pass) a flat canopy -------------------------
+   * The 庇 a shop without an awning has: a thin slab on two tie rods, its
+   * edge a fascia you can see the thickness of. */
+  if (o.canopy && !(o.awning !== undefined && o.awning !== false)) {
+    const out = 0.85;
+    push('trim', new THREE.BoxGeometry(w - 0.1, 0.09, out), trs(0, 3.0, front + out / 2));
+    push('metal', new THREE.BoxGeometry(w - 0.06, 0.16, 0.05), trs(0, 2.98, front + out));
+    const tie = Math.atan2(0.55, out - 0.1);
+    const len = Math.hypot(0.55, out - 0.1);
+    for (const sx of [-1, 1]) {
+      push('metalDark', new THREE.BoxGeometry(0.03, 0.03, len), trs(sx * (w / 2 - 0.4), 3.05 + 0.55 / 2, front + 0.05 + (out - 0.1) / 2, tie, 0, 0));
+    }
+  }
+  if ((o.upperSiding !== undefined || o.upperTile !== undefined) && floors === 2) {
+    // (town pass) the home upstairs clad in boards, or the whole storey in
+    // glazed facing tile, over a rendered shop
+    const tiled = o.upperTile !== undefined;
+    const sm = tiled ? tileMat(o.upperTile) : sidingMat(o.upperSiding);
+    const t = tiled ? TILE_TILE : 2.4;
+    const geo = new THREE.PlaneGeometry(w - 0.1, H2 - 0.1);
+    const uv = geo.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (w - 0.1) / t, uv.getY(i) * (H2 - 0.1) / t);
+    const pnl = new THREE.Mesh(geo, sm);
+    pnl.position.set(0, H1 + H2 / 2 + 0.05, front - 0.4 + 0.012);
+    pnl.receiveShadow = true;
+    pnl.userData.noOutline = true;
+    g.add(pnl);
+  }
+
   /* --------------------------- projecting blade sign --------------------------- */
   if (o.blade) {
     const bw = 0.52, bh = 1.9;
     const side = o.bladeSide ?? 1;
     const bx = side * (w / 2 - 0.18);
-    const art = shopBlade(o.blade);
+    const art = o.bladeMap ?? shopBlade(o.blade);
     const board = new THREE.Mesh(
       new THREE.BoxGeometry(0.1, bh, bw),
       // one map on both faces: BoxGeometry already reverses udir on the -x

@@ -45,6 +45,9 @@ function mat(key, make) {
 const sidingMat = (c) => mat(`siding${c}`, () => cel({ color: c, map: sidingTex(), bands: 3, tint: 0x6f6790, cache: false }));
 const plainMat = (c) => mat(`plain${c}`, () => cel({ color: c, bands: 3, tint: 0x6f6790 }));
 const kawaraMat = () => mat('kawara', () => cel({ color: 0x6e7384, map: kawaraTex(), bands: 3, tint: 0x4a4468, cache: false }));
+/** Painted corrugated roofs: rust red, faded blue, green. */
+const TIN = [0x9a5a4c, 0x5a7896, 0x6a8068, 0x7a6e84];
+const sheetRoofMat = (c) => mat(`tin${c}`, () => cel({ color: c, map: sheetTex(), bands: 3, tint: 0x4a4468, cache: false }));
 const boardMat = () => mat('board', () => cel({ color: 0xb08e68, map: boardTex(), bands: 3, tint: 0x5c5680, cache: false }));
 const accentMat = () => mat('accent', () => cel({ color: 0xc49a6a, map: boardTex(), bands: 3, tint: 0x5c5680, cache: false }));
 const postMat = () => mat('post', () => cel({ color: 0xcfcad4, bands: 3, tint: 0x6a6288 }));
@@ -78,7 +81,7 @@ function storageShed(color, rusty) {
 }
 
 let sideStreak = null;
-export function sideWindows(g, { hw, hd, floors, fh = 2.72, sideX, y0 = 0, glass = null, seed = 1 }) {
+export function sideWindows(g, { hw, hd, floors, fh = 2.72, sideX, y0 = 0, glass = null, seed = 1, sides = [-1, 1] }) {
   const len = sideX ? hd * 2 : hw * 2;
   const n = len > 7 ? 2 : 1;
   const r = rngKit(seed + 4141);
@@ -87,7 +90,7 @@ export function sideWindows(g, { hw, hd, floors, fh = 2.72, sideX, y0 = 0, glass
     for (let i = 0; i < n; i++) {
       const t = -len / 2 + (len * (i + 1)) / (n + 1);
       const y = y0 + f * fh + 1.5;
-      for (const s of [-1, 1]) {
+      for (const s of sides) {
         const out = (sideX ? hw : hd) + 0.03;
         const px = sideX ? s * out : t, pz = sideX ? t : s * out;
         const fw = 0.95, fhh = 1.05;
@@ -171,25 +174,35 @@ export function buildHouse(ctx, net, kit, lot, F, o = {}) {
     const units = Math.max(2, Math.floor(bw / 3.2));
     g = makeTerrace({ x: c.x, y: 0, z: c.z, d: bd, units, unitW: bw / units, face: F.faceKey, seed: lot.seed, wall: r.int(0, 7) });
     H = 6.3;
+    // (town pass) the row's end walls and back have windows too (its own frame: front +z)
+    const glass = ctx.night?.glass(rngKit(lot.seed + 61).chance(0.5));
+    sideWindows(g, { hw: bw / 2, hd: bd / 2, floors: 2, fh: 2.62, sideX: true, glass, seed: lot.seed });
+    sideWindows(g, { hw: bw / 2, hd: bd / 2, floors: 2, fh: 2.62, sideX: false, glass, seed: lot.seed + 7, sides: [-1] });
   } else {
     if (type === 'attic' || type === 'walkup') type = 'siding';
     const floors = Math.min(o.maxFloors ?? 3, type === 'old' ? (r.chance(0.35) ? 1 : 2) : 2);
     const tone = type === 'siding' ? r.pick(SIDING) : type === 'modern' ? r.pick(MODERN) : type === 'old' ? 0xefe7d6 : r.pick(MORTAR);
     // siding is a panel on each wall (tiled in metres); the wall under it is plain
     const wallMat = plainMat(tone);
-    const roofMat = type === 'old' ? kawaraMat() : undefined;
+    // (town pass) about a third of the board houses wear a painted sheet roof (トタン)
+    const tin = type === 'siding' && rngKit(lot.seed + 71).chance(0.35);
+    const roofMat = type === 'old' ? kawaraMat() : tin ? sheetRoofMat(rngKit(lot.seed + 73).pick(TIN)) : undefined;
     const roofKind = type === 'modern' ? 'flat' : type === 'old' ? r.pick(['gable', 'hip']) : r.pick(['gable', 'hip', 'gable', 'shed']);
     // at night about half the houses have their lights on (kit/night.js)
     const glass = ctx.night?.glass(r.chance(0.55));
     g = makeHouse({
       x: c.x, y: 0, z: c.z, w: W, d: D, face: F.faceKey, floors, seed: lot.seed,
       wallMat, roofMat, roofKind, shutters: type !== 'modern', porch: r.chance(0.6), glassMat: glass,
+      flowers: type === 'modern' ? 0.08 : 0.22,
+      roofTile: tin ? 1.2 : 2.4,
     });
     g.userData.glass = glass;
     doorU = g.userData.doorU ?? 0;
     H = 2.72 * floors;
     // the flanks, seen down every gap and on every corner
     sideWindows(g, { hw: W / 2, hd: D / 2, floors, sideX: along, glass: g.userData.glass, seed: lot.seed });
+    // (town pass) and the back, seen across the block's open corners
+    sideWindows(g, { hw: W / 2, hd: D / 2, floors, sideX: !along, glass: g.userData.glass, seed: lot.seed + 7, sides: [along ? -F.face.z : -F.face.x] });
     // cladding and accents, on the walls the street sees
     const fx = F.face.x, fz = F.face.z;
     const hw = W / 2 + 0.013, hd = D / 2 + 0.013;
@@ -198,6 +211,12 @@ export function buildHouse(ctx, net, kit, lot, F, o = {}) {
       for (const s of [-1, 1]) {
         panel(g, sm, s * hw, H / 2, 0, D, H, s * Math.PI / 2, 2.4);
         panel(g, sm, 0, H / 2, s * hd, W, H, s > 0 ? 0 : Math.PI, 2.4);
+      }
+      // (town pass) corner boards where the siding meets, as it always does
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        const cb = box(0.12, H - 0.42, 0.12, trimMat(), sx * (W / 2 - 0.02), 0.42 + (H - 0.42) / 2, sz * (D / 2 - 0.02));
+        cb.castShadow = true;
+        g.add(cb);
       }
     } else if (type === 'old') {
       // the boarded ground floor on the frontage

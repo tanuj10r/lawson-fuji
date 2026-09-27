@@ -1,15 +1,17 @@
 import * as THREE from 'three';
 import { cel, flat } from '../../core/toon.js';
-import { rngKit, box, cyl, bake, trs } from '../../core/util.js';
+import { rngKit, cyl } from '../../core/util.js';
 import { makeGasMeter } from '../streetprops.js';
-import { makeShop, makeMenuBoard, makeShopFlag, makeFreezer, makeProduceStack, makePaperLantern } from '../shops.js';
+import { makeShop, AWNINGS, makeMenuBoard, makeShopFlag, makeFreezer, makeProduceStack, makePaperLantern } from '../shops.js';
 import {
   makeCrates, makeMilkCrate, makePlanter, makeBench, makeBicycle, makeBucket, makeFlowerBed, makeVendBin, makeAircon,
 } from '../props.js';
 import { addVending } from '../vending.js';
 import { hangLaundry, sideWindows } from './houses.js';
 import { ROADS } from '../../config.js';
-import { shopBackTex, barberTex } from './tex.js';
+import { barberTex } from './tex.js';
+import { fasciaTex, bladeTex, valanceTex, roomTex, counterTex } from './facade/signs.js';
+import { flowerBox } from './facade/dress.js';
 import { noticeTex, forRentTex } from './paint.js';
 import { SHOP_NOTICES, FOR_RENT } from '../../data/town.js';
 
@@ -43,152 +45,18 @@ export const TRADE_KEYS = Object.keys(TRADES);
 
 let M = null;
 function mats() {
-  if (M) return M;
-  M = {
-    wood: cel({ color: 0xa88460, bands: 3, tint: 0x7a6a88, emissive: 0xfff0d8, emissiveIntensity: 0.35 }),
-    counter: cel({ color: 0xd8cfc0, bands: 3, tint: 0x8a7a98, emissive: 0xfff0d8, emissiveIntensity: 0.45 }),
-    shelf: cel({ color: 0xd8cfbe, bands: 3, tint: 0x8a7a98, emissive: 0xfff0d8, emissiveIntensity: 0.45 }),
-    white: cel({ color: 0xeef0f4, bands: 3, tint: 0x8a7a98, emissive: 0xfff0d8, emissiveIntensity: 0.45 }),
-    dark: cel({ color: 0x3c3a48, bands: 2, tint: 0x4b4560 }),
-    chair: cel({ color: 0x7a4a4a, bands: 3, tint: 0x7a6a88, emissive: 0xfff0d8, emissiveIntensity: 0.3 }),
+  M ??= {
     light: flat({ color: 0xfff8e6 }),
+    side: flat({ color: 0xcfc6b8 }),
+    // the painted room: a touch darker than the street, so the glass reads as glass
+    back: flat({ color: 0xc4bccb, map: null }),
   };
   return M;
 }
-
-/* ------------------------------------------------------------------ *
- * Inside the shop (M2e): furniture you read through the glass.  Goods are
- * baked per colour, so a shop's whole stock is a handful of draws.
- * ------------------------------------------------------------------ */
-const GOODS = {
-  general: [0xd8504a, 0xf2c23c, 0x4f8fd0, 0x6fb86a, 0xf2f2f2, 0xe8864a],
-  bakery: [0xd8a060, 0xc07a3a, 0xf0d09a, 0xe8b878],
-  florist: [0xf28cb0, 0xf2d24a, 0xe85a5a, 0x9fd07a, 0xc090e0],
-  books: [0x4a6fa8, 0xc84a4a, 0xe8d8b0, 0x5a8a5a, 0x8a6aa0, 0xf2f2ea],
-  hardware: [0xc84a4a, 0x5a6a7a, 0xf2c23c, 0x4a8ac8, 0x8a8a8a],
-  greengrocer: [0x6fb86a, 0xe8453f, 0xf2a03c, 0xf2d24a, 0x8a5a9a],
-  wagashi: [0xf4d8e0, 0x9fc07a, 0xf2f2ea, 0x8a5a4a],
-};
-const goodsMats = new Map();
-/* A lit shop seen from the street is brighter and warmer than the shade
- * under its awning: its stock and fittings take a little warm light of
- * their own. */
-const LIT = { emissive: 0xfff0d8, emissiveIntensity: 0.45 };
-const goodsMat = (c) => goodsMats.get(c) ?? goodsMats.set(c, cel({ color: c, bands: 3, tint: 0x8a7a98, ...LIT })).get(c);
-
-function furnish(inner, kind, trade, { openW, back, front, REC, r }) {
-  const m = mats();
-  const byMat = new Map();
-  const put = (mat, w, h, d, x, y, z, ry = 0) => {
-    (byMat.get(mat) ?? byMat.set(mat, []).get(mat)).push({ geometry: new THREE.BoxGeometry(w, h, d), matrix: trs(x, y, z, 0, ry, 0) });
-  };
-  const cols = GOODS[trade] ?? GOODS.general;
-  /** A row of goods on a shelf from x0 to x1 at height y, depth z, dz deep. */
-  const stock = (x0, x1, y, z, dz, maxH = 0.28) => {
-    for (let x = x0; x < x1 - 0.06;) {
-      const w = r.range(0.07, 0.2), h = r.range(0.1, maxH);
-      put(goodsMat(r.pick(cols)), w, h, dz * r.range(0.6, 0.9), x + w / 2, y + h / 2, z);
-      x += w + r.range(0.005, 0.03);
-    }
-  };
-  /** Shelving: a unit from x0 to x1 at depth z, `levels` shelves, stocked. */
-  const shelving = (x0, x1, z, dz, h, levels) => {
-    put(m.shelf, x1 - x0, h, 0.04, (x0 + x1) / 2, h / 2, z - dz / 2);
-    for (let k = 0; k < levels; k++) {
-      const y = 0.12 + k * ((h - 0.2) / levels);
-      put(m.shelf, x1 - x0, 0.03, dz, (x0 + x1) / 2, y, z);
-      stock(x0 + 0.03, x1 - 0.03, y + 0.015, z, dz, Math.min(0.3, (h - 0.2) / levels - 0.06));
-      // the price rail along the shelf edge
-      put(goodsMat(0xf6f2e0), x1 - x0, 0.035, 0.01, (x0 + x1) / 2, y - 0.01, z + dz / 2 + 0.005);
-    }
-  };
-  const mid = back + REC / 2;
-  if (kind === 'shelves') {
-    // shelving along the back wall, and islands running back from the window
-    shelving(-openW / 2 + 0.1, openW / 2 - 0.1, back + 0.25, 0.4, 1.9, 5);
-    const islands = openW > 4 ? 2 : 1;
-    for (let i = 0; i < islands; i++) {
-      const x = islands === 1 ? -openW * 0.15 : (i === 0 ? -1 : 1) * openW * 0.2;
-      for (const s of [-1, 1]) {
-        // an island's two faces, low enough to see over (1.35 m)
-        const zc = mid + 0.1;
-        put(m.shelf, 0.04, 1.35, 1.6, x + s * 0.02, 0.68, zc);
-        for (let k = 0; k < 4; k++) {
-          const y = 0.12 + k * 0.3;
-          put(m.shelf, 0.36, 0.03, 1.6, x + s * 0.2, y, zc);
-          for (let zz = zc - 0.75; zz < zc + 0.75;) {
-            const w = r.range(0.08, 0.2), h = r.range(0.1, 0.24);
-            put(goodsMat(r.pick(cols)), r.range(0.18, 0.28), h, w, x + s * 0.2, y + 0.015 + h / 2, zz + w / 2);
-            zz += w + 0.02;
-          }
-        }
-      }
-    }
-    // the counter and register by the door side
-    const cx = openW / 2 - 0.7;
-    put(m.counter, 1.1, 0.95, 0.55, cx, 0.48, front - 1.1);
-    put(m.dark, 0.3, 0.12, 0.25, cx - 0.1, 1.02, front - 1.1);
-    put(m.dark, 0.26, 0.2, 0.03, cx - 0.1, 1.16, front - 1.2);
-    // general stores keep a drinks fridge on a side wall, lit from inside
-    if (trade === 'general' || trade === 'greengrocer') {
-      const fx = -openW / 2 + 0.35;
-      put(m.white, 0.6, 1.9, 1.2, fx, 0.95, back + 1.0);
-      put(m.light, 0.02, 1.6, 1.0, fx + 0.31, 1.0, back + 1.0);
-      for (let k = 0; k < 4; k++) for (let b = 0; b < 6; b++) {
-        put(goodsMat(r.pick([0x4f8fd0, 0xe8453f, 0xf2c23c, 0x6fb86a, 0xf2f2f2])), 0.06, 0.2, 0.06, fx + 0.22, 0.4 + k * 0.4, back + 0.6 + b * 0.16);
-      }
-    }
-  } else if (kind === 'counter') {
-    // a long counter with stools, the kitchen shelf behind it, a dark doorway through
-    put(m.wood, openW * 0.8, 1.0, 0.45, 0, 0.5, mid + 0.4);
-    put(m.wood, openW * 0.84, 0.05, 0.6, 0, 1.03, mid + 0.4);
-    for (let k = 0; k < 5; k++) {
-      const x = -openW * 0.32 + k * openW * 0.16;
-      put(m.chair, 0.34, 0.06, 0.34, x, 0.72, mid + 0.95);
-      put(m.dark, 0.05, 0.7, 0.05, x, 0.36, mid + 0.95);
-    }
-    put(m.shelf, openW * 0.7, 0.03, 0.3, 0, 1.55, back + 0.2);
-    for (let x = -openW * 0.33; x < openW * 0.33; x += 0.22) put(goodsMat(r.pick([0xf2f2ea, 0xc84a4a, 0x3a3a48, 0xe8d8b0])), 0.16, 0.12, 0.16, x, 1.63, back + 0.2);
-    put(m.dark, 0.9, 1.9, 0.03, openW / 2 - 0.7, 0.95, back + 0.02);
-  } else if (kind === 'tables') {
-    for (let k = 0; k < (openW > 4 ? 3 : 2); k++) {
-      const x = -openW * 0.3 + k * openW * 0.3, z = mid + (k % 2 ? 0.4 : -0.1);
-      put(m.wood, 0.7, 0.05, 0.7, x, 0.74, z);
-      put(m.dark, 0.06, 0.72, 0.06, x, 0.36, z);
-      for (const s of [-1, 1]) put(m.chair, 0.4, 0.05, 0.4, x + s * 0.55, 0.45, z);
-    }
-    put(m.counter, openW * 0.6, 1.0, 0.5, openW * 0.1, 0.5, back + 0.45);
-    put(m.dark, 0.35, 0.45, 0.35, openW * 0.25, 1.23, back + 0.45);   // the coffee machine
-  } else if (kind === 'machines') {
-    const n = Math.max(2, Math.floor(openW / 0.75));
-    for (let k = 0; k < n; k++) {
-      const x = -openW / 2 + 0.4 + k * ((openW - 0.8) / (n - 1));
-      put(m.white, 0.68, 0.9, 0.65, x, 0.45, back + 0.4);
-      put(m.dark, 0.36, 0.36, 0.02, x, 0.5, back + 0.73);
-      put(m.white, 0.68, 0.7, 0.65, x, 1.25, back + 0.4);
-      put(m.dark, 0.3, 0.3, 0.02, x, 1.3, back + 0.73);
-    }
-    put(m.wood, openW * 0.5, 0.05, 0.6, 0, 0.8, mid + 0.6);
-    put(m.chair, openW * 0.4, 0.4, 0.35, 0, 0.2, front - 0.8);
-  } else if (kind === 'chairs') {
-    for (let k = 0; k < 2; k++) {
-      const x = -openW * 0.2 + k * openW * 0.4;
-      put(m.chair, 0.6, 0.5, 0.6, x, 0.55, back + 0.8);
-      put(m.chair, 0.6, 0.7, 0.12, x, 1.0, back + 0.55);
-      put(goodsMat(0xc8dcec), 0.8, 1.0, 0.04, x, 1.5, back + 0.08);
-      put(m.shelf, 0.8, 0.04, 0.25, x, 1.0, back + 0.15);
-    }
-    put(m.chair, openW * 0.4, 0.42, 0.4, 0, 0.21, front - 0.8);          // the waiting bench
-  }
-  // fluorescent strips across the ceiling
-  for (let z = back + 0.5; z < front - 0.4; z += 1.1) put(m.light, openW * 0.55, 0.03, 0.18, 0, 2.43, z);
-  for (const [mat, parts] of byMat) {
-    const mesh = new THREE.Mesh(bake(parts), mat);
-    mesh.receiveShadow = true;
-    mesh.userData.noOutline = true;
-    inner.add(mesh);
-  }
-}
+/** Board-clad upper storeys over a shop: the house generator's own tones. */
+const UPPER_SIDING = [0xe9e4d6, 0xc9d8cc, 0xcad6e4, 0xe6d8c4];
+/** Glazed facing tile: biscuit, brick brown, and the pale green of the 1970s. */
+const UPPER_TILE = [0xd8c0a0, 0xb88a6a, 0xc8d4c0];
 
 /**
  * Build a shop-house on a lot.
@@ -203,18 +71,36 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
   const w = Math.max(5.6, lot.w - r.range(0.2, 0.6));
   const d = Math.min(lot.depth - setback - 0.4, r.range(8.5, 11));
   const c = F.at(r.range(-0.2, 0.2), setback + d / 2);
-  const REC = 3.4;               // deep enough to read as a room (M2e; was 1.9)
+  // (town pass) a shallow room: two painted cards stand in for its furniture
+  const REC = 1.7;
   const floors = o.maxFloors === 1 ? 1 : 2;
   const balcony = floors === 2 && r.chance(0.5);
 
+  /* (town pass) the facade's finish, from its own draw so the layout never
+   * shifts: signs in the trade's own hand, a shutter box, a canopy, boards
+   * upstairs */
+  const f = rngKit(lot.seed + 9191);
+  const look = {
+    fasciaMap: fasciaTex(trade, (w - 0.2) / 0.72),
+    bladeMap: bladeTex(trade),
+    valanceMap: T.awning !== undefined ? valanceTex(trade, AWNINGS[T.awning % AWNINGS.length], w / 0.3) : null,
+    shutterBox: trade === 'closed' || f.chance(0.65),
+    canopy: !T.noren && f.chance(0.7),
+    upperSiding: f.chance(0.35) ? f.pick(UPPER_SIDING) : undefined,
+    upperTile: f.chance(0.3) ? f.pick(UPPER_TILE) : undefined,
+    interiorTint: 0xc4bccb,
+    doorX: f.pick([0, 0, -1, 1]) * Math.max(0, w / 2 - 1.8),
+  };
+  if (trade === 'closed') look.shutter = 1;
   const g = makeShop(ctx, {
     x: c.x, y: 0, z: c.z, w, d, face: F.faceKey, kind: trade, floors, seed: lot.seed,
     roofKind: r.pick(['flat', 'gable', 'flat']), awning: T.awning ?? false,
     blade: T.blade ?? (r.chance(0.4) ? trade : false), bladeSide: r.sign(),
     noren: T.noren, shutter: T.shutter ?? (r.chance(0.1) ? 0.35 : 0), lit: true,
     balcony, recess: REC,
-    interiorMap: shopBackTex(T.inside === 'shelves' ? tradeGoods(trade) : trade),
+    interiorMap: T.inside === 'none' ? null : roomTex(trade, T.inside),
     wall: r.int(0, 5), roof: r.int(0, 3),
+    ...look,
   });
   g.name = `shop-${trade}`;
   {
@@ -227,6 +113,8 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
 
   // windows down the flanks: the home upstairs, the back room below
   sideWindows(g, { hw: w / 2, hd: d / 2 - 0.6, floors, fh: 3.0, sideX: true, glass: ctx.night?.glass(r.chance(0.7)), seed: lot.seed });
+  // (town pass) the back: the kitchen below, the home above, seen where a block opens
+  sideWindows(g, { hw: w / 2, hd: d / 2, floors, fh: 3.0, sideX: false, glass: ctx.night?.glass(f.chance(0.6)), seed: lot.seed + 7, sides: [-1] });
 
   // the flank: the outdoor unit of the shop's air conditioning, and the gas meter
   {
@@ -255,9 +143,29 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
   g.add(inner);
   const openW = w - 1.0;
   if (T.inside !== 'none' && !T.shutter) {
-    // a room you can read through the glass (M2e): furniture by trade,
-    // fluorescent strips on the ceiling, the painted back wall behind
-    furnish(inner, T.inside, trade, { openW, back, front, REC, r });
+    /* a room you can read through the glass: the back wall is makeShop's
+     * card (kit/facade/signs.js roomTex); a metre in front of it the cut-out
+     * of the counter, shelf ends or chairs (counterTex), the side walls
+     * pale as a lit room's, and the ceiling's fluorescent strips */
+    const cw = openW - 0.2, ch = 1.3;
+    const card = new THREE.Mesh(new THREE.PlaneGeometry(cw, ch),
+      flat({ color: 0xd8d0dc, map: counterTex(trade, T.inside, cw / ch), alphaTest: 0.5, cache: false }));
+    card.position.set(0, 0.12 + ch / 2, back + REC * 0.42);
+    card.userData.noOutline = true;
+    inner.add(card);
+    for (const s of [-1, 1]) {
+      const side = new THREE.Mesh(new THREE.PlaneGeometry(REC - 0.1, 2.4), m.side);
+      side.position.set(s * (openW / 2 - 0.01), 1.3, back + (REC - 0.1) / 2);
+      side.rotation.y = -s * Math.PI / 2;
+      side.userData.noOutline = true;
+      inner.add(side);
+    }
+    for (const z of [back + 0.45, front - 0.55]) {
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(openW * 0.55, 0.03, 0.16), m.light);
+      strip.position.set(0, 2.43, z);
+      strip.userData.noOutline = true;
+      inner.add(strip);
+    }
     // at night the shop is lit from inside: a warm glow just behind the glass
     ctx.night?.glow(g, openW - 0.1, 2.3, 0, 1.35, front - 0.14);
   }
@@ -361,12 +269,40 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
   // the family's washing out on the balcony, now and then
   if (balcony && r.chance(0.6)) hangLaundry(ctx, F.at(0, setback - 0.3), ry + Math.PI / 2, r, 4.55);
 
-  return { group: g, trade };
-}
+  /* (town pass) on a corner, the name again flat on the flank up high, for
+   * the cross street (the blade's own art: no new texture) */
+  if (lot.corner && floors === 2) {
+    for (const s of [-1, 1]) {
+      const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 2.26), flat({ color: 0xffffff, map: bladeTex(trade), cache: false }));
+      pl.position.set(s * (w / 2 + 0.025), 3.2 + 1.35, front - 1.0);
+      pl.rotation.y = s * Math.PI / 2;
+      pl.userData.noOutline = true;
+      g.add(pl);
+      const rim = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.36, 0.72), m.side);
+      rim.position.set(s * (w / 2 + 0.005), 3.2 + 1.35, front - 1.0);
+      g.add(rim);
+    }
+  }
 
-/** Which goods a shelved shop's back wall shows. */
-function tradeGoods(trade) {
-  return { bakery: 'bakery', florist: 'florist', books: 'books', greengrocer: 'general', hardware: 'general' }[trade] ?? 'general';
+  /* (town pass) upstairs, where there is no balcony: the room's air
+   * conditioner hung on the wall by a window, a window box of flowers */
+  if (floors === 2 && !balcony) {
+    const H1 = 3.2, wallZ = front - 0.4;
+    if (f.chance(0.6)) {
+      const ac = makeAircon({ x: f.sign() * (w / 2 - 0.58), y: H1 + 0.62, z: wallZ + 0.24, feet: false, standoff: 0.09 });
+      ac.userData.detail = true;
+      g.add(ac);
+    }
+    if (f.chance(0.45)) {
+      const cols = Math.max(1, Math.floor((w - 0.8) / 1.9));
+      const i = f.int(0, cols - 1);
+      const fb = flowerBox(1.3, lot.seed + 31);
+      fb.position.set(-w / 2 + (w * (i + 1)) / (cols + 1), H1 + 0.77, front - 0.02);
+      g.add(fb);
+    }
+  }
+
+  return { group: g, trade };
 }
 
 /** The barber's pole: a striped drum in a glass case on the wall. */

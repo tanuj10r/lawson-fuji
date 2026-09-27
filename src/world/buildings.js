@@ -5,6 +5,8 @@ import { meterBox } from '../core/textures.js';
 import { box, cyl, bake, trs, rngKit } from '../core/util.js';
 import { hullOutline } from '../core/outline.js';
 import { windowCell, sillStreakTex } from './kit/paint.js';
+import { chamferBox } from './kit/facade/forms.js';
+import { flowerBox } from './kit/facade/dress.js';
 
 /* ------------------------------------------------------------------ *
  * Low-rise Japanese houses.
@@ -93,10 +95,12 @@ export function makeHouse(o) {
   const pvcCol = wr.pick([0xb9bec8, 0xd8ccb4, 0x6a5a50, 0xe8e8ea]);
   const grilled = wr.chance(0.4);
   const faceRy = Math.atan2(fx, fz);
+  const fr = rngKit((o.seed ?? 7) + 1717);
   const push = (k, geo, mx) => parts[k].push({ geometry: geo, matrix: mx });
 
   /* -------------------------------- volume -------------------------------- */
-  push('wall', new THREE.BoxGeometry(w, H, d), trs(0, H / 2, 0));
+  // (town pass) the upright edges chamfered, so a corner takes a cel band
+  push('wall', o.chamfer === false ? new THREE.BoxGeometry(w, H, d) : chamferBox(w, H, d), trs(0, H / 2, 0));
   // ground sill
   push('concrete', new THREE.BoxGeometry(w + 0.14, 0.42, d + 0.14), trs(0, 0.21, 0));
   if (floors === 2) {
@@ -138,6 +142,23 @@ export function makeHouse(o) {
     }
     push('roof', new THREE.BoxGeometry(alongZ ? 0.22 : len, 0.17, alongZ ? len : 0.22), trs(0, H + rh + 0.04, 0));
     triGeo.dispose();
+    if (o.eaves !== false) {
+      /* (town pass) real eaves: a fascia board you can see the thickness
+       * of, the gutter hung under it, and barge boards up the gable ends */
+      for (const s of [-1, 1]) {
+        const e = s * (span / 2 + 0.02);
+        push('trim', alongZ ? new THREE.BoxGeometry(0.05, 0.2, len) : new THREE.BoxGeometry(len, 0.2, 0.05), alongZ ? trs(e, H - 0.02, 0) : trs(0, H - 0.02, e));
+        const gz = s * (span / 2 + 0.1);
+        push('pvc', alongZ ? new THREE.BoxGeometry(0.13, 0.1, len - 0.1) : new THREE.BoxGeometry(len - 0.1, 0.1, 0.13), alongZ ? trs(gz, H - 0.1, 0) : trs(0, H - 0.1, gz));
+        for (const t of [-1, 1]) {
+          // a barge board down each edge of each gable end
+          const bl = slabLen - 0.04;
+          const bx = t * span / 4, by = H + rh / 2 + 0.02, bz = s * (len / 2 + 0.03);
+          push('trim', alongZ ? new THREE.BoxGeometry(bl, 0.16, 0.05) : new THREE.BoxGeometry(0.05, 0.16, bl),
+            alongZ ? trs(bx, by, bz, 0, 0, -t * slope) : trs(bz, by, bx, t * slope, 0, 0));
+        }
+      }
+    }
   } else if (roofKind === 'hip') {
     const rh = 1.05 + rng.range(0, 0.4);
     // a four-sided cone rotated 45 degrees is an axis-aligned unit pyramid
@@ -146,6 +167,14 @@ export function makeHouse(o) {
     push('roof', pyr, trs(0, H + rh / 2 + 0.06, 0, 0, 0, 0, rw, rh, rd));
     push('roof', new THREE.BoxGeometry(rw, 0.16, rd), trs(0, H + 0.06, 0));
     pyr.dispose();
+    if (o.eaves !== false) {
+      // (town pass) the fascia round the eaves, and the gutter under it
+      push('trim', new THREE.BoxGeometry(rw + 0.04, 0.12, rd + 0.04), trs(0, H - 0.02, 0));
+      for (const s of [-1, 1]) {
+        push('pvc', new THREE.BoxGeometry(rw, 0.1, 0.12), trs(0, H - 0.1, s * (rd / 2 + 0.08)));
+        push('pvc', new THREE.BoxGeometry(0.12, 0.1, rd), trs(s * (rw / 2 + 0.08), H - 0.1, 0));
+      }
+    }
   } else if (roofKind === 'shed') {
     /* 片流れ -- one slab falling the whole way across.
      *
@@ -232,6 +261,13 @@ export function makeHouse(o) {
         for (const dy of [-wh / 2 - 0.02, wh / 2 + 0.02]) {
           push('grille', new THREE.BoxGeometry(frontIsX ? 0.05 : ww + 0.02, 0.04, frontIsX ? ww + 0.02 : 0.05), trs(px + fx * 0.16, y + dy, pz + fz * 0.16));
         }
+      }
+      // (town pass) a window box of flowers on some sills (its own draw)
+      if (fr.chance(o.flowers ?? 0) && !(low && grilled)) {
+        const fb = flowerBox(ww * 0.85, (o.seed ?? 7) + Math.round(y * 10 + u * 7));
+        fb.position.set(px + fx * 0.14, y - wh / 2 - 0.05, pz + fz * 0.14);
+        fb.rotation.y = faceRy;
+        g.add(fb);
       }
       // the streak the sill leaves on the wall below
       const sh = wr.range(0.6, 1.1);
@@ -355,8 +391,31 @@ export function makeHouse(o) {
     const s = rng.sign();
     const px = frontIsX ? fx * (frontHalf + 0.4) : s * (sideHalf * 0.5);
     const pz = frontIsX ? s * (sideHalf * 0.5) : fz * (frontHalf + 0.4);
-    push('trim', new THREE.BoxGeometry(frontIsX ? 0.7 : 0.86, 0.6, frontIsX ? 0.86 : 0.7),
-      trs(px, floors === 2 ? fh + 0.4 : 1.9, pz));
+    /* (town pass) a wall-hung outdoor unit on its brackets, the fan's
+     * round grille on its face, rather than a blank box */
+    // upstairs it hangs on the wall; a bungalow's stands on the ground, under the sills
+    const hung = floors === 2;
+    const y = hung ? fh + 0.4 : 0.36;
+    const acRy = frontIsX ? (fx > 0 ? Math.PI / 2 : -Math.PI / 2) : (fz > 0 ? 0 : Math.PI);
+    const q = (u, v, t) => {
+      // u across the unit, v up, t out from the wall (unit's own frame) -> house
+      const cs = Math.cos(acRy), sn = Math.sin(acRy);
+      return [px + u * cs + t * sn, y + v, pz - u * sn + t * cs];
+    };
+    const bodyAt = q(0, 0, 0);
+    push('trim', new THREE.BoxGeometry(0.82, 0.58, 0.3), trs(...bodyAt, 0, acRy, 0));
+    const fan = new THREE.CylinderGeometry(0.22, 0.22, 0.03, 12);
+    fan.rotateX(Math.PI / 2);
+    push('metalDark', fan, trs(...q(0.05, 0.02, 0.16), 0, acRy, 0));
+    fan.dispose();
+    for (const s of [-1, 1]) {
+      if (hung) {
+        push('metalDark', new THREE.BoxGeometry(0.05, 0.04, 0.5), trs(...q(s * 0.32, -0.31, -0.1), 0, acRy, 0));
+        push('metalDark', new THREE.BoxGeometry(0.05, 0.4, 0.04), trs(...q(s * 0.32, -0.12, -0.33), 0, acRy, 0));
+      } else {
+        push('metalDark', new THREE.BoxGeometry(0.1, 0.08, 0.3), trs(...q(s * 0.3, -0.33, 0), 0, acRy, 0));
+      }
+    }
   }
   // electricity meter
   {
@@ -389,6 +448,8 @@ export function makeHouse(o) {
   for (const key of Object.keys(parts)) {
     if (!parts[key].length) continue;
     const mesh = new THREE.Mesh(bake(parts[key]), matFor[key]);
+    // (town pass) a textured roof (kawara, sheet) is laid in metres down each slope
+    if (key === 'roof' && roofMat.map) roofUV(mesh.geometry, o.roofTile ?? 2.4);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     if (key === 'wall' || key === 'roof') hullOutline(mesh, { thickness: 0.0032 });
@@ -401,6 +462,29 @@ export function makeHouse(o) {
   // where the front door is, along the frontage from the centre
   g.userData.doorU = doorU;
   return g;
+}
+
+/** UVs for a roof in metres: on each slope u runs along the eaves and v
+ * down the fall, so tile rows follow the ridge and sheet ribs run downhill;
+ * upright faces (fascias, gable ends) take x or z by y. */
+function roofUV(geo, tile) {
+  const pos = geo.attributes.position, nor = geo.attributes.normal, uv = geo.attributes.uv;
+  if (!uv || !nor) return;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const nx = nor.getX(i), ny = nor.getY(i), nz = nor.getZ(i);
+    const h = Math.hypot(nx, nz);
+    if (ny > 0.3 && h > 0.05) {
+      const dx = nx / h, dz = nz / h;                 // downhill, level
+      const cos = ny;                                 // the slope's foreshortening
+      uv.setXY(i, (x * -dz + z * dx) / tile, (x * dx + z * dz) / (tile * Math.max(0.4, cos)));
+    } else if (Math.abs(ny) > 0.5) {
+      uv.setXY(i, x / tile, z / tile);
+    } else {
+      uv.setXY(i, (Math.abs(nx) > Math.abs(nz) ? z : x) / tile, y / tile);
+    }
+  }
+  uv.needsUpdate = true;
 }
 
 /* ------------------------------------------------------------------ *

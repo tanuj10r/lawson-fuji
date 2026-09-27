@@ -105,3 +105,26 @@ export const RIVER = { jp: '桜川', kana: 'さくらがわ' };
 /** The board on the closed gate at the far side of the paddies: a place to
  * come (Tan's Deer Park).  The English line is for players, on purpose. */
 export const DEER_PARK = { jp: '鹿公園', soon: '近日公開', en: 'Deer Park · coming soon' };
+
+/* ---- facades & shopfronts (town quality pass) ----
+ * How each trade letters its signs: `face` the hand (brush for the old
+ * trades, round for the modern ones), `board` the fascia's make (timber
+ * board, painted panel, or a white panel with a round mark). */
+export const SHOP_LETTERING = {
+  soba: { face: 'brush', board: 'wood' },
+  wagashi: { face: 'brush', board: 'wood' },
+  ramen: { face: 'brush', board: 'panel' },
+  books: { face: 'brush', board: 'wood' },
+  general: { face: 'brush', board: 'panel' },
+  greengrocer: { face: 'brush', board: 'panel' },
+  hardware: { face: 'brush', board: 'panel' },
+  closed: { face: 'brush', board: 'panel' },
+  bakery: { face: 'round', board: 'round' },
+  florist: { face: 'round', board: 'round' },
+  cafe: { face: 'round', board: 'round' },
+  barber: { face: 'round', board: 'round' },
+  laundry: { face: 'round', board: 'round' },
+  dentist: { face: 'round', board: 'round' },
+};
+/** The sweet shop's wooden menu tags, over its counter. */
+export const SWEET_TAGS = ['だんご', '大福', 'さくら餅', 'どら焼', 'もなか', '羊羹', 'おはぎ', '柏餅'];

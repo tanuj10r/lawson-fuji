@@ -50,6 +50,15 @@ export function createMinimap(world) {
   const cc = corner.getContext('2d');
 
   const lawson = art.places.find((p) => p.id === 'lawson');
+  // the experiences (Tan's things to do): the same soft yellow as their glow in town
+  const spots = () => world.experiences?.list ?? [];
+  const gem = (c, x, y, r) => {
+    c.save();
+    c.beginPath(); c.moveTo(x, y - r); c.lineTo(x + r * 0.7, y); c.lineTo(x, y + r); c.lineTo(x - r * 0.7, y); c.closePath();
+    c.fillStyle = '#ffd76a'; c.fill();
+    c.lineWidth = Math.max(1, r * 0.22); c.strokeStyle = 'rgba(90,64,20,0.85)'; c.stroke();
+    c.restore();
+  };
   let last = { x: NaN, z: NaN, yaw: NaN };
 
   /* ---- the corner map ---- */
@@ -76,6 +85,10 @@ export function createMinimap(world) {
       if (p.id === 'lawson') continue;
       const [x, y, d] = at(p.w.x, p.w.z);
       if (d < RANGE * 0.95) drawIcon(cc, p.kind, x, y, 10 * dpr);
+    }
+    for (const e of spots()) {
+      const [x, y, d] = at(e.x, e.z);
+      if (d < RANGE * 0.95) gem(cc, x, y, 7 * dpr);
     }
     // the Lawson: always shown, on the rim when it is out of range
     {
@@ -132,6 +145,10 @@ export function createMinimap(world) {
     // icons first, then labels beside them: right, left, below or above,
     // whichever is clear of the others
     const icons = art.places.map((p) => { const [x, y] = P(p.w.x, p.w.z); taken.push([x - r, y - r, x + r, y + r]); return { p, x, y }; });
+    for (const e of spots()) {
+      const [x, y] = P(e.x, e.z);
+      gem(c, x, y, 9 * dpr);
+    }
     for (const { p, x, y } of icons) {
       drawIcon(c, p.kind, x, y, r);
       c.font = `bold ${15 * dpr}px ${JP}`;

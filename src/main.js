@@ -204,7 +204,8 @@ canvas.addEventListener('click', () => {
 });
 
 player.onInteract = (target) => {
-  if (target) target.action?.();
+  // an experience's action may seat the player or say a line (world/land/slowlife.js)
+  if (target) target.action?.({ player, hud });
 };
 
 /* ------------------------------- pipeline ------------------------------- */
@@ -440,6 +441,7 @@ function controlRows(hovered) {
   // standing on a famous view the shot is the point (the minimap keeps off
   // it too): only how to take the camera back
   if (hero || famousView) return [['WASD', K.leaveView], ['1 2 3', K.views]];
+  if (player.seat) return [['Any key', K.standUp]];
   const rows = [['WASD', K.move], ['Mouse', K.look]];
   if (shop?.inside(camera)) {
     // in the store: what E does here, and the basket
@@ -502,7 +504,7 @@ function frame(now = 0) {
   // in the store the shelves are aimed at by the shop; outside, the hitboxes
   let hovered = null;
   if (shop) shop.update(dt, camera, player.bob);
-  if (player.locked && !basketPanel?.open) {
+  if (player.locked && !basketPanel?.open && !player.seat) {
     hovered = shop?.inside(camera) ? shop.pick(camera) : player.pick(world.interactables);
   }
   if (shop && !(hovered?.unit)) shop.clearAim();

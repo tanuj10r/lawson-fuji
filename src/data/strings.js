@@ -27,6 +27,7 @@ export const STRINGS = {
     putBack: 'Put one back',
     close: 'Close',
     leaveView: 'Look around',
+    standUp: 'Stand up',
   },
   controls: [
     ['WASD', 'Move'],
@@ -82,4 +83,8 @@ export const STRINGS = {
   },
   refOn: 'reference overlay on',
   refOff: 'reference overlay off',
+  /* The slow-life bench by the paddies and 鏡池 (world/land/slowlife.js). */
+  slowlife: {
+    sit: 'Nowhere to be. Stay as long as you like.',
+  },
 };

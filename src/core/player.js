@@ -50,6 +50,8 @@ export class Player {
     this.holdLook = false;
     this.onReleaseLook = null;
     this._slack = 0;
+    /* Seated (Tan's experiences): see sit() / stand().  null when walking. */
+    this.seat = null;
 
     this._bind();
     this.applyCamera(0);
@@ -58,6 +60,14 @@ export class Player {
   _bind() {
     const onMove = (e) => {
       if (!this.locked || this.suspended) return;     // suspended: the full map is open
+      if (this.seat) {
+        // seated, the view is held; a deliberate move (once settled) stands you up
+        if (this.seat.dir > 0 && this.seat.k > 0.98) {
+          this.seat.slack += Math.abs(e.movementX) + Math.abs(e.movementY);
+          if (this.seat.slack > 90) this.stand();
+        }
+        return;
+      }
       if (this.holdLook) {
         this._slack += Math.abs(e.movementX) + Math.abs(e.movementY);
         if (this._slack < 60) return;
@@ -80,6 +90,12 @@ export class Player {
       if (e.repeat) return;
       const c = e.code;
       this.keys.add(c);
+      if (this.seat) {
+        // seated: any key stands you up (and does nothing else)
+        if (this.locked && this.seat.dir > 0) this.stand();
+        if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'].includes(c) && this.locked) e.preventDefault();
+        return;
+      }
       if (c === 'KeyE' && this.locked) this.onInteract?.(this.hovered);
       if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'].includes(c) && this.locked) e.preventDefault();
     });
@@ -91,6 +107,70 @@ export class Player {
   hold() {
     this.holdLook = true;
     this._slack = 0;
+  }
+
+  /**
+   * Sit down (Tan's experiences; world/land/slowlife.js is the first user).
+   * The view eases over ~1.4 s from where you stand to the seat: feet to
+   * (x, z), the eye down to `eyeY` above the ground, the look to `yaw` /
+   * `pitch` (world frame), with a small settle at the end.  Seated, the
+   * view is held and nothing moves you; any key, or a deliberate mouse
+   * move, stands you up again (back where you stood, facing where you
+   * sat).  `onStand` is called as you start to rise.
+   *
+   *   player.sit({ x, z, yaw, pitch = 0, eyeY = 1.1, onStand })
+   *   player.stand()
+   *   player.seated     // true from sit() until you start to rise
+   */
+  sit({ x, z, yaw, pitch = 0, eyeY = 1.1, onStand = null } = {}) {
+    if (this.seat) return;
+    this.vel.set(0, 0, 0);
+    this.keys.clear();
+    this.holdLook = false;
+    // the shortest way round to the seat's heading
+    let to = yaw ?? this.yaw;
+    while (to - this.yaw > Math.PI) to -= Math.PI * 2;
+    while (to - this.yaw < -Math.PI) to += Math.PI * 2;
+    this.seat = {
+      from: { x: this.pos.x, z: this.pos.z, yaw: this.yaw, pitch: this.pitch },
+      to: { x, z, yaw: to, pitch },
+      eyeY, onStand, k: 0, dir: 1, slack: 0,
+    };
+  }
+
+  /** Stand up from sit(): eases back to where you stood, facing as you sat. */
+  stand() {
+    const s = this.seat;
+    if (!s || s.dir < 0) return;
+    s.dir = -1;
+    // rise facing the way you sat, the look level
+    s.from.yaw = s.to.yaw;
+    s.from.pitch = 0;
+    s.onStand?.();
+  }
+
+  get seated() { return !!this.seat && this.seat.dir > 0; }
+
+  /** A frame of sitting down, sitting, or getting up. */
+  _seatUpdate(dt) {
+    const s = this.seat;
+    s.k = clamp(s.k + (dt * s.dir) / (s.dir > 0 ? 1.4 : 0.8), 0, 1);
+    const k = s.k;
+    const e = k * k * (3 - 2 * k);                      // the move: smooth in and out
+    // the eye drops a touch past the seat and comes back up (a gentle settle)
+    const settle = s.dir > 0 ? Math.sin(Math.min(1, Math.max(0, (k - 0.55) / 0.45)) * Math.PI) * 0.035 : 0;
+    const a = s.from, b = s.to;
+    this.pos.x = a.x + (b.x - a.x) * e;
+    this.pos.z = a.z + (b.z - a.z) * e;
+    this.pos.y = this.world.heightAt(this.pos.x, this.pos.z, this.pos.y);
+    this.yaw = a.yaw + (b.yaw - a.yaw) * e;
+    this.pitch = a.pitch + (b.pitch - a.pitch) * e;
+    this.bob = 0;
+    this.vel.set(0, 0, 0);
+    const eye = this.pos.y + EYE + (s.eyeY - EYE) * e - settle;
+    this.camera.position.set(this.pos.x, eye, this.pos.z);
+    this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+    if (s.dir < 0 && k === 0) this.seat = null;         // up again: walking resumes
   }
 
   lock() {
@@ -121,6 +201,7 @@ export class Player {
   }
 
   update(dt) {
+    if (this.seat) { this._seatUpdate(dt); return; }
     const k = this.keys;
     const sprint = k.has('ShiftLeft') || k.has('ShiftRight');
     const speed = sprint ? this.runSpeed : this.walkSpeed;

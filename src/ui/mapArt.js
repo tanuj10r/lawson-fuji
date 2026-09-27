@@ -74,7 +74,7 @@ export function paintMap(world) {
   }
 
   /* ---- the special lots ---- */
-  const lotFill = { park: C.park, shrine: C.shrine, plaza: C.plaza, coinParking: C.parking, vacant: C.vacant, station: C.station, apartment: C.building };
+  const lotFill = { park: C.park, shrine: C.shrine, plaza: C.plaza, coinParking: C.parking, vacant: C.vacant, station: C.station, apartment: C.building, megastore: C.building };
   for (const s of SPECIALS) if (lotFill[s.kind]) rect([s.x0, s.z0, s.x1, s.z1], lotFill[s.kind]);
 
   /* ---- the railway and its platforms ---- */

@@ -64,3 +64,26 @@ untouched.
   seats read through it, with the sky pale in its top; the windscreen's
   streaks now run across it (its own u), so it no longer reads as an open
   cockpit from the front.
+
+## Han (han/han.js, one line in han/index.js)
+- **The head was the likeness problem.** It was wide and round under a
+  helmet of hair with two thick side curtains. Now: the face 6% narrower
+  and 3% longer with a finer jaw and a forehead that tapers to the crown;
+  the hair shell 3.5% off the skull (was 7%), the curtain hugging the head
+  and tucking in behind the ears (its cut edges stood as flat black panels
+  beside the face), finer shag cones. The face map: narrower eyes, a
+  fuller goatee and moustache, the faintest socket and nose-bridge shading
+  so the face has a middle. Same 256 px map, same draws.
+- **Arms folded, not clasped.** With the joints' order (Ry·Rx on a hanging
+  arm), a horizontal inward forearm is flexion -1.5 with a twist of ∓1.6;
+  the two upper arms are at different depths (-0.85 / -0.45) so the
+  forearms stack rather than collide. Two earlier tries met at the sternum
+  (clasped hands) and stood up like a boxer's guard.
+- **Clothes with some cloth in them.** Soft vertical folds worked into the
+  jacket's lathe (more toward the hem), lapels either side of the opening,
+  a fuller chain with a pendant, hands with a thumb and a flatter palm,
+  trainers with a heel counter, a thicker sole and a pale toe cap.
+- **Leaning on a taller car.** The FD's belt is 12 cm higher now, so his
+  hips (pelvis 0.86 m, was 0.82) rest on the rear quarter 11 cm out from
+  the body (was 5), the legs a little less splayed to keep the feet where
+  they were.

@@ -31,9 +31,9 @@ const C = {
 export const POSES = {
   /* leaning back on the car's rear quarter, arms crossed, ankles crossed */
   lean: {
-    pelvisY: 0.82, pelvisZ: 0.02, pelvisX: 0, spineX: -0.3, chestX: 0.08, headX: 0.16, headZ: 0.05,
-    lShX: -0.3, lShZ: 0.2, lElX: -1.95, lElY: -1.18, rShX: -0.36, rShZ: -0.2, rElX: -2.0, rElY: 1.22,
-    lHipX: -0.5, lHipZ: -0.17, lKnee: 0.04, lFoot: 0.5, rHipX: -0.42, rHipZ: 0.09, rKnee: 0.1, rFoot: 0.4,
+    pelvisY: 0.86, pelvisZ: 0.02, pelvisX: 0, spineX: -0.28, chestX: 0.1, headX: 0.14, headZ: 0.05,
+    lShX: -0.85, lShZ: 0.3, lElX: -1.5, lElY: -1.6, rShX: -0.45, rShZ: -0.3, rElX: -1.55, rElY: 1.6,
+    lHipX: -0.42, lHipZ: -0.17, lKnee: 0.04, lFoot: 0.42, rHipX: -0.35, rHipZ: 0.09, rKnee: 0.1, rFoot: 0.34,
   },
   /* standing, weight even, arms down */
   stand: {
@@ -67,12 +67,13 @@ function shapeHead(g, r) {
   for (let i = 0; i < p.count; i++) {
     let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
     const t = y / r;
-    const cheek = 1 + 0.07 * Math.exp(-(((t + 0.05) / 0.25) ** 2));
-    const jaw = t < 0 ? 1 - 0.26 * (-t) ** 1.6 : 1;
-    x *= 0.93 * cheek * jaw;
-    z *= 1.0 * (t < 0 ? 1 - 0.12 * (-t) ** 2 : 1);
-    y *= 1.2;
-    if (t < -0.55 && z > 0) z += 0.012 * (-t - 0.55);    // the chin, forward a little
+    const cheek = 1 + 0.07 * Math.exp(-(((t + 0.02) / 0.22) ** 2));
+    const jaw = t < 0 ? 1 - 0.32 * (-t) ** 1.5 : 1;
+    const brow = t > 0.35 ? 1 - 0.07 * (t - 0.35) : 1;      // the forehead tapers toward the crown
+    x *= 0.87 * cheek * jaw * brow;
+    z *= 1.0 * (t < 0 ? 1 - 0.14 * (-t) ** 2 : 1);
+    y *= 1.24;
+    if (t < -0.55 && z > 0) z += 0.014 * (-t - 0.55);    // the chin, forward a little
     p.setXYZ(i, x, y, z);
   }
   g.computeVertexNormals();
@@ -104,10 +105,13 @@ function faceTex() {
   // stubble: the faintest shadow round the chin; a small goatee under the lip, a thin moustache
   g.fillStyle = 'rgba(90,62,62,0.1)';
   g.beginPath(); g.ellipse(X(0.5), Y(2.18), S * 0.085, S * 0.05, 0, 0, Math.PI * 2); g.fill();
-  g.fillStyle = 'rgba(48,32,36,0.55)';
-  g.beginPath(); g.moveTo(X(0.47), Y(2.12)); g.lineTo(X(0.53), Y(2.12)); g.lineTo(X(0.515), Y(2.25)); g.lineTo(X(0.485), Y(2.25)); g.closePath(); g.fill();
-  g.fillStyle = 'rgba(48,32,36,0.35)';
-  g.beginPath(); g.ellipse(X(0.5), Y(1.985), S * 0.055, 2.2, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = 'rgba(48,32,36,0.72)';
+  g.beginPath(); g.moveTo(X(0.462), Y(2.11)); g.lineTo(X(0.538), Y(2.11)); g.lineTo(X(0.52), Y(2.27)); g.lineTo(X(0.48), Y(2.27)); g.closePath(); g.fill();
+  g.fillStyle = 'rgba(48,32,36,0.45)';
+  g.beginPath(); g.ellipse(X(0.5), Y(1.98), S * 0.06, 2.6, 0, 0, Math.PI * 2); g.fill();
+  // the bridge of the nose and the sockets: the faintest shading, so the face has a middle
+  g.fillStyle = 'rgba(150,100,95,0.1)';
+  for (const s of [-1, 1]) { g.beginPath(); g.ellipse(X(0.5 + s * 0.12), Y(1.6), S * 0.06, S * 0.035, 0, 0, Math.PI * 2); g.fill(); }
   // brows: straight, dark, a little heavy
   g.strokeStyle = '#231a1e'; g.lineCap = 'round';
   for (const s of [-1, 1]) {
@@ -116,12 +120,12 @@ function faceTex() {
   }
   // eyes: narrow, heavy upper lids, dark irises half hidden, one small light
   for (const s of [-1, 1]) {
-    const cx = X(0.5 + s * 0.17), w = S * 0.085;
-    g.fillStyle = '#f4ece6';
+    const cx = X(0.5 + s * 0.165), w = S * 0.08;
+    g.fillStyle = '#f0e8e2';
     g.save();
-    g.beginPath(); g.ellipse(cx, eyeY + 1, w, 5.5, 0, 0, Math.PI * 2); g.fill(); g.clip();
+    g.beginPath(); g.ellipse(cx, eyeY + 1, w, 5, 0, 0, Math.PI * 2); g.fill(); g.clip();
     g.fillStyle = '#2a1c1c';
-    g.beginPath(); g.ellipse(cx + s * 2, eyeY + 1, 8, 8, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(cx + s * 2, eyeY + 1, 7.5, 7.5, 0, 0, Math.PI * 2); g.fill();
     g.fillStyle = '#fff';
     g.beginPath(); g.arc(cx + s * 2 - 2, eyeY - 1, 1.8, 0, Math.PI * 2); g.fill();
     g.restore();
@@ -186,7 +190,7 @@ function hairGeo(r) {
       + 1.22 * sm(ad, 0.62, 1.5);
     hl += ad > 0.62 ? 0.16 * tri(d * 1.6) * sm(ad, 0.62, 1.0) : 0.05 * tri(d * 2.4);   // shaggy points
     if (th > hl) th = hl;
-    const vol = 1.07 + 0.07 * sm(th, 1.1, 2.0);
+    const vol = 1.035 + 0.05 * sm(th, 1.1, 2.0);
     const st = Math.sin(th), ct = Math.cos(th);
     const k = Math.hypot(x, z) || 1;
     p.setXYZ(i, (x / k) * st * r * vol * 0.97, ct * r * vol * 1.2 + 0.006, (z / k) * st * r * vol * 1.04 - 0.004);
@@ -194,14 +198,17 @@ function hairGeo(r) {
   shell.computeVertexNormals();
   parts.push(shell);
   // the curtain behind, to the shoulders, open at the front
-  const prof = [[0.1, 0.02], [0.114, -0.05], [0.13, -0.11], [0.144, -0.15]].map(([a, b]) => new THREE.Vector2(a, b));
+  const prof = [[0.098, 0.02], [0.105, -0.05], [0.114, -0.11], [0.122, -0.165]].map(([a, b]) => new THREE.Vector2(a, b));
   const cur = new THREE.LatheGeometry(prof, 30, 1.3, Math.PI * 2 - 2.6);
   const cp = cur.getAttribute('position');
   for (let i = 0; i < cp.count; i++) {
-    const y = cp.getY(i);
-    if (y < -0.14) cp.setY(i, y - 0.05 * tri(Math.atan2(cp.getX(i), cp.getZ(i)) * 2.6));
+    const y = cp.getY(i), x = cp.getX(i), z = cp.getZ(i);
+    if (y < -0.15) cp.setY(i, y - 0.045 * tri(Math.atan2(x, z) * 3.2));
+    // its front edges tuck in behind the ears rather than standing as flat panels
+    const k = 0.84 + 0.16 * sm(Math.abs(Math.atan2(x, z)) - 1.3, 0, 0.55);
+    cp.setX(i, x * k); cp.setZ(i, z * k);
   }
-  cur.scale(1.02, 1, 0.92);
+  cur.scale(0.97, 1, 0.9);
   cur.translate(0, 0, -0.012);
   cur.computeVertexNormals();
   parts.push(cur);
@@ -219,11 +226,11 @@ function hairGeo(r) {
   lock(-0.035, 0.088, 0.097, 0.085, 0.025, -0.6, -0.3);
   lock(-0.066, 0.07, 0.088, 0.08, 0.022, -0.3, -0.25);
   // layers flaring out round the sides and back: the shag
-  for (let i = 0; i < 14; i++) {
-    const a = 1.25 + (i / 13) * (Math.PI * 2 - 2.5);         // round from his left, behind, to his right
-    const x = Math.sin(a) * 0.112, z = Math.cos(a) * 0.104 - 0.01;
-    const len = 0.1 + ((i * 7) % 4) * 0.018;
-    const g = new THREE.ConeGeometry(0.036, len, 6, 1);
+  for (let i = 0; i < 16; i++) {
+    const a = 1.25 + (i / 15) * (Math.PI * 2 - 2.5);         // round from his left, behind, to his right
+    const x = Math.sin(a) * 0.1, z = Math.cos(a) * 0.094 - 0.01;
+    const len = 0.09 + ((i * 7) % 4) * 0.017;
+    const g = new THREE.ConeGeometry(0.028, len, 6, 1);
     g.rotateX(Math.PI); g.translate(0, -len / 2, 0);
     g.rotateX(-Math.cos(a) * 0.32); g.rotateZ(Math.sin(a) * 0.32);
     g.translate(x, -0.03 + ((i * 5) % 3) * 0.012, z);
@@ -296,18 +303,39 @@ export function makeHan() {
     const jk = new THREE.LatheGeometry([[0.165, -0.12], [0.17, 0.0], [0.184, 0.2], [0.2, 0.33], [0.215, 0.41], [0.19, 0.46], [0.1, 0.5], [0.075, 0.52]]
       .map(([r, y]) => new THREE.Vector2(r, y)), 28, 0.42, Math.PI * 2 - 0.84);
     jk.scale(1, 1, 0.7);
+    {
+      // folds: the cloth gathers into soft vertical ridges, more toward the hem
+      const p = jk.getAttribute('position');
+      for (let i = 0; i < p.count; i++) {
+        const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+        const a = Math.atan2(x, z), r = Math.hypot(x, z);
+        const k = 1 + (0.03 + 0.03 * THREE.MathUtils.smoothstep(-y, -0.3, 0.12)) * Math.sin(a * 5 + 0.7) * Math.sin(a * 2 + 1.1);
+        p.setXYZ(i, (x / r) * r * k, y, (z / r) * r * k);
+      }
+    }
     jk.computeVertexNormals();
     mesh(chest, jk, M.jacket);
+    // the lapels, turned back either side of the opening
+    for (const s of [-1, 1]) {
+      const lap = new THREE.BoxGeometry(0.055, 0.3, 0.012);
+      lap.translate(0, -0.15, 0);
+      lap.rotateZ(s * 0.28); lap.rotateY(-s * 0.55);
+      lap.translate(s * 0.06, 0.5, 0.125);
+      mesh(chest, lap, M.jacket);
+    }
     // collar
     const col = new THREE.CylinderGeometry(0.074, 0.092, 0.075, 20, 1, true, 0.38, Math.PI * 2 - 0.76);
     col.scale(1, 1, 0.85);
     col.translate(0, 0.505, -0.012);
     mesh(chest, col, M.jacket);
     // the chain: a thin loop lying on the tee
-    const ch = new THREE.TorusGeometry(0.075, 0.005, 4, 24, Math.PI);
+    const ch = new THREE.TorusGeometry(0.082, 0.0055, 5, 28, Math.PI);
     ch.rotateZ(Math.PI); ch.rotateX(-1.2);
     ch.translate(0, 0.47, 0.055);
     mesh(chest, ch, M.chain, false);
+    const pend = new THREE.SphereGeometry(0.011, 8, 6);
+    pend.scale(0.8, 1.1, 0.5); pend.translate(0, 0.395, 0.105);
+    mesh(chest, pend, M.chain, false);
   }
   const neck = node('neck', chest, 0, 0.49, 0);
   const head = node('head', neck, 0, 0.045, 0.012);
@@ -353,8 +381,11 @@ export function makeHan() {
     const cuff = new THREE.CylinderGeometry(0.054, 0.05, 0.03, 12).translate(0, -0.25, 0);
     mesh(el, cuff, M.jacket);
     const hand = new THREE.SphereGeometry(0.042, 12, 8);
-    hand.scale(0.75, 1.25, 1.0); hand.translate(0, -0.3, 0.005);
+    hand.scale(0.78, 1.22, 0.55); hand.translate(0, -0.3, 0.005);
     mesh(el, hand, M.skin, true);          // drawn with the sleeve: one draw per forearm
+    const thumb = new THREE.CapsuleGeometry(0.011, 0.03, 3, 8);
+    thumb.rotateZ(s * 0.9); thumb.translate(s * 0.03, -0.275, 0.014);
+    mesh(el, thumb, M.skin, true);
   };
   arm('l'); arm('r');
   // legs: loose cargo trousers with side pockets, trainers
@@ -369,11 +400,17 @@ export function makeHan() {
     const hem = new THREE.CylinderGeometry(0.068, 0.074, 0.08, 14).translate(0, -0.36, 0);
     mesh(knee, hem, M.khaki);
     const ankle = node(side + 'Foot', knee, 0, -0.42, 0);
-    const shoe = new THREE.CapsuleGeometry(0.048, 0.15, 4, 10);
-    shoe.rotateX(Math.PI / 2); shoe.scale(1.05, 0.85, 1); shoe.translate(0, -0.012, 0.06);
+    const shoe = new THREE.CapsuleGeometry(0.046, 0.13, 4, 10);
+    shoe.rotateX(Math.PI / 2); shoe.scale(1.08, 0.72, 1); shoe.translate(0, -0.016, 0.06);
     mesh(ankle, shoe, M.shoe);
-    const sole = new THREE.BoxGeometry(0.1, 0.028, 0.27).translate(0, -0.05, 0.06);
+    const heel = new THREE.SphereGeometry(0.05, 10, 8);
+    heel.scale(0.95, 0.95, 0.9); heel.translate(0, 0.0, -0.02);
+    mesh(ankle, heel, M.shoe);
+    const sole = new THREE.BoxGeometry(0.104, 0.03, 0.28).translate(0, -0.05, 0.065);
     mesh(ankle, sole, M.sole);
+    const cap = new THREE.SphereGeometry(0.05, 10, 8);
+    cap.scale(1.0, 0.5, 0.7); cap.translate(0, -0.035, 0.17);
+    mesh(ankle, cap, M.sole);
   };
   leg('l'); leg('r');
 

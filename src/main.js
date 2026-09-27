@@ -762,6 +762,9 @@ if (import.meta.env?.DEV) {
       walkRoute('lanes-loop', inTown([[-25.5, 19.5], [-25.5, 80], [30, 80], [30, 146], [0, 146], [0, 112], [-50, 112], [-50, 45], [-25.5, 45]]));
       // the north side (town pass): over the zebra, up the farm track, over the bridge to the Deer Park gate
       walkRoute('to-the-gate', [[-35, 6], [-35, 21], [-35, 38], [-35, 120]]);   // world: the zebra is at x -35
+      // (Tan's layout, wave 2c) the spawn, turned round: down the stairs, over
+      // the stepping stones, up the far stairs, along the far walk to 鏡池
+      walkRoute('spawn-to-pond', [[0, 16.5], [0.9, 36], [0.9, 46.5], [0, 47.5], [0, 62], [0.9, 63.5], [0.9, 71.2], [50, 71.2], [55, 73.8]]);   // world; the stairs' left lane (a handrail runs down x 0)
       // the barricade west to the barricade east, along the main road
       walkRoute('road-end-to-end', [[-116, 13.8], [116, 13.8]]);
 

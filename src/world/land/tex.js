@@ -31,7 +31,7 @@ function wrapped(c, w, h, fn) {
 /* ------------------------------ surfaces ------------------------------ */
 
 /** Tile sizes (metres) of the surfaces below, for world-mapped UVs. */
-export const TILE = { water: 11, plough: 6, renge: 5, track: 3.2, blocks: 3.6, grass: 5 };
+export const TILE = { water: 11, plough: 6, renge: 5, track: 3.2, masonry: 3.2, grass: 5 };
 
 /** Still paddy water: a sky mirror.  Multiplied by the sky's colour at
  * runtime: a mid tone, clouds as long flat streaks (a reflection is
@@ -196,35 +196,6 @@ export const trackTex = () =>
     }
   }, { repeat: true });
 
-/** Concrete revetment blocks (the levee's river face): a staggered grid. */
-export const blocksTex = () =>
-  canvasTex('landBlocks', 256, 256, (c, w, h) => {
-    const r = rng(743);
-    c.fillStyle = '#cfcabd'; c.fillRect(0, 0, w, h);
-    const n = 6;
-    const s = w / n;
-    for (let j = 0; j < n; j++) {
-      for (let i = 0; i < n; i++) {
-        const t = r();
-        c.fillStyle = t < 0.3 ? '#c6c1b3' : t < 0.6 ? '#d6d1c4' : '#cbc6b8';
-        c.fillRect(i * s + 3, j * s + 3, s - 6, s - 6);
-      }
-    }
-    c.strokeStyle = '#a8a296'; c.lineWidth = 3;
-    for (let i = 0; i <= n; i++) {
-      c.beginPath(); c.moveTo(i * s, 0); c.lineTo(i * s, h); c.stroke();
-      c.beginPath(); c.moveTo(0, i * s); c.lineTo(w, i * s); c.stroke();
-    }
-    // damp and moss low down (v = 1 is the waterline)
-    const g = c.createLinearGradient(0, h, 0, h * 0.72);
-    g.addColorStop(0, 'rgba(118,132,110,0.6)'); g.addColorStop(1, 'rgba(118,132,110,0)');
-    c.fillStyle = g; c.fillRect(0, h * 0.72, w, h * 0.28);
-    for (let i = 0; i < 18; i++) {
-      c.fillStyle = 'rgba(140,160,110,0.5)';
-      c.fillRect(r() * w, r() * h, 3, 6 + r() * 10);
-    }
-  }, { repeat: true });
-
 /* ------------------------------ plates ------------------------------ */
 
 /** A deer, side on, walking left: the board's small mark. */
@@ -341,3 +312,129 @@ export function riverSignTex(river) {
     c.fillText(river.kana, 250, h / 2 + 38);
   }, { aniso: 4 });
 }
+
+/* ------------------------------ wave 2c: the channel and the pond ------------------------------ */
+
+/** Masonry for the channel's revetments (間知石 laid in courses): grey
+ * granite blocks, staggered, dark joints, damp low down.  u along the
+ * wall, v up it (v = 0 at the foot). */
+export const masonryTex = () =>
+  canvasTex('landMasonry', 256, 256, (c, w, h) => {
+    const r = rng(811);
+    c.fillStyle = '#7e7a74'; c.fillRect(0, 0, w, h);
+    const rows = 6, rh = h / rows;
+    for (let j = 0; j < rows; j++) {
+      let x = j % 2 ? -rh * 0.6 : 0;
+      while (x < w) {
+        const bw = rh * (1.1 + r() * 0.8);
+        const t = r();
+        const col = t < 0.3 ? '#b9b4aa' : t < 0.6 ? '#c6c1b6' : t < 0.85 ? '#aca79e' : '#cfcabe';
+        const x0 = x;
+        wrapped(c, w, h, () => {
+          c.fillStyle = col;
+          c.beginPath(); c.roundRect(x0 + 2.5, j * rh + 2.5, bw - 5, rh - 5, 5); c.fill();
+          c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(x0 + 5, j * rh + 4, bw - 12, 3);
+        });
+        x += bw;
+      }
+    }
+    const g = c.createLinearGradient(0, h, 0, h * 0.55);
+    g.addColorStop(0, 'rgba(96,112,92,0.55)'); g.addColorStop(1, 'rgba(96,112,92,0)');
+    c.fillStyle = g; c.fillRect(0, h * 0.55, w, h * 0.45);
+    for (let i = 0; i < 30; i++) {
+      c.fillStyle = 'rgba(120,150,96,0.55)';
+      c.fillRect(r() * w, r() * h, 2 + r() * 5, 2 + r() * 3);
+    }
+  }, { repeat: true });
+
+/** Worn granite slabs (the promenades, the river walks): rectangles of a
+ * few sizes, speckled, grass and moss in the joints. */
+export const slabTex = () =>
+  canvasTex('landSlab', 256, 256, (c, w, h) => {
+    const r = rng(823);
+    c.fillStyle = '#8f8c86'; c.fillRect(0, 0, w, h);
+    const rows = 4, rh = h / rows;
+    for (let j = 0; j < rows; j++) {
+      let x = ((j * 37) % 50) - 50;
+      while (x < w) {
+        const bw = rh * (0.9 + r() * 1.3);
+        const t = r();
+        const col = t < 0.35 ? '#c4c0b8' : t < 0.7 ? '#b8b4ac' : '#ccc8bf';
+        const x0 = x;
+        wrapped(c, w, h, () => { c.fillStyle = col; c.fillRect(x0 + 1.5, j * rh + 1.5, bw - 3, rh - 3); });
+        x += bw;
+      }
+    }
+    for (let i = 0; i < 1600; i++) {
+      c.fillStyle = r() < 0.5 ? 'rgba(90,86,82,0.25)' : 'rgba(255,255,255,0.28)';
+      c.fillRect(r() * w, r() * h, 1.5, 1.5);
+    }
+    for (let i = 0; i < 10; i++) {
+      const x = r() * w, y = r() * h, rx = 10 + r() * 22, ry = 6 + r() * 12;
+      wrapped(c, w, h, () => { c.fillStyle = 'rgba(110,104,96,0.14)'; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); c.fill(); });
+    }
+    for (let i = 0; i < 26; i++) {
+      c.fillStyle = 'rgba(112,150,86,0.7)';
+      c.fillRect(r() * w, Math.floor(r() * rows) * rh - 1, 4 + r() * 8, 2.5);
+    }
+  }, { repeat: true });
+
+/** The pond's water: calm, a light chop of short strokes, a few long sky
+ * lights.  Multiplied by the pond's olive at runtime. */
+export const pondTex = () =>
+  canvasTex('landPond', 256, 256, (c, w, h) => {
+    const r = rng(839);
+    c.fillStyle = '#d6d8c8'; c.fillRect(0, 0, w, h);
+    // a light chop: short pale crests, thin and wavy
+    for (let i = 0; i < 130; i++) {
+      const x = r() * w, y = r() * h, len = 6 + r() * 16, a = 0.45 + r() * 0.45;
+      wrapped(c, w, h, () => {
+        c.strokeStyle = `rgba(255,255,248,${a})`; c.lineWidth = 1.1; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + len / 2, y - 1.8, x + len, y); c.stroke();
+      });
+    }
+    // long, flat sky lights
+    for (let i = 0; i < 5; i++) {
+      const x = r() * w, y = r() * h, rx = 30 + r() * 50;
+      wrapped(c, w, h, () => { c.fillStyle = 'rgba(255,255,255,0.3)'; c.beginPath(); c.ellipse(x, y, rx, 2.5, 0, 0, Math.PI * 2); c.fill(); });
+    }
+  }, { repeat: true });
+
+/** A stone marker's carved face: vertical text, dark in grey granite. */
+export function markerTex(text, key) {
+  return canvasTex('landMarker' + key, 96, 256, (c, w, h) => {
+    c.fillStyle = '#c4bfb4'; c.fillRect(0, 0, w, h);
+    const r = rng(857);
+    for (let i = 0; i < 300; i++) { c.fillStyle = r() < 0.5 ? 'rgba(80,76,70,0.2)' : 'rgba(255,255,255,0.25)'; c.fillRect(r() * w, r() * h, 1.5, 1.5); }
+    c.fillStyle = '#34322f';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    const chars = [...text];
+    const step = Math.min(72, (h - 30) / chars.length);
+    c.font = `${Math.round(step * 0.9)}px ${JP_BRUSH}`;
+    chars.forEach((ch, i) => c.fillText(ch, w / 2, 16 + step * (i + 0.5)));
+  }, { aniso: 4 });
+}
+
+/** A shop curtain (暖簾): white letters on indigo, split in three. */
+export function norenTex(text, key) {
+  return canvasTex('landNoren' + key, 256, 128, (c, w, h) => {
+    c.fillStyle = '#2f3f6a'; c.fillRect(0, 0, w, h);
+    c.fillStyle = 'rgba(0,0,0,0.3)';
+    for (let i = 1; i < 3; i++) c.fillRect((i * w) / 3 - 1.5, h * 0.3, 3, h);
+    c.fillStyle = '#f4efe2'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    // as large as fits: the name must never run off the cloth
+    let px = Math.round(h * 0.44);
+    do { c.font = `${px}px ${JP_BRUSH}`; px -= 2; } while (c.measureText(text).width > w * 0.88 && px > 12);
+    c.fillText(text, w / 2, h * 0.5);
+  }, { aniso: 4 });
+}
+
+/** Shoji paper in its kumiko lattice (one panel per box face). */
+export const shojiTex = () =>
+  canvasTex('landShoji', 128, 128, (c, w, h) => {
+    c.fillStyle = '#f7f1e2'; c.fillRect(0, 0, w, h);
+    c.fillStyle = 'rgba(210,196,170,0.35)'; c.fillRect(0, h * 0.72, w, h * 0.28);   // a warmer lower band, where hands touch
+    c.fillStyle = '#6e5444';
+    for (let i = 0; i <= 3; i++) c.fillRect(Math.round((i * (w - 6)) / 3), 0, 6, h);
+    for (let j = 0; j <= 4; j++) c.fillRect(0, Math.round((j * (h - 5)) / 4), w, 5);
+  }, { aniso: 4 });

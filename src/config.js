@@ -464,7 +464,7 @@ export const SHOT_SPOTS = [
   { name: 'pond-bench', scene: 'town', pos: [-55.4, 0, -47.9], yaw: 0.18, pitch: -0.13, looks: ['day', 'golden', 'blue'] },
   { name: 'pond-fuji', scene: 'town', pos: [-59.1, 0, -87.1], yaw: 3.05, pitch: 0.06, looks: ['day', 'golden'] },
   { name: 'pond-lotus', scene: 'town', pos: [-37, 0, -61], yaw: -0.3, pitch: -0.32, looks: ['day'] },
-  { name: 'pond-teahouse', scene: 'town', pos: [-99, 0, -83], yaw: 0.9, pitch: 0.02, looks: ['day', 'blue'] },
+  { name: 'pond-teahouse', scene: 'town', pos: [-58, 0, -81], yaw: 0.05, pitch: 0.06, looks: ['day', 'blue'] },
   { name: 'pond-overview', scene: 'town', pos: [-66, 0, -40], yaw: 0, pitch: -0.55, lift: 34, looks: ['day'] },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },

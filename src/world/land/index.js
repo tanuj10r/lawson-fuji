@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { cel } from '../../core/toon.js';
 import { TOWN } from '../../config.js';
 import { makeParts, makeScatter, sheetGeo } from './geo.js';
-import { ploughTex, rengeTex, trackTex, bankGrassTex, masonryTex, slabTex, TILE } from './tex.js';
+import { ploughTex, rengeTex, trackTex, bankGrassTex, masonryTex, slabTex, TILE, shojiTex } from './tex.js';
 import { makeWater } from './water.js';
 import { planPaddies, buildPaddies, buildTrack, buildPumpShed, buildNotice, buildScarecrow, landMats } from './paddies.js';
 import { buildChannel, channelMats } from './channel.js';
@@ -43,7 +43,7 @@ export function buildLand(ctx) {
 
   const tex = {
     plough: ploughTex(), renge: rengeTex(), track: trackTex(), grass: bankGrassTex(),
-    masonry: masonryTex(), slab: slabTex(),
+    masonry: masonryTex(), slab: slabTex(), shoji: shojiTex(),
   };
   const mats = {
     ...landMats(tex),

@@ -422,7 +422,19 @@ export function norenTex(text, key) {
     c.fillStyle = 'rgba(0,0,0,0.3)';
     for (let i = 1; i < 3; i++) c.fillRect((i * w) / 3 - 1.5, h * 0.3, 3, h);
     c.fillStyle = '#f4efe2'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.font = `${Math.round(h * 0.44)}px ${JP_BRUSH}`;
+    // as large as fits: the name must never run off the cloth
+    let px = Math.round(h * 0.44);
+    do { c.font = `${px}px ${JP_BRUSH}`; px -= 2; } while (c.measureText(text).width > w * 0.88 && px > 12);
     c.fillText(text, w / 2, h * 0.5);
   }, { aniso: 4 });
 }
+
+/** Shoji paper in its kumiko lattice (one panel per box face). */
+export const shojiTex = () =>
+  canvasTex('landShoji', 128, 128, (c, w, h) => {
+    c.fillStyle = '#f7f1e2'; c.fillRect(0, 0, w, h);
+    c.fillStyle = 'rgba(210,196,170,0.35)'; c.fillRect(0, h * 0.72, w, h * 0.28);   // a warmer lower band, where hands touch
+    c.fillStyle = '#6e5444';
+    for (let i = 0; i <= 3; i++) c.fillRect(Math.round((i * (w - 6)) / 3), 0, 6, h);
+    for (let j = 0; j <= 4; j++) c.fillRect(0, Math.round((j * (h - 5)) / 4), w, 5);
+  }, { aniso: 4 });

@@ -35,7 +35,7 @@ export function pondMats(tex) {
     plaster: cel({ color: 0xf6efe2, bands: 3, tint: 0xb8a8bc }),
     timber: cel({ color: 0x6e5444, bands: 3, tint: 0x4a3a58 }),
     tile: cel({ color: 0x5d6068, bands: 3, tint: 0x3c3a5a }),
-    shoji: cel({ color: 0xf8f4e8, bands: 'soft', tint: 0xc8c0d0 }),
+    shoji: cel({ color: 0xffffff, bands: 'soft', tint: 0xc8c0d0, map: tex.shoji }),
     redFelt: cel({ color: 0xc8403a, bands: 3, tint: 0x7a3050 }),
     willow: cel({ color: 0xc2dc8e, bands: 'soft3', tint: 0x7a9a88, side: THREE.DoubleSide }),
     willowDeep: cel({ color: 0x98bc76, bands: 'soft3', tint: 0x6a8a80 }),
@@ -380,19 +380,20 @@ export function buildPond(ctx, parts, scatter, water) {
   {
     const C = TOWN.land.pond.corners[1];
     const cx = C[0] - 11, cz = C[1] + 9;
-    for (let i = 0; i < 150; i++) {
-      const a = r.range(0, Math.PI * 2), d = Math.sqrt(r.next()) * 8;
+    // a real patch, as Tan remembers it: dense in the corner, thinning out
+    for (let i = 0; i < 460; i++) {
+      const a = r.range(0, Math.PI * 2), d = Math.pow(r.next(), 0.65) * 13;
       const x = cx + Math.cos(a) * d * 1.2, z = cz + Math.sin(a) * d * 0.9;
       if (!inside(shore, x, z)) continue;
-      const s = r.range(0.22, 0.5);
+      const s = r.range(0.3, 0.72) * (1 - d / 30);
       scatter.put('pad', x, PD.water + 0.012 + (i % 3) * 0.002, z, s, 1, s, r.range(0, 6.3), r.pick([0x6f9a5a, 0x7caa62, 0x5f8a52, 0x88b06a]));
-      if (i % 11 === 0) {
+      if (i % 5 === 0) {
         // a lotus leaf held up out of the water, and now and then a bud
         const h = r.range(0.25, 0.6);
         scatter.put('tuft', x + 0.1, PD.water, z, 0.08, h, 0.08, r.range(0, 6.3), 0x6f9a5a);
         scatter.put('pad', x + 0.1, PD.water + h, z, s * 1.2, 1, s * 1.2, r.range(0, 6.3), 0x8ab86e, 0.25);
       }
-      if (i % 17 === 5) scatter.put('head', x - 0.1, PD.water + 0.3, z, 0.07, 0.13, 0.07, 0, 0xe79ab8);
+      if (i % 13 === 5) scatter.put('head', x - 0.1, PD.water + 0.3, z, 0.07, 0.13, 0.07, 0, 0xe79ab8);
     }
   }
 

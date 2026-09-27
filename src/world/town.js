@@ -144,8 +144,16 @@ export function buildTown(scene) {
   /* --- Mt. Fuji, riding with the camera like the sky --- */
   const fuji = buildFuji(scene);
 
+  // what the pond's mirror shows (world rect): its grounds and 40 m round
+  const pb = TOWN.land.pond?.box;
+  const reflectRect = pb && (() => {
+    const a = T.toWorld({ x: pb[0], z: pb[1] }), b = T.toWorld({ x: pb[2], z: pb[3] });
+    return [Math.min(a.x, b.x) - 40, Math.min(a.z, b.z) - 40, Math.max(a.x, b.x) + 40, Math.max(a.z, b.z) + 40];
+  })();
+
   return {
     root,
+    reflectRect,
     colliders: ctx.colliders,
     interactables: ctx.interactables,
     bounds: WORLD.bounds,
@@ -171,7 +179,7 @@ export function buildTown(scene) {
     },
     update(dt, camera) {
       if (camera) camPos.copy(camera.position);
-      for (const fn of ctx.updaters) fn(dt);
+      for (const fn of ctx.updaters) fn(dt, camPos);   // camPos: where the camera is, in the world
       lawson.update(dt, camPos);          // the automatic door
       const lp = T.toLocal(camPos);
       camLocal.position.set(lp.x, camPos.y, lp.z);

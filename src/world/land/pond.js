@@ -4,8 +4,11 @@ import { rngKit } from '../../core/util.js';
 import { TOWN } from '../../config.js';
 import { POND } from '../../data/town.js';
 import { makeBench } from '../props.js';
+import { makeHouse } from '../buildings.js';
+import { buildShrubs } from '../trees.js';
 import { plant } from '../kit/green.js';
-import { TILE, markerTex, norenTex } from './tex.js';
+import { TILE, markerTex, norenTex, pondWobbleTex } from './tex.js';
+import { makeMirror, REFLECT } from './mirror.js';
 
 /* ------------------------------------------------------------------ *
  * 鏡池 (Kagami-ike), the pond beyond the river: Tan's afternoon on a bench
@@ -28,7 +31,7 @@ import { TILE, markerTex, norenTex } from './tex.js';
 export function pondMats(tex) {
   return {
     slab: cel({ color: 0xffffff, bands: 3, tint: 0x6a6490, map: tex.slab }),
-    grass: cel({ color: 0xffffff, bands: 3, tint: 0x5b6f8c, map: tex.grass }),
+    grass: cel({ color: 0xcfd4b8, bands: 3, tint: 0x5b6f8c, map: tex.grass }),   // a worn park lawn, not a new one
     granite: cel({ color: 0xc9c5bb, bands: 3, tint: 0x6a6490 }),
     graniteDark: cel({ color: 0xa6a298, bands: 3, tint: 0x5f5880 }),
     lipStone: cel({ color: 0xb4b0a6, bands: 3, tint: 0x5e5a78 }),
@@ -89,6 +92,16 @@ export function pondShore() {
   let area = 0;
   for (let i = 0; i < out.length; i++) { const a = out[i], b = out[(i + 1) % out.length]; area += a.x * b.y - b.x * a.y; }
   if (area < 0) out.reverse();
+  // a made pond, stone-edged, but laid by hand: a gentle wander round the
+  // shore (a metre at most) so it isn't a drawn figure
+  const cx = out.reduce((a, p) => a + p.x, 0) / out.length, cz = out.reduce((a, p) => a + p.y, 0) / out.length;
+  for (const p of out) {
+    const a = Math.atan2(p.y - cz, p.x - cx);
+    const d = 0.7 * Math.sin(a * 3 + 0.7) + 0.4 * Math.sin(a * 5 + 2.1) + 0.2 * Math.sin(a * 11 + 0.4);
+    const len = Math.hypot(p.x - cx, p.y - cz);
+    p.x += ((p.x - cx) / len) * d;
+    p.y += ((p.y - cz) / len) * d;
+  }
   return out;
 }
 
@@ -227,6 +240,29 @@ export function buildPond(ctx, parts, scatter, water) {
     m.userData.ground = true;
     ctx.add(m);
     water.watch(m, [bx0, bz0, bx1, bz1], 'pond', 70);
+    // near the pond, a true mirror in its place (mirror.js); the painted
+    // water above stays for the distance, where a reflection isn't seen
+    const wobble = pondWobbleTex();
+    const mirror = makeMirror(m.geometry, PD.water, wobble);
+    mirror.camera.layers.set(REFLECT);   // only what stands round the pond (tagged by town.js)
+    mirror.visible = false;
+    ctx.add(mirror);
+    const NEAR = 140;
+    let t = 0;
+    ctx.update((dt, cam) => {
+      if (!cam) return;
+      const p = ctx.toLocal({ x: cam.x, z: cam.z });
+      const d = Math.hypot(Math.max(bx0 - p.x, 0, p.x - bx1), Math.max(bz0 - p.z, 0, p.z - bz1));
+      mirror.visible = d < NEAR;
+      m.visible = !mirror.visible;
+      if (mirror.visible) {
+        t += dt;
+        // the water's own colour dims with the look (blue hour is dark)
+        const fog = ctx.scene.fog;
+        if (fog) mirror.material.uniforms.light.value = THREE.MathUtils.clamp((fog.color.r * 0.3 + fog.color.g * 0.55 + fog.color.b * 0.15) * 1.7, 0.22, 1);
+        mirror.material.uniforms.chopOff.value.set(Math.sin(t * 0.17) * 0.02 + t * 0.004, t * 0.003);
+      }
+    });
     // the stone wall from the promenade down into the water, and the lip on top
     band(parts, 'lipStone', shore, 0.3, PD.water - 0.3, 0.0, 0.15);
     band(parts, 'granite', shore, 0.36, 0.0, 0.1, 0.14);
@@ -406,9 +442,31 @@ export function buildPond(ctx, parts, scatter, water) {
 
   /* ---- the tea house and the low houses behind the north bank ---- */
   teahouse(ctx, parts, -60, -96.6);
-  house(ctx, parts, -104, -96.6, 11, 5.2, 7201);
-  house(ctx, parts, -86, -96.6, 9, 5.0, 7202);
-  house(ctx, parts, -34, -96.6, 10, 5.2, 7203);
+  // behind the north bank, as round the old pond in Nara: an old townhouse,
+  // family houses of every age, and a three-storey inn standing over them,
+  // set back unevenly, with hedges and trees between (not a row of boxes)
+  house(ctx, parts, -106, -95.4, 10, 5.2, 7201);
+  const home = (x, zFront, w, d, floors, roofKind, seed, wall) => {
+    const z = zFront - d / 2;
+    ctx.add(makeHouse({ x, z, y: 0, w, d, face: 'z+', floors, seed, roofKind, wall, flowers: true }));
+    ctx.collide(x - w / 2 - 0.1, z - d / 2 - 0.1, x + w / 2 + 0.1, z + d / 2 + 0.1, 2.72 * floors + 1);
+  };
+  home(-89, -89.8, 8.5, 6.8, 2, 'hip', 7202, 1);
+  home(-78, -90.6, 6.4, 6.0, 1, 'gable', 7204, 4);
+  home(-41, -89.4, 8.0, 7.0, 2, 'gable', 7203, 6);
+  home(-24, -88.2, 13.0, 8.4, 3, 'flat', 7205, 2);          // the inn
+  buildShrubs(ctx, [
+    { x: -97, z: -88.5, r: 0.7, count: 6, spread: 3.2, seed: 7301, y: 0 },
+    { x: -70, z: -89.2, r: 0.6, count: 5, spread: 2.6, seed: 7302, y: 0 },
+    { x: -50, z: -88.6, r: 0.7, count: 6, spread: 3.0, seed: 7303, y: 0 },
+    { x: -32, z: -86.8, r: 0.6, count: 5, spread: 2.4, seed: 7304, y: 0 },
+    { x: -113, z: -60, r: 0.8, count: 7, spread: 4.0, seed: 7305, y: 0 },
+    { x: -18, z: -62, r: 0.8, count: 7, spread: 4.0, seed: 7306, y: 0 },
+  ]);
+  plant(ctx, 'camphor', { x: -94, z: -91.5, y: 0, scale: 1.25, seed: 7401 });
+  plant(ctx, 'maple', { x: -73, z: -86.5, y: 0, scale: 0.9, seed: 7402 });
+  plant(ctx, 'camphor', { x: -47, z: -93.5, y: 0, scale: 1.1, seed: 7403 });
+  plant(ctx, 'mapleRed', { x: -33, z: -83.5, y: 0, scale: 0.8, seed: 7404 });
 
   return { shore, seats };
 }

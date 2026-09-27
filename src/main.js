@@ -9,6 +9,7 @@ import { createHud } from './core/hud.js';
 import { createSound } from './core/sound.js';
 import { WALK_SIGNALS } from './world/signals.js';
 import { buildTown } from './world/town.js';
+import { tagReflections } from './world/land/mirror.js';
 import { createMinimap } from './ui/minimap.js';
 import { createBasketPanel } from './ui/basketPanel.js';
 import { createControls } from './ui/controls.js';
@@ -527,6 +528,12 @@ function frame(now = 0) {
   hud.setCoords(player.pos, player.yaw, player.pitch, dt);
 
   pipeline.render();
+}
+// the pond's mirror (land/mirror.js) sees only what stands round it, and the sky
+if (world.reflectRect) {
+  tagReflections(scene, world.root, world.reflectRect);
+  // Fuji is built once its elevation has loaded: tag again then
+  world.fuji?.ready?.then(() => tagReflections(scene, world.root, world.reflectRect));
 }
 enterHero(SPAWN.view);
 frame();

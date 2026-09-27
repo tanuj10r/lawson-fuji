@@ -1546,3 +1546,31 @@ gate, painted hill rings, the bridge 富士見橋). Mine, at merge:
   round 5.3 ms; stepping stones 4.4 ms; pond bench 3.4 ms. Heap 400 MB
   (378); textures (estimate) 381 MB; ready 4.0 s. Download 3.45 MB (fonts
   477 KB). Guard 0.258 / 0.353 / 0.148%; all five walks stuck 0.
+
+## 鏡池, second pass: Tan found it fake (2026-09-27)
+What made it fake, against Tan's photo: flat olive water with printed
+dashes (real still water is mostly what it reflects), a row of identical
+boxes on a lurid lawn, a drawn shoreline.
+- **A real mirror near the pond** (land/mirror.js, three's Reflector):
+  one extra render of the scene from a mirrored camera into a 768 px
+  target, only while the pond is drawn and within 140 m (beyond, the
+  painted water). Tinted olive, stronger at a glancing angle, shaken by a
+  wobble map, stepped into a few tones so it stays painted, and dimmed
+  with the look (blue hour).
+- **It renders only a layer** (REFLECT): meshes within 40 m of the pond,
+  the view-sorted crowns, and everything outside the town (sky, clouds,
+  Fuji, lights). Without it the mirror drew the whole town again (+750
+  calls); with it about +40. Fuji is tagged again once its elevation
+  loads, so it stands in the water.
+- **Found on the way:** the mirror's oblique clip lost the sky looking
+  steeply down (it clears to the look's sky colour now), and a deep blue
+  zenith through olive water went black (the body and reflection are
+  lifted).
+- **Round the pond:** the town's own houses (kit, with the facades pass's
+  detail) of one to three storeys, set back unevenly, an inn standing over
+  them, hedges, a camphor and maples; the old townhouse and the tea house
+  stay. The lawn toned down; the shore wanders by up to a metre.
+- **Cost** (1440p): pond bench 3.4 -> 5.8 ms; the far bank looking back at
+  the town and Fuji 9.2 ms (the game's highest spot now; the town and the
+  mirror both in view); spawn turned round 7.1 ms; famous view 7.38 ms.
+  Heap 412 MB; ready 4.0 s. Guard unchanged; walks stuck 0.

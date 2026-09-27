@@ -438,3 +438,28 @@ export const shojiTex = () =>
     for (let i = 0; i <= 3; i++) c.fillRect(Math.round((i * (w - 6)) / 3), 0, 6, h);
     for (let j = 0; j <= 4; j++) c.fillRect(0, Math.round((j * (h - 5)) / 4), w, 5);
   }, { aniso: 4 });
+
+/** The pond mirror's wobble (mirror.js): smooth noise in red and green,
+ * thin crests in blue; tiles seamlessly. */
+export const pondWobbleTex = () =>
+  canvasTex('landPondWobble', 256, 256, (c, w, h) => {
+    const r = rng(1709);
+    c.fillStyle = '#000'; c.fillRect(0, 0, w, h);
+    c.globalCompositeOperation = 'lighter';
+    for (const [ch, n] of [['255,0,0', 70], ['0,255,0', 70]]) {
+      for (let i = 0; i < n; i++) {
+        const x = r() * w, y = r() * h, rad = 14 + r() * 34, a = 0.18 + r() * 0.22;
+        wrapped(c, w, h, () => {
+          const g = c.createRadialGradient(x, y, 0, x, y, rad);
+          g.addColorStop(0, `rgba(${ch},${a})`); g.addColorStop(1, `rgba(${ch},0)`);
+          c.fillStyle = g; c.beginPath(); c.arc(x, y, rad, 0, Math.PI * 2); c.fill();
+        });
+      }
+    }
+    c.strokeStyle = 'rgba(0,0,255,1)'; c.lineCap = 'round';
+    for (let i = 0; i < 90; i++) {
+      const x = r() * w, y = r() * h, len = 5 + r() * 14;
+      c.lineWidth = 1 + r() * 1.5;
+      wrapped(c, w, h, () => { c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + len / 2, y - 1.5, x + len, y); c.stroke(); });
+    }
+  }, { repeat: true, srgb: false });

@@ -150,6 +150,15 @@ export function makeHouse(o) {
         push('trim', alongZ ? new THREE.BoxGeometry(0.05, 0.2, len) : new THREE.BoxGeometry(len, 0.2, 0.05), alongZ ? trs(e, H - 0.02, 0) : trs(0, H - 0.02, e));
         const gz = s * (span / 2 + 0.1);
         push('pvc', alongZ ? new THREE.BoxGeometry(0.13, 0.1, len - 0.1) : new THREE.BoxGeometry(len - 0.1, 0.1, 0.13), alongZ ? trs(gz, H - 0.1, 0) : trs(0, H - 0.1, gz));
+        {
+          // the gable's louvred vent (換気口), up under the ridge
+          const vz = s * (len / 2 - eave + 0.08), vy = H + rh * 0.42;
+          push('trim', alongZ ? new THREE.BoxGeometry(0.5, 0.34, 0.05) : new THREE.BoxGeometry(0.05, 0.34, 0.5), alongZ ? trs(0, vy, vz) : trs(vz, vy, 0));
+          for (let k = 0; k < 3; k++) {
+            const sy = vy - 0.1 + k * 0.1;
+            push('metalDark', alongZ ? new THREE.BoxGeometry(0.4, 0.035, 0.06) : new THREE.BoxGeometry(0.06, 0.035, 0.4), alongZ ? trs(0, sy, vz + s * 0.01) : trs(vz + s * 0.01, sy, 0));
+          }
+        }
         for (const t of [-1, 1]) {
           // a barge board down each edge of each gable end
           const bl = slabLen - 0.04;

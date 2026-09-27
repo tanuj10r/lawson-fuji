@@ -281,14 +281,18 @@ export const TOWN = {
    * Rects are [x0, z0, x1, z1]; heights are tops in metres.  world/land/
    * builds it; nothing else is placed here. */
   land: {
-    near: [-118, -40, 118, -9.5],           // paddies between the road's far-side row and the levee
-    levee: { z0: -46, z1: -40, top: 1.4, crest: 2.4 },   // the town-side bank (堤防); a path on its crest
-    river: { z0: -62, z1: -46, bed: -1.2 },  // 16 m of water, its surface just below the ground
-    farBank: { z0: -65, z1: -62, top: 0.8 },
-    far: [-118, -95, 118, -65],             // paddies beyond the river, to the tree line
+    near: [-118, -36, 118, -9.5],           // paddies between the road's far-side row and the levee
+    /* the town-side bank (堤防): a grass slope up from z1, a crest `crest`
+     * wide at `top` (the sakura row, then a paved path), the concrete face
+     * `face` deep down to the water */
+    levee: { z0: -49, z1: -36, top: 2.2, crest: 6.0, face: 3.0 },
+    river: { z0: -65, z1: -49, bed: -1.2, water: 0.06 },  // 16 m of water; the surface sits on the ground plane
+    farBank: { z0: -71, z1: -65, top: 1.4, crest: 2.0, face: 1.5 },
+    far: [-118, -95, 118, -71],             // paddies beyond the river, to the tree line
     east: [54, 38, 95, 154],                // the freed block south of the road, behind its shops
-    track: { x: 35, w: 3.2, z0: -95, z1: -9.5 },          // farm track from the main road's zebra (world x -35)
-    bridge: { x: 35, w: 4.2, z0: -66, z1: -40 },           // carries the track over the river
+    track: { x: 35, w: 3.2, z0: -95, z1: -9.5, top: 0.12, ramp: [-24, -81] },   // farm track from the main road's zebra (world x -35); ramps up over the levee
+    bridge: { x: 35, w: 4.2, z0: -67, z1: -46 },           // carries the track over the river, deck level with the levee crest
+    hills: { r: [620, 900], span: 1.85 },   // the painted far hills: radii (m) and half-angle (rad) round the town's north
     deerGate: { x: 35, z: -95.5 },          // 鹿公園, coming soon (a later place hangs off it)
   },
 };
@@ -413,6 +417,18 @@ export const SHOT_SPOTS = [
   { name: 'land-track', scene: 'town', pos: [35, 0, -9], yaw: 0, pitch: 0.02, looks: ['day', 'golden'] },
   { name: 'land-gate', scene: 'town', pos: [35, 0, -89], yaw: 0, pitch: 0.04, looks: ['day'] },
   { name: 'land-overview', scene: 'town', pos: [0, 0, 12], yaw: 3.1416, pitch: -0.5, lift: 60, looks: ['day', 'golden'], frame: 'world' },
+  // river & paddies builder: close-ups, the levee, the view back to the town (and Fuji) from it
+  { name: 'close-land-paddy', scene: 'town', pos: [34.2, 0, -16], yaw: 1.15, pitch: -0.22, looks: ['day'] },
+  { name: 'close-land-bridge', scene: 'town', pos: [35, 0, -33], yaw: 0, pitch: 0.02, looks: ['day'] },
+  { name: 'close-land-levee', scene: 'town', pos: [4, 0, -44.4], yaw: -1.5708, pitch: 0.0, looks: ['day'] },
+  { name: 'land-levee-sakura', scene: 'town', pos: [-30, 0, -34.4], yaw: -0.95, pitch: 0.12, looks: ['day'] },
+  { name: 'land-levee-back', scene: 'town', pos: [18, 0, -44.2], yaw: 3.1416, pitch: 0.02, looks: ['day', 'golden'] },
+  { name: 'land-river', scene: 'town', pos: [36.4, 0, -55], yaw: -1.5708, pitch: -0.1, looks: ['day', 'golden'] },
+  { name: 'land-river-west', scene: 'town', pos: [33.6, 0, -58], yaw: 1.5708, pitch: -0.05, looks: ['day'] },
+  { name: 'land-hills', scene: 'town', pos: [10, 0, -44.6], yaw: 0.25, pitch: 0.06, looks: ['day', 'blue'] },
+  { name: 'close-land-posts', scene: 'town', pos: [34.3, 0, -43.9], yaw: 0.35, pitch: -0.05, looks: ['day'] },
+  { name: 'close-land-bridge-side', scene: 'town', pos: [25, 0, -45.3], yaw: -0.6, pitch: -0.1, looks: ['day'] },
+  { name: 'close-land-steps', scene: 'town', pos: [-12, 0, -50.3], yaw: 3.45, pitch: 0.12, looks: ['day'] },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },

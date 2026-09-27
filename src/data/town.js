@@ -101,7 +101,16 @@ export const MENU_TAGS = ['ラーメン', '醤油', '味噌', '塩', '餃子', '
 /* ---- the land (town quality pass) ---- */
 
 /** The river north of the main road. */
-export const RIVER = { jp: '桜川', kana: 'さくらがわ' };
+export const RIVER = {
+  jp: '桜川', kana: 'さくらがわ', grade: '一級河川',
+  // the bridge on the farm track, its four posts (親柱): names and the year it was built
+  bridge: '富士見橋', bridgeKana: 'ふじみばし', built: '昭和四十八年三月竣工',
+};
+/** The land's notices (town pass, river & paddies). */
+export const LAND_SIGNS = {
+  paddy: ['田んぼに', '入らないでください'],   // on the farm track, by the flooded plots
+  pump: ['揚水機場'],                           // the pump shed's plate
+};
 /** The board on the closed gate at the far side of the paddies: a place to
  * come (Tan's Deer Park).  The English line is for players, on purpose. */
 export const DEER_PARK = { jp: '鹿公園', soon: '近日公開', en: 'Deer Park · coming soon' };

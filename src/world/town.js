@@ -12,6 +12,7 @@ import { buildPetals } from './petals.js';
 import { mergeStatic } from './merge.js';
 import { buildTownSakura } from './kit/sakura.js';
 import { buildLand } from './land/index.js';
+import { buildAnimals } from './animals/index.js';
 import { makeNight } from './kit/night.js';
 
 /* ------------------------------------------------------------------ *
@@ -66,6 +67,7 @@ export function buildTown(scene) {
     },
   });
   const core = buildCore(T);
+  const animals = buildAnimals(T, { core });   // wave 3: koi, ducks, herons, pigeons... (world/animals/)
 
   /* The line, seen from the world: its crossing, its trains' events and
    * their gusts in world terms (`local` is the line itself, for checks

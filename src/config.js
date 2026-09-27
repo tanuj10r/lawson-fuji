@@ -395,6 +395,8 @@ export const SHOT_SPOTS = [
   // town pass, facades: shopfronts and a house front at arm's length
   { name: 'close-facade-shop', scene: 'town', pos: [-47.4, 0, 60], yaw: 1.9, pitch: 0.12, looks: ['day'], close: true },
   { name: 'close-facade-house', scene: 'town', pos: [-26.2, 0, 63], yaw: -1.5708, pitch: 0.1, looks: ['day'], close: true },
+  { name: 'close-green-river', scene: 'town', pos: [12, 0, -42], yaw: 0.3, pitch: -0.5, lift: 3.5, looks: ['day'], close: true },
+  { name: 'close-green-limb', scene: 'town', pos: [-49, 0, 129.8], yaw: 2.9, pitch: 0.6, looks: ['day', 'blue'], close: true },
   { name: 'close-sakura', scene: 'town', pos: [-50, 0, 128], yaw: 3.1416, pitch: 0.55, looks: ['day'], close: true, ref: '12-station-plaza-big-sakura.png' },
   // M3a: inside the Lawson (world frame; judged against reference/konbini-details.md)
   { name: 'store-door', scene: 'town', pos: [-2.3, 0, -0.6], yaw: 0, pitch: -0.05, looks: ['day'], close: true, frame: 'world' },

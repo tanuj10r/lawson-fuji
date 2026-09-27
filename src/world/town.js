@@ -85,7 +85,7 @@ export function buildTown(scene) {
    * that run in its own frame). */
   // the two cherries framing the famous view: the town's painted tree, in
   // the world's frame (its own small batch; lit at night like the rest)
-  const frameSakura = buildTownSakura({ ...ctx, night: T.night }, frame.sakura);
+  const frameSakura = buildTownSakura({ ...ctx, night: T.night }, frame.sakura, { classic: true });   // the famous views' own trees keep their look
   const L = core.line;
   const line = Object.create(L, {
     local: { value: L },

@@ -98,19 +98,21 @@ function faceTex() {
   // brows: straight, dark, a little heavy
   g.strokeStyle = '#231a1e'; g.lineCap = 'round';
   for (const s of [-1, 1]) {
-    g.lineWidth = 6;
+    g.lineWidth = 8;
     g.beginPath(); g.moveTo(X(0.5 + s * 0.07), browY + 2); g.lineTo(X(0.5 + s * 0.27), browY - 1); g.stroke();
   }
   // eyes: narrow, heavy upper lids, dark irises half hidden, one small light
   for (const s of [-1, 1]) {
     const cx = X(0.5 + s * 0.17), w = S * 0.085;
     g.fillStyle = '#f4ece6';
-    g.beginPath(); g.ellipse(cx, eyeY + 1, w, 5, 0, 0, Math.PI * 2); g.fill();
+    g.save();
+    g.beginPath(); g.ellipse(cx, eyeY + 1, w, 5.5, 0, 0, Math.PI * 2); g.fill(); g.clip();
     g.fillStyle = '#2a1c1c';
-    g.beginPath(); g.ellipse(cx + s * 2, eyeY + 1, 7, 6.5, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(cx + s * 2, eyeY + 1, 8, 8, 0, 0, Math.PI * 2); g.fill();
     g.fillStyle = '#fff';
     g.beginPath(); g.arc(cx + s * 2 - 2, eyeY - 1, 1.8, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = '#1b1216'; g.lineWidth = 6;
+    g.restore();
+    g.strokeStyle = '#1b1216'; g.lineWidth = 7;
     g.beginPath(); g.moveTo(cx - w - 1, eyeY + 1); g.quadraticCurveTo(cx, eyeY - 8, cx + w + 1, eyeY - 1 - s * 1.5); g.stroke();
     g.lineWidth = 1.4; g.strokeStyle = 'rgba(40,24,28,0.7)';
     g.beginPath(); g.moveTo(cx - w * 0.7, eyeY + 6); g.quadraticCurveTo(cx, eyeY + 8, cx + w * 0.8, eyeY + 5); g.stroke();
@@ -284,7 +286,7 @@ export function makeHan() {
     jk.computeVertexNormals();
     mesh(chest, jk, M.jacket);
     // collar
-    const col = new THREE.CylinderGeometry(0.074, 0.092, 0.075, 20, 1, true, 0.55, Math.PI * 2 - 1.1);
+    const col = new THREE.CylinderGeometry(0.074, 0.092, 0.075, 20, 1, true, 0.38, Math.PI * 2 - 0.76);
     col.scale(1, 1, 0.85);
     col.translate(0, 0.505, -0.012);
     mesh(chest, col, M.jacket);
@@ -295,12 +297,12 @@ export function makeHan() {
     mesh(chest, ch, M.chain, false);
   }
   const neck = node('neck', chest, 0, 0.49, 0);
-  const head = node('head', neck, 0, 0.062, 0.01);
+  const head = node('head', neck, 0, 0.045, 0.012);
   head.scale.setScalar(1.08);
   const HR = 0.1;
   {
     // the neck, drawn with the head (it turns with it)
-    mesh(head, new THREE.CylinderGeometry(0.054, 0.06, 0.1, 14).translate(0, 0.04 - 0.062, -0.01).scale(1 / 1.08, 1 / 1.08, 1 / 1.08), M.skin);
+    mesh(head, new THREE.CylinderGeometry(0.054, 0.06, 0.1, 14).translate(0, 0.04 - 0.045, -0.012).scale(1 / 1.08, 1 / 1.08, 1 / 1.08), M.skin);
     const hg = shapeHead(new THREE.SphereGeometry(HR, 24, 18), HR);
     hg.translate(0, HR * 1.05, 0);
     mesh(head, hg, M.skin);

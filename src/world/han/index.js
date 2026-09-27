@@ -186,7 +186,7 @@ export function buildHan(ctx) {
     grad.addColorStop(0, 'rgba(0,0,0,0.9)'); grad.addColorStop(0.6, 'rgba(0,0,0,0.55)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = grad; g.fillRect(0, 0, 64, 32);
     const tex = new THREE.CanvasTexture(c);
-    const blob = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 2.5), new THREE.MeshBasicMaterial({ map: tex, color: 0x1e1a30, transparent: true, opacity: 0.5, depthWrite: false }));
+    const blob = new THREE.Mesh(new THREE.PlaneGeometry(4.7, 2.25), new THREE.MeshBasicMaterial({ map: tex, color: 0x1e1a30, transparent: true, opacity: 0.45, depthWrite: false }));
     blob.rotation.x = -Math.PI / 2;
     blob.position.y = 0.012;
     blob.renderOrder = 1;
@@ -222,7 +222,7 @@ export function buildHan(ctx) {
   const smoke = makeSmoke(ctx);
 
   /* state */
-  const S = { run: false, t: 0, held: 0, armed: true, frozen: false, songT: 0, idle: 0, look: 0, lookP: 0, groundY: 0.03, door: 0 };
+  const S = { run: false, t: 0, held: 0, rate: 1, armed: true, frozen: false, songT: 0, idle: 0, look: 0, lookP: 0, groundY: 0.03, door: 0 };
   const pose = {};
   const cp = {};
   const lot = TOWN.land.parking;
@@ -346,7 +346,7 @@ export function buildHan(ctx) {
 
   function start() {
     if (S.run) return;
-    S.run = true; S.t = 0; S.held = 0; S.songT = 0; S.armed = false;
+    S.run = true; S.t = 0; S.held = 0; S.rate = 1; S.songT = 0; S.armed = false;
     zone.set({ level: 0 });
     soundBus.oneShot('han-drift', { x: spotW.x, z: spotW.z, y: 1.2, near: 30, far: 90, gain: zoneLevel });
     spot?.done();
@@ -359,7 +359,12 @@ export function buildHan(ctx) {
     const p = ctx.toLocal({ x: cam.x, z: cam.z });
     const dCar = Math.hypot(p.x - cg.position.x, p.z - cg.position.z);
     if (!S.run && dCar > NEAR) return;
-    dt = Math.min(dt, 0.1);
+    /* The show keeps the song's time, not the game's: the game slows its
+     * clock when paused (10 frames a second, each capped at 1/20 s), the
+     * music plays on.  A frozen capture (dt 0) stays frozen. */
+    const now = performance.now();
+    if (dt > 0) dt = Math.min(0.25, (now - (S.wall ?? now - dt * 1000)) / 1000);
+    S.wall = now;
 
     // the trigger: step into the glow; it re-arms once you have stepped out again
     const dSpot = Math.hypot(p.x - HAN_SPOT.x, p.z - HAN_SPOT.z);
@@ -371,7 +376,11 @@ export function buildHan(ctx) {
     if (S.run && !S.frozen) {
       S.songT += dt;
       const e = S.t - S.held;
-      if (blocked(e + dt, p)) S.held += dt;
+      // you are in its way: it brakes to a stop and waits (the song plays on), then goes on
+      const want = blocked(e + dt, p) ? 0 : 1;
+      S.rate += (want - S.rate) * Math.min(1, dt * 5);
+      if (!want && S.rate < 0.03) S.rate = 0;
+      S.held += dt * (1 - S.rate);
       S.t += dt;
       if (S.songT >= SONG && S.songT - dt < SONG) zone.set({ level: zoneLevel });
       if (S.t - S.held >= T_END) {
@@ -393,7 +402,7 @@ export function buildHan(ctx) {
     let want = 0, wantP = 0;
     if (out && dH < 8) {
       want = THREE.MathUtils.clamp(Math.atan2(hv.x, hv.z), -1.0, 1.0);
-      wantP = THREE.MathUtils.clamp(-Math.atan2(hv.y - 1.55, dH) * 0.6, -0.3, 0.3);
+      wantP = THREE.MathUtils.clamp(-Math.atan2(hv.y - 1.55, dH) * 0.5, -0.12, 0.2);
     }
     const kk = 1 - Math.exp(-dt * 4);
     S.look += (want - S.look) * kk;
@@ -457,6 +466,7 @@ export function buildHan(ctx) {
     };
     window.__han = {
       set, play: () => { S.frozen = false; start(); }, stop: () => { S.run = false; S.frozen = false; smoke.reset(); },
+      state: () => ({ run: S.run, t: S.t, held: S.held, armed: S.armed, x: cg.position.x, z: cg.position.z, psi: -cg.rotation.y }),
       show: (on) => { cg.visible = on; smoke.mesh.userData.on = on; smoke.mesh.visible = false; },
       stats: () => {
         const h = stats(han.group), all = stats(cg);

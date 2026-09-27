@@ -609,11 +609,11 @@ export function makeRX7() {
   const x1 = xs[xs.length - 1], x0 = xs[0];
   {
     // front: the big mouth and its two outer ducts, on the bumper face
-    const mouth = new THREE.BoxGeometry(0.03, 0.13, 0.78);
-    mouth.translate(x1 + 0.03, 0.27, 0);
+    const mouth = new THREE.CapsuleGeometry(0.068, 0.6, 4, 12);   // a wide, round-ended mouth
+    mouth.rotateX(Math.PI / 2); mouth.scale(0.35, 1, 1); mouth.translate(x1 + 0.03, 0.27, 0);
     trimParts.push(mouth);
-    const splitter = new THREE.BoxGeometry(0.34, 0.025, 1.5);
-    splitter.translate(x1 - 0.12, 0.11, 0);
+    const splitter = new THREE.BoxGeometry(0.3, 0.02, 1.36);
+    splitter.translate(x1 - 0.17, 0.125, 0);
     trimParts.push(splitter);
     for (const s of [-1, 1]) {
       const duct = new THREE.BoxGeometry(0.14, 0.09, 0.2);

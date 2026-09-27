@@ -32,11 +32,11 @@ import { JP } from '../kit/tex.js';
  * ------------------------------------------------------------------ */
 
 export const RX7 = {
-  L: 4.52, W: 1.93, H: 1.22,
-  axle: { f: 1.31, r: -1.12 },
+  L: 4.36, W: 1.98, H: 1.25,
+  axle: { f: 1.23, r: -1.2 },
   R: 0.325,                        // tyre radius
   track: { f: 0.80, r: 0.795 },    // wheel centre from the centreline
-  door: [-0.5, 0.75],              // the door's rear and front (hinge) edges
+  door: [-0.56, 0.62],              // the door's rear and front (hinge) edges
 };
 const HL = RX7.L / 2;
 const ARCH = 0.372;                // wheel-arch radius: a slammed car
@@ -70,19 +70,19 @@ function spline(pts) {
 }
 
 // half-width: the Fortune's hips over the rear wheels, the round nose in plan
-const halfW = spline([[-2.26, 0.78], [-2.2, 0.87], [-2.05, 0.915], [-1.6, 0.948], [-1.12, 0.965], [-0.72, 0.93],
-  [-0.2, 0.905], [0.45, 0.905], [0.95, 0.935], [1.31, 0.95], [1.66, 0.925], [1.95, 0.855], [2.12, 0.74], [2.22, 0.6], [2.26, 0.5]]);
+const halfW = spline([[-2.18, 0.8], [-2.12, 0.9], [-1.95, 0.96], [-1.55, 0.99], [-1.2, 0.99], [-0.8, 0.975],
+  [-0.35, 0.945], [0.25, 0.935], [0.85, 0.95], [1.23, 0.955], [1.55, 0.93], [1.85, 0.86], [2.03, 0.76], [2.13, 0.64], [2.18, 0.52]]);
 // the floor: a front splitter low over the road, the diffuser kicking up at the tail
-const floorY = spline([[-2.26, 0.27], [-2.0, 0.22], [-1.6, 0.14], [1.5, 0.13], [2.0, 0.16], [2.26, 0.17]]);
-const sillY = spline([[-2.26, 0.27], [-2.0, 0.22], [-1.6, 0.16], [1.5, 0.16], [2.0, 0.17], [2.26, 0.17]]);
-// the shoulder, where the sides turn into the top
-const shoulderY = spline([[-2.26, 0.66], [-1.9, 0.72], [-1.12, 0.735], [-0.6, 0.66], [0.3, 0.6], [0.95, 0.66], [1.31, 0.72], [1.66, 0.68], [1.95, 0.54], [2.14, 0.43], [2.26, 0.34]]);
-// the top along the centre: hood falling to the low nose, the deck at the tail
-const topY = spline([[-2.26, 0.9], [-2.12, 0.955], [-1.9, 0.975], [-1.3, 0.93], [-0.4, 0.82], [0.62, 0.8], [1.0, 0.74],
-  [1.5, 0.655], [1.9, 0.56], [2.12, 0.49], [2.26, 0.42]]);
-// the fenders rise above the hood (the FD's signature), the hips over the rear wheels
-const fender = (x) => 0.05 * Math.exp(-(((x - 1.33) / 0.45) ** 2)) + 0.03 * Math.exp(-(((x - 1.8) / 0.3) ** 2))
-  + 0.05 * Math.exp(-(((x + 1.18) / 0.5) ** 2));
+const floorY = spline([[-2.18, 0.27], [-1.95, 0.22], [-1.55, 0.14], [1.45, 0.13], [1.95, 0.16], [2.18, 0.17]]);
+const sillY = spline([[-2.18, 0.27], [-1.95, 0.22], [-1.55, 0.16], [1.45, 0.16], [1.95, 0.17], [2.18, 0.17]]);
+// the shoulder, where the sides turn into the top: high over the wheels, low along the door
+const shoulderY = spline([[-2.18, 0.7], [-1.85, 0.76], [-1.2, 0.77], [-0.65, 0.68], [0.15, 0.6], [0.8, 0.66], [1.23, 0.73], [1.55, 0.7], [1.85, 0.56], [2.05, 0.44], [2.18, 0.34]]);
+// the top along the centre: a low bonnet between the fenders, falling to the round nose; the ducktail at the back
+const topY = spline([[-2.18, 0.94], [-2.1, 1.0], [-1.98, 1.005], [-1.7, 0.96], [-1.1, 0.9], [-0.3, 0.8], [0.45, 0.76], [0.9, 0.7],
+  [1.4, 0.61], [1.8, 0.53], [2.05, 0.46], [2.18, 0.41]]);
+// the fenders stand proud of the bonnet (the FD's signature), the round hips over the rear wheels
+const fender = (x) => 0.085 * Math.exp(-(((x - 1.25) / 0.48) ** 2)) + 0.035 * Math.exp(-(((x - 1.75) / 0.3) ** 2))
+  + 0.075 * Math.exp(-(((x + 1.22) / 0.55) ** 2));
 
 const pw = (c) => Math.sign(c) * Math.abs(c) ** (2 / N);
 
@@ -136,15 +136,15 @@ function bodySection(x) {
 const SEC_N = bodySection(0).length;
 
 /* ------------------------- the cabin's shape ------------------------ */
-const CAB = { cowl: 0.62, rf: -0.2, rr: -0.84, tail: -1.9, phiE: 0.55 };
-const roofY = spline([[-1.9, 1.16], [-0.84, 1.195], [-0.45, 1.215], [-0.2, 1.21]]);
-const roofW = spline([[-1.9, 0.4], [-1.3, 0.46], [-0.84, 0.5], [-0.2, 0.52], [0.62, 0.5]]);
+const CAB = { cowl: 0.45, rf: -0.3, rr: -0.72, tail: -1.9, phiE: 0.55 };
+const roofY = spline([[-1.9, 1.02], [-1.4, 1.14], [-0.72, 1.235], [-0.5, 1.25], [-0.3, 1.245], [0.45, 1.2]]);
+const roofW = spline([[-1.9, 0.44], [-1.3, 0.53], [-0.72, 0.57], [-0.3, 0.57], [0.45, 0.55]]);
 /** How far the cabin stands up out of the body top: 0 at the cowl and the tail. */
 function cabH(x) {
   if (x >= CAB.cowl) return 0;
-  if (x > CAB.rf) { const t = (CAB.cowl - x) / (CAB.cowl - CAB.rf); return Math.sin(t * Math.PI / 2) ** 0.8; }
+  if (x > CAB.rf) { const t = (CAB.cowl - x) / (CAB.cowl - CAB.rf); return Math.sin(t * Math.PI / 2) ** 0.55; }
   if (x >= CAB.rr) return 1;
-  if (x > CAB.tail) { const t = (CAB.rr - x) / (CAB.rr - CAB.tail); return Math.cos(t * Math.PI / 2) ** 0.62; }
+  if (x > CAB.tail) { const t = (CAB.rr - x) / (CAB.rr - CAB.tail); return Math.cos(t * Math.PI / 2) ** 0.45; }
   return 0;
 }
 /** A point on the cabin: phi 0 on the crown's centre, 1 at the belt. */
@@ -157,11 +157,11 @@ function cabinPoint(x, phi) {
   if (phi <= CAB.phiE) {
     const t = phi / CAB.phiE;
     lat = Wr * t;
-    y = yR - 0.05 * t * t + 0.014 * Math.sin(Math.PI * t) ** 2;
+    y = yR - 0.075 * t * t + 0.028 * Math.sin(Math.PI * t) ** 2;
   } else {
     const t = (phi - CAB.phiE) / (1 - CAB.phiE);
     lat = Wr + (wb - Wr) * t ** 1.35;
-    y = yR - 0.05 + (yb - (yR - 0.05)) * t;
+    y = yR - 0.075 + (yb - (yR - 0.075)) * (t * t * 0.35 + t * 0.65);
   }
   const h = cabH(x);
   return [bl + (lat - bl) * h, by + (y - by) * h];
@@ -244,8 +244,8 @@ const BLACK = '#26242c';
 /* The sweep: black from behind the front wheel, rising along the door to
  * the rear hip, where it runs out over the rear arch. */
 export function sweepTop(x) {
-  if (x > 0.98 || x < -1.55) return -1;
-  const t = THREE.MathUtils.smoothstep(x, -0.95, 0.98);    // 1 at the front, 0 at the rear
+  if (x > 0.86 || x < -1.55) return -1;
+  const t = THREE.MathUtils.smoothstep(x, -0.83, 0.86);    // 1 at the front, 0 at the rear
   return 0.27 + 0.42 * (1 - t) ** 1.25;
 }
 function paintTex() {
@@ -259,10 +259,10 @@ function paintTex() {
   // the black sweep: a wedge that grows toward the rear
   g.fillStyle = BLACK;
   g.beginPath();
-  g.moveTo(X(0.98), Y(0));
-  for (let x = 0.98; x >= -1.55; x -= 0.02) {
+  g.moveTo(X(0.86), Y(0));
+  for (let x = 0.86; x >= -1.55; x -= 0.02) {
     let y = sweepTop(x);
-    if (x < -0.95) y = 0.69 - (x + 0.95) * -0.02 - ((x + 0.95) / 0.6) ** 2 * 0.36;   // runs out over the rear hip
+    if (x < -0.83) y = 0.69 - ((x + 0.83) / 0.72) ** 2 * 0.4;   // runs out over the rear hip
     g.lineTo(X(x), Y(y));
   }
   g.lineTo(X(-1.55), Y(0));
@@ -270,7 +270,7 @@ function paintTex() {
   // a thin pinstripe of lighter orange along the sweep's edge
   g.strokeStyle = '#ffb066'; g.lineWidth = 2;
   g.beginPath();
-  for (let x = 0.96; x >= -0.95; x -= 0.02) { const y = sweepTop(x) + 0.018; if (x === 0.96) g.moveTo(X(x), Y(y)); else g.lineTo(X(x), Y(y)); }
+  for (let x = 0.84; x >= -0.83; x -= 0.02) { const y = sweepTop(x) + 0.018; if (x === 0.84) g.moveTo(X(x), Y(y)); else g.lineTo(X(x), Y(y)); }
   g.stroke();
   // shut lines: the door, the fuel flap, the hood's edge
   g.strokeStyle = 'rgba(40,24,30,0.75)'; g.lineWidth = 2;
@@ -459,7 +459,7 @@ export function makeRX7() {
   const xs = stations(-HL, HL, 0.035, [
     RX7.axle.f - ARCH - 0.002, RX7.axle.f - ARCH + 0.002, RX7.axle.f + ARCH - 0.002, RX7.axle.f + ARCH + 0.002,
     RX7.axle.r - ARCH - 0.002, RX7.axle.r - ARCH + 0.002, RX7.axle.r + ARCH - 0.002, RX7.axle.r + ARCH + 0.002,
-    ...RX7.door, 1.78, 2.14, -2.2]);
+    ...RX7.door, 1.72, 2.06, -2.12]);
   // a ring: right half bottom->top (+z), then the left half back down (-z)
   const ringOf = (sec) => {
     const r = sec.map(([lat, y]) => [lat, y]);
@@ -549,17 +549,18 @@ export function makeRX7() {
     // an airfoil in (x, y): chord 0.34 m
     sh.moveTo(0.17, 0); sh.quadraticCurveTo(0.1, 0.05, -0.06, 0.035); sh.quadraticCurveTo(-0.17, 0.02, -0.17, -0.005);
     sh.quadraticCurveTo(-0.05, -0.012, 0.17, 0);
-    const blade = new THREE.ExtrudeGeometry(sh, { depth: 1.74, bevelEnabled: false, curveSegments: 8 });
-    blade.translate(0, 0, -0.87);
+    const blade = new THREE.ExtrudeGeometry(sh, { depth: 1.84, bevelEnabled: false, curveSegments: 8 });
+    blade.translate(0, 0, -0.92);
     blade.rotateZ(0.08);
-    blade.translate(-2.02, 1.2, 0);
+    blade.translate(-1.98, 1.29, 0);
     wingParts.push(blade);
     for (const s of [-1, 1]) {
-      const up = new THREE.BoxGeometry(0.1, 0.24, 0.028);
-      up.translate(-1.98, 1.08, s * 0.55);
+      const up = new THREE.BoxGeometry(0.12, 0.34, 0.03);
+      up.rotateZ(-0.12);
+      up.translate(-1.93, 1.13, s * 0.58);
       wingParts.push(up);
-      const plate = new THREE.BoxGeometry(0.36, 0.14, 0.018);
-      plate.translate(-2.03, 1.21, s * 0.88);
+      const plate = new THREE.BoxGeometry(0.4, 0.17, 0.02);
+      plate.translate(-1.99, 1.29, s * 0.93);
       wingParts.push(plate);
     }
   }
@@ -567,10 +568,10 @@ export function makeRX7() {
   const mirror = (s) => {
     const shell = new THREE.SphereGeometry(0.075, 14, 10);
     shell.scale(1.1, 0.62, 0.7);
-    const [wb, yb] = topPoint(0.42, A_BELT);
-    shell.translate(0.42, yb + 0.07, s * (wb + 0.13));
+    const [wb, yb] = topPoint(0.3, A_BELT);
+    shell.translate(0.3, yb + 0.07, s * (wb + 0.13));
     const stalk = new THREE.BoxGeometry(0.05, 0.03, 0.14);
-    stalk.translate(0.45, yb + 0.04, s * (wb + 0.06));
+    stalk.translate(0.33, yb + 0.04, s * (wb + 0.06));
     return [shell, stalk];
   };
 
@@ -618,7 +619,7 @@ export function makeRX7() {
     for (const s of [-1, 1]) {
       const duct = new THREE.BoxGeometry(0.14, 0.09, 0.2);
       duct.rotateY(s * 0.9);
-      duct.translate(2.15, 0.25, s * 0.58);
+      duct.translate(2.07, 0.25, s * 0.58);
       trimParts.push(duct);
       // side skirts
       const skirt = new THREE.BoxGeometry(1.7, 0.05, 0.05);
@@ -671,8 +672,8 @@ export function makeRX7() {
     for (const s of [-1, 1]) {
       const nu = 10, nv = 4;
       const pt = (u, v) => {
-        const x = 1.8 + u * 0.36;
-        const a0 = 0.06 + u * 0.1, a1 = 0.42 + u * 0.18;
+        const x = 1.7 + u * 0.36;
+        const a0 = 0.12 + u * 0.1, a1 = 0.46 + u * 0.16;
         const [lat, y] = topPoint(x, a0 + (a1 - a0) * v);
         return [x, y + 0.006, s * lat];
       };
@@ -706,8 +707,8 @@ export function makeRX7() {
 
   /* the interior: a dark tub, two buckets, the wheel on the right */
   {
-    const tub = new THREE.Mesh(new THREE.BoxGeometry(2.15, 0.9, 1.32), interior);
-    tub.position.set(-0.52, 0.65, 0);
+    const tub = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.8, 1.12), interior);
+    tub.position.set(-0.45, 0.6, 0);        // kept inside the glasshouse: it must never show above the hatch
     tub.userData.noOutline = true;
     group.add(tub);
     const seats = [];
@@ -721,7 +722,7 @@ export function makeRX7() {
       seats.push(back, head, cush);
     }
     const dash = new THREE.BoxGeometry(0.4, 0.16, 1.46);
-    dash.translate(0.45, 0.78, 0);
+    dash.translate(0.3, 0.76, 0);
     seats.push(dash);
     const wheel = new THREE.TorusGeometry(0.17, 0.022, 8, 24);
     wheel.rotateY(Math.PI / 2); wheel.rotateZ(0.45);

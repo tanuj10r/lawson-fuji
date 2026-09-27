@@ -1471,3 +1471,22 @@ in docs/decisions/streets.md and facades.md. Mine, at review and merge:
   3.38 -> 3.42 MB. Hero guard 0.258 / 0.353 / 0.148%; stock pass.
 - **The bicycles** are most of the new triangles and draw town-wide (one
   instanced mesh). If the final frame check shows a cost, split per area.
+
+## Town pass, wave 2a: sakura & greenery (2026-09-27)
+The builder's calls are in docs/decisions/green.md. Mine:
+- **Sent back: limbs like black paper at 1-3 m.** Now round, smooth-shaded
+  wood with knots (12/9/5 sides by thickness) inside 32 m, a coarse copy
+  beyond, in one batch; bark 0x6e5a53 with two bands in daylight, a
+  slight glow at blue hour so it never goes black.
+- **The famous views keep their trees.** Cherries the hero cameras can
+  see (6 of 46, found by rays at build time) and the two frame trees keep
+  the old look; town.js now asks for `classic` on the frame trees
+  explicitly. A hero re-baseline, letting them take the new look, is
+  Tan's call for later.
+- **Cost** (famous view, 1440p): 7.25 ms (7.41 before; within noise);
+  calls 751 -> 764; triangles 2.95 -> 3.02 M; heap 388 -> 379 MB. My
+  texture estimate went 355 -> 371 MB, but it counts clones that share an
+  image (the far trees reuse the camphor skin) twice; three.js uploads a
+  shared image once, and the builder added no textures. Town park: +3
+  calls, 2.06 M main-pass triangles.
+- Walks all stuck 0; guard 0.258 / 0.353 / 0.148%; stock pass.

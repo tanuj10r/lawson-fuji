@@ -1,9 +1,10 @@
 # Lawson Fuji: agent rules
 
 First-person, anime-style browser game: a compact Japanese town at the foot
-of Mt. Fuji built around a konbini in the famous Lawson view. The player
-walks in, shops, pays, microwaves a bento and leaves. Full design: SPEC.md. Read only the sections
-the current milestone needs.
+of Mt. Fuji, built as a set of experiences (docs/EXPERIENCES.md): the
+konbini in the famous view, Han's RX-7, the shrine, the station and train,
+ドンペン堂, the slow-life bench, Osaka and Deer Park teasers. Full design:
+SPEC.md; read only the sections the current work needs.
 
 ## Base
 - Fork of Sakura Crossing (MIT). Keep LICENSE and credit it in the game.
@@ -26,6 +27,9 @@ the current milestone needs.
   melodies. The one chain jingle is Tan's call: the door chime uses their
   assets/audio/lawson-chime.mp3 (the FamilyMart melody; rights noted in
   DECISIONS.md M3d).
+- People: only the player's hands, Han, the station master, the cashier.
+- Names: close homages for brands (ドンペン堂, Strong Nine, Choco Wafer
+  Jumbo); Tan's one exception is the real Mazda RX-7 from the film.
 - The store is NIPPON / ニッポン (config.js STORE_NAME), a generic konbini
   in Lawson-style blue design: no real chain's name or mark anywhere. Products
   may evoke 7-Eleven, FamilyMart and Lawson, always under original names.

@@ -1645,3 +1645,32 @@ on; account for cars and walkers. What was wrong, and what it is now:
   junction), and the store-side edge line now breaks at every lane's
   mouth, as the far-side one does. At the minor T-junctions the centre
   line carries on (the main road has priority there).
+
+## The experiences, built overnight (2026-09-28)
+Tan turned the game into seven experiences and two teasers in the compact
+town (docs/EXPERIENCES.md is the brief). Built by seven specialist builders
+in parallel worktrees; each report reviewed against its frames, sent back
+where below the bar, merged; builders' own calls in docs/decisions/*.md.
+- **Groundwork (mine):** experience spots (world/experiences.js: a soft
+  yellow ground glow and a floating diamond, E to use, dims when done),
+  sound zones and one-shots (core/sound.js, core/soundBus.js), Tan's six
+  recordings encoded; the minimap and town map show the spots as yellow
+  diamonds. A file asked for before it loads now plays when loaded, not as
+  a tap (the first いらっしゃいませ was a tap).
+- **Sent back at review:** the shrine's foxes (faceted) and a clipped
+  nobori (正一位 cut off); Han's RX-7 silhouette (read as a generic
+  supercar: the FD's bubble cabin and Fortune hips pushed); the kit.
+- **Tan's calls tonight:** close homages for brands, but the real Mazda
+  RX-7 from the film and Han modelled on the actor as Han; Han triggered by
+  proximity (the song fades in as you walk up; step into the glow and he
+  drives), no E; the minimal checkout; no people but the four.
+- **At merge:** Han's bay moved to the one the quality pass reserved (its
+  re-marked lot shifted the bays 1.2 m); fonts re-cut each merge (556 KB,
+  guide raised 520 -> 600); audio 3.67 MB (the clerk's lines are Kyoko,
+  generated); the audio test's keys check follows the new store keys.
+- **Famous views:** hero-2 is at 0.487% (limit 0.5%), from fixing the
+  forecourt cars (nosed into their bays: their golden-hour shadows moved)
+  and the store's changes. A re-baseline with Tan's OK is recommended so
+  the guard has room again.
+- **Checks on main after all merges:** konbini loop 15/15, audio all pass,
+  walks all stuck 0, STOCK pass, train timing pass, guard pass.

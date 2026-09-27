@@ -135,6 +135,9 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
     ctx.root.updateWorldMatrix(true, false);
     const acAt = ctx.root.worldToLocal(ac.getWorldPosition(new THREE.Vector3()));
     ctx.registry?.push({ kind: 'prop', x: acAt.x, z: acAt.z });
+    // (town quality pass) both stand on the ground by the wall: walk into them, not through
+    const gmAt = ctx.root.worldToLocal(gm.getWorldPosition(new THREE.Vector3()));
+    for (const [p, r0, h] of [[acAt, 0.35, 0.8], [gmAt, 0.25, 1.2]]) ctx.collide(p.x - r0, p.z - r0, p.x + r0, p.z + r0, h);
   }
 
   /* ---- inside the recess, in the unit's own frame (front at d/2) ---- */

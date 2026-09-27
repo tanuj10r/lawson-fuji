@@ -338,6 +338,7 @@ function dressFront(ctx, lot, F, { r, yard, bw, bd, shift, doorU, carport, lane,
 
   /* the yard */
   const inYard = (u, v) => F.at(u, Math.min(v, yard - 0.2));
+  let bikeSide = 0;               // which side of the door the bicycle stands (0: none)
   if (yard > 0.9) {
     // pots by the door
     const pu = doorAt + (r.chance(0.5) ? 1 : -1) * r.range(0.8, 1.3);
@@ -349,7 +350,6 @@ function dressFront(ctx, lot, F, { r, yard, bw, bd, shift, doorU, carport, lane,
      * Tan: they stood across it, half into the house wall), in the strip
      * between the boundary and the house, on the side away from the pots.
      * The draws are the old ones, so nothing else on the street moves. */
-    let bikeSide = 0;
     if (r.chance(0.6)) {
       const side = pu > doorAt ? -1 : 1;
       const kid = r.chance(0.2);
@@ -391,7 +391,9 @@ function dressFront(ctx, lot, F, { r, yard, bw, bd, shift, doorU, carport, lane,
     const face = F.face;
     if (yard > 0.9 && g.chance(0.7)) {
       // along the house front, the other side of the door from the pots above
-      const u = doorAt + (g.chance(0.5) ? 1 : -1) * g.range(1.5, 2.6);
+      let sgn = g.chance(0.5) ? 1 : -1;
+      if (sgn === bikeSide) sgn = -sgn;          // never into the bicycle (town quality pass)
+      const u = doorAt + sgn * g.range(1.5, 2.6);
       if (Math.abs(u) < w / 2 - 0.8) {
         const p = inYard(u, yard - 0.35);
         const half = potCrowd(ctx, p, along, { n: g.int(4, 9), seed: lot.seed + 17, reg });
@@ -439,7 +441,7 @@ function dressFront(ctx, lot, F, { r, yard, bw, bd, shift, doorU, carport, lane,
     const ac = makeAircon({ x: q.x, y: 0, z: q.z, ry: ry + (sideU > shift ? -Math.PI / 2 : Math.PI / 2) });
     add(ac, q, 'prop', 0.35, 0.8);
     const gm = F.at(sideU, yard + 3.0);
-    add(makeGasMeter({ x: gm.x, y: 0, z: gm.z, ry: ry + (sideU > shift ? -Math.PI / 2 : Math.PI / 2) }), gm, 'prop', 0, 0);
+    add(makeGasMeter({ x: gm.x, y: 0, z: gm.z, ry: ry + (sideU > shift ? -Math.PI / 2 : Math.PI / 2) }), gm, 'prop', 0.25, 1.2);   // (town quality pass: it had no collider)
   }
   if (yard > 1.2 && r.chance(0.5)) {
     const q = inYard(doorAt + 1.6, 0.6);

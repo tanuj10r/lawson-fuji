@@ -646,6 +646,16 @@ export function buildStation(ctx, { kit, service, sets, onEvent }) {
   // the station's sound: its announcements and bustle, heard in the concourse and on the platforms
   soundBus.zone('station-ambience', { ...ctx.toWorld({ x: cxE, z: (B.z0 + P1.z1) / 2 }), y: 3, near: 8, far: 30, level: 0.45 });
 
+  // dev: stand the master in a moment of an action, for screenshots (`__master('point', 2)`)
+  if (import.meta.env?.DEV && typeof window !== 'undefined') {
+    window.__master = (name, secs = 1) => {
+      const r = service.runs[0];
+      if (name === 'bow') master.bow(true);
+      else if (name === 'point') master.point(cabOf({ ...r, x: TOWN.station.stopX, dir: 1 }));
+      else if (name === 'whistle') master.whistle(cabOf({ ...r, x: TOWN.station.stopX, dir: 1 }), () => {});
+      for (let i = 0; i < Math.round(secs * 30); i++) master.update(1 / 30, null);
+    };
+  }
   let lastZ = null, labelOpen = null;
   const MASTER_NEAR = 60;
   return {

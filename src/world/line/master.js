@@ -61,14 +61,15 @@ function geometries() {
       { p: [0, 1.39, 0], rx: 0.13, ry: 0.09 },
       { p: [0, 1.41, 0], rx: 0.0, ry: 0.0 },
     ], 18, [0, 1, 0], 2), {
-      color: (p, n) => {
-        const front = n.z > 0.35;
-        const v = 0.008 + (p.y - 1.25) * 0.5;        // the V of the lapels: shirt and tie at the collar
-        if (front && p.y > 1.25 && Math.abs(p.x) < v) return Math.abs(p.x) < 0.013 ? TIE : WHITE;
-        if (p.y < 0.8) return NAVY_D;
-        return NAVY;
-      },
+      color: NAVY,
     });
+    // the V at the collar: shirt, tie, and the lapels' edges (their own shapes: vertex colours would smear)
+    b.add(new THREE.ShapeGeometry(new THREE.Shape([[-0.068, 1.395], [0.068, 1.395], [0, 1.245]].map(([x, y]) => new THREE.Vector2(x, y - 1.32)))),
+      { matrix: at(0, 1.32, 0.121, -0.2, 0, 0), color: WHITE });
+    b.add(new THREE.ShapeGeometry(new THREE.Shape([[-0.013, 1.385], [0.013, 1.385], [0.016, 1.275], [0, 1.255], [-0.016, 1.275]].map(([x, y]) => new THREE.Vector2(x, y - 1.32)))),
+      { matrix: at(0, 1.32, 0.1235, -0.2, 0, 0), color: TIE });
+    // the collar round the neck
+    b.add(new THREE.CylinderGeometry(0.056, 0.06, 0.035, 14, 1, true), { matrix: at(0, 1.395, 0.004), color: WHITE });
     // the neck
     b.add(limb([0, 1.36, 0], [0, 1.47, 0], 0.046, 0.044, 10), { color: SKIN });
     // the buttons, double-breasted, and the name plate
@@ -80,20 +81,20 @@ function geometries() {
 
   const head = part((b) => {
     const H = [0, 1.555, 0.005];
-    b.add(blob(0.108, 0.118, 0.104, 18, 14), { matrix: at(...H), color: SKIN });
-    b.add(blob(0.113, 0.098, 0.098, 16, 12), { matrix: at(0, 1.585, -0.022), color: HAIR });   // grey at the sides and back
+    b.add(blob(0.116, 0.12, 0.11, 20, 16), { matrix: at(...H), color: SKIN });
+    b.add(blob(0.121, 0.1, 0.1, 16, 12), { matrix: at(0, 1.585, -0.026), color: HAIR });   // grey at the sides and back
     for (const s of [-1, 1]) {
-      b.add(blob(0.022, 0.034, 0.016, 8, 6), { matrix: at(s * 0.108, 1.55, -0.004), color: SKIN });            // ears
+      b.add(blob(0.022, 0.034, 0.016, 8, 6), { matrix: at(s * 0.116, 1.55, -0.004), color: SKIN });            // ears
       // anime eyes: tall dark ovals, a white glint in each
-      b.add(blob(0.016, 0.027, 0.012, 10, 8), { matrix: at(s * 0.04, 1.566, 0.094, 0, s * 0.35, 0), color: INK });
-      b.add(blob(0.0065, 0.0085, 0.005, 6, 5), { matrix: at(s * 0.036, 1.577, 0.104), color: WHITE });
-      b.add(new THREE.BoxGeometry(0.036, 0.008, 0.01), { matrix: at(s * 0.043, 1.607, 0.094, 0, s * 0.35, s * -0.18), color: HAIR });   // brows
-      b.add(blob(0.021, 0.012, 0.006, 8, 6), { matrix: at(s * 0.066, 1.528, 0.084, 0, s * 0.6, 0), color: BLUSH });                   // cheeks
+      b.add(blob(0.016, 0.027, 0.012, 10, 8), { matrix: at(s * 0.042, 1.566, 0.101, 0, s * 0.35, 0), color: INK });
+      b.add(blob(0.0065, 0.0085, 0.005, 6, 5), { matrix: at(s * 0.038, 1.577, 0.111), color: WHITE });
+      b.add(new THREE.BoxGeometry(0.036, 0.008, 0.01), { matrix: at(s * 0.045, 1.609, 0.1, 0, s * 0.35, s * -0.18), color: HAIR });   // brows
+      b.add(blob(0.021, 0.012, 0.006, 8, 6), { matrix: at(s * 0.07, 1.528, 0.09, 0, s * 0.6, 0), color: BLUSH });                   // cheeks
       // the moustache, a half each side, drooping a little
-      b.add(blob(0.028, 0.011, 0.014, 8, 6), { matrix: at(s * 0.022, 1.508, 0.1, 0, s * 0.25, s * -0.25), color: HAIR });
+      b.add(blob(0.028, 0.011, 0.014, 8, 6), { matrix: at(s * 0.022, 1.508, 0.107, 0, s * 0.25, s * -0.25), color: HAIR });
     }
-    b.add(blob(0.012, 0.01, 0.012, 8, 6), { matrix: at(0, 1.537, 0.106), color: SKIN });              // nose
-    b.add(blob(0.014, 0.004, 0.004, 6, 4), { matrix: at(0, 1.488, 0.098), color: 0x8a3a3a });          // mouth
+    b.add(blob(0.012, 0.01, 0.012, 8, 6), { matrix: at(0, 1.537, 0.113), color: SKIN });              // nose
+    b.add(blob(0.014, 0.004, 0.004, 6, 4), { matrix: at(0, 1.488, 0.104), color: 0x8a3a3a });          // mouth
     // the cap: crown, gold band, badge, black visor
     const cap = (y) => y;
     b.add(new THREE.CylinderGeometry(0.132, 0.117, 0.085, 22), { matrix: at(0, cap(1.688), -0.006, -0.08, 0, 0), color: NAVY });
@@ -115,7 +116,8 @@ function geometries() {
   const fore = (i) => part((b) => {
     const s = i ? 1 : -1;
     const wrist = [s * 0.232, 0.84, 0.012];
-    b.add(limb(ELBOW[i], wrist, 0.047, 0.04, 10), { color: (p) => (p.y < 0.885 && p.y > 0.862 ? GOLD : NAVY) });
+    b.add(limb(ELBOW[i], wrist, 0.047, 0.04, 10), { color: NAVY });
+    b.add(new THREE.CylinderGeometry(0.043, 0.043, 0.02, 12, 1, true), { matrix: at(s * 0.231, 0.872, 0.011), color: GOLD });     // the cuff's gold line
     // the white glove, and a pointing finger (reads as a flat hand at rest)
     b.add(blob(0.04, 0.056, 0.03, 10, 8), { matrix: at(s * 0.234, 0.79, 0.016), color: WHITE });
     b.add(limb([s * 0.232, 0.76, 0.03], [s * 0.232, 0.705, 0.034], 0.011, 0.009, 6), { color: WHITE });
@@ -199,8 +201,8 @@ export function buildMaster(ctx, { x, z, y = 0, yaw = 0 }) {
     /** Before it leaves: whistle, then the arm up until it goes. */
     whistle(atXZ, onBlow) {
       play('whistle', [
-        [0.6, () => pose({ sx: [-1.25, 0.06], sz: [0.5, -0.08], ex: [-1.75, -0.12], headX: 0.05 }), () => { whistle.visible = true; }],
-        [2.0, () => pose({ sx: [-1.25, 0.06], sz: [0.5, -0.08], ex: [-1.75, -0.12], headX: -0.1 }), onBlow],
+        [0.6, () => pose({ sx: [-0.95, 0.06], sz: [0.5, -0.08], ex: [-1.85, -0.12], headX: 0.05 }), () => { whistle.visible = true; }],
+        [2.0, () => pose({ sx: [-0.95, 0.06], sz: [0.5, -0.08], ex: [-1.85, -0.12], headX: -0.1 }), onBlow],
         [2.5, () => pose({}), () => { whistle.visible = false; }],
         [5.5, () => pose({ sx: [0.06, -0.2], sz: [0.08, 2.75], ex: [-0.12, -0.1], headX: -0.05 })],
         [6.3, () => pose({})],

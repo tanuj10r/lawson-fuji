@@ -8,12 +8,11 @@ import { SHRINE_PRAYER } from '../../../data/town.js';
  * and rings), two deep bows, two claps, a moment with hands together, one
  * last bow; a line of English under each step.  Then the spot dims.
  *
- * The camera: the action is handed { player, hud } when main.js passes
- * them (player.onInteract -> target.action?.({ player, hud })).  With the
- * player, the view turns to the hall, lowers and dips for each bow, and
- * walking is held until the end; with the hud, the lines are its toasts.
- * Without them it still plays its sounds, swings its bell and shows its
- * lines (in a toast of its own, styled as the hud's).
+ * The camera: main.js hands every action { player, hud }.  With the
+ * player, the view turns to the hall, looks up at the bell, lowers and
+ * dips for each bow, and walking is held until the end; the lines are the
+ * hud's toasts.  Called without them it still plays its sounds, swings its
+ * bell and shows its lines (in a toast of its own, styled as the hud's).
  * ------------------------------------------------------------------ */
 
 const ease = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));

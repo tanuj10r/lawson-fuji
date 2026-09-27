@@ -21,12 +21,13 @@
   houses across lane z 80, so the tunnel is in warm shade with light spilling on
   the grounds beside it. The golden spot looks back through the tunnel at the
   inscriptions and the pink sky; that is the frame that works.
-- **Prayer camera needs a hook.** `player.onInteract` calls `action()` with no
-  arguments, so world code can't reach the camera. The shrine's action takes an
-  optional `{ player, hud }`; main.js needs
-  `target.action?.({ player, hud })`. Until then the prayer plays sounds, swings
-  the bell and shows its lines in a toast of its own (same `.toast` style, inside
-  `.hud`), but the view doesn't bow.
+- **Prayer camera:** main.js now calls `target.action?.({ player, hud })` (added
+  by the slow-life builder); the prayer bows the view through it, tested through
+  `player.onInteract`. Without it the prayer still plays, toast and all.
+- **Foxes** are smooth-shaded ('foxStone', flat: false; its own batch): slim chest,
+  long neck, narrow muzzle, tall ears, a bushy tail with flame licks.
+- **Nobori** use the shrine's own texture (kit/shrine/tex.js), measured to fit;
+  every brush column now shrinks to its cell's width as well as its height.
 - **Prayer text** lives in data/town.js (SHRINE_PRAYER), the file this builder
   owns; it could move to strings.js.
 - **Sounds:** clap and bell are synthesised by scripts/make-shrine-sounds.mjs into

@@ -34,12 +34,15 @@ function rng(seed) {
 }
 
 /** Characters stacked top to bottom in a column, each fitted to `size`. */
-function column(c, str, x, y0, y1, size, color, { gap = 0.04 } = {}) {
+function column(c, str, x, y0, y1, size, color, { gap = 0.04, maxW = 0 } = {}) {
   const chars = [...str].filter((ch) => ch !== ' ');
   const spaces = [...str].length - chars.length;
   const step = Math.min(size * (1 + gap), (y1 - y0) / Math.max(1, chars.length + spaces * 0.6));
-  const s = Math.floor(step / (1 + gap));
+  let s = Math.floor(step / (1 + gap));
+  // never wider than the column it is given: measure and shrink
   c.font = `${s}px ${JP_BRUSH}`;
+  const widest = Math.max(1, ...chars.map((ch) => c.measureText(ch).width));
+  if (maxW && widest > maxW) { s = Math.floor(s * maxW / widest); c.font = `${s}px ${JP_BRUSH}`; }
   c.fillStyle = color;
   c.textAlign = 'center';
   c.textBaseline = 'middle';
@@ -57,18 +60,18 @@ export const INSCRIPTION_CELLS = SHRINE_TEXT.donors.length + SHRINE_TEXT.dates.l
 export const inscriptionAtlas = () =>
   canvasTex('shrine-inscriptions', 32 * INSCRIPTION_CELLS, 448, (c, w, h) => {
     const all = [...SHRINE_TEXT.donors, ...SHRINE_TEXT.dates];
-    all.forEach((t, i) => column(c, t, i * 32 + 16, 8, h - 8, 27, 'rgba(24,18,22,0.92)'));
+    all.forEach((t, i) => column(c, t, i * 32 + 16, 8, h - 8, 27, 'rgba(24,18,22,0.92)', { maxW: 29 }));
   });
 /** The UV rect of inscription cell i: [u0, u1]. */
 export const inscriptionCell = (i) => [i / INSCRIPTION_CELLS, (i + 1) / INSCRIPTION_CELLS];
 
 /** The main torii's plaque (額): black board, gilt edge and letters. */
 export const gakuTex = () =>
-  canvasTex('shrine-gaku', 96, 224, (c, w, h) => {
+  canvasTex('shrine-gaku', 96, 186, (c, w, h) => {
     c.fillStyle = '#1e1a22'; c.fillRect(0, 0, w, h);
     c.strokeStyle = '#c9a24a'; c.lineWidth = 7; c.strokeRect(5, 5, w - 10, h - 10);
     c.lineWidth = 2; c.strokeRect(14, 14, w - 28, h - 28);
-    column(c, SHRINE_TEXT.gaku, w / 2, 22, h - 22, 40, '#e6c66a');
+    column(c, SHRINE_TEXT.gaku, w / 2, 20, h - 20, 40, '#e6c66a', { maxW: w - 34 });
   });
 
 /** The name pillar (社号標): pale granite, the name cut in and inked. */
@@ -80,8 +83,8 @@ export const stoneNameTex = () =>
       c.fillStyle = r() < 0.5 ? 'rgba(90,86,100,0.10)' : 'rgba(255,255,255,0.12)';
       c.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 2);
     }
-    column(c, SHRINE_TEXT.stone, w / 2 + 1, 26, h - 30, 44, 'rgba(255,255,255,0.35)');
-    column(c, SHRINE_TEXT.stone, w / 2, 24, h - 32, 44, '#3a3440');
+    column(c, SHRINE_TEXT.stone, w / 2 + 1, 26, h - 30, 44, 'rgba(255,255,255,0.35)', { maxW: w - 12 });
+    column(c, SHRINE_TEXT.stone, w / 2, 24, h - 32, 44, '#3a3440', { maxW: w - 12 });
   });
 
 /** Hanging paper lantern (提灯): white paper, red 奉納, black bands. */
@@ -91,7 +94,7 @@ export const chochinTex = () =>
     c.fillStyle = 'rgba(160,120,90,0.25)';
     for (let y = 8; y < h; y += 9) c.fillRect(0, y, w, 1);
     c.fillStyle = '#1e1a22'; c.fillRect(0, 0, w, 10); c.fillRect(0, h - 10, w, 10);
-    for (const x of [w * 0.25, w * 0.75]) column(c, SHRINE_TEXT.lantern, x, 18, h - 18, 44, '#c23a26');
+    for (const x of [w * 0.25, w * 0.75]) column(c, SHRINE_TEXT.lantern, x, 18, h - 18, 44, '#c23a26', { maxW: w / 2 - 14 });
   });
 
 /* The ema: wooden pentagons (and fox faces, as Inari shrines have them),
@@ -141,7 +144,7 @@ export const emaAtlas = () =>
         }
         // the wish, in a visitor's hand
         const wish = SHRINE_TEXT.ema[i % SHRINE_TEXT.ema.length];
-        column(c, wish, 102, 44, 118, 17, '#2a2230');
+        column(c, wish, 102, 44, 118, 17, '#2a2230', { maxW: 18 });
         c.strokeStyle = 'rgba(40,34,48,0.8)'; c.lineWidth = 1.6;
         for (let k = 0; k < 3; k++) {
           const x = 22 + k * 12;
@@ -169,3 +172,15 @@ export const trickleTex = () =>
       c.fillRect(r() * w, r() * h, 2 + r() * 3, 6 + r() * 12);
     }
   }, { repeat: true });
+
+/** The shrine's nobori (幟): vermilion cloth, a white band at the top where
+ * it hangs, the dedication in white, every character fitted inside the
+ * cloth's margins (measured, never clipped). */
+export const noboriTex = (text) =>
+  canvasTex('shrine-nobori-' + text, 96, 432, (c, w, h) => {
+    c.fillStyle = '#c8322c'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#f2ead8'; c.fillRect(0, 0, w, 16);
+    c.fillStyle = 'rgba(0,0,0,0.12)'; c.fillRect(0, h - 10, w, 10);
+    c.strokeStyle = 'rgba(255,240,220,0.5)'; c.lineWidth = 2; c.strokeRect(8, 26, w - 16, h - 44);
+    column(c, text, w / 2, 34, h - 26, 52, '#fbf6ea', { maxW: w - 30 });
+  });

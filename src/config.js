@@ -405,7 +405,7 @@ export const SHOT_SPOTS = [
   { name: 'shrine-approach', scene: 'town', pos: [13, 0, 77.5], yaw: 3.1416, pitch: 0.09, looks: ['day'] },
   { name: 'shrine-tunnel', scene: 'town', pos: [13, 0, 88.2], yaw: 3.1416, pitch: 0.05, looks: ['day'] },
   { name: 'shrine-hall', scene: 'town', pos: [7.4, 0, 90.7], yaw: -2.35, pitch: 0.13, looks: ['day'] },
-  { name: 'shrine-fox', scene: 'town', pos: [13.5, 0, 85.0], yaw: -2.06, pitch: 0.0, looks: ['day'] },
+  { name: 'shrine-fox', scene: 'town', pos: [13.4, 0, 85.15], yaw: -1.95, pitch: 0.1, looks: ['day'] },
   { name: 'shrine-golden', scene: 'town', pos: [13.1, 0, 92.2], yaw: 0.04, pitch: 0.03, looks: ['golden'] },
   { name: 'shrine-back', scene: 'town', pos: [13.1, 0, 93.3], yaw: 0.04, pitch: 0.02, looks: ['day'] },   // walking out: the donors' names
   { name: 'shrine-night', scene: 'town', pos: [13, 0, 80.9], yaw: 3.1416, pitch: 0.08, looks: ['blue'] },

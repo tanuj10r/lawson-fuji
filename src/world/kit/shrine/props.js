@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { boxG, cylG, ext, latheG, tubeG, xf } from './geo.js';
+import { boxG, cylG, ext, latheG, taperTube, tubeG, xf } from './geo.js';
 import { shideG, shimenawaSpan } from './torii.js';
 import { emaCell, EMA_CELLS } from './tex.js';
 import { rngKit } from '../../../core/util.js';
@@ -14,9 +14,11 @@ import { rngKit } from '../../../core/util.js';
 const at = (parts, o) => ({ add: (name, g) => parts.add(name, xf(g, { x: o.x, y: o.y ?? 0, z: o.z, ry: o.ry ?? 0 })) });
 
 /* --------------------------------------------------------------- kitsune
- * A seated stone fox (狐) on a two-tier pedestal: haunches, an upright
- * chest, the long pointed face, tall ears, the tail swept up behind like a
- * flame, a red bib (前掛け).  `holds`: 'key' (鍵) or 'jewel' (宝珠). */
+ * A seated stone fox (狐) on a two-tier pedestal, smooth-carved: haunches
+ * tucked, a slim upright chest, a long neck, the narrow pointed muzzle,
+ * tall ears, and the big brush of a tail swept up behind like a flame.
+ * Red bib (前掛け), red-painted eyes.  `holds`: 'key' (鍵) or 'jewel' (宝珠).
+ * The stone is smooth-shaded ('foxStone', 'bibCloth'); the pedestal is cut. */
 export function fox(parts, o, holds) {
   const P = at(parts, o);
   // the pedestal: base, dado, cap
@@ -25,38 +27,56 @@ export function fox(parts, o, holds) {
   P.add('stone', boxG(0.7, 0.1, 0.7, { y: 0.89 }));
   P.add('stoneDark', boxG(0.62, 0.05, 0.62, { y: 0.965 }));
   const y0 = 0.99;
-  const F = (g, t) => P.add('fox', xf(g, { ...t, y: (t.y ?? 0) + y0 }));
-  // haunches and hind feet, sitting
-  F(new THREE.SphereGeometry(0.17, 12, 8), { z: -0.07, y: 0.14, sx: 1.05, sy: 0.85, sz: 1.2 });
-  // the chest, upright and pushed forward, the slim neck
-  F(latheG([[0.001, 0], [0.12, 0.02], [0.125, 0.12], [0.1, 0.27], [0.065, 0.4], [0.05, 0.5], [0.001, 0.52]], 12), { y: 0.1, z: 0.02, rx: 0.1, sz: 0.9 });
-  // the head: a small skull, a long pointed muzzle, tall ears
-  F(new THREE.SphereGeometry(0.075, 12, 9), { y: 0.66, z: 0.07, sx: 0.95, sy: 0.85, sz: 1.05 });
-  F(new THREE.ConeGeometry(0.05, 0.22, 8), { y: 0.635, z: 0.2, rx: Math.PI / 2 + 0.22, sx: 0.85 });
+  const F = (g, t) => P.add('foxStone', xf(g, { ...t, y: (t.y ?? 0) + y0 }));
+  // the base it sits on, carved with the fox
+  F(latheG([[0.001, 0], [0.2, 0], [0.21, 0.03], [0.19, 0.05], [0.001, 0.05]], 28), { sx: 1.0, sz: 1.2 });
+  // haunches, tucked under and to the sides
+  for (const s of [-1, 1]) F(new THREE.SphereGeometry(0.1, 20, 14), { x: s * 0.075, y: 0.13, z: -0.05, sx: 0.8, sy: 0.9, sz: 1.35 });
+  // the body: one smooth rise from the haunches through a slim chest to a long neck
+  F(latheG([
+    [0.001, 0.0], [0.12, 0.03], [0.14, 0.1], [0.125, 0.18], [0.1, 0.26], [0.08, 0.33],
+    [0.062, 0.4], [0.05, 0.47], [0.045, 0.53], [0.05, 0.58], [0.001, 0.61],
+  ], 24), { y: 0.03, z: 0.0, sx: 0.95, sz: 0.85, rx: 0.13 });
+  // the chest pushed forward, a soft keel under the neck
+  F(new THREE.SphereGeometry(0.068, 20, 14), { y: 0.3, z: 0.06, sx: 0.9, sy: 1.6, sz: 0.75 });
+  // the head: a small skull, the narrow muzzle, tall ears laid a little back
+  const hy = 0.66, hz = 0.1;
+  F(new THREE.SphereGeometry(0.066, 22, 16), { y: hy, z: hz, sx: 0.92, sy: 0.82, sz: 1.08 });
+  for (const s of [-1, 1]) F(new THREE.SphereGeometry(0.03, 12, 9), { x: s * 0.038, y: hy - 0.02, z: hz + 0.02 });   // cheeks
+  const muzzle = latheG([[0.001, 0], [0.045, 0.015], [0.042, 0.05], [0.032, 0.1], [0.02, 0.15], [0.009, 0.185], [0.001, 0.2]], 18);
+  F(muzzle, { y: hy - 0.015, z: hz + 0.03, rx: Math.PI / 2 + 0.18, sx: 0.8 });
   for (const s of [-1, 1]) {
-    F(new THREE.ConeGeometry(0.034, 0.16, 4), { x: s * 0.045, y: 0.77, z: 0.05, rz: -s * 0.18, rx: -0.12 });
-    // the eyes, painted red and slanted, as Inari foxes are
-    P.add('bib', boxG(0.035, 0.009, 0.006, { x: s * 0.04, y: y0 + 0.685, z: 0.135, rz: -s * 0.35, ry: s * 0.5 }));
-    F(cylG(0.024, 0.028, 0.34, 7, {}), { x: s * 0.058, y: 0.17, z: 0.12, rx: 0.06 });           // forelegs
-    F(new THREE.SphereGeometry(0.032, 7, 5), { x: s * 0.06, y: 0.015, z: 0.14, sy: 0.6, sz: 1.3 });  // paws
-    F(new THREE.SphereGeometry(0.065, 8, 6), { x: s * 0.11, y: 0.045, z: 0.0, sy: 0.6, sz: 1.5 });   // hind feet
+    const ear = latheG([[0.001, 0], [0.03, 0.005], [0.028, 0.05], [0.018, 0.11], [0.006, 0.155], [0.001, 0.17]], 12);
+    F(ear, { x: s * 0.036, y: hy + 0.035, z: hz - 0.01, rz: -s * 0.2, rx: -0.2, sz: 0.55 });
+    // the eyes, painted red and slanted up toward the ears
+    P.add('bib', boxG(0.03, 0.008, 0.006, { x: s * 0.034, y: y0 + hy + 0.012, z: hz + 0.062, rz: s * 0.4, ry: s * 0.55 }));
+    // slim forelegs straight down, paws together
+    F(latheG([[0.001, 0], [0.022, 0.01], [0.02, 0.1], [0.022, 0.2], [0.026, 0.3], [0.02, 0.34], [0.001, 0.35]], 14), { x: s * 0.042, y: 0.03, z: 0.1 });
+    F(new THREE.SphereGeometry(0.03, 14, 10), { x: s * 0.044, y: 0.045, z: 0.12, sy: 0.55, sz: 1.35 });
+    // hind feet, flat to the base beside the haunches
+    F(new THREE.SphereGeometry(0.05, 14, 10), { x: s * 0.13, y: 0.06, z: 0.03, sy: 0.5, sz: 1.6 });
   }
-  // the brush of a tail, up along the back and curling out at the tip
-  F(tubeG([[0.02, 0.06, -0.2], [0.04, 0.18, -0.3], [0.03, 0.32, -0.3], [0.0, 0.44, -0.24]], 0.07, 16, 8), {});
-  F(new THREE.SphereGeometry(0.075, 9, 7), { y: 0.47, z: -0.22, sy: 1.2 });
-  F(new THREE.ConeGeometry(0.06, 0.16, 8), { y: 0.58, z: -0.21, rx: -0.3 });
+  // the tail: from under the haunches, up the back and higher than the head,
+  // fat and bushy, drawn out into a flame-like tip that flicks forward
+  const tail = [[0.04, 0.08, -0.14], [0.12, 0.17, -0.24], [0.155, 0.32, -0.29], [0.14, 0.48, -0.28], [0.1, 0.62, -0.23], [0.065, 0.72, -0.15], [0.06, 0.77, -0.07]];
+  const bushy = (t) => (t < 0.1 ? 0.5 + 5 * t : t < 0.66 ? 1.0 + 0.12 * Math.sin(Math.PI * (t - 0.1) / 0.56) : Math.max(0.05, 1 - Math.pow((t - 0.66) / 0.34, 1.5)));
+  F(taperTube(tail, 0.092, bushy, 56, 18), {});
+  // licks of flame off the brush, as carved foxes have them
+  F(taperTube([[0.13, 0.5, -0.29], [0.2, 0.56, -0.28], [0.23, 0.63, -0.25]], 0.035, (t) => Math.max(0.05, 1 - t), 16, 10), {});
+  F(taperTube([[0.06, 0.66, -0.22], [0.02, 0.74, -0.24], [0.0, 0.8, -0.21]], 0.03, (t) => Math.max(0.05, 1 - t), 16, 10), {});
   // the bib: a red cloth tied round the neck, hanging over the chest
-  const bib = new THREE.CylinderGeometry(0.075, 0.13, 0.16, 12, 1, true, -1.3, 2.6);
-  P.add('bib', xf(bib, { y: y0 + 0.45, z: 0.035, rx: 0.1 }));
-  P.add('bib', xf(new THREE.TorusGeometry(0.06, 0.013, 5, 14), { y: y0 + 0.535, z: 0.04, rx: Math.PI / 2 + 0.1 }));
+  const bib = new THREE.CylinderGeometry(0.058, 0.115, 0.17, 24, 1, true, -1.3, 2.6);
+  P.add('bibCloth', xf(bib, { y: y0 + 0.47, z: 0.045, rx: 0.14 }));
+  P.add('bibCloth', xf(new THREE.TorusGeometry(0.05, 0.012, 8, 20), { y: y0 + 0.555, z: 0.035, rx: Math.PI / 2 + 0.14 }));
   // what it holds in its mouth
+  const my = y0 + hy - 0.045, mz = hz + 0.13;
   if (holds === 'key') {
-    P.add('gold', xf(cylG(0.011, 0.011, 0.2, 6, {}), { y: y0 + 0.6, z: 0.24, rz: Math.PI / 2 }));
-    P.add('gold', xf(new THREE.TorusGeometry(0.03, 0.009, 5, 10), { x: -0.12, y: y0 + 0.6, z: 0.24, ry: Math.PI / 2 }));
-    P.add('gold', boxG(0.02, 0.05, 0.012, { x: 0.09, y: y0 + 0.575, z: 0.24 }));
+    P.add('gold', xf(cylG(0.01, 0.01, 0.2, 10, {}), { y: my, z: mz, rz: Math.PI / 2 }));
+    P.add('gold', xf(new THREE.TorusGeometry(0.028, 0.008, 8, 16), { x: -0.12, y: my, z: mz, ry: Math.PI / 2 }));
+    P.add('gold', boxG(0.018, 0.045, 0.01, { x: 0.09, y: my - 0.022, z: mz }));
   } else {
-    const jewel = latheG([[0.001, -0.045], [0.04, -0.03], [0.045, 0.0], [0.03, 0.03], [0.012, 0.055], [0.001, 0.075]], 10);
-    P.add('gold', xf(jewel, { y: y0 + 0.585, z: 0.26 }));
+    const jewel = latheG([[0.001, -0.04], [0.035, -0.028], [0.04, 0.0], [0.028, 0.028], [0.011, 0.05], [0.001, 0.07]], 16);
+    P.add('gold', xf(jewel, { y: my - 0.01, z: mz + 0.01 }));
   }
 }
 

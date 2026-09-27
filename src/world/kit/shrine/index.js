@@ -6,7 +6,6 @@ import { makeTimberFence } from '../../buildings.js';
 import { sanpaiNotice } from '../../../core/textures.js';
 import { makeParts } from '../../land/geo.js';
 import { plant } from '../green.js';
-import { noboriTex } from '../tex.js';
 import { LAYER } from '../decals.js';
 import { ROADS } from '../../../config.js';
 import { SHRINE } from '../../../data/town.js';
@@ -14,7 +13,7 @@ import { boxG, cylG, ext, latheG, xf } from './geo.js';
 import { toriiTunnel, mainTorii } from './torii.js';
 import { haiden, honden, roof } from './halls.js';
 import { fox, stoneLantern, temizuya, emaRack, omikujiRack, saisenBox, namePillar, treeRope, fenceStone } from './props.js';
-import { gakuTex, stoneNameTex, emaAtlas, chochinTex, trickleTex } from './tex.js';
+import { gakuTex, stoneNameTex, emaAtlas, chochinTex, trickleTex, noboriTex } from './tex.js';
 import { setupPrayer } from './prayer.js';
 
 /* ------------------------------------------------------------------ *
@@ -47,7 +46,8 @@ function mats() {
     shadow: cel({ color: 0x3a2c30, bands: 2, tint: 0x2e2640 }),
     stone: cel({ color: 0xc4bfb6, bands: 3, tint: 0x5e5a80 }),
     stoneDark: cel({ color: 0x9a94a0, bands: 3, tint: 0x565078 }),
-    fox: cel({ color: 0xe2ddd2, bands: 3, tint: 0x6a6490 }),
+    foxStone: cel({ color: 0xe4dfd4, bands: 3, tint: 0x6a6490, flat: false }),       // smooth-carved
+    bibCloth: cel({ color: 0xcf3526, bands: 3, tint: 0x7a3a58, side: THREE.DoubleSide, flat: false }),
     bib: cel({ color: 0xcf3526, bands: 3, tint: 0x7a3a58, side: THREE.DoubleSide }),
     gold: cel({ color: 0xd9b24c, bands: 3, tint: 0x7a6040 }),
     roof: cel({ color: 0x6f9d8c, bands: 3, tint: 0x3a5270 }),        // weathered copper (緑青)
@@ -76,7 +76,7 @@ function mats() {
 }
 
 /** Bake in the parts that cast shadows and those that don't. */
-const CAST = ['red', 'black', 'white', 'stone', 'stoneDark', 'fox', 'gold', 'roof', 'roofDark', 'under', 'hafu', 'wood', 'woodDark', 'bamboo', 'straw', 'strawDark', 'stoneName', 'lamp', 'bib'];
+const CAST = ['red', 'black', 'white', 'stone', 'stoneDark', 'foxStone', 'bibCloth', 'gold', 'roof', 'roofDark', 'under', 'hafu', 'wood', 'woodDark', 'bamboo', 'straw', 'strawDark', 'stoneName', 'lamp', 'bib'];
 
 export function buildShrine(ctx, net, kit, s, F) {
   const m = mats();
@@ -175,7 +175,7 @@ export function buildShrine(ctx, net, kit, s, F) {
       const x = sx * 2.35;
       P.add('iron', cylG(0.022, 0.022, 3.3, 5, { x, y: 1.65, z }));
       P.add('iron', cylG(0.012, 0.012, 0.46, 4, { x, y: 3.15, z: z - 0.23, rx: Math.PI / 2 }));
-      const c = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 1.85), cloth);
+      const c = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 1.8), cloth);
       const p = town(x, z - 0.23);
       c.position.set(p.x, 2.2, p.z);
       c.rotation.y = F.ry + Math.PI / 2;

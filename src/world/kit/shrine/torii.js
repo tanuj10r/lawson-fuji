@@ -119,10 +119,11 @@ export function mainTorii(parts, z, { a = 1.55, gakuMat } = {}) {
   parts.add('black', xf(k, { y: H + 0.34, z }));                                          // 笠木
   parts.add('red', boxG(0.14, 0.5, 0.12, { y: 3.62, z }));                                // 額束
   // the plaque, on the lane side
-  parts.add('black', boxG(0.44, 0.9, 0.08, { y: 3.62, z: z - 0.08 }));
+  // the plaque, on the lane side: between the nuki and the shimaki, clear of both
+  parts.add('black', boxG(0.36, 0.66, 0.06, { y: 3.6, z: z - 0.14 }));
   if (gakuMat) {
-    const g = new THREE.PlaneGeometry(0.38, 0.84);
-    xf(g, { y: 3.62, z: z - 0.125, ry: Math.PI });
+    const g = new THREE.PlaneGeometry(0.32, 0.62);
+    xf(g, { y: 3.6, z: z - 0.172, ry: Math.PI });
     parts.add('gaku', g);
   }
   // the shimenawa across under the nuki, with its shide and tassels

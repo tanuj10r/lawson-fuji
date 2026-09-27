@@ -124,6 +124,9 @@ export const SPECIALS = [
   { kind: 'apartment', x0: 30 + lane + 0.5, z0: 86, x1: 30 + lane + 12.5, z1: 102, face: 'x-' },
   { kind: 'vacant', x0: 40, z0: 98, x1: 51, z1: 112 - lane - 0.3, face: 'z+' },
   { kind: 'park', x0: 5, z0: 112 + lane + 0.4, x1: 24, z1: 132, face: 'z-' },
+  // ドンペン堂, the discount megastore (experiences): two of the spine's lots
+  // on its west side, halfway from the main road to the station
+  { kind: 'megastore', x0: -69.3, z0: 58.2, x1: -55.3, z1: 76.0, face: 'x+' },
   { kind: 'plaza', x0: TOWN.plaza.x0, z0: TOWN.plaza.z0, x1: TOWN.plaza.x1, z1: TOWN.plaza.z1, face: 'z-' },
   // the station building's strip between the plaza and the tracks (world/line/station.js builds it)
   { kind: 'station', x0: TOWN.plaza.x0, z0: TOWN.plaza.z1, x1: TOWN.plaza.x1, z1: 154, face: 'z-' },

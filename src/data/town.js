@@ -163,3 +163,21 @@ export const SHOP_LETTERING = {
 };
 /** The sweet shop's wooden menu tags, over its counter. */
 export const SWEET_TAGS = ['だんご', '大福', 'さくら餅', 'どら焼', 'もなか', '羊羹', 'おはぎ', '柏餅'];
+
+/* ---- the discount megastore (experiences): ドンペン堂, a loving homage to
+ * the big discount palaces, in our own name, words and mascot ---- */
+export const DONPEN = {
+  name: 'ドンペン堂',
+  mega: 'MEGA',
+  tagline: '爆安の宮殿',
+  // the experience spot: its minimap name, and the E prompt (after the '·')
+  en: 'Donpen-do, the discount palace',
+  label: 'ドンペン堂 · Cheer with Pen-chan',
+  canopy: ['爆安の宮殿', '食品', '日用品', '化粧品', '家電', 'おもちゃ', 'パーティーグッズ', '深夜まで営業'],
+  banners: ['爆安', 'お菓子', 'コスメ', '家電', 'パーティー', '免税'],
+  floors: ['1F 食品・お菓子', '2F 化粧品・家電', '3F おもちゃ・パーティー'],
+  aisle: ['お菓子', '日用品', 'ドリンク', 'コスメ', '洗剤', 'カップ麺'],
+  board: ['本日の', '目玉商品', '全品', 'お買い得!'],
+  // the hand-lettered price cards (POP) stuck on everything
+  pop: ['激安!', '298円', '爆安', '198円', 'お一人様3点まで', '本日限り', '大人気!', '999円', '訳あり特価', '店長イチオシ', '驚きの価格', '58円'],
+};

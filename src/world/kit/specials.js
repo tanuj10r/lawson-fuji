@@ -18,6 +18,7 @@ import { COIN_PARKING, SHRINE, FOR_SALE, PARK_NAME } from '../../data/town.js';
 import { signPost } from './signs.js';
 import { noboriTex } from './tex.js';
 import { LAYER } from './decals.js';
+import { buildMegastore } from './megastore/index.js';
 
 /* ------------------------------------------------------------------ *
  * The special lots (SPEC section 3, mixing): an inari shrine, the coin
@@ -54,7 +55,7 @@ function frame(s) {
 const reg = (ctx, kind, p) => ctx.registry?.push({ kind, x: p.x, z: p.z });
 
 export function buildSpecial(ctx, net, kit, s) {
-  const fn = { coinParking, shrine, apartment, vacant, park, plaza }[s.kind];
+  const fn = { coinParking, shrine, apartment, vacant, park, plaza, megastore: buildMegastore }[s.kind];
   return fn?.(ctx, net, kit, s, frame(s));
 }
 

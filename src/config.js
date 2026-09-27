@@ -496,6 +496,12 @@ export const SHOT_SPOTS = [
   { name: 'close-animals-shiba', scene: 'town', pos: [-81.8, 0, 120.2], yaw: 0.615, pitch: -0.45, looks: ['day', 'golden'], close: true },
   { name: 'animals-butterflies', scene: 'town', pos: [-6, 0, -13.8], yaw: 1.5708, pitch: -0.3, looks: ['day'], close: true },
   { name: 'animals-pond-koi', scene: 'town', pos: [77.4, 0, 113.8], yaw: 2.19, pitch: -0.62, looks: ['day'], close: true },
+  // the discount megastore (ドンペン堂, experiences): its front across the spine, the packed entrance, the mascot, night, the approach
+  { name: 'donki-front', scene: 'town', pos: [-46.3, 0, 53.5], yaw: 2.45, pitch: 0.24, looks: ['day'] },
+  { name: 'donki-entrance', scene: 'town', pos: [-53.3, 0, 66.4], yaw: 1.5708, pitch: 0.1, looks: ['day'] },
+  { name: 'donki-mascot', scene: 'town', pos: [-49.5, 0, 67.3], yaw: 1.855, pitch: 0.55, looks: ['day'] },
+  { name: 'donki-night', scene: 'town', pos: [-45.2, 0, 62.5], yaw: 1.95, pitch: 0.16, looks: ['blue'] },
+  { name: 'donki-street', scene: 'town', pos: [-47.6, 0, 38], yaw: 3.0, pitch: 0.06, looks: ['day', 'golden'] },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },

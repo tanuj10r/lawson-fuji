@@ -35,7 +35,7 @@ export function channelMats(tex) {
     masonry: cel({ color: 0xffffff, bands: 3, tint: 0x6a6490, map: tex.masonry }),
     slab: cel({ color: 0xffffff, bands: 3, tint: 0x6a6490, map: tex.slab }),
     grass: cel({ color: 0xffffff, bands: 3, tint: 0x5b6f8c, map: tex.grass }),
-    track: cel({ color: 0xffffff, bands: 3, tint: 0x6f6790, map: tex.track }),
+    track: cel({ color: 0x8a8ea0, bands: 3, tint: 0x5a5480, map: tex.track }),   // the bridge road's asphalt
     granite: cel({ color: 0xc9c5bb, bands: 3, tint: 0x6a6490 }),
     graniteDark: cel({ color: 0xa6a298, bands: 3, tint: 0x5f5880 }),
     railWood: cel({ color: 0x8a6a50, bands: 3, tint: 0x5a4a68 }),

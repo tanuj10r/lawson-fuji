@@ -94,6 +94,12 @@ export function planNetwork() {
     crossings: [
       { edge: edgeAt('z', -50, 30), at: 30 },       // the spine, near the main road
       { edge: edgeAt('z', -50, 100), at: 100 },     // and halfway down
+      // the master junction (Tan): the main road's zebra (kakko, signals.js) and
+      // this one across lane x 30 (piyo), side by side, so both tunes are
+      // heard at one corner.  Its walk light alternates with the main road's
+      // (offset 19 s puts it inside the main road's car green), as at a real
+      // junction, so the two take turns
+      { edge: edgeAt('z', 30, 23.5), at: 23.5, offset: 19 },
     ],
     busStops: [{ edge: edgeAt('x', G.main, 50), at: 50, side: 1 }],
     quiet: TOWN.quiet,

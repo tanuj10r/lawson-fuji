@@ -41,8 +41,9 @@ export function buildCore(ctx) {
     [-300, 154, 300, 300],                   // the railway corridor and beyond
     ...TOWN.lawsonReserve,                   // the Lawson's forecourt and store (the town is built turned)
     TOWN.photoLot,                           // the photographers' lot, where the famous views are taken
-    // the farm track's way through the far-side row, up to the paddies
+    // the bridge road's way through the far-side row, from the master junction to the river
     [TOWN.land.track.x - TOWN.land.track.w / 2 - 0.5, TOWN.frontRow.z0 - 2, TOWN.land.track.x + TOWN.land.track.w / 2 + 0.5, TOWN.frontRow.z1],
+    TOWN.land.pond.box,                      // 鏡池 and its grounds, by the railway (land/pond.js)
   ];
   // the core, and (M2e) the main road's far side: a frontage row of shops
   // and houses facing the store across the road, where the old town's
@@ -152,9 +153,12 @@ function buildCoreEdge(ctx) {
   ctx.collide(C.x0, zEnd - 0.2, C.x1, zEnd + 0.2, 1.2);
   // the lane over the level crossing ends at a guardrail
   ctx.add(makeGuardrail({ x: -80, z: zEnd - 1.5, y: 0, ry: 0, len: 5.6 }));
-  // and so do the lanes that stop at the paddies (town pass)
+  // and so do the lanes that stop short (town pass)
+  const P = TOWN.land.pond;
   for (const r of TOWN.grid.ew) {
-    if (r.x1 !== C.buildX1) continue;
+    // lanes that stop short of the east fence end at a guardrail, unless
+    // they open into the pond's grounds
+    if (r.x1 >= C.x1 - 6 || P.gates.includes(r.z)) continue;
     const x = r.x1 + 0.6;
     ctx.add(makeGuardrail({ x, z: r.z, y: 0, ry: Math.PI / 2, len: 5.6 }));
     ctx.collide(x - 0.2, r.z - 2.9, x + 0.2, r.z + 2.9, 0.9);

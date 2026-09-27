@@ -420,10 +420,16 @@ export function createSound({ volume = 0.5 } = {}) {
      */
     walkSignals(list) {
       if (!ac) return;
+      /* One junction, one voice: crossings with the same tune within 15 m of
+       * each other (the master junction's two main-road zebras) are heard as
+       * one, from the nearest of them, not as two loops in unison. */
+      const dist = list.map((w) => Math.hypot(w.x - listener.x, w.z - listener.z));
+      const twin = list.map((w, i) => list.some((v, j) => j !== i && v.on && v.sound === w.sound
+        && Math.hypot(v.x - w.x, v.z - w.z) < 15 && (dist[j] < dist[i] || (dist[j] === dist[i] && j < i))));
       list.forEach((w, i) => {
         const n = walks[i] ?? (walks[i] = { g: null, src: null, timer: null });
-        const d = Math.hypot(w.x - listener.x, w.z - listener.z);
-        const on = w.on && d < SOUND.walkSignal.far && !muted;
+        const d = dist[i];
+        const on = w.on && !twin[i] && d < SOUND.walkSignal.far && !muted;
         if (on && !n.g) {
           n.g = ac.createGain(); n.g.gain.value = 0;
           const p = ac.createPanner(); p.panningModel = 'HRTF'; p.rolloffFactor = 0;

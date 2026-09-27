@@ -217,7 +217,7 @@ export function buildOldTown(ctx) {
     }
     // west and east, down to the main road: open where the levee and the
     // river run out of town (town pass), so the river doesn't meet a fence
-    const L = TOWN.land, gap = [L.farBank.z0, L.levee.z1];
+    const L = TOWN.land, gap = [L.sunk.z0 - 3, L.sunk.z1 + 1];   // the river's channel and its walks
     row(B.x0 - 3, B.z0, B.x0 - 3, gap[0], 11, 3200);
     row(B.x0 - 3, gap[1], B.x0 - 3, 4, 11, 3210);
     row(B.x1 + 3, B.z0, B.x1 + 3, gap[0], 11, 3300);

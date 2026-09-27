@@ -146,11 +146,14 @@ export function buildTown(scene) {
   /* --- Mt. Fuji, riding with the camera like the sky --- */
   const fuji = buildFuji(scene);
 
-  // what the pond's mirror shows (world rect): its grounds and 40 m round
-  const pb = TOWN.land.pond?.box;
+  // what the pond's mirror shows (world rect): its grounds and 25 m round
+  // (and the paddies' mirror: the two sit side by side, so one rect holds both)
+  const pb = TOWN.land.pond?.box && [
+    Math.min(TOWN.land.pond.box[0], TOWN.land.paddies?.box[0] ?? Infinity), Math.min(TOWN.land.pond.box[1], TOWN.land.paddies?.box[1] ?? Infinity),
+    Math.max(TOWN.land.pond.box[2], TOWN.land.paddies?.box[2] ?? -Infinity), Math.max(TOWN.land.pond.box[3], TOWN.land.paddies?.box[3] ?? -Infinity)];
   const reflectRect = pb && (() => {
     const a = T.toWorld({ x: pb[0], z: pb[1] }), b = T.toWorld({ x: pb[2], z: pb[3] });
-    return [Math.min(a.x, b.x) - 40, Math.min(a.z, b.z) - 40, Math.max(a.x, b.x) + 40, Math.max(a.z, b.z) + 40];
+    return [Math.min(a.x, b.x) - 25, Math.min(a.z, b.z) - 25, Math.max(a.x, b.x) + 25, Math.max(a.z, b.z) + 25];
   })();
 
   return {

@@ -99,7 +99,8 @@ export function buildPoles(ctx, net, decals, clutter = null) {
       ...net.crossings.filter((c) => c.e === e).map((c) => [c.at - 3.5, c.at + 3.5]),
       ...net.busStops.filter((b) => b.e === e).map((b) => [b.at - 7.5, b.at + 7.5]),
       // the main road's own zebra (signals.js, built in the world frame; the town is turned)
-      ...(e.cls === 'hero' ? [[-TOWN.crosswalk.x - TOWN.crosswalk.width / 2 - 1.5, -TOWN.crosswalk.x + TOWN.crosswalk.width / 2 + 1.5]] : []),
+      ...(e.cls === 'hero' ? [TOWN.crosswalk.x, TOWN.crosswalk.x2].filter((x) => x !== undefined)
+        .map((x) => [-x - TOWN.crosswalk.width / 2 - 1.5, -x + TOWN.crosswalk.width / 2 + 1.5]) : []),
     ];
     const clear = (s) => !busy.some(([a, b]) => s > a && s < b);
 

@@ -184,7 +184,7 @@ export function paintMarkings(net, decals) {
         tactilePad(decals, q.x, q.z, net.along(e, 1));
       }
     }
-    features.crossings.push({ e, s: c.at, L });
+    features.crossings.push({ e, s: c.at, L, offset: c.offset });
   }
 
   /* ---- bus stops ---- */

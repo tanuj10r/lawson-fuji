@@ -52,15 +52,25 @@ export function paintMap(world) {
     c.fillRect(Math.random() * W, Math.random() * H, 2, 2);
   }
 
-  /* ---- the land north of the road (town pass; turned frame) ---- */
+  /* ---- the river, its walks, the bridge road, the parking lot and 鏡池
+   * (Tan's layout; turned frame) ---- */
   {
     const L = TOWN.land;
-    for (const r of [L.near, L.far, L.east]) rect(r, C.paddy);
-    rect([-118, L.levee.z0, 118, L.levee.z1], C.levee);
-    rect([-118, L.farBank.z0, 118, L.farBank.z1], C.levee);
+    rect(L.parking, C.parking);
+    rect(L.paddies.box, C.paddy);
+    rect([-118, L.sunk.z0, 118, L.sunk.z1], C.levee);          // the channel's walks and banks
     rect([-118, L.river.z0, 118, L.river.z1], C.river);
-    rect([L.track.x - L.track.w / 2, L.track.z0, L.track.x + L.track.w / 2, L.track.z1], C.track);
-    rect([L.bridge.x - L.bridge.w / 2, L.river.z0, L.bridge.x + L.bridge.w / 2, L.river.z1], C.walk);
+    rect([L.track.x - L.track.w / 2, L.track.z0, L.track.x + L.track.w / 2, L.track.z1], C.road);
+    rect([L.bridge.x - L.bridge.w / 2, L.bridge.z0, L.bridge.x + L.bridge.w / 2, L.bridge.z1], C.walk);
+    // the pond: its grounds, and the water as a rounded triangle
+    rect(L.pond.box, C.park);
+    const pts = L.pond.corners.map(([x, z]) => F.toWorld({ x, z })).map((p) => toPx(p.x, p.z));
+    c.fillStyle = C.river;
+    c.beginPath();
+    pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+    c.closePath();
+    c.lineJoin = 'round'; c.lineWidth = 10; c.strokeStyle = C.river;
+    c.fill(); c.stroke();
   }
 
   /* ---- the special lots ---- */

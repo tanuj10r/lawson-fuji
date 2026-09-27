@@ -99,7 +99,8 @@ check('each zebra plays its signal while green', heard.every((h) => h.green && h
 // each crossing calls with its own voice: the cuckoo on the main road it is
 // walked across, the chick on the shopping street's
 const voices = await page.evaluate(() => window.__walkList.map((w) => ({ sound: w.sound, x: Math.round(w.x), z: Math.round(w.z) })));
-check('the main road crossing calls kakko, the side streets piyo', voices[0].sound === 'kakko' && voices.slice(1).every((v) => v.sound === 'piyo'), voices);
+// the main road (world z ~14) is crossed north-south: the cuckoo; every other crossing, the chick
+check('the main road crossings call kakko, the side streets piyo', voices.every((v) => (Math.abs(v.z - 14) < 3) === (v.sound === 'kakko')), voices);
 
 // from where the game starts you hear one crossing, never two at once
 const spawnHeard = await page.evaluate(async () => {

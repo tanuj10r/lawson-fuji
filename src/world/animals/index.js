@@ -6,8 +6,8 @@ import { makeShadows, makeMarks } from './shade.js';
 import { buildKoi } from './koi.js';
 import { buildTurtles } from './turtles.js';
 import { buildDucks } from './ducks.js';
-import { buildWaders } from './waders.js';
 import { planPaddies } from '../land/paddies.js';
+import { buildWaders } from './waders.js';
 import { buildPigeons } from './pigeons.js';
 import { buildShiba } from './shiba.js';
 import { buildButterflies } from './butterflies.js';
@@ -60,7 +60,7 @@ export function buildAnimals(ctx, { core } = {}) {
   /** in the water, at least `m` from the shore */
   const inside = (x, z, m = 0) => inPoly(x, z) && (m <= 0 || segDist(x, z).d > m);
   // the benches' places on the shore (as land/pond.js sets them)
-  const benchAt = [[-56, -52], [-44, -57.5], [-78, -84], [-58, -84]].map(([x, z]) => segDist(x, z));
+  const benchAt = [[62, 130], [67, 117], [85, 125], [80, 113]].map(([x, z]) => segDist(x, z));   // as land/pond.js sets them
   const benches = {
     at: benchAt,
     near: (x, z) => Math.min(...benchAt.map((b) => Math.hypot(b.x - x, b.z - z))),
@@ -84,14 +84,14 @@ export function buildAnimals(ctx, { core } = {}) {
   const R = L.river;
   const inRiver = (x0, x1) => (x, z) => x > x0 && x < x1 && z > R.z0 + 1.2 && z < R.z1 - 1.2;
   const ducks = buildDucks(actx, {
-    marks, reflect: REFLECT, bounds: [-20, 0, -50, 110],
+    marks, reflect: REFLECT, bounds: [25, 0, 55, 110],   // x, y, z, r: the pond and the river's stretch
     groups: [
-      { x: -65, z: -58, n: 2, water, roam: 7, area: (x, z) => inside(x, z, 1.2), upend: false },
-      { x: -26, z: -27, n: 2, water: R.water, roam: 12, area: inRiver(-60, -2), flow: 0.12, upend: true },
-      { x: 14, z: -29, n: 2, water: R.water, roam: 8, area: inRiver(3, 31), flow: 0.12, upend: true },
+      { x: 76, z: 134, n: 2, water, roam: 7, area: (x, z) => inside(x, z, 1.2), upend: false },
+      { x: -26, z: -22.5, n: 2, water: R.water, roam: 12, area: inRiver(-60, -2), flow: 0.12, upend: true },
+      { x: 14, z: -24, n: 2, water: R.water, roam: 8, area: inRiver(3, 31), flow: 0.12, upend: true },
     ],
   });
-  kinds.push({ x: -20, z: -45, r: 90, name: 'ducks', wet: true, mesh: 'ducks', draw: 80, update: ducks.update, list: ducks.list });
+  kinds.push({ x: 25, z: 55, r: 130, name: 'ducks', wet: true, mesh: 'ducks', draw: 80, update: ducks.update, list: ducks.list });
 
   /* ---- the grey heron in the river's shallows, by the town-side walk ---- */
   {
@@ -107,9 +107,9 @@ export function buildAnimals(ctx, { core } = {}) {
   }
 
   /* ---- little egrets in the flooded paddies, in twos and threes ---- */
+  let rengeSpots = [];
   {
     const plan = planPaddies();
-    const plot = (zone, row, col) => plan.plots.find((p) => p.zone === zone && p.row === row && p.col === col);
     // inside a plot, `m` in from its paths
     const inPlot = (p, m) => (x, z) => {
       const zs = p.S(x) - m, zn = p.N(x) + m;
@@ -118,36 +118,39 @@ export function buildAnimals(ctx, { core } = {}) {
       const xl = p.sw + (p.nw - p.sw) * v + m, xr = p.se + (p.ne - p.se) * v - m;
       return x > xl && x < xr;
     };
-    const wet = plan.plots.filter((p) => p.kind === 'flood' || p.kind === 'seed');
     const centre = (p) => { const x = (p.sw + p.se + p.nw + p.ne) / 4; return { x, z: (p.S(x) + p.N(x)) / 2 }; };
-    const birds = [];
-    const flocks = [[plot('far-east', 0, 1), 3], [plot('far-west', 0, 1), 2]];
-    const Y = 0.05;
-    for (const [p, n] of flocks) {
-      if (!p) continue;
-      const area = inPlot(p, 0.7);
-      const c = centre(p);
-      // near the path along the far walk's side, a couple of metres apart
-      const zEdge = p.S(c.x) - 2.2;
-      const landings = [];
-      for (const q of wet) {
-        const cq = centre(q);
-        if (Math.hypot(cq.x - c.x, cq.z - c.z) > 45) continue;
-        for (let k = 0; k < 6; k++) {
-          const x = cq.x + (k - 2.5) * 2.2, z = q.S(x) - 1.5 - (k % 2) * 2.5;
-          if (inPlot(q, 0.8)(x, z)) landings.push([x, z]);
-        }
+    const wet = plan.plots.filter((p) => p.kind === 'flood' || p.kind === 'seed');
+    const any = (x, z) => wet.some((q) => inPlot(q, 0.7)(x, z));
+    const landings = [];
+    for (const q of wet) {
+      const c = centre(q);
+      for (let k = 0; k < 4; k++) {
+        const x = c.x + (k - 1.5) * 2.4, z = c.z + (k % 2 ? 1.2 : -1.2);
+        if (inPlot(q, 0.8)(x, z)) landings.push([x, z]);
       }
+    }
+    // a flock of three in the plot nearest the lane z 45, two farther in
+    const byLane = wet.slice().sort((p, q) => Math.hypot(centre(p).x - 60, centre(p).z - 50) - Math.hypot(centre(q).x - 60, centre(q).z - 50));
+    const birds = [];
+    const Y = 0.05;
+    for (const [p, n] of [[byLane[0], 3], [byLane[Math.min(3, byLane.length - 1)], 2]]) {
+      if (!p) continue;
+      const c = centre(p);
       for (let k = 0; k < n; k++) {
-        const x = c.x + (k - (n - 1) / 2) * 2.4 + (k % 2) * 0.6, z = zEdge - (k % 2) * 1.2;
-        const any = (xx, zz) => wet.some((q) => inPlot(q, 0.7)(xx, zz));
+        const x = c.x + (k - (n - 1) / 2) * 2.4 + (k % 2) * 0.6, z = c.z - (k % 2) * 1.2;
         birds.push({ x, z, y: Y - 0.045, water: Y, yaw: 1.2 + k * 1.9, area: any, landings });
       }
     }
-    const cx = birds.reduce((a, b) => a + b.x, 0) / birds.length, cz = birds.reduce((a, b) => a + b.z, 0) / birds.length;
-    const egrets = buildWaders(actx, { kind: 'egret', birds, marks, reflect: 0, bounds: [cx, 0, cz, 80] });
-    kinds.push({ x: cx, z: cz, r: 60, name: 'egrets', wet: true, mesh: 'egret', draw: 90, update: egrets.update, list: egrets.list });
+    if (birds.length) {
+      const cx = birds.reduce((a, b) => a + b.x, 0) / birds.length, cz = birds.reduce((a, b) => a + b.z, 0) / birds.length;
+      const egrets = buildWaders(actx, { kind: 'egret', birds, marks, reflect: 0, bounds: [cx, 0, cz, 80] });
+      egrets.list && kinds.push({ x: cx, z: cz, r: 60, name: 'egrets', wet: true, mesh: 'egret', draw: 90, update: egrets.update, list: egrets.list });
+    }
+    // the cabbage whites' renge (below)
+    rengeSpots = plan.plots.filter((p) => p.kind === 'renge').map(centre);
   }
+
+
 
   /* ---- pigeons: the station plaza and the shopping spine ---- */
   {
@@ -260,13 +263,14 @@ export function buildAnimals(ctx, { core } = {}) {
   {
     const W = L.sunk.walk;
     const patches = [
-      { x: -2.5, z: -47.6, y: 0.2, r: 2.6, n: 4 },            // the renge by the far stairs
-      { x: 70, z: -62, y: 0.2, r: 3, n: 3 },                  // the renge beyond the pump shed
-      { x: -9, z: -16.9, y: W + 0.22, r: 3.2, n: 2 },          // the town-side lower walk's flowers
-      { x: 22, z: -39.2, y: W + 0.22, r: 3, n: 2 },            // the far lower walk
+      ...rengeSpots.slice(0, 2).map((c) => ({ x: c.x, z: c.z, y: 0.25, r: 3, n: 3 })),   // over the paddies' renge
+      { x: 57, z: 108, y: 0.4, r: 2.6, n: 3 },                // the pond's hedges, by the tea house
+      { x: 94, z: 125, y: 0.4, r: 2.6, n: 2 },                // and on its east bank
+      { x: -9, z: L.walks.town[1] - 0.8, y: W + 0.22, r: 3.2, n: 3 },   // the town-side lower walk's flowers
+      { x: 22, z: L.walks.far[0] + 0.8, y: W + 0.22, r: 3, n: 3 },       // the far lower walk
     ];
     const butterflies = buildButterflies(actx, { patches });
-    kinds.push({ x: 20, z: -40, r: 70, name: 'butterflies', mesh: 'butterflies', draw: 25, update: butterflies.update, list: butterflies.list });
+    kinds.push({ x: 40, z: 40, r: 110, name: 'butterflies', mesh: 'butterflies', draw: 25, update: butterflies.update, list: butterflies.list });
   }
 
   /* ---- the frame: each kind moves only with the camera near ---- */

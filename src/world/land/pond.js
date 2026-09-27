@@ -53,7 +53,7 @@ export function pondMats(tex) {
  * (x, z), closed. */
 export function pondShore() {
   const C = TOWN.land.pond.corners.map(([x, z]) => new THREE.Vector2(x, z));
-  const rc = [13, 11, 12];               // fillet radius at each corner
+  const rc = TOWN.land.pond.fillets ?? [13, 11, 12];   // fillet radius at each corner
   const out = [];
   const n = C.length;
   for (let i = 0; i < n; i++) {
@@ -247,7 +247,7 @@ export function buildPond(ctx, parts, scatter, water) {
     mirror.camera.layers.set(REFLECT);   // only what stands round the pond (tagged by town.js)
     mirror.visible = false;
     ctx.add(mirror);
-    const NEAR = 140;
+    const NEAR = 70;            // the mirror only where its reflections can be seen
     let t = 0;
     ctx.update((dt, cam) => {
       if (!cam) return;
@@ -313,13 +313,13 @@ export function buildPond(ctx, parts, scatter, water) {
     return best;
   };
   const face = (dx, dz) => Math.atan2(dx, dz);        // a bench's ry to look along (dx, dz)
+  const LANTERN_Z = Math.max(...PD.corners.map((c) => c[1])) - 2;   // the long side, along the railway
 
   /* ---- benches facing the water ---- */
   const benches = [
-    // south: across the water to the tea house, the lanterns and the hills
-    [-56, -52], [-44, -57.5],
-    // north: across to the river's cherries, the town and Fuji
-    [-78, -84], [-58, -84],
+    // on the two town-side banks, facing north: across the water to the
+    // lanterns, the passing trains and, beyond the railway, Fuji
+    [62, 130], [67, 117], [85, 125], [80, 113],
   ];
   const seats = [];
   for (const [x, z] of benches) {
@@ -327,7 +327,7 @@ export function buildPond(ctx, parts, scatter, water) {
     const out = q.inward.clone().negate();
     const pos = q.p.clone().addScaledVector(out, 2.3);
     const ry = face(q.inward.x, q.inward.y);
-    ctx.add(makeBench({ x: pos.x, z: pos.y, y: 0, ry, len: 1.8, wood: 0xb8946a }));
+    (ctx.addStatic ?? ctx.add)(makeBench({ x: pos.x, z: pos.y, y: 0, ry, len: 1.8, wood: 0xb8946a }));
     const c = Math.abs(Math.cos(ry)), s = Math.abs(Math.sin(ry));
     const hx = (c * 1.8 + s * 0.5) / 2, hz = (s * 1.8 + c * 0.5) / 2;
     ctx.collide(pos.x - hx, pos.y - hz, pos.x + hx, pos.y + hz, 0.9);
@@ -336,7 +336,7 @@ export function buildPond(ctx, parts, scatter, water) {
 
   /* ---- granite post pairs on the edge, along the promenade (and one
    * just off each south bench's knee, as at Tan's bench) ---- */
-  const byBench = seats.filter((b) => b.z > -70).map((b) => {
+  const byBench = seats.map((b) => {
     const q = onShore(b.x, b.z);
     let best = 0, bd = Infinity;
     for (let s = 0; s < walk.total; s += 0.5) { const d = walk.at(s).p.distanceTo(q.p); if (d < bd) { bd = d; best = s; } }
@@ -345,7 +345,7 @@ export function buildPond(ctx, parts, scatter, water) {
   for (const s of [...byBench, ...Array.from({ length: Math.floor(walk.total / 13) }, (_, i) => 6 + i * 13)]) {
     const q = walk.at(s);
     const mine = byBench.includes(s);
-    if (q.p.y < -82) continue;                    // the lantern bank has its own posts
+    if (q.p.y > LANTERN_Z - 0.5) continue;        // the lantern bank has its own posts
     if (!mine && seats.some((b) => Math.hypot(b.x - q.p.x, b.z - q.p.y) < 4)) continue;
     const base = q.p.clone().addScaledVector(q.inward, -0.55);
     for (const k of [-0.2, 0.2]) {
@@ -362,12 +362,12 @@ export function buildPond(ctx, parts, scatter, water) {
     ctx.collide(base.x - 0.4, base.y - 0.4, base.x + 0.4, base.y + 0.4, 0.7);
   }
 
-  /* ---- the lantern string along the north bank ---- */
+  /* ---- the lantern string along the railway bank ---- */
   {
     const posts = [];
     for (let s = 0; s < walk.total; s += 3.6) {
       const q = walk.at(s);
-      if (q.p.y > -82.5) continue;
+      if (q.p.y < LANTERN_Z) continue;
       const p = q.p.clone().addScaledVector(q.inward, -0.35);
       if (seats.some((b) => Math.hypot(b.x - p.x, b.z - p.y) < 4.5)) continue;     // not in a bench's view
       posts.push(p);
@@ -389,9 +389,9 @@ export function buildPond(ctx, parts, scatter, water) {
     for (let i = 0; i < posts.length; i += 4) ctx.night?.pool(posts[i].x, posts[i].y, 3.6, { strength: 0.8 });
   }
 
-  /* ---- 鏡池's name stone, by the south benches ---- */
+  /* ---- 鏡池's name stone, at the pond's point, where the lanes come in ---- */
   {
-    const q = onShore(-50, -54);
+    const q = onShore(72, 106);
     const p = q.p.clone().addScaledVector(q.inward, -3.4);
     const ry = face(-q.inward.x, -q.inward.y) ;       // its face to the promenade and the far walk
     const stele = new THREE.BoxGeometry(0.42, 1.15, 0.26);
@@ -415,13 +415,13 @@ export function buildPond(ctx, parts, scatter, water) {
   /* ---- lotus and lily pads in the east corner; a few buds ---- */
   {
     const C = TOWN.land.pond.corners[1];
-    const cx = C[0] - 11, cz = C[1] + 9;
+    const cx = C[0] - 8, cz = C[1] - 5;          // in from the railway bank's east corner
     // a real patch, as Tan remembers it: dense in the corner, thinning out
-    for (let i = 0; i < 460; i++) {
-      const a = r.range(0, Math.PI * 2), d = Math.pow(r.next(), 0.65) * 13;
+    for (let i = 0; i < 200; i++) {                     // a corner patch: the pond is smaller now
+      const a = r.range(0, Math.PI * 2), d = Math.pow(r.next(), 0.65) * 8;
       const x = cx + Math.cos(a) * d * 1.2, z = cz + Math.sin(a) * d * 0.9;
       if (!inside(shore, x, z)) continue;
-      const s = r.range(0.3, 0.72) * (1 - d / 30);
+      const s = r.range(0.28, 0.62) * (1 - d / 24);
       scatter.put('pad', x, PD.water + 0.012 + (i % 3) * 0.002, z, s, 1, s, r.range(0, 6.3), r.pick([0x6f9a5a, 0x7caa62, 0x5f8a52, 0x88b06a]));
       if (i % 5 === 0) {
         // a lotus leaf held up out of the water, and now and then a bud
@@ -434,39 +434,29 @@ export function buildPond(ctx, parts, scatter, water) {
   }
 
   /* ---- black pines, and the weeping willow by the lotus ---- */
-  for (const [x, z, s] of [[-114, -70, 1.9], [-98, -94.8, 1.7], [-47, -95, 1.8], [-16, -70, 1.7], [-16, -52, 1.5], [-84, -48, 1.7], [-112, -52, 1.5],
-    [-94, -90.3, 1.6], [-44, -90.4, 1.5], [-73, -90.6, 1.3]]) {
-    plant(ctx, 'pine', { x, z, y: 0, scale: s, seed: 6200 + Math.round(-x * 3 - z) });
+  for (const [x, z, s] of [[56, 124, 1.4], [95.5, 118, 1.6], [95, 131, 1.3], [56.5, 110, 1.2], [88, 150.5, 1.2], [64, 150.5, 1.3]]) {
+    plant(ctx, 'pine', { x, z, y: 0, scale: s, seed: 6200 + Math.round(x * 3 + z) });
   }
-  willow(ctx, parts, r, TOWN.land.pond.corners[1][0] + 3, TOWN.land.pond.corners[1][1] + 2.5);
 
-  /* ---- the tea house and the low houses behind the north bank ---- */
-  teahouse(ctx, parts, -60, -96.6);
-  // behind the north bank, as round the old pond in Nara: an old townhouse,
-  // family houses of every age, and a three-storey inn standing over them,
-  // set back unevenly, with hedges and trees between (not a row of boxes)
-  house(ctx, parts, -106, -95.4, 10, 5.2, 7201);
+  /* ---- the tea house and the houses round the pond's point, where the
+   * lanes come in: an old townhouse, family houses, hedges, trees ---- */
+  teahouse(ctx, parts, 60.5, 100.4);
   const home = (x, zFront, w, d, floors, roofKind, seed, wall) => {
     const z = zFront - d / 2;
-    ctx.add(makeHouse({ x, z, y: 0, w, d, face: 'z+', floors, seed, roofKind, wall, flowers: true }));
+    (ctx.addStatic ?? ctx.add)(makeHouse({ x, z, y: 0, w, d, face: 'z+', floors, seed, roofKind, wall, flowers: true }));
     ctx.collide(x - w / 2 - 0.1, z - d / 2 - 0.1, x + w / 2 + 0.1, z + d / 2 + 0.1, 2.72 * floors + 1);
   };
-  home(-89, -89.8, 8.5, 6.8, 2, 'hip', 7202, 1);
-  home(-78, -90.6, 6.4, 6.0, 1, 'gable', 7204, 4);
-  home(-41, -89.4, 8.0, 7.0, 2, 'gable', 7203, 6);
-  home(-24, -88.2, 13.0, 8.4, 3, 'flat', 7205, 2);          // the inn
+  home(91.5, 107.2, 8.5, 6.8, 2, 'hip', 7202, 1);
+  house(ctx, parts, 91, 109.6, 9, 5.0, 7201);
   buildShrubs(ctx, [
-    { x: -97, z: -88.5, r: 0.7, count: 6, spread: 3.2, seed: 7301, y: 0 },
-    { x: -70, z: -89.2, r: 0.6, count: 5, spread: 2.6, seed: 7302, y: 0 },
-    { x: -50, z: -88.6, r: 0.7, count: 6, spread: 3.0, seed: 7303, y: 0 },
-    { x: -32, z: -86.8, r: 0.6, count: 5, spread: 2.4, seed: 7304, y: 0 },
-    { x: -113, z: -60, r: 0.8, count: 7, spread: 4.0, seed: 7305, y: 0 },
-    { x: -18, z: -62, r: 0.8, count: 7, spread: 4.0, seed: 7306, y: 0 },
+    { x: 57, z: 107.5, r: 0.7, count: 6, spread: 3.2, seed: 7301, y: 0 },
+    { x: 82, z: 101.5, r: 0.6, count: 5, spread: 2.6, seed: 7302, y: 0 },
+    { x: 95, z: 125, r: 0.7, count: 6, spread: 3.0, seed: 7303, y: 0 },
+    { x: 55.5, z: 136, r: 0.6, count: 5, spread: 2.4, seed: 7304, y: 0 },
   ]);
-  plant(ctx, 'camphor', { x: -94, z: -91.5, y: 0, scale: 1.25, seed: 7401 });
-  plant(ctx, 'maple', { x: -73, z: -86.5, y: 0, scale: 0.9, seed: 7402 });
-  plant(ctx, 'camphor', { x: -47, z: -93.5, y: 0, scale: 1.1, seed: 7403 });
-  plant(ctx, 'mapleRed', { x: -33, z: -83.5, y: 0, scale: 0.8, seed: 7404 });
+  plant(ctx, 'camphor', { x: 95, z: 139, y: 0, scale: 1.2, seed: 7401 });
+  plant(ctx, 'maple', { x: 56.5, z: 117, y: 0, scale: 0.9, seed: 7402 });
+  plant(ctx, 'mapleRed', { x: 79, z: 101, y: 0, scale: 0.8, seed: 7404 });
 
   return { shore, seats };
 }

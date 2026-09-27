@@ -1574,3 +1574,41 @@ boxes on a lurid lawn, a drawn shoreline.
   the town and Fuji 9.2 ms (the game's highest spot now; the town and the
   mirror both in view); spawn turned round 7.1 ms; famous view 7.38 ms.
   Heap 412 MB; ready 4.0 s. Guard unchanged; walks stuck 0.
+
+## Tan's layout: the town in a square (2026-09-28)
+Tan drew the town's scope on the map and asked for it first:
+- **Behind the spawn:** the photographers' lot is a monthly car park (bays,
+  wheel stops, a walkway kept clear to the stairs, a few cars, its board),
+  and the river channel starts right behind it and the shop row (about
+  7 m nearer). Everything beyond the river went: the far paddies, the old
+  pond, the far land. The far walk is the town's edge; the bridge road
+  from the master junction ends at the Deer Park gate.
+- **The master junction:** Tan found four zebras cluttered. It is the
+  main road's original zebra (kakko) and one across lane x 30 (piyo), side
+  by side, so both tunes are heard at one corner; the lane's walk light
+  runs 19 s off the main road's, inside its car green, so they take turns
+  (the audio test's "only one crossing heard from the spawn" holds). The
+  engine also merges same-tune crossings within 15 m into one voice.
+- **鏡池 moved** to the corner by the railway (town x 54-97, z 100-152):
+  its long side and lanterns along the railway, benches on the two town
+  banks facing north (Fuji beyond the railway), the tea house and houses
+  at its point, where lanes z 112 and 144 open into its grounds (no
+  guardrails there). Smaller pond, smaller corner roundings, a smaller
+  lotus patch; turtles, ducks and benches moved with it.
+- **The paddies Tan kept** (I had built houses there first; Tan wanted the
+  paddies): the block between the main road's shops and the pond, lanes z
+  45 and 80 ending at them. Better than before: the flooded plots are a
+  mirror too (512 px, within 55 m), a hand-set April mix (flooded,
+  seedlings, two ploughed, renge, the pump shed's corner), a feeder
+  channel with sluices, the scarecrow in the renge; egrets back in them,
+  butterflies over the renge.
+- **Mirrors cost:** with the pond inside the town, its mirror redrew whole
+  cells of it (+250 calls at the famous view). The reflection layer now
+  takes only trees, the land's own pieces, the water's animals, and town
+  meshes wholly by the water; the pond's pieces stay out of the static
+  cells so they can be taken; the pond's mirror wakes within 70 m.
+- **Cost** (1440p, measured back to back with the commit before): famous
+  view 7.61 -> 8.22 ms, 813 calls; pond bench 7.7 ms; railway bank 9.6
+  ms; paddies from the lane end 10.9 ms; junction 10.4 ms. Heap about 410-
+  430 MB; download 3.48 MB. Guard 0.258 / 0.353 / 0.148% (as before);
+  six walks stuck 0; audio all pass.

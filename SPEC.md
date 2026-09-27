@@ -203,8 +203,9 @@ A dense, lived-in, mixed-use town built around the famous view: a tight grid wit
 - The game opens on the famous views, and the town lies ahead: between the Lawson and Mt. Fuji, north of the main road. You walk past the store into it, toward Fuji.
 - From the main road north: the Lawson's neighbours along the road, then residential lanes and a shopping spine running north to the station plaza, the station, and the railway along the far north edge with the level crossing.
 - The Lawson stays on the main road facing it, with Fuji behind. Behind the store, anything inside the famous views' frame stays under the roof's sightline from the hero camera (lower near the store, three storeys by about 60 m back); poles there give way to low lamp posts (防犯灯) with no overhead lines.
-- Behind the start spot, south of the road: the photographers' lot, then the land (town pass, config.js `TOWN.land`): flooded rice paddies cut by earth paths, a levee with a row of sakura, a river (桜川) about 16 m wide, more paddies, and at the tree line a closed gate, 鹿公園 近日公開 (Deer Park, coming soon), where a later place will join. A farm track runs from the main road's zebra over a bridge to the gate. M2's residential lane, fields and park gave way to it.
-- The town is compact (town pass): the core's lots stop at its lane x 52 (town frame); east of that, behind the main road's own shops, are paddies.
+- Behind the start spot, south of the road (Tan's layout, 2026-09-28; the town is the square Tan drew): across the road a monthly car park, then at once the river 桜川 in a sunken channel (河川敷): stairs down behind the spawn, lower walks, stepping stones. The river is the town's edge; a bridge road from the master junction crosses it to a closed gate, 鹿公園 近日公開 (Deer Park, coming soon), where a later place will join.
+- The master junction: the main road's zebra (kakko) and, beside it, one across lane x 30 (piyo), their walk lights alternating; lane x 30 leads north into town toward the pond.
+- In the town's corner by the railway, 鏡池 (Kagami-ike): a pond with a real mirror, a granite promenade, lanterns along the railway bank, a tea house, benches facing Fuji. Between it and the main road's shops, paddies (flooded, seedlings, ploughed, renge) with a mirror of their own, a feeder channel and a pump shed; lanes z 45 and 80 end at them.
 
 **Town plan: scale**
 

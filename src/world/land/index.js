@@ -2,12 +2,14 @@ import * as THREE from 'three';
 import { cel } from '../../core/toon.js';
 import { TOWN } from '../../config.js';
 import { makeParts, makeScatter, sheetGeo } from './geo.js';
-import { ploughTex, rengeTex, trackTex, bankGrassTex, masonryTex, slabTex, TILE, shojiTex } from './tex.js';
+import { asphaltTex } from '../kit/tex.js';
+import { ploughTex, rengeTex, bankGrassTex, masonryTex, slabTex, TILE, shojiTex } from './tex.js';
 import { makeWater } from './water.js';
 import { planPaddies, buildPaddies, buildTrack, buildPumpShed, buildNotice, buildScarecrow, landMats } from './paddies.js';
 import { buildChannel, channelMats } from './channel.js';
 import { buildPond, pondMats } from './pond.js';
 import { buildGate } from './gate.js';
+import { buildParking } from './parking.js';
 import { buildHills } from './hills.js';
 
 /* ------------------------------------------------------------------ *
@@ -42,7 +44,7 @@ export function buildLand(ctx) {
   const L = TOWN.land;
 
   const tex = {
-    plough: ploughTex(), renge: rengeTex(), track: trackTex(), grass: bankGrassTex(),
+    plough: ploughTex(), renge: rengeTex(), track: asphaltTex(), grass: bankGrassTex(),   // the bridge road is asphalt now
     masonry: masonryTex(), slab: slabTex(), shoji: shojiTex(),
   };
   const mats = {
@@ -68,25 +70,43 @@ export function buildLand(ctx) {
   const water = makeWater(lctx);
 
   buildChannel(lctx, parts, scatter, water);
+  buildTrack(lctx, parts);                 // the bridge road, from the master junction to the gate
+  // the paddies Tan kept, between the main road's shops and the pond
   const plan = planPaddies();
   buildPaddies(lctx, parts, scatter, water, plan);
-  buildTrack(lctx, parts);
   buildPumpShed(lctx, parts, plan.apron);
-  buildNotice(lctx, parts, plan.trackEdge[0] - 0.4, L.farTop.z0 - 3.5);
-  buildScarecrow(parts, -4, -53);
-  buildPond(lctx, parts, scatter, water);
+  buildNotice(lctx, parts, TOWN.land.paddies.box[0] - 0.9, 77.4);   // by the lane z 80's end, facing it
+  {
+    const p = plan.plots.find((q) => q.kind === 'renge') ?? plan.plots[0];
+    const x = (p.sw + p.se) / 2;
+    buildScarecrow(parts, x, (p.S(x) + p.N(x)) / 2);
+  }
+  buildParking(lctx, parts);               // across the road from the spawn
+  /* 鏡池, by the railway.  Its own parts stay out of the town's 128 m
+   * static cells (userData.dynamic), so its mirror can show them without
+   * drawing whole cells of the town again; the houses and benches round it
+   * (addStatic) are batched with the town as usual. */
+  const pondGroup = new THREE.Group();
+  pondGroup.name = 'land-pond';
+  pondGroup.userData.dynamic = true;
+  group.add(pondGroup);
+  const pctx = { ...lctx, add: (o) => { pondGroup.add(o); return o; }, addStatic: add };
+  const pondParts = makeParts(mats);
+  buildPond(pctx, pondParts, scatter, water);
   buildGate(lctx, parts);
 
-  // the verges: grass where no field, walk or pond reaches (the far walk's
-  // edge, the tree line, the land's east end)
-  const px1 = L.pond.box[2];
-  parts.add('grass', sheetGeo(px1, 130, L.far[3] - 0.7, L.far[3], 0.02, TILE.grass));
-  parts.add('grass', sheetGeo(px1, 130, -101, L.deerGate.z + 6.9, 0.02, TILE.grass));
-  parts.add('grass', sheetGeo(L.far[2] - 0.2, 130, L.deerGate.z + 6.5, L.far[3] - 0.5, 0.02, TILE.grass));
+  // past the far walk: a strip of grass to the tree line, the town's edge
+  {
+    const [fx0, fz0, fx1, fz1] = L.far, t = L.track;
+    for (const [a, b] of [[fx0, t.x - t.w / 2 - 0.8], [t.x + t.w / 2 + 0.8, fx1]]) parts.add('grass', sheetGeo(a, b, fz0 - 4, fz1, 0.02, TILE.grass));
+  }
 
   parts.build(group, {
     cast: ['bridge', 'bridgeDark', 'rail', 'white', 'post', 'wood', 'gateWood', 'door', 'roof', 'roofDark', 'shedWall', 'shedRoof',
       'cloth', 'straw', 'stone', 'steel', 'steelBlue', 'granite', 'graniteDark', 'railWood', 'plaster', 'timber', 'tile', 'willowWood', 'willowDeep', 'redFelt'],
+  });
+  pondParts.build(pondGroup, {
+    cast: ['granite', 'graniteDark', 'plaster', 'timber', 'tile', 'willowWood', 'willowDeep', 'redFelt', 'post', 'wood'],
   });
   scatter.build(group);
   /* The sprawling surfaces (paddy sheets, walks, the track: each one mesh

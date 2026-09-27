@@ -87,7 +87,7 @@ const SHADER = {
  * A mirror for flat geometry laid in (x, z) at height `y` (in the parent's
  * frame).  `chopTex` wobbles it; returns the mesh and a per-frame drift.
  */
-export function makeMirror(flatGeo, y, chopTex, { size = 768 } = {}) {
+export function makeMirror(flatGeo, y, chopTex, { size = 768, base, deep, name = 'land-pond-mirror' } = {}) {
   // Reflector wants its plane facing +z locally: stand the pond up, then lay it down again
   const g = flatGeo.clone();
   g.translate(0, -y, 0);
@@ -96,6 +96,9 @@ export function makeMirror(flatGeo, y, chopTex, { size = 768 } = {}) {
   m.rotation.x = -Math.PI / 2;
   m.position.y = y + 0.003;
   m.material.uniforms.chop.value = chopTex;
+  // the water's own colour (the pond's olive by default; the paddies' mud)
+  if (base !== undefined) m.material.uniforms.base.value.set(base);
+  if (deep !== undefined) m.material.uniforms.deep.value.set(deep);
   /* The oblique clip that keeps what's under the water out of the mirror
    * also skews its far plane: looking steeply down, the sky dome (2.9 km
    * out) is cut and the pond went black.  So the mirror clears to the sky
@@ -115,7 +118,7 @@ export function makeMirror(flatGeo, y, chopTex, { size = 768 } = {}) {
     render.call(this, renderer, scene, camera, ...rest);
     renderer.setClearColor(keep, alpha);
   };
-  m.name = 'land-pond-mirror';
+  m.name = name;
   m.userData.dynamic = true;
   m.userData.ground = true;
   m.userData.noAtlas = true;
@@ -138,11 +141,22 @@ export function tagReflections(scene, townRoot, rect) {
   const box = new THREE.Box3();
   const inTown = new Set();
   townRoot.traverse((o) => inTown.add(o));
+  // what stands tall round the water and is worth seeing upside down: trees,
+  // the land's own pieces, the water's animals (not street clutter, not the
+  // shadow stand-ins, not the falling petals)
+  const WORTH = /sakura|pine|camphor|maple|zelkova|grove|canopy|willow|shrub|land|koi|duck|turtle|egret|heron/i;
+  const SKIP = /shadow|petal|shower/i;
+  const touches = () => box.max.x > rect[0] && box.min.x < rect[2] && box.max.z > rect[1] && box.min.z < rect[3];
+  const inside = () => box.min.x >= rect[0] && box.max.x <= rect[2] && box.min.z >= rect[1] && box.max.z <= rect[3];
   scene.traverse((o) => {
     if (o.isLight) { o.layers.enable(REFLECT); return; }
     if (!o.isMesh && !o.isPoints && !o.isLine) return;
-    if (!inTown.has(o)) { o.layers.enable(REFLECT); return; }
+    if (!inTown.has(o)) { o.layers.enable(REFLECT); return; }             // sky, clouds, Fuji
+    if (o.userData.shadowOnly) return;
+    const name = o.name || o.parent?.name || '';
+    if (SKIP.test(name)) return;
     if (o.isInstancedMesh) {
+      if (!WORTH.test(name)) return;
       // where its instances stand (its geometry's box is one instance, at the origin)
       const n = o.count;
       o.count = o.instanceMatrix.count;
@@ -150,11 +164,13 @@ export function tagReflections(scene, townRoot, rect) {
       o.count = n;
       box.copy(o.boundingBox).applyMatrix4(o.matrixWorld);
       // placed each frame (the view-sorted crowns), so not yet anywhere: take it
-      if (box.max.x - box.min.x < 2 && box.max.z - box.min.z < 2) { o.layers.enable(REFLECT); return; }
-    } else {
-      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
-      box.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+      if ((box.max.x - box.min.x < 2 && box.max.z - box.min.z < 2) || touches()) o.layers.enable(REFLECT);
+      return;
     }
-    if (box.max.x > rect[0] && box.min.x < rect[2] && box.max.z > rect[1] && box.min.z < rect[3]) o.layers.enable(REFLECT);
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    box.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+    // the land's own meshes if they touch; anything of the town's only if it
+    // stands wholly by the water (a merged cell is never worth a second drawing)
+    if (WORTH.test(name) ? touches() && box.max.x - box.min.x < 120 : inside()) o.layers.enable(REFLECT);
   });
 }

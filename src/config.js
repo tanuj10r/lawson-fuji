@@ -216,7 +216,7 @@ export const LOOKS = {
  *               shopping spine to the station plaza, lanes everywhere, the
  *               railway along the south edge */
 export const TOWN = {
-  bounds: { x0: -122, x1: 122, z0: -97, z1: 174 },
+  bounds: { x0: -122, x1: 122, z0: -42, z1: 174 },   // z0: the river's far walk and the gate are the town's edge (Tan's square)
   /* The core's edges (fences, groves).  Lots are cut only west of buildX1,
    * except the main road's frontage (lots ending before frontZ), which runs
    * the whole road: east of buildX1 behind it lie paddies (town pass). */
@@ -227,7 +227,7 @@ export const TOWN = {
    * The line (M2c, world/line/): double track along the south edge, the
    * station at the spine's end, the level crossing on lane x -80. */
   rail: { crossX: -80, z: 162, gauge: 1.067, spacing: 3.8 },
-  crosswalk: { x: -35, width: 4 },              // zebra and signals on the main road
+  crosswalk: { x: -35, width: 4 },              // the main road's zebra, by the master junction (lane x 30 = world x -30); its perpendicular partner crosses the lane (town-plan.js)
   petals: { air: 150, trees: 250 },               // SPEC 11: 400 on Ultra -- M2's field, plus the fall from the town's sakura
   /* Grid lines of the core.  `ns` run south from the main road (z = main)
    * unless `z0` says otherwise; `ew` run between x0 and x1. */
@@ -275,52 +275,54 @@ export const TOWN = {
    * frontage lots, all but the photographers' lot (world x -27..32), where
    * the famous views stand. */
   frontRow: { z0: -7.5, z1: 7.3 },
-  photoLot: [-32, -9, 27, 7.4],
+  photoLot: [-32, -7.5, 27, 7.4],
   /* The land (town quality pass), where M2's old town stood: north of the
    * main road, behind the famous views, in the town's frame (north is -z).
    * Rects are [x0, z0, x1, z1]; heights are tops in metres.  world/land/
    * builds it; nothing else is placed here. */
   land: {
-    /* Tan's layout (wave 2c): from the spawn you turn round to a river in a
-     * sunken channel (河川敷), go down stone stairs to the lower walks, cross
-     * on stepping stones, climb the far stairs to the paddies, the pond 鏡池
-     * and the Deer Park gate.  Heights in metres; the street is y 0. */
-    top: { z0: -15, z1: -9 },               // the town-side river walk at street level, railing at z0 (the photographers' lot's paving reaches z -14.8)
+    /* Tan's layout (2026-09-27, the town inside their square): turn round at
+     * the spawn and past the parking lot the river runs at once, in a sunken
+     * channel (河川敷): stone stairs down, lower walks, stepping stones.  The
+     * river is the town's edge: the bridge road from the master junction
+     * (the main road's zebra, lane x 30) crosses it to the Deer Park gate.
+     * 鏡池 moved into the town, by the railway.  Heights in metres; the
+     * street is y 0. */
+    top: { z0: -11, z1: -7.5 },             // the town-side river walk at street level, railing at z0
     sunk: {                                  // the channel, open to the ground plane's hole (ctx.sink)
-      x0: -600, x1: 600, z0: -41, z1: -15,
+      x0: -600, x1: 600, z0: -34, z1: -11,
       walk: -2.4,                            // the lower walks (河川敷), both sides
       revet: 1.2,                            // each masonry revetment's run, top edge to walk
     },
-    walks: { town: [-21, -16.2], far: [-39.8, -35] },   // [z0, z1] of each lower walk
-    river: { z0: -35, z1: -21, water: -2.65, bed: -2.75 },   // 14 m of water, 0.25 m below the walks
+    walks: { town: [-15.4, -12.2], far: [-32.8, -29.6] },   // [z0, z1] of each lower walk
+    river: { z0: -29.6, z1: -15.4, water: -2.65, bed: -2.75 },   // 14 m of water, 0.25 m below the walks
     stairs: [                                // x, width, side: stone stairs between top and walk
       { x: 0, w: 3.2, side: 'town' },        // straight behind the spawn
       { x: -64, w: 2.2, side: 'town' },
       { x: 76, w: 2.2, side: 'town' },
       { x: 0, w: 3.2, side: 'far' },
-      { x: -86, w: 2.2, side: 'far' },
-      { x: 84, w: 2.2, side: 'far' },
     ],
     stones: { x: 0, top: -2.5 },            // 飛び石 across the water, on the spawn's axis
-    farTop: { z0: -44, z1: -41 },            // the far river walk, railing at z1
-    far: [-118, -95, 118, -44],             // the land beyond the channel, to the tree line
-    /* 鏡池: a rounded triangle, long side north; the points are its corners
-     * before rounding.  Water sits `water` below the promenade (y 0). */
+    farTop: { z0: -37, z1: -34 },            // the far river walk, railing at z1: the town's edge
+    far: [-118, -41, 118, -37],             // what lies past the far walk: a verge, then the tree line
+    /* 鏡池, in the town's corner by the railway (the freed east block): a
+     * rounded triangle, its long side along the railway, its point toward
+     * the lanes that lead in.  Water `water` below the promenade (y 0). */
     pond: {
-      corners: [[-110, -84], [-22, -84], [-56, -46]],
+      corners: [[59, 144], [93, 144], [72, 106]],
+      fillets: [9, 8, 9],                   // each corner's rounding (smaller pond, smaller radii)
       water: -0.4, promenade: 4.5,
-      box: [-118, -97, -12, -44],            // the pond's grounds: sunk, floored and paved by land/pond.js
+      box: [54, 100, 97, 152],              // the pond's grounds: sunk, floored and paved by land/pond.js
+      gates: [112, 144],                    // the lanes (z) whose ends open into its grounds
     },
-    east: [54, 38, 95, 154],                // the freed block south of the road, behind its shops (paddies)
-    track: { x: 35, w: 3.2, z0: -95, z1: -9.5, top: 0.12 },   // farm track from the main road's zebra (world x -35)
-    bridge: { x: 35, w: 4.4, z0: -41, z1: -15, deck: 0.2 },   // road-level bridge over the whole channel
+    /* the paddies (田んぼ) Tan kept: between the main road's shops and the
+     * pond, where lanes z 45 and 80 end at them */
+    paddies: { box: [54, 37, 97, 98.5] },
+    parking: [-32, -7.5, 27, 7.4],          // the photographers' lot, a parking lot now (= TOWN.photoLot)
+    track: { x: 30, w: 5.0, z0: -37, z1: 7.3, top: 0.12 },   // the bridge road: from the master junction to the gate
+    bridge: { x: 30, w: 5.4, z0: -34, z1: -11, deck: 0.2 },  // road-level bridge over the whole channel
     hills: { r: [620, 900], span: 1.85 },   // the painted far hills: radii (m) and half-angle (rad) round the town's north
-    deerGate: { x: 35, z: -95.5 },          // 鹿公園, coming soon (a later place hangs off it)
-    /* legacy names still read by town-edge.js (the edge fences' gap) and
-     * ui/mapArt.js: the two lower walks, and no paddies south of the river */
-    levee: { z0: -21, z1: -15 },
-    farBank: { z0: -41, z1: -35 },
-    near: [-118, -15, 118, -15],
+    deerGate: { x: 30, z: -40.6 },          // 鹿公園, coming soon: at the bridge's end, the town's edge
   },
 
 };
@@ -427,7 +429,7 @@ export const SHOT_SPOTS = [
   // town pass, facades: shopfronts and a house front at arm's length
   { name: 'close-facade-shop', scene: 'town', pos: [-47.4, 0, 60], yaw: 1.9, pitch: 0.12, looks: ['day'], close: true },
   { name: 'close-facade-house', scene: 'town', pos: [-26.2, 0, 63], yaw: -1.5708, pitch: 0.1, looks: ['day'], close: true },
-  { name: 'close-green-river', scene: 'town', pos: [12, 0, -42], yaw: 0.3, pitch: -0.5, lift: 3.5, looks: ['day'], close: true },
+  { name: 'close-green-river', scene: 'town', pos: [12, 0, -35.5], yaw: 0.3, pitch: -0.5, lift: 3.5, looks: ['day'], close: true },
   { name: 'close-green-limb', scene: 'town', pos: [-49, 0, 129.8], yaw: 2.9, pitch: 0.6, looks: ['day', 'blue'], close: true },
   { name: 'close-sakura', scene: 'town', pos: [-50, 0, 128], yaw: 3.1416, pitch: 0.55, looks: ['day'], close: true, ref: '12-station-plaza-big-sakura.png' },
   // M3a: inside the Lawson (world frame; judged against reference/konbini-details.md)
@@ -447,39 +449,43 @@ export const SHOT_SPOTS = [
   { name: 'town-overview', scene: 'town', pos: [0, 0, 95], yaw: 0, pitch: -0.5, lift: 95, looks: ['golden'], frame: 'world' },
   { name: 'town-overview-east', scene: 'town', pos: [150, 0, 80], yaw: -1.5708, pitch: -0.55, lift: 80, looks: ['day'] },
   // the land north of the main road (town pass): paddies, the river, the Deer Park gate
-  { name: 'land-track', scene: 'town', pos: [35, 0, -9], yaw: 0, pitch: 0.02, looks: ['day', 'golden'] },
-  { name: 'land-gate', scene: 'town', pos: [35, 0, -89], yaw: 0, pitch: 0.04, looks: ['day'] },
+  { name: 'junction', scene: 'town', pos: [-30, 0, 30], yaw: 0, pitch: -0.95, lift: 22, looks: ['day'], frame: 'world' },   // the master junction from above (Tan)
+  { name: 'paddy-lane', scene: 'town', pos: [49, 0, 45], yaw: -1.5708, pitch: -0.04, looks: ['day', 'golden'] },   // the paddies from lane z 45's end
+  { name: 'paddy-overview', scene: 'town', pos: [40, 0, 68], yaw: -1.5708, pitch: -0.6, lift: 28, looks: ['day'] },
+  { name: 'close-paddy', scene: 'town', pos: [53.5, 0, 72], yaw: -1.9, pitch: -0.3, looks: ['day'] },
+  { name: 'land-track', scene: 'town', pos: [30, 0, 5], yaw: 0, pitch: 0.02, looks: ['day', 'golden'] },   // the bridge road from the master junction
+  { name: 'land-gate', scene: 'town', pos: [30, 0, -35.5], yaw: 0, pitch: 0.04, looks: ['day'] },
   { name: 'land-overview', scene: 'town', pos: [26, 0, 6], yaw: 3.1416, pitch: -0.82, lift: 95, looks: ['day', 'golden'], frame: 'world' },
   // wave 2c: Tan's river you walk down to, and the pond 鏡池
   { name: 'land-spawn-back', scene: 'town', pos: [0, 0, 16.5], yaw: 3.1416, pitch: -0.02, looks: ['day', 'golden'], frame: 'world' },
-  { name: 'land-rail', scene: 'town', pos: [4, 0, -13.6], yaw: 0.15, pitch: -0.32, looks: ['day'] },
-  { name: 'close-land-stairs', scene: 'town', pos: [0.4, 0, -13.4], yaw: 0, pitch: -0.42, looks: ['day'] },
-  { name: 'close-land-stones', scene: 'town', pos: [0.3, 0, -19.3], yaw: -0.08, pitch: -0.22, looks: ['day'] },
-  { name: 'land-walk', scene: 'town', pos: [-20, 0, -18.8], yaw: -1.5708, pitch: 0.0, looks: ['day', 'golden'] },
-  { name: 'close-land-under-bridge', scene: 'town', pos: [26, 0, -19], yaw: -1.5708, pitch: 0.04, looks: ['day'] },
-  { name: 'close-land-bridge', scene: 'town', pos: [35, 0, -13.5], yaw: 0, pitch: -0.05, looks: ['day'] },
-  { name: 'land-river', scene: 'town', pos: [36.2, 0, -28], yaw: 1.5708, pitch: -0.2, looks: ['day', 'golden'] },
-  { name: 'close-land-paddy', scene: 'town', pos: [36.6, 0, -58], yaw: -1.2, pitch: -0.2, looks: ['day'] },
-  { name: 'land-hills', scene: 'town', pos: [50, 0, -43], yaw: 0.2, pitch: 0.05, looks: ['day', 'blue'] },
-  { name: 'pond-bench', scene: 'town', pos: [-55.4, 0, -47.9], yaw: 0.18, pitch: -0.13, looks: ['day', 'golden', 'blue'] },
-  { name: 'pond-fuji', scene: 'town', pos: [-59.1, 0, -87.1], yaw: 3.05, pitch: 0.06, looks: ['day', 'golden'] },
-  { name: 'pond-lotus', scene: 'town', pos: [-37, 0, -61], yaw: -0.3, pitch: -0.32, looks: ['day'] },
-  { name: 'pond-teahouse', scene: 'town', pos: [-58, 0, -81], yaw: 0.05, pitch: 0.06, looks: ['day', 'blue'] },
-  { name: 'pond-overview', scene: 'town', pos: [-66, 0, -40], yaw: 0, pitch: -0.55, lift: 34, looks: ['day'] },
+  { name: 'land-rail', scene: 'town', pos: [4, 0, -9.3], yaw: 0.15, pitch: -0.32, looks: ['day'] },
+  { name: 'close-land-stairs', scene: 'town', pos: [0.4, 0, -9.2], yaw: 0, pitch: -0.42, looks: ['day'] },
+  { name: 'close-land-stones', scene: 'town', pos: [0.3, 0, -13.8], yaw: -0.08, pitch: -0.22, looks: ['day'] },
+  { name: 'land-walk', scene: 'town', pos: [-20, 0, -13.6], yaw: -1.5708, pitch: 0.0, looks: ['day', 'golden'] },
+  { name: 'close-land-under-bridge', scene: 'town', pos: [21, 0, -13.6], yaw: -1.5708, pitch: 0.04, looks: ['day'] },
+  { name: 'close-land-bridge', scene: 'town', pos: [30, 0, -9.3], yaw: 0, pitch: -0.05, looks: ['day'] },
+  { name: 'land-river', scene: 'town', pos: [30, 0, -22.5], yaw: 1.5708, pitch: -0.2, looks: ['day', 'golden'] },
+  { name: 'land-hills', scene: 'town', pos: [50, 0, -35.5], yaw: 0.2, pitch: 0.05, looks: ['day', 'blue'] },
+  { name: 'pond-bench', scene: 'town', pos: [66, 0, 116.3], yaw: -2.59, pitch: -0.1, looks: ['day', 'golden', 'blue'] },
+  { name: 'pond-fuji', scene: 'town', pos: [72, 0, 102.5], yaw: -3.03, pitch: 0.08, looks: ['day', 'golden'] },
+  { name: 'pond-lotus', scene: 'town', pos: [92, 0, 134], yaw: 2.19, pitch: -0.35, looks: ['day'] },
+  { name: 'pond-teahouse', scene: 'town', pos: [62, 0, 112], yaw: 0.165, pitch: 0.05, looks: ['day', 'blue'] },
+  { name: 'pond-overview', scene: 'town', pos: [76, 0, 88], yaw: 3.1416, pitch: -0.55, lift: 30, looks: ['day'] },
+  { name: 'pond-rail', scene: 'town', pos: [76, 0, 148.5], yaw: 0.06, pitch: -0.05, looks: ['day', 'golden'] },   // from the railway bank, back across the water to the town
   // wave 3: the animals, close up and in their places
-  { name: 'close-animals-turtles', scene: 'town', pos: [-57.3, 0, -50.9], yaw: 0.05, pitch: -0.42, looks: ['day'], close: true },
-  { name: 'animals-pond-ducks', scene: 'town', pos: [-64.5, 0, -50.2], yaw: 0.25, pitch: -0.22, looks: ['day', 'golden'], close: true },
-  { name: 'animals-river-heron', scene: 'town', pos: [-29.5, 0, -18.5], yaw: 1.24, pitch: -0.1, looks: ['day', 'golden'], close: true },
-  { name: 'close-animals-heron', scene: 'town', pos: [-30, 0, -18.5], yaw: 0.859, pitch: -0.15, looks: ['day', 'golden'], close: true },
-  { name: 'animals-paddy-egrets', scene: 'town', pos: [17.5, 0, -42.6], yaw: -0.2, pitch: -0.12, looks: ['day'], close: true },
-  { name: 'close-animals-egret', scene: 'town', pos: [21.2, 0, -43.9], yaw: 0.05, pitch: -0.32, looks: ['day'], close: true },
+  { name: 'close-animals-turtles', scene: 'town', pos: [66.5, 0, 118.5], yaw: -2.06, pitch: -0.42, looks: ['day'], close: true },
+  { name: 'animals-pond-ducks', scene: 'town', pos: [64, 0, 128], yaw: -2.03, pitch: -0.22, looks: ['day', 'golden'], close: true },
+  { name: 'animals-river-heron', scene: 'town', pos: [-29.5, 0, -13.5], yaw: 1.24, pitch: -0.1, looks: ['day', 'golden'], close: true },
+  { name: 'close-animals-heron', scene: 'town', pos: [-30, 0, -13.5], yaw: 0.859, pitch: -0.15, looks: ['day', 'golden'], close: true },
+  { name: 'animals-river-egrets', scene: 'town', pos: [54, 0, -13.8], yaw: -0.26, pitch: -0.12, looks: ['day'], close: true },
+  { name: 'close-animals-egret', scene: 'town', pos: [57, 0, -31], yaw: -2.73, pitch: -0.3, looks: ['day'], close: true },
   { name: 'animals-plaza-pigeons', scene: 'town', pos: [-51.2, 0, 127.6], yaw: 3.0, pitch: -0.22, looks: ['day'], close: true },
   { name: 'close-animals-pigeon', scene: 'town', pos: [-50.6, 0, 129.6], yaw: 3.3, pitch: -0.55, looks: ['day'], close: true },
   { name: 'animals-spine-pigeons', scene: 'town', pos: [-47.6, 0, 100.2], yaw: 2.4, pitch: -0.3, looks: ['day'], close: true },
   { name: 'animals-shiba', scene: 'town', pos: [-79.2, 0, 121.5], yaw: 0.902, pitch: -0.2, looks: ['day', 'golden'], close: true },
   { name: 'close-animals-shiba', scene: 'town', pos: [-81.8, 0, 120.2], yaw: 0.615, pitch: -0.45, looks: ['day', 'golden'], close: true },
-  { name: 'animals-butterflies', scene: 'town', pos: [-2.2, 0, -44.3], yaw: 0.25, pitch: -0.42, looks: ['day'], close: true },
-  { name: 'animals-pond-koi', scene: 'town', pos: [-39.8, 0, -58.5], yaw: 1.45, pitch: -0.55, looks: ['day'], close: true },
+  { name: 'animals-butterflies', scene: 'town', pos: [-6, 0, -13.8], yaw: 1.5708, pitch: -0.3, looks: ['day'], close: true },
+  { name: 'animals-pond-koi', scene: 'town', pos: [77.4, 0, 113.8], yaw: 2.19, pitch: -0.62, looks: ['day'], close: true },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },
@@ -511,8 +517,9 @@ export const PLACES = [
   { id: 'station', kind: 'station', jp: 'さくら富士駅', en: 'Sakura-Fuji Station', at: [-51, 151.5] },
   { id: 'crossing', kind: 'crossing', jp: '踏切', en: 'Level crossing', at: [-80, 162] },
   { id: 'parking', kind: 'parking', jp: 'コインパーキング', en: 'Coin parking', at: [50, 27] },
-  { id: 'river', kind: 'park', jp: '桜川', en: 'River and paddies', at: [0, -43] },
-  { id: 'deerGate', kind: 'park', jp: '鹿公園', en: 'Deer Park (coming soon)', at: [35, -92] },
+  { id: 'river', kind: 'park', jp: '桜川', en: 'The river', at: [-10, -22] },
+  { id: 'pond', kind: 'park', jp: '鏡池', en: 'Kagami Pond', at: [75, 128] },
+  { id: 'deerGate', kind: 'park', jp: '鹿公園', en: 'Deer Park (coming soon)', at: [30, -40] },
 ];
 /** A place's world position (x, z). */
 export function placeAt(p) {
@@ -555,7 +562,7 @@ export const ANIMALS = {
   near: 60,
   koi: { count: 11, watchReach: 3.2, gather: 16, surfaceTime: 3.6 },
   /* pond sliders on basking stones in 鏡池: [x, z, width, depth, height above the water, yaw] */
-  turtles: { count: 5, flee: 5.5, back: 14, stones: [[-57, -55.2, 1.15, 0.8, 0.2, 0.25], [-56.25, -55.75, 0.5, 0.42, 0.09, 1.1], [-57.6, -54.75, 0.34, 0.3, 0.05, 0.4], [-76.2, -70, 1.0, 0.85, 0.16, 1.2], [-75.6, -70.7, 0.45, 0.4, 0.07, 0.3]] },
+  turtles: { count: 5, flee: 5.5, back: 14, stones: [[71.2, 121.0, 1.15, 0.8, 0.2, 0.25], [71.95, 120.45, 0.5, 0.42, 0.09, 1.1], [70.6, 121.45, 0.34, 0.3, 0.05, 0.4], [77.0, 137, 1.0, 0.85, 0.16, 1.2], [77.6, 136.3, 0.45, 0.4, 0.07, 0.3]] },
   ducks: { shy: 3.2 },
   /* the waders: flee within `flee`, fly a hop of [min, max] metres at `flySpeed`, `cruise` above the water */
   heron: { flee: 7, hop: [25, 70], flySpeed: 3.6, cruise: 2.0, beatHz: 2.1, beatAmp: 0.6, walkChance: 0.12, walkSpeed: 0.12, stepAngle: 0.32 },

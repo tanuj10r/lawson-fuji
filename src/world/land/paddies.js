@@ -5,7 +5,8 @@ import { TOWN } from '../../config.js';
 import { LAND_SIGNS } from '../../data/town.js';
 import { parkVehicle } from '../vehicles.js';
 import { sheetGeo, boxGeo } from './geo.js';
-import { TILE, noticeTex } from './tex.js';
+import { TILE, noticeTex, pondWobbleTex } from './tex.js';
+import { makeMirror, REFLECT } from './mirror.js';
 
 /* ------------------------------------------------------------------ *
  * The paddies (田んぼ) in early April, beyond the river (wave 2c: fewer,
@@ -130,35 +131,39 @@ function pathAlong(parts, pts) {
 
 /** Lay out every plot: the land beyond the river, and the east block. */
 export function planPaddies() {
-  const L = TOWN.land, T = L.track;
-  const tw0 = T.x - T.w / 2 - 0.8, tw1 = T.x + T.w / 2 + 0.8;    // the track with its shoulders
-  const ch = { x0: tw1, x1: tw1 + 0.7 };                         // the channel east of the track
-  const pondEdge = L.pond.box[2];
-  const fz0 = L.deerGate.z + 6.6, fz1 = L.far[3] - 0.6;          // from the gate's forecourt and the verge to the far walk
-  const apron = [ch.x1 + 0.4, fz1 - 7.5, ch.x1 + 13.5, fz1];     // the pump shed and the kei truck
-  const east = field('far-east', [ch.x1 + RIDGE.w / 2, fz0, L.far[2], fz1], { seed: 4401, rows: 3 });
-  const west = field('far-west', [pondEdge + 0.6, fz0, tw0 - RIDGE.w / 2, fz1], { seed: 4411, rows: 3, col: [18, 24] });
-  const block = field('east', [L.east[0] + 0.6, L.east[1] + 0.6, L.east[2] - 0.6, L.east[3] - 0.6], { seed: 4421, rows: 8, amp: 1.2, col: [18, 22], skew: 1.5 });
-  const plots = [...east.plots, ...west.plots, ...block.plots];
-  const lines = [...east.lines, ...west.lines, ...block.lines];
-
+  /* Tan's layout: one block of paddies between the main road's shops and
+   * 鏡池, reached from the ends of lanes z 45 and 80 (x 52).  A feeder
+   * channel (用水路) runs down its lane side with a sluice to every flooded
+   * plot; the pump shed stands in the corner by the coin parking. */
+  const [bx0, bz0, bx1, bz1] = TOWN.land.paddies.box;
+  const ch = { x0: bx0 + 0.3, x1: bx0 + 1.0 };                  // the channel, along the west (lane) edge
+  const block = field('east', [ch.x1 + RIDGE.w / 2 + 0.3, bz0 + 0.6, bx1 - 0.6, bz1 - 0.6], { seed: 4421, rows: 5, amp: 1.8, col: [12, 17], skew: 3 });
+  const { plots, lines } = block;
   const kr = rngKit(4441);
   for (const p of plots) {
     const t = kr.next();
-    p.kind = t < 0.44 ? 'flood' : t < 0.52 ? 'seed' : t < 0.76 ? 'plough' : 'renge';
+    p.kind = t < 0.36 ? 'flood' : t < 0.54 ? 'seed' : t < 0.78 ? 'plough' : 'renge';   // April: some flooded, some still being worked
   }
-  const set = (zone, row, col, kind) => { const p = plots.find((q) => q.zone === zone && q.row === row && q.col === col); if (p) p.kind = kind; };
-  set('far-east', 0, 0, 'fallow');          // the pump shed's corner, by the far walk
-  set('far-east', 0, 1, 'flood');
-  set('far-east', 1, 0, 'seed');
-  set('far-east', 1, 1, 'renge');
-  set('far-east', 2, 0, 'flood');
-  set('far-west', 0, 0, 'renge');
-  set('far-west', 0, 1, 'flood');
-  set('far-west', 1, 1, 'plough');
-  set('far-west', 1, 0, 'flood');
-  const channels = [{ x0: ch.x0, z0: L.deerGate.z + 6.5, x1: ch.x1, z1: fz1 - 0.2, axis: 'z' }];
-  return { plots, lines, channels, apron, trackEdge: [tw0, tw1], channelX: ch };
+  const set = (row, col, kind) => { const p = plots.find((q) => q.row === row && q.col === col); if (p) p.kind = kind; };
+  // row 0 is the south (pond) end, the last row by the road
+  const last = Math.max(...plots.map((p) => p.row));
+  // a dozen plots is too few to leave to chance: April's mix, by hand
+  set(last, Math.max(...plots.filter((p) => p.row === last).map((p) => p.col)), 'fallow');   // the pump shed's corner
+  set(last, 0, 'flood');                    // by the lane z 45 end: water you see first
+  set(last, 1, 'seed');
+  set(last - 1, 0, 'seed');
+  set(last - 1, 1, 'plough');
+  set(2, 0, 'seed');
+  set(2, 1, 'flood');
+  set(1, 0, 'renge');                       // by the lane z 80 end
+  set(1, 1, 'seed');
+  set(0, 0, 'flood');                       // by the pond: water beside water
+  set(0, 1, 'plough');
+  set(0, 2, 'seed');
+  const corner = plots.find((p) => p.kind === 'fallow');
+  const apron = corner ? [corner.sw + 0.8, bz0 + 1.2, corner.se - 0.8, bz0 + 8.2] : [bx1 - 14, bz0 + 1.2, bx1 - 1, bz0 + 8.2];
+  const channels = [{ x0: ch.x0, z0: bz0 + 0.3, x1: ch.x1, z1: bz1 - 0.3, axis: 'z' }];
+  return { plots, lines, channels, apron, channelX: ch };
 }
 
 /** Build the paddies into `parts` (and `scatter`), colliders into ctx. */
@@ -246,10 +251,37 @@ export function buildPaddies(ctx, parts, scatter, water, plan) {
   waterMesh.receiveShadow = false;
   ctx.add(waterMesh);
 
+  /* Near the paddies the flooded plots are a true mirror (Tan: better than
+   * before): in April a flooded paddy is a sheet of sky with the town and
+   * the trees upside down in it.  A small target (512) and a short range
+   * keep it cheap; the painted water stays for the distance. */
+  if (flood.length) {
+    const [bx0, bz0, bx1, bz1] = TOWN.land.paddies.box;
+    const mirror = makeMirror(mergeFlat(flood), Y.flood + 0.009, pondWobbleTex(),   // a hair over the painted sheet under it
+      { size: 512, base: 0xb4ac8a, deep: 0x908668, name: 'land-paddy-mirror' });
+    mirror.camera.layers.set(REFLECT);
+    mirror.visible = false;
+    ctx.add(mirror);
+    const NEAR = 55;
+    let t = 0;
+    ctx.update((dt, cam) => {
+      if (!cam) return;
+      const q = ctx.toLocal({ x: cam.x, z: cam.z });
+      const d = Math.hypot(Math.max(bx0 - q.x, 0, q.x - bx1), Math.max(bz0 - q.z, 0, q.z - bz1));
+      mirror.visible = d < NEAR;
+      if (mirror.visible) {
+        t += dt;
+        mirror.material.uniforms.chopOff.value.set(t * 0.002, Math.sin(t * 0.13) * 0.006);
+        const fog = ctx.scene.fog;
+        if (fog) mirror.material.uniforms.light.value = THREE.MathUtils.clamp((fog.color.r * 0.3 + fog.color.g * 0.55 + fog.color.b * 0.15) * 1.7, 0.22, 1);
+      }
+    });
+  }
+
   // sluice gates where the channel feeds a flooded plot
   const cx = plan.channelX;
   for (const p of plots) {
-    if (p.zone !== 'far-east' || p.col !== 0 || !(p.kind === 'flood' || p.kind === 'seed')) continue;
+    if (p.col !== 0 || !(p.kind === 'flood' || p.kind === 'seed')) continue;
     const zm = (p.S(p.sw) + p.N(p.nw)) / 2;
     sluice(parts, cx.x1 - 0.05, zm, 'x');
   }

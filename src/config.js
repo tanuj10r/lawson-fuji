@@ -527,6 +527,8 @@ export const SHOT_SPOTS = [
   { name: 'han-close', scene: 'town', pos: [20.7, 0, 3.2], yaw: -2.24, pitch: -0.06, looks: ['day'] },                  // Han at 1.5 m
   { name: 'han-face', scene: 'town', pos: [21.15, 0, 3.55], yaw: -2.17, pitch: -0.1, looks: ['day'] },                  // his face, close
   { name: 'han-front', scene: 'town', pos: [25, 0, 11], yaw: 0.315, pitch: -0.1, looks: ['day'] },                      // the car's nose, from the walk
+  { name: 'han-side', scene: 'town', pos: [17.6, 0, 4.7], yaw: -1.5708, pitch: -0.06, looks: ['day'] },                // the profile at 5 m
+  { name: 'han-front34', scene: 'town', pos: [19.4, 0, 9.0], yaw: -0.72, pitch: -0.1, looks: ['day'] },                 // front three-quarter at 5.5 m
   { name: 'han-rear', scene: 'town', pos: [20.0, 0, -1.0], yaw: -2.66, pitch: -0.08, looks: ['day'] },                  // its tail, from the aisle
   { name: 'han-drift-mid', scene: 'town', pos: [20.5, 0, 4.2], yaw: -2.35, pitch: -0.08, looks: ['day'], train: 'han:10.05' },   // mid-slide in the master junction, from the spot
 

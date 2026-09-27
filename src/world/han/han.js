@@ -79,6 +79,19 @@ function shapeHead(g, r) {
   return g;
 }
 
+/** Anime faces are lit as one plane: bend the front's normals toward straight
+ * ahead, so the cel band doesn't cut across the cheek and chin. */
+function flatFace(g) {
+  const p = g.getAttribute('position'), n = g.getAttribute('normal');
+  const v = new THREE.Vector3(), f = new THREE.Vector3(0, 0.15, 1).normalize();
+  for (let i = 0; i < n.count; i++) {
+    const w = THREE.MathUtils.smoothstep(p.getZ(i), -0.01, 0.06) * 0.9;
+    v.set(n.getX(i), n.getY(i), n.getZ(i)).lerp(f, w).normalize();
+    n.setXYZ(i, v.x, v.y, v.z);
+  }
+  n.needsUpdate = true;
+}
+
 /** The face, drawn over the front of the head (eyes, brows, the smile, stubble). */
 function faceTex() {
   const S = 256;
@@ -312,6 +325,7 @@ export function makeHan() {
     const uv = fg.getAttribute('uv');
     for (let i = 0; i < uv.count; i++) uv.setX(i, 1 - uv.getX(i));
     fg.translate(0, HR * 1.05, 0);
+    flatFace(hg); flatFace(fg);
     const face = new THREE.Mesh(fg, cel({ color: 0xffffff, map: faceTex(), transparent: true, bands: 'soft3', tint: 0xb07a8a, flat: false, depthWrite: false }));
     face.renderOrder = 1;
     face.userData.noOutline = true;

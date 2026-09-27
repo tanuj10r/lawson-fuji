@@ -195,7 +195,8 @@ export function paintMarkings(net, decals) {
       }
       if (e.spec.walk > 0) {
         const q = net.at(e, c.at, side * (e.a + 0.45));
-        tactilePad(decals, q.x, q.z, net.along(e, 1));
+        // on the kerb's dropped band (kit/roads.js), not at the walk's height
+        tactilePad(decals, q.x, q.z, net.along(e, 1), 3, ROADS.asphaltY + 0.025);
       }
     }
     features.crossings.push({ e, s: c.at, L, offset: c.offset, signal: c.signal, signalised: c.signalised });

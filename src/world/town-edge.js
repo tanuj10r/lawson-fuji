@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { cel, flat } from '../core/toon.js';
-import { TOWN, STREET, LAWSON, mainRoadGaps } from '../config.js';
+import { TOWN, STREET, LAWSON, DRIVEWAYS, mainRoadGaps } from '../config.js';
+import { droppedKerb } from './streetprops.js';
 import { makeTimberFence } from './buildings.js';
 import { buildGrove } from './trees.js';
 import {
-  makePole, makeWires, makeBicycle, makeBarrier, makeCone, makeBikeRack, makeSignPost,
+  makePole, makeWires, makeBarrier, makeCone, makeBikeRack, makeSignPost,
 } from './props.js';
 import { addVending } from './vending.js';
 import { parkVehicle } from './vehicles.js';
@@ -84,7 +85,16 @@ export function buildFrame(ctx) {
   // north walk along the main road, either side of the forecourt, as deep as
   // the south walk (the town's frontage lots start where it ends)
   // broken where the town's lanes and the shopping street meet the road
-  const gaps = mainRoadGaps().sort((a, b) => a[0] - b[0]);
+  // (town quality pass) and where a driveway's dropped kerb crosses it: the
+  // coin parking's way in (config.js DRIVEWAYS)
+  const D = DRIVEWAYS;
+  const gaps = [...mainRoadGaps(), ...D.north.map(([a, b]) => [a - D.ramp, b + D.ramp])].sort((a, b) => a[0] - b[0]);
+  const nz0 = 2 * TOWN.grid.main - S.sidewalkZ;
+  for (const [x0, x1] of D.north) {
+    const k = droppedKerb({ x0, x1, z0: nz0, z1: S.forecourtZ, roadZ: S.forecourtZ, k: K, drop: D.drop, ramp: D.ramp, walkMat: mats.walk });
+    for (const m of k.meshes) ctx.add(m);
+    for (const p of k.platforms) ctx.platform(p);
+  }
   for (const [a0, a1] of [[S.roadX0 + 7, S.x0], [S.x1, S.roadX1 - 7]]) {
     let from = a0;
     for (const [g0, g1] of gaps) {
@@ -134,16 +144,21 @@ export function buildFrame(ctx) {
       ctx.add(label);
     }
     ctx.collide(-hw - 0.6, -3.8, -hw, -1.9, 1.06);
-    ctx.add(makeBikeRack({ x: -hw - 1.2, z: -8.2, y: 0, ry: Math.PI / 2 }));
-    ctx.add(makeBicycle({ x: -hw - 1.3, z: -7.6, y: 0, ry: Math.PI, lean: 0.06, color: 0x3f6f9c }));
-    ctx.collide(-hw - 2.2, -9.4, -hw - 0.4, -6.8, 1.0);
+    /* the staff's bicycles, in a short rack along the side wall, wheels to
+     * the wall (town quality pass: an 8-bike rack turned across the wall put
+     * three of them inside the store, in the onigiri aisle) */
+    ctx.add(makeBikeRack({ x: -hw - 1.35, z: -8.3, y: 0, ry: 0, n: 4, seed: 5 }));
+    ctx.collide(-hw - 2.3, -9.5, -hw - 0.35, -7.1, 1.0);
 
-    // kei cars in the outer bays, nosed in toward the store (mood reference 2)
+    /* kei cars in the outer bays, nosed in toward the store (mood reference
+     * 2).  A car is long along its x, so nosed in is a quarter turn: at
+     * ry 0 they lay across the bays, into each other (Tan).  Front wheels at
+     * the wheel stop. */
     const cars = [
       { x: -12.85, color: 0xf2eee6 }, { x: -15.55, color: 0xd9665a },
       { x: 14.15, color: 0x9fc0dc }, { x: 16.85, color: 0xa8d4b4 },
     ];
-    for (const c of cars) parkVehicle(ctx, { kind: 'kei', x: c.x, z: 5.1, y: 0, ry: 0, color: c.color });
+    for (const c of cars) parkVehicle(ctx, { kind: 'kei', x: c.x, z: S.stopZ + 0.08 + 0.275 + 1.16, y: 0, ry: Math.PI / 2, color: c.color });
   }
 
   /* ============ the two sakura that frame the view (M2, mood ref 2) ============

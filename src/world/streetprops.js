@@ -1238,3 +1238,108 @@ export function makeChalkMarks(ctx, spots, o = {}) {
   ctx.add(inst);
   return inst;
 }
+
+/* =================================================================== *
+ * Dropped kerb (切り下げ, town quality pass)
+ * =================================================================== */
+
+/** A quad over the ground from x0 to x1 and z0 to z1, its height running
+ * from y0 at x0 to y1 at x1 (a ramp's top, or its tactile strip). */
+export function slopeQuad(x0, x1, z0, z1, y0, y1) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([x0, y0, z1, x1, y1, z1, x1, y1, z0, x0, y0, z0], 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2));
+  g.setIndex([0, 1, 2, 0, 2, 3]);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * Where a driveway or a zebra crosses a raised walk (axis-aligned): the walk
+ * between x0 and x1 lowered to `drop`, a ramp `ramp` long each side down
+ * from the kerb height `k`, and the kerb stone on the road side (`roadZ`:
+ * z0 or z1) lowered with it.  Written for a walk running along x; `axis:
+ * 'z'` reads every x as z and z as x (a walk running along z).  The caller
+ * breaks its walk for [x0 - ramp, x1 + ramp].  `base`: the slabs' bottom.
+ * `band`: lower only that much of the walk from the kerb (a zebra's
+ * landing), sloping back up over `bandSlope`; the rest keeps its height,
+ * so shop thresholds and the guide line stay level.  Without it the whole
+ * width drops (a driveway).
+ * @returns { meshes, platforms }: walkable tops in the caller's frame
+ */
+export function droppedKerb({
+  x0, x1, z0, z1, roadZ, k = 0.15, drop = 0.04, ramp = 0.8, walkMat, kerbMat, axis = 'x', base = 0, tile = 1,
+  rampLo = true, rampHi = true, band = null, bandSlope = 0.12,
+}) {
+  const meshes = [];
+  const platforms = [];
+  const swap = axis === 'z';
+  const kerbSide = roadZ === z0 ? z0 : z1;
+  /** 0..1: how far down the walk is across it (1 in the band, 0 past it) */
+  const across = (z) => {
+    if (band === null) return 1;
+    const d = Math.abs(z - kerbSide);
+    return d <= band + 1e-4 ? 1 : d >= band + bandSlope - 1e-4 ? 0 : 1 - (d - band) / bandSlope;
+  };
+  /** A slab from a to b along the walk, its top from h0 at a to h1 at b
+   * (in the band; back up to `k` across the band's slope). */
+  const span = (a, b, za, zb, h0, h1, mat, kTop = k) => {
+    const g = new THREE.BoxGeometry(b - a, 1, zb - za);
+    g.translate((a + b) / 2, 0.5, (za + zb) / 2);
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const t = (p.getX(i) - a) / (b - a);
+      const low = h0 + (h1 - h0) * t;
+      p.setY(i, p.getY(i) > 0.5 ? kTop - (kTop - low) * across(p.getZ(i)) : base);
+      if (swap) { const x = p.getX(i); p.setX(i, p.getZ(i)); p.setZ(i, x); }
+    }
+    if (swap) {
+      // a swap of axes is a mirror: turn every triangle back round
+      const ix = g.index.array;
+      for (let i = 0; i < ix.length; i += 3) { const q = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = q; }
+    }
+    g.computeVertexNormals();
+    // world-mapped, like the walk it stands in (pavers keep their size)
+    const n = g.attributes.normal, uv = g.attributes.uv;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      if (Math.abs(n.getY(i)) > 0.5) uv.setXY(i, x / tile, -z / tile);
+      else if (Math.abs(n.getX(i)) > Math.abs(n.getZ(i))) uv.setXY(i, z / tile, y / tile);
+      else uv.setXY(i, x / tile, y / tile);
+    }
+    const m = new THREE.Mesh(g, mat);
+    m.castShadow = false;
+    m.receiveShadow = true;
+    meshes.push(m);
+  };
+  // strips across the walk: the lowered band, its slope, the level rest
+  const cuts = band === null ? [] : [band, band + bandSlope].map((d) => (kerbSide === z0 ? z0 + d : z1 - d)).filter((z) => z > z0 + 1e-3 && z < z1 - 1e-3);
+  const zs = [z0, ...cuts.sort((a, b) => a - b), z1];
+  const strips = zs.slice(1).map((z, i) => [zs[i], z]);
+  // (a stretch that runs to the walk's end, at a corner, has no ramp there)
+  for (const [za, zb] of strips) {
+    if (rampLo) span(x0 - ramp, x0, za, zb, k, drop, walkMat);
+    span(x0, x1, za, zb, drop, drop, walkMat);
+    if (rampHi) span(x1, x1 + ramp, za, zb, drop, k, walkMat);
+  }
+  if (kerbMat) {
+    // the kerb stone along the road edge, lowered with the walk (a bevelled
+    // kerb: a finger's height of lip, no step for a tyre or a pram)
+    const [ka, kb] = roadZ === z0 ? [z0 - 0.02, z0 + 0.14] : [z1 - 0.14, z1 + 0.02];
+    if (rampLo) span(x0 - ramp, x0, ka, kb, k + 0.01, drop + 0.012, kerbMat, k + 0.01);
+    span(x0, x1, ka, kb, drop + 0.012, drop + 0.012, kerbMat, k + 0.01);
+    if (rampHi) span(x1, x1 + ramp, ka, kb, drop + 0.012, k + 0.01, kerbMat, k + 0.01);
+  }
+  // walkable: each strip's lowered stretch, and each ramp in two steps, at
+  // the strip's mean height
+  const plat = (a, b, za, zb, top) => platforms.push(swap ? { x0: za, x1: zb, z0: a, z1: b, top } : { x0: a, x1: b, z0: za, z1: zb, top });
+  const mid = (k + drop) / 2;
+  for (const [za, zb] of strips) {
+    const f = across((za + zb) / 2);
+    const at = (h) => k - (k - h) * f;
+    plat(x0, x1, za, zb, at(drop));
+    if (rampLo) { plat(x0 - ramp, x0 - ramp / 2, za, zb, at((k + mid) / 2)); plat(x0 - ramp / 2, x0, za, zb, at((mid + drop) / 2)); }
+    if (rampHi) { plat(x1, x1 + ramp / 2, za, zb, at((mid + drop) / 2)); plat(x1 + ramp / 2, x1 + ramp, za, zb, at((k + mid) / 2)); }
+  }
+  return { meshes, platforms };
+}

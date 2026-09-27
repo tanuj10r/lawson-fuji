@@ -1,12 +1,12 @@
 import { rngKit } from '../../core/util.js';
 import { makeGomiHouse } from '../streetprops.js';
 import {
-  makePlanter, makeBench, makePostBox, makeCat, makeBikeRack, makeVendBin, makeCrates,
+  makePlanter, makeBench, makePostBox, makeCat, makeVendBin, makeCrates,
 } from '../props.js';
 import { addVending } from '../vending.js';
 import { buildShrubs } from '../trees.js';
-import { ROADS } from '../../config.js';
-import { dressWalks } from './street/walks.js';
+import { ROADS, TOWN } from '../../config.js';
+import { dressWalks, walkRoom, WALK_CLEAR } from './street/walks.js';
 
 /* ------------------------------------------------------------------ *
  * Street dressing (SPEC section 3, density budget).
@@ -23,7 +23,10 @@ const WY = ROADS.asphaltY + ROADS.kerbH;
 
 export function dressStreets(ctx, net, kit, lots, specials = []) {
   // a special lot dresses itself; its frontage is not a gap
-  const inSpecial = (p) => specials.some((q) => p.x > q.x0 - 1.5 && p.x < q.x1 + 1.5 && p.z > q.z0 - 1.5 && p.z < q.z1 + 1.5);
+  // (town quality pass) and the monthly car park is not a gap either: its
+  // trees stood in its way out onto the bridge road
+  const lotsOwn = [...specials, (([x0, z0, x1, z1]) => ({ x0, z0, x1, z1 }))(TOWN.land.parking)];
+  const inSpecial = (p) => lotsOwn.some((q) => p.x > q.x0 - 1.5 && p.x < q.x1 + 1.5 && p.z > q.z0 - 1.5 && p.z < q.z1 + 1.5);
   const trees = [];
   const reg = (kind, p) => ctx.registry?.push({ kind, x: p.x, z: p.z });
   const byEdgeSide = new Map();
@@ -43,9 +46,21 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
       const off = side * (walk ? e.t - 0.45 : e.a + 0.45);
       const y = walk ? WY : 0;
       const ry = Math.atan2(e.axis === 'x' ? 0 : -side, e.axis === 'x' ? -side : 0);   // face the street
+      /* (town quality pass) a gap on this street can be a cross street's
+       * corner lot: its house stands there.  [sA, sB] along, [d0, d1] out */
+      const hitsBuilding = (sA, sB, d0, d1) => {
+        const q0 = net.at(e, sA, side * d0), q1 = net.at(e, sB, side * d1);
+        const x0 = Math.min(q0.x, q1.x), x1 = Math.max(q0.x, q1.x), z0 = Math.min(q0.z, q1.z), z1 = Math.max(q0.z, q1.z);
+        return (Array.isArray(ctx.registry) ? ctx.registry : []).some((q) => q.kind === 'building' && q.rect
+          && q.rect[0] < x1 && q.rect[2] > x0 && q.rect[1] < z1 && q.rect[3] > z0);
+      };
       const put = (obj, s, kind = 'prop', col = 0.35, h = 1.0) => {
         const p = net.at(e, s, off);
         if (net.quiet(p.x, p.z)) return null;
+        // off a pavement, never into a house (a cross street's corner lot)
+        if (!walk && hitsBuilding(s - col, s + col, Math.abs(off) - 0.3, Math.abs(off) + 0.35)) return null;
+        // on a pavement, only where the walk keeps its clear way
+        if (walk && walkRoom(ctx, net, e, side, s - col - 0.2, s + col + 0.2, Math.abs(off) - Math.min(col, 0.45), Math.abs(off) + 0.45) < WALK_CLEAR) return null;
         obj.position.set(p.x, y, p.z);
         obj.rotation.y = ry;
         obj.userData.detail = true;
@@ -86,17 +101,26 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
         const mid = (a + b) / 2;
         const p = net.at(e, mid, side * (walk ? e.t + 1.2 : e.a + 1.4));
         if (net.quiet(p.x, p.z)) continue;
+        const dTree = walk ? e.t + 1.2 : e.a + 1.4;
         if (w > 6 && r.chance(0.55)) {
-          trees.push({ x: p.x, z: p.z, y: 0, scale: r.range(0.9, 1.2), seed: e.seed * 7 + Math.round(mid) });
+          const scale = r.range(0.9, 1.2);           // (drawn first: a skipped tree moves nothing else)
+          // a trunk in a house goes, except in the famous views' sightline
+          // behind the store (TOWN.lowPoles), whose frames must not move
+          const inView = TOWN.lowPoles.some(([x0, z0, x1, z1]) => p.x > x0 && p.x < x1 && p.z > z0 && p.z < z1);
+          if (!inView && hitsBuilding(mid - 0.35, mid + 0.35, dTree - 0.35, dTree + 0.35)) continue;
+          trees.push({ x: p.x, z: p.z, y: 0, scale, seed: e.seed * 7 + Math.round(mid) });
           ctx.collide(p.x - 0.35, p.z - 0.35, p.x + 0.35, p.z + 0.35, 3);
           reg('prop', p);
           if (w > 9) put(makePlanter({ x: 0, y: 0, z: 0, r: 0.3, flower: true, seed: e.seed + Math.round(a), n: 6 }), a + 1.2, 'prop', 0.3, 0.8);
         } else if (!walk && w > 4 && r.chance(0.5)) {
+          if (hitsBuilding(mid - 1.1, mid + 1.1, e.a + 0.2, e.a + 1.45)) continue;
           const g = makeGomiHouse({});
           put(g, mid, 'prop', 1.0, 1.2);
         } else if (walk && w > 4 && r.chance(0.5)) {
           const q = net.at(e, mid, off);
-          if (!net.quiet(q.x, q.z)) {
+          const roomy = walkRoom(ctx, net, e, side, mid - 1.9, mid + 2.6, e.t - 0.95, e.t) >= WALK_CLEAR;
+          const gashapon = !net.quiet(q.x, q.z) && r.chance(0.5);   // (drawn either way: nothing else moves)
+          if (!net.quiet(q.x, q.z) && roomy) {
             addVending(ctx, { detail: true, x: q.x, y, z: q.z, ry, variant: Math.round(mid) % 3, seed: e.seed + Math.round(mid) });
             ctx.night?.pool(q.x, q.z, 2.4, { y, color: 0xe8f0ff, strength: 0.8 });
             const b2 = net.at(e, mid + 1.2, off);
@@ -105,7 +129,7 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
             put(vb, mid + 2.2, 'prop', 0.3, 1.0);
             reg('prop', q); reg('prop', b2);
             // and, as often as not, a bank of capsule-toy machines beside them
-            if (r.chance(0.5) && w > 5.2) {
+            if (gashapon && w > 5.2) {
               const gp = net.at(e, mid - 1.3, off);
               if (!net.quiet(gp.x, gp.z)) {
                 kit.clutter?.put('gashapon', gp.x, y, gp.z, ry);
@@ -129,23 +153,58 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
     if (n.degree < 3 || n.external) continue;
     const r = rngKit(Math.round(n.x * 13 + n.z * 7));
     const busy = n.edges.some((e) => e.spec.walk > 0);
-    const cx = n.x + (r.chance(0.5) ? 1 : -1) * (n.tx + 0.6);
-    const cz = n.z + (r.chance(0.5) ? 1 : -1) * (n.tz + 0.6);
+    /* (town quality pass) at a busy corner the post box stands on the
+     * walk's back corner: 0.6 m past the walk put it inside the corner
+     * shop, out of sight.  At a lane corner, on the verge, unless a house
+     * stands there. */
+    const cx = n.x + (r.chance(0.5) ? 1 : -1) * (busy ? n.tx - 0.45 : n.tx + 0.6);
+    let cz = n.z + (r.chance(0.5) ? 1 : -1) * (n.tz + 0.6);
     if (net.quiet(cx, cz)) continue;
+    const czSign = Math.sign(cz - n.z);
+    if (busy) {
+      // slide along the walk until the way past it stays 1.2 m clear
+      const sz = Math.sign(cz - n.z), e = n.dirs[sz > 0 ? '+z' : '-z'];
+      if (e && e.spec.walk > 0) {
+        const side = Math.sign(cx - n.x);
+        let k = 0;
+        while (k < 4 && walkRoom(ctx, net, e, side, cz - 0.45, cz + 0.45, e.t - 0.8, e.t) < WALK_CLEAR) { cz += sz * 1.0; k++; }
+        if (k === 4) cz = NaN;
+      }
+    }
     const y = busy ? WY : 0;
-    if (busy || r.chance(0.35)) {
+    const inHouse = (Array.isArray(ctx.registry) ? ctx.registry : []).some((q) => q.kind === 'building' && q.rect
+      && q.rect[0] < cx + 0.35 && q.rect[2] > cx - 0.35 && q.rect[1] < cz + 0.35 && q.rect[3] > cz - 0.35);
+    if ((busy || r.chance(0.35)) && !inHouse && !Number.isNaN(cz)) {
       ctx.add(makePostBox({ x: cx, y, z: cz, ry: r.range(0, Math.PI * 2) }));
       ctx.collide(cx - 0.3, cz - 0.3, cx + 0.3, cz + 0.3, y + 1.4);
       reg('prop', { x: cx, z: cz });
     }
-    if (busy) {
-      const bx = n.x - Math.sign(cx - n.x) * (n.tx + 0.6), bz = cz;
-      if (!net.quiet(bx, bz)) {
-        const rack = makeBikeRack({ x: bx, y, z: bz, ry: 0, n: 3, seed: Math.round(bx * 3 + bz) });
-        rack.userData.detail = true;
-        ctx.add(rack);
-        ctx.collide(bx - 1.3, bz - 0.9, bx + 1.3, bz + 0.9, y + 1.0);
-        reg('prop', { x: bx, z: bz });
+    /* (town quality pass) the corner's bicycles: they stood in a rack across
+     * the corner, in the corner shop's wall.  Now three parked along the
+     * kerb of the busy street just past the corner, the walk left clear. */
+    if (busy && kit.clutter) {
+      const sx = -Math.sign(cx - n.x), sz = czSign;
+      const e = [n.dirs[sz > 0 ? '+z' : '-z'], n.dirs[sz > 0 ? '+x' : '-x']].find((q) => q && q.spec.walk > 0 && q.axis === 'z');
+      if (e) {
+        const side = sx;
+        const off = side * (e.a + 0.5);
+        const s0 = n.z + sz * (n.tz + 1.6);
+        const ry = Math.PI / 2 + (sz > 0 ? 0 : Math.PI);
+        const pts = [0, 1, 2].map((k) => net.at(e, s0 + sz * k * 0.95, off));
+        const poles = (ctx.registry ?? []).filter((q) => q.kind === 'pole' || q.kind === 'sign');
+        // clear of anything already standing there (a board, a bench, a pole's box)
+        const free = (p) => {
+          const w = ctx.toWorld(p);
+          return !ctx.colliders.some((c) => (c.top ?? 9) > y + 0.3 && w.x + 0.3 > c.x0 && w.x - 0.3 < c.x1 && w.z + 0.95 > c.z0 && w.z - 0.95 < c.z1);
+        };
+        const sA = Math.min(s0, s0 + sz * 1.9) - 0.95, sB = Math.max(s0, s0 + sz * 1.9) + 0.95;
+        const roomy = walkRoom(ctx, net, e, side, sA, sB, e.a + 0.2, e.a + 0.8) >= WALK_CLEAR;
+        if (roomy && pts.every((p) => !net.quiet(p.x, p.z) && free(p) && !poles.some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 1.0))) {
+          pts.forEach((p, k) => kit.clutter.put('bike', p.x, y, p.z, ry + (k - 1) * 0.05, { roll: 0.07 * (k % 2 ? 1 : -1), color: [0x3f6f9c, 0xd8a03c, 0xe8e2d4, 0x9c5a4a][(k + Math.round(n.z)) % 4] }));
+          const a = pts[0], b = pts[2];
+          ctx.collide(Math.min(a.x, b.x) - 0.3, Math.min(a.z, b.z) - 0.95, Math.max(a.x, b.x) + 0.3, Math.max(a.z, b.z) + 0.95, y + 1.0);
+          for (const p of pts) reg('bikes', p);          // the walks' clutter keeps off them (street/walks.js)
+        }
       }
     }
   }

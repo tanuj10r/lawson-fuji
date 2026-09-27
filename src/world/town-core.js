@@ -61,9 +61,11 @@ export function buildCore(ctx) {
 
   const built = lots.map((lot) => buildLot(ctx, net, kit, lot));
   for (const s of SPECIALS) buildSpecial(ctx, net, kit, s);
+  streetTrees(ctx, kit);          // before the dressing, so the walks' clutter keeps off the pits
   dressStreets(ctx, net, kit, lots, SPECIALS);
+  // (the pits' marks were for the dressing only: each tree registers itself when built)
+  if (Array.isArray(ctx.registry)) for (let i = ctx.registry.length - 1; i >= 0; i--) if (ctx.registry[i].kind === 'tree') ctx.registry.splice(i, 1);
   const line = buildLine(ctx, { kit });
-  streetTrees(ctx, kit);
   const sakura = buildTownSakura(ctx, ctx.sakura, { decals: kit.decals });
   const green = buildGreen(ctx, { decals: kit.decals });
   buildWeeds(ctx, weedSpots(ctx, net));
@@ -100,6 +102,7 @@ function streetTrees(ctx, kit) {
       if (Math.abs(x - 62) < 8) continue;                                // the bus stop
       if (poles.some((p) => Math.hypot(p.x - x, p.z - z) < 3)) continue;
       plant(ctx, 'zelkova', { x, z, y: ROADS.kerbH, scale: r.range(0.85, 1.05), seed: 4000 + x });
+      ctx.registry?.push({ kind: 'tree', x, z });
       kit.decals.add('grate', x, z, 1.1, 1.1, { x: 0, z: -1 }, ROADS.kerbH, LAYER.lid);
     }
   }

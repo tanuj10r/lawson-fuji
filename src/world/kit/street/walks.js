@@ -1,5 +1,5 @@
 import { rngKit } from '../../../core/util.js';
-import { ROADS, TOWN } from '../../../config.js';
+import { ROADS, TOWN, DRIVEWAYS } from '../../../config.js';
 import { LAYER } from '../decals.js';
 import { tactilePad } from '../roads.js';
 import { aBoard, walkPlate } from './boards.js';
@@ -23,13 +23,43 @@ import { aBoard, walkPlate } from './boards.js';
  * ------------------------------------------------------------------ */
 
 const WY = ROADS.asphaltY + ROADS.kerbH;
+
+/** The clear way a walk must keep (town quality pass, Tan: the whole town
+ * pedestrian-friendly): 1.2 m, past anything on it. */
+export const WALK_CLEAR = 1.2;
+
+/**
+ * The widest clear way left across the pavement on `side` of edge `e`,
+ * over [sA, sB] along it, if something taking [d0, d1] across (distances
+ * from the edge's centre line) were put down there.  Everything already
+ * standing (its colliders) counts.  In the frame of `ctx`.
+ */
+export function walkRoom(ctx, net, e, side, sA, sB, d0, d1) {
+  const spans = [[d0, d1]];
+  const lo = e.a, hi = e.t;
+  for (const c of ctx.colliders) {
+    if ((c.top ?? 9) < WY + 0.45) continue;
+    const p = ctx.toLocal({ x: c.x0, z: c.z0 }), q = ctx.toLocal({ x: c.x1, z: c.z1 });
+    const x0 = Math.min(p.x, q.x), x1 = Math.max(p.x, q.x), z0 = Math.min(p.z, q.z), z1 = Math.max(p.z, q.z);
+    const [a0, a1, t0, t1] = e.axis === 'x' ? [x0, x1, z0, z1] : [z0, z1, x0, x1];
+    if (a1 <= sA || a0 >= sB) continue;
+    const u0 = side * (t0 - e.c), u1 = side * (t1 - e.c);
+    const dA = Math.min(u0, u1), dB = Math.max(u0, u1);
+    if (dB <= lo || dA >= hi) continue;
+    spans.push([dA, dB]);
+  }
+  spans.sort((a, b) => a[0] - b[0]);
+  let best = 0, at = lo;
+  for (const [a, b] of spans) { best = Math.max(best, Math.min(a, hi) - at); at = Math.max(at, b); }
+  return Math.max(best, hi - at);
+}
 const FRAMES = [0x3f6f9c, 0xd8a03c, 0xe8e2d4, 0x9c5a4a, 0x4f8f6a, 0x8f6fb5, 0xc7c2d0, 0x2f2c3a, 0xe86a8a, 0x6ab0d8];
 const CRATES = [0xe8483c, 0xf2c23c, 0x3a8ad0, 0x4fae6a, 0xe8e4dc];
 
 export function dressWalks(ctx, net, kit, lots) {
   const C = kit.clutter;
   const reg = (x, z) => ctx.registry?.push({ kind: 'prop', x, z });
-  const fixed = () => (ctx.registry ?? []).filter((q) => q.kind === 'pole' || q.kind === 'sign');
+  const fixed = () => (ctx.registry ?? []).filter((q) => q.kind === 'pole' || q.kind === 'sign' || q.kind === 'bikes' || q.kind === 'tree');
   let taken = fixed();
   // never in a junction or a lane's mouth: that is where people walk through
   const inJunction = (x, z) => Object.values(net.nodes).some((n) => Math.abs(x - n.x) < n.tx + 1.0 && Math.abs(z - n.z) < n.tz + 1.0);
@@ -40,6 +70,9 @@ export function dressWalks(ctx, net, kit, lots) {
   /** Bicycles parked in a row from `s` along `e`, at `off`. */
   const bikesAt = (e, s, off, n, r, y) => {
     const f = net.along(e, 1);
+    const side = Math.sign(off) || 1, d = Math.abs(off);
+    if ((e.spec.walk > 0 || e.opts.surface === false) && d > e.a - 0.1
+      && walkRoom(ctx, net, e, side, s - 0.95, s + (n - 1) * 0.95 + 0.95, d - 0.3, d + 0.3) < WALK_CLEAR) return 0;
     const ry = Math.atan2(f.z, -f.x) + (r.chance(0.5) ? Math.PI : 0);
     let placed = 0;
     for (let k = 0; k < n; k++) {
@@ -81,6 +114,7 @@ export function dressWalks(ctx, net, kit, lots) {
         const p = net.at(e, s, kerb);
         if (net.quiet(p.x, p.z) || !clearOf(p.x, p.z, 1.4)) continue;
         if (hero && p.x > -62 && p.x < 40) continue;
+        if (hero && DRIVEWAYS.north.some(([a, b]) => -p.x > a - DRIVEWAYS.ramp - 1 && -p.x < b + DRIVEWAYS.ramp + 1)) continue;   // a driveway's dropped kerb
         if (net.busStops.some((b) => b.e === e && b.side === side && Math.abs(s - b.at) < 9)) continue;
         if (net.crossings.some((c) => c.e === e && s > c.at - 4 && s < c.at + 3)) continue;   // keep a zebra's mouth clear
         // toward the station the kerb fills with bicycles
@@ -92,6 +126,7 @@ export function dressWalks(ctx, net, kit, lots) {
           s += got * 0.95;
         } else if (roll < (nearStation ? 0.85 : 0.72)) {
           const b = aBoard(Math.floor(r.next() * 97));
+          if (walkRoom(ctx, net, e, side, s - 0.4, s + 0.4, Math.abs(kerb) - 0.3, Math.abs(kerb) + 0.3) < WALK_CLEAR) continue;
           b.position.set(p.x, y, p.z);
           b.rotation.y = Math.atan2(f.x, f.z) + (r.chance(0.5) ? Math.PI : 0) + r.range(-0.2, 0.2);
           b.userData.detail = true;
@@ -100,7 +135,9 @@ export function dressWalks(ctx, net, kit, lots) {
           ctx.collide(p.x - 0.28, p.z - 0.28, p.x + 0.28, p.z + 0.28, y + 0.8);
           occupy(p.x, p.z); reg(p.x, p.z);
         } else if (roll < 0.9) {
-          crates(p.x, y, p.z, Math.atan2(-f.z, f.x), r.int(2, 4), r);
+          const n = r.int(2, 4);
+          if (walkRoom(ctx, net, e, side, s - 0.6, s + 0.6, Math.abs(kerb) - 0.5, Math.abs(kerb) + 0.5) < WALK_CLEAR) continue;
+          crates(p.x, y, p.z, Math.atan2(-f.z, f.x), n, r);
         }
       }
     }
@@ -128,6 +165,8 @@ export function dressWalks(ctx, net, kit, lots) {
       if (net.quiet(p.x, p.z) || !clearOf(p.x, p.z, 1.0)) continue;
       const ry = Math.atan2(a.face.x, a.face.z);       // facing the street
       const y = walk ? WY : 0;
+      const roomy = !walk || walkRoom(ctx, net, e, a.side, s - 0.6, s + 0.6, e.t - 0.8, e.t) >= WALK_CLEAR;
+      if (!roomy) continue;
       if (walk && gap >= 0.8 && r.chance(0.6)) {
         // a capsule-toy bank at the gap's mouth, half in front of the next wall
         C.put('gashapon', p.x, y, p.z, ry);
@@ -148,8 +187,10 @@ export function dressWalks(ctx, net, kit, lots) {
     const fz = net.along(spine, 1);
     for (const side of [-1, 1]) {
       // bollards across the walk's mouth, warning tiles just short of them
-      for (let k = 0; k < 3; k++) {
-        const p = net.at(spine, plazaZ - 0.4, side * (spine.a + 0.45 + k * 0.8));
+      // (town quality pass: three 0.8 m apart left gaps narrower than a
+      // person; two stop a car and let people through)
+      for (let k = 0; k < 2; k++) {
+        const p = net.at(spine, plazaZ - 0.4, side * (spine.a + 0.3 + k * 1.55));
         C.put('bollard', p.x, WY, p.z, 0);
         ctx.collide(p.x - 0.08, p.z - 0.08, p.x + 0.08, p.z + 0.08, WY + 0.9);
       }
@@ -181,6 +222,7 @@ export function dressWalks(ctx, net, kit, lots) {
     const s = e.a1 - 1.2, off = e.a + 0.42;
     const p = net.at(e, s, off);
     if (net.quiet(p.x, p.z) || !clearOf(p.x, p.z, 0.8)) continue;
+    if (walkRoom(ctx, net, e, 1, s - 0.3, s + 0.3, off - 0.12, off + 0.12) < WALK_CLEAR) continue;
     const g = walkPlate('station');
     g.position.set(p.x, WY, p.z);
     g.rotation.y = -Math.PI / 2;        // face the walk, the arrow toward the plaza (+z)

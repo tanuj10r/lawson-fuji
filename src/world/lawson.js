@@ -3,7 +3,8 @@ import { cel, flat } from '../core/toon.js';
 import { hullOutlineTree } from '../core/outline.js';
 import { tactileTex } from '../core/textures.js';
 import { bake, trs, shadowify } from '../core/util.js';
-import { LAWSON, STREET, TOWN, ROADS, mainRoadGaps } from '../config.js';
+import { LAWSON, STREET, TOWN, ROADS, DRIVEWAYS, mainRoadGaps } from '../config.js';
+import { droppedKerb, slopeQuad } from './streetprops.js';
 import {
   signBand, sideBand, logoPlate, nobori, tileTex,
   glassShine, spillTex, redNotice, foodPoster, campaignBanner,
@@ -321,20 +322,50 @@ export function buildLawson(parent) {
   // breaks for the town's lanes (town-edge.js)
   const gaps = TOWN.grid.ns.filter((r) => r.z0 !== undefined && r.z0 < TOWN.grid.main)
     .map((r) => [-r.x - ROADS[r.cls].asphalt / 2, -r.x + ROADS[r.cls].asphalt / 2]).sort((a, b) => a[0] - b[0]);
-  const runs = [];
-  let from = S.roadX0;
-  for (const [g0, g1] of gaps) { if (g0 > from) runs.push([from, g0]); from = Math.max(from, g1); }
-  if (S.roadX1 > from) runs.push([from, S.roadX1]);
+  const splitRuns = (cuts) => {
+    const out = [];
+    let at = S.roadX0;
+    for (const [g0, g1] of [...cuts].sort((a, b) => a[0] - b[0])) { if (g0 > at) out.push([at, g0]); at = Math.max(at, g1); }
+    if (S.roadX1 > at) out.push([at, S.roadX1]);
+    return out;
+  };
+  // `runs` (the road's edge line) break only for the lanes; the walk also
+  // breaks where a driveway's dropped kerb crosses it (town quality pass)
+  const runs = splitRuns(gaps);
+  const D = DRIVEWAYS;
+  /* the main road's zebra lands on this walk too (town-edge.js signals):
+   * lowered from its west edge to the bridge road's corner, a ramp on the
+   * west side only (a lowered stretch that meets a gap needs none) */
+  const zw = [TOWN.crosswalk.x - TOWN.crosswalk.width / 2 - 0.1, TOWN.crosswalk.x + TOWN.crosswalk.width / 2 + 0.1];
+  const zGap = gaps.find(([g0]) => g0 >= zw[1] - 0.01 && g0 - zw[1] < D.ramp + 0.5);
+  const zebraDrop = { x0: zw[0], x1: zGap ? zGap[0] : zw[1], rampHi: !zGap };
+  const walkRuns = splitRuns([...gaps, ...D.far.map(([a, b]) => [a - D.ramp, b + D.ramp]),
+    [zebraDrop.x0 - D.ramp, zebraDrop.x1 + (zebraDrop.rampHi ? D.ramp : 0)]]);
   const kerbMat = cel({ color: 0xd2d3da, bands: 3 });
-  for (const [x0, x1] of runs) {
+  const tactileMat = (len) => {
+    const t = tactileTex(false).clone();
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(len / 0.3, 1);
+    t.needsUpdate = true;
+    return cel({ color: 0xffffff, bands: 3, map: t });
+  };
+  for (const [x0, x1] of walkRuns) {
     ground.add(shadowify(slab(x0, x1, 0, kerbH, S.roadZ, S.sidewalkZ, paving), false, true));
     ground.add(shadowify(slab(x0, x1, 0, kerbH + 0.01, S.roadZ - 0.02, S.roadZ + 0.14, kerbMat), false, true));
     platforms.push({ x0, x1, z0: S.roadZ, z1: S.sidewalkZ, top: kerbH });
-    const t = tactileTex(false).clone();
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set((x1 - x0) / 0.3, 1);
-    t.needsUpdate = true;
-    ground.add(patch(x0, x1, S.tactileZ - 0.15, S.tactileZ + 0.15, kerbH + 0.004, cel({ color: 0xffffff, bands: 3, map: t })));
+    ground.add(patch(x0, x1, S.tactileZ - 0.15, S.tactileZ + 0.15, kerbH + 0.004, tactileMat(x1 - x0)));
+  }
+  for (const [x0, x1, rampHi = true, band = null] of [...D.far, [zebraDrop.x0, zebraDrop.x1, zebraDrop.rampHi, D.zebraBand]]) {
+    const k = droppedKerb({ x0, x1, z0: S.roadZ, z1: S.sidewalkZ, roadZ: S.roadZ, k: kerbH, drop: D.drop, ramp: D.ramp, walkMat: paving, kerbMat, rampHi, band });
+    for (const m of k.meshes) ground.add(m);
+    platforms.push(...k.platforms);
+    // the guide strip runs on across the driveway, down its ramps and back up
+    const tz0 = S.tactileZ - 0.15, tz1 = S.tactileZ + 0.15, ty = 0.004;
+    for (const [a, b, h0, h1] of [[x0 - D.ramp, x0, kerbH, D.drop], [x0, x1, D.drop, D.drop], ...(rampHi ? [[x1, x1 + D.ramp, D.drop, kerbH]] : [])]) {
+      const m = new THREE.Mesh(slopeQuad(a, b, tz0, tz1, h0 + ty, h1 + ty), tactileMat(b - a));
+      m.receiveShadow = true;
+      ground.add(m);
+    }
   }
 
   // painted lines, baked into one mesh

@@ -576,6 +576,20 @@ export function placeAt(p) {
   return p.frame === 'world' ? { x, z } : { x: -x, z: 2 * TOWN.grid.main - z };
 }
 
+/* Dropped kerbs (town quality pass, Tan: how does a car get into the car
+ * park?): where cars cross a main-road walk into a car park, as world x
+ * ranges.  The walk stays, lowered, with a ramp each side; the road's edge
+ * line runs on across it.  `far`: the walk on the spawn's side
+ * (lawson.js), the monthly car park's way in (land/parking.js); `north`:
+ * the store's side (town-edge.js), the coin parking's (kit/specials.js). */
+export const DRIVEWAYS = {
+  far: [[26.2, 31.4]],
+  north: [[-56.8, -51.6]],
+  ramp: 0.8,      // each side, from the kerb's height down to `drop`
+  drop: 0.04,     // the lowered walk's top
+  zebraBand: 0.9, // at a zebra only this much of the walk drops, from the kerb (shop fronts and the guide line keep their level)
+};
+
 /** Where the main road's north walk breaks for the town's roads that meet it (world x). */
 export function mainRoadGaps() {
   // on the north walk, in world x: the town is built turned, so its x runs west

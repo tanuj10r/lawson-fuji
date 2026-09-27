@@ -7,6 +7,7 @@ import {
   makeCrates, makeMilkCrate, makePlanter, makeBench, makeBicycle, makeBucket, makeFlowerBed, makeVendBin, makeAircon,
 } from '../props.js';
 import { addVending } from '../vending.js';
+import { walkRoom, WALK_CLEAR } from './street/walks.js';
 import { hangLaundry, sideWindows } from './houses.js';
 import { ROADS } from '../../config.js';
 import { barberTex } from './tex.js';
@@ -134,6 +135,9 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
     ctx.root.updateWorldMatrix(true, false);
     const acAt = ctx.root.worldToLocal(ac.getWorldPosition(new THREE.Vector3()));
     ctx.registry?.push({ kind: 'prop', x: acAt.x, z: acAt.z });
+    // (town quality pass) both stand on the ground by the wall: walk into them, not through
+    const gmAt = ctx.root.worldToLocal(gm.getWorldPosition(new THREE.Vector3()));
+    for (const [p, r0, h] of [[acAt, 0.35, 0.8], [gmAt, 0.25, 1.2]]) ctx.collide(p.x - r0, p.z - r0, p.x + r0, p.z + r0, h);
   }
 
   /* ---- inside the recess, in the unit's own frame (front at d/2) ---- */
@@ -205,7 +209,12 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
   const vOut = walk ? -0.35 : 0.45;
   const yOut = walk ? ROADS.asphaltY + ROADS.kerbH : 0;   // on the pavement, not in it
   const ry = F.ry;
+  // (town quality pass) on a pavement, only where the walk keeps its 1.2 m
+  const sMid = (lot.s0 + lot.s1) / 2;
+  const roomy = (u, halfU, depth) => !walk || !net || lot.e.c === undefined
+    || walkRoom(ctx, net, lot.e, lot.side, sMid + u - halfU, sMid + u + halfU, lot.e.t - depth, lot.e.t) >= WALK_CLEAR;
   const put = (obj, u, col = 0.3, h = 1.0) => {
+    if (!roomy(u, col + 0.2, 0.25 + 2 * Math.min(col, 0.45))) return null;
     const p = F.at(u, vOut);
     obj.position.set(p.x, yOut, p.z);
     obj.rotation.y = ry;
@@ -217,9 +226,24 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
     return p;
   };
   const slots = [-w / 2 + 0.6, w / 2 - 0.6, -w / 2 + 1.6, w / 2 - 1.6, -w / 2 + 2.6];
+  /* (town quality pass) the bicycle stands along the shop front, at the end
+   * away from the door (Tan: they stood across the walk, half in the shop),
+   * and nothing else is put down where it stands.  The door's u: makeShop's
+   * local x, turned by its face, against the frame's own along (a custom
+   * frame, the station's cafe, runs u the other way). */
+  const localX = { 'z+': [1, 0], 'z-': [-1, 0], 'x+': [0, -1], 'x-': [0, 1] }[F.faceKey];
+  const f0 = F.at(0, 0), f1 = F.at(1, 0);
+  const doorU = look.doorX * Math.sign(localX[0] * (f1.x - f0.x) + localX[1] * (f1.z - f0.z) || 1);
+  const bikeAt = (i) => {
+    const s = doorU !== 0 ? -Math.sign(doorU) : Math.sign(slots[i % slots.length]);
+    return s * (w / 2 - 0.95);
+  };
+  const bikeI = T.outside.indexOf('bikes');
+  const bikeU = bikeI >= 0 ? bikeAt(bikeI) : null;
   T.outside.forEach((item, i) => {
     const u = slots[i % slots.length] + r.range(-0.15, 0.15);
     const seed = lot.seed + i * 13;
+    if (item !== 'bikes' && bikeU !== null && Math.abs(u - bikeU) < 1.3) return;
     switch (item) {
       case 'menu': put(makeMenuBoard({ x: 0, y: 0, z: 0, ry }), u, 0.3, 1.0); break;
       case 'flag': put(makeShopFlag({ x: 0, y: 0, z: 0, ry, variant: seed % 4 }), u, 0.15, 1.9); break;
@@ -234,6 +258,7 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
       case 'produce': put(makeProduceStack({ x: 0, y: 0, z: 0, ry, seed }), u, 0.5, 0.9); break;
       case 'freezer': put(makeFreezer({ x: 0, y: 0, z: 0, ry }), u, 0.6, 0.9); break;
       case 'vending': {
+        if (!roomy(u + 0.45, 1.1, 1.0)) break;
         const p = F.at(u, vOut - 0.1);
         addVending(ctx, { detail: true, x: p.x, y: yOut, z: p.z, ry, variant: seed % 3, seed });
         ctx.night?.pool(p.x, p.z, 1.8, { y: yOut, color: 0xe8f0ff, strength: 0.8 });
@@ -243,11 +268,16 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
         break;
       }
       case 'bikes': {
-        const p = F.at(u, vOut);
-        const bike = makeBicycle({ x: p.x, y: yOut, z: p.z, ry: ry + Math.PI / 2 + r.range(-0.2, 0.2), lean: 0.07, color: r.pick([0x3f6f9c, 0xd8a03c, 0xe8e2d4]) });
+        // along the front, 0.35 m off it: the walk keeps its width
+        const v = walk ? -0.38 : 0.45;
+        if (!roomy(bikeU, 1.05, 0.62)) break;
+        const p = F.at(bikeU, v);
+        const flip = bikeU > 0 ? 0 : Math.PI;   // the front wheel toward the shop's end
+        const bike = makeBicycle({ x: p.x, y: yOut, z: p.z, ry: ry + flip + r.range(-0.2, 0.2) * 0.15, lean: 0.07, color: r.pick([0x3f6f9c, 0xd8a03c, 0xe8e2d4]) });
         bike.userData.detail = true;
         ctx.add(bike);
-        ctx.collide(p.x - 0.3, p.z - 0.3, p.x + 0.3, p.z + 0.3, 1.0);
+        const a = F.at(bikeU - 0.92, v - 0.3), b = F.at(bikeU + 0.92, v + 0.3);
+        ctx.collide(Math.min(a.x, b.x), Math.min(a.z, b.z), Math.max(a.x, b.x), Math.max(a.z, b.z), yOut + 1.0);
         reg('prop', p);
         break;
       }

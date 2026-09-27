@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { cel, flat } from '../../core/toon.js';
 import { rngKit, cyl } from '../../core/util.js';
 import { makePole, makeWires } from '../props.js';
-import { POLES, ROADS, TOWN } from '../../config.js';
+import { POLES, ROADS, TOWN, DRIVEWAYS } from '../../config.js';
 import { POLE_ADS, AREA } from '../../data/town.js';
 import { plateTex } from './tex.js';
 import { LAYER } from './decals.js';
@@ -101,6 +101,8 @@ export function buildPoles(ctx, net, decals, clutter = null) {
       // the main road's own zebra (signals.js, built in the world frame; the town is turned)
       ...(e.cls === 'hero' ? [TOWN.crosswalk.x, TOWN.crosswalk.x2].filter((x) => x !== undefined)
         .map((x) => [-x - TOWN.crosswalk.width / 2 - 1.5, -x + TOWN.crosswalk.width / 2 + 1.5]) : []),
+      // and the coin parking's driveway (world x, on the town's side of the road)
+      ...(e.cls === 'hero' ? DRIVEWAYS.north.map(([a, b]) => [-b - DRIVEWAYS.ramp - 0.5, -a + DRIVEWAYS.ramp + 0.5]) : []),
     ];
     // and none within 8 m of a signalled junction's centre (its corners are the signals')
     const sigAt = net.crossings.filter((c) => c.signalised).map((c) => net.at(c.e, c.at, 0));

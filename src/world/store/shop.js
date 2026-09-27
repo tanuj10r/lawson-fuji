@@ -580,6 +580,8 @@ export function makeShop(inside, { doors, lit }) {
     /* the cast: hands always (they are hidden when down); the cashier while you are near */
     hands.update(dt, bob, camera);
     view.updateMatrixWorld(true);
+    // she exists only near (from the famous views she is unseen behind the glass: nothing drawn)
+    cashier.root.visible = dDoor < 24 && !api.isFamousView();
     if (dDoor < 24) {
       lookTarget.copy(camera.position);
       if (phase !== 'till' && !cashier.lookAt) cashier.lookAt = lookTarget;

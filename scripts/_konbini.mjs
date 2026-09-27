@@ -2,6 +2,7 @@
 //
 //   node scripts/_konbini.mjs [outdir]            the whole loop, asserted, with frames
 //   node scripts/_konbini.mjs [outdir] --measure  draw calls, frame ms and memory only
+//   node scripts/_konbini.mjs [outdir] --full     the loop, frames at 1920x1080
 //
 // It starts its own dev server and Chrome (queued on the shots lock, so it
 // never runs beside a screenshot run) and closes both however it ends.
@@ -15,6 +16,7 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const args = process.argv.slice(2);
 const out = path.resolve(args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--tune') ?? path.join(ROOT, '.shots', 'konbini'));
 const MEASURE = args.includes('--measure');
+const FULL = args.includes('--full');          // frames at 1920x1080 (the report's)
 fs.mkdirSync(out, { recursive: true });
 
 /* Every unit on show against its fixture: nothing may poke out of a basket,
@@ -122,13 +124,18 @@ try {
     const { tune } = await import(path.resolve(args[tuneAt + 1]));
     await tune(page, (name, data) => fs.writeFileSync(path.join(out, name + '.png'), Buffer.from(data.split(',')[1], 'base64')));
   } else if (MEASURE) {
-    console.log(JSON.stringify(await measure(), null, 1));
+    const res = await measure();
+    // the heap after a full collection, so runs compare
+    await (await page.context().newCDPSession(page)).send("HeapProfiler.collectGarbage");
+    res.heapMB = await page.evaluate(() => +(performance.memory.usedJSHeapSize / 1048576).toFixed(0));
+    console.log(JSON.stringify(res, null, 1));
   } else {
     await loop();
   }
 
   /* ------------------------------ the loop ------------------------------ */
   async function loop() {
+    await page.evaluate((f) => { window.__FULL = f; }, FULL);
     await page.evaluate(() => {
       const S = window.__store.shop;
       window.__toasts = []; window.__said = [];
@@ -145,7 +152,7 @@ try {
       };
       window.__spot = (key) => S.debug.spots.find((s) => s.key === key);
       window.__state = () => ({ phase: S.phase, wallet: S.wallet, held: S.held.map((h) => `${h.id}:${h.hand}:${h.where}${h.paid ? ':paid' : ''}`), up: +S.hands.up.toFixed(2) });
-      window.__W = 1280; window.__H = 720;
+      window.__W = window.__FULL ? 1920 : 1280; window.__H = window.__FULL ? 1080 : 720;
     });
     await page.evaluate(STOCK_CHECK);
     const save = (name, data) => { if (data) fs.writeFileSync(path.join(out, name + '.png'), Buffer.from(data.split(',')[1], 'base64')); };

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { cel, flat } from '../../core/toon.js';
 import { rngKit } from '../../core/util.js';
-import { TOWN, DRIVEWAYS } from '../../config.js';
+import { TOWN, ROADS, DRIVEWAYS } from '../../config.js';
 import { LAND_SIGNS } from '../../data/town.js';
 import { asphaltTex, ASPHALT_TILE } from '../kit/tex.js';
 import { makeDecals, LAYER } from '../kit/decals.js';
@@ -63,6 +63,11 @@ export function buildParking(ctx, parts) {
   const lot = new THREE.Mesh(g, asphalt);
   lot.receiveShadow = true;
   ctx.add(lot);
+  // the way out, paved over the verge to the bridge road's asphalt
+  const laneEdge = TOWN.land.track.x - ROADS.lane.asphalt / 2;
+  const mouth = new THREE.Mesh(sheetGeo(x1 - 0.1, laneEdge + 0.05, -2.6, 2.6, AY - 0.004, ASPHALT_TILE), asphalt);
+  mouth.receiveShadow = true;
+  ctx.add(mouth);
   const paint = makeDecals();
   const { bays, aisle, inn } = parkingBays();
 

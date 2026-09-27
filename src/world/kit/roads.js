@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { cel } from '../../core/toon.js';
 import { rngKit } from '../../core/util.js';
 import { PAL } from '../../core/palette.js';
-import { ROADS, MARKINGS } from '../../config.js';
+import { ROADS, MARKINGS, DRIVEWAYS } from '../../config.js';
+import { droppedKerb } from '../streetprops.js';
 import { asphaltTex, paverTex, concreteTex, ASPHALT_TILE, PAVER_TILE } from './tex.js';
 import { LAYER } from './decals.js';
 
@@ -92,11 +93,30 @@ export function buildRoads(ctx, net, decals) {
         const s1 = net.walkEnd(e, side, 'hi');
         if (s1 - s0 < 0.05) continue;
         const o0 = side * e.a, o1 = side * e.t;
-        const rect = edgeRect(e, s0, s1, o0, o1);
-        group.add(slab(...rect, WY, 0.2, m.walk, PAVER_TILE, 'pavement'));
-        ctx.platform({ x0: rect[0], z0: rect[1], x1: rect[2], z1: rect[3], top: WY });
-        // kerb stones along the road edge
-        group.add(slab(...edgeRect(e, s0, s1, o0, o0 + side * 0.18), WY + 0.006, 0.2, m.kerb, 1, 'kerb'));
+        /* (town quality pass) the kerb drops where a zebra lands on the
+         * walk: 3.2 m lowered to a finger's height, a ramp each side */
+        const R = DRIVEWAYS.ramp, HALF = 1.6;
+        const cuts = net.crossings.filter((c) => c.e === e && c.at - HALF - R > s0 && c.at + HALF + R < s1).map((c) => c.at).sort((a, b) => a - b);
+        let from = s0;
+        for (const at of [...cuts, null]) {
+          const to = at === null ? s1 : at - HALF - R;
+          if (to - from > 0.05) {
+            const rect = edgeRect(e, from, to, o0, o1);
+            group.add(slab(...rect, WY, 0.2, m.walk, PAVER_TILE, 'pavement'));
+            ctx.platform({ x0: rect[0], z0: rect[1], x1: rect[2], z1: rect[3], top: WY });
+            // kerb stones along the road edge
+            group.add(slab(...edgeRect(e, from, to, o0, o0 + side * 0.18), WY + 0.006, 0.2, m.kerb, 1, 'kerb'));
+          }
+          if (at === null) break;
+          const [t0, t1] = [e.c + Math.min(o0, o1), e.c + Math.max(o0, o1)];
+          const k = droppedKerb({
+            x0: at - HALF, x1: at + HALF, z0: t0, z1: t1, roadZ: e.c + o0, k: WY, drop: ROADS.asphaltY + 0.025, ramp: R,
+            walkMat: m.walk, kerbMat: m.kerb, axis: e.axis, base: WY - 0.2, tile: PAVER_TILE,
+          });
+          for (const q of k.meshes) group.add(q);
+          for (const p of k.platforms) ctx.platform(p);
+          from = at + HALF + R;
+        }
       }
     }
 

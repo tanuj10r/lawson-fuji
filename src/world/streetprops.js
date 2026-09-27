@@ -1255,48 +1255,64 @@ export function slopeQuad(x0, x1, z0, z1, y0, y1) {
 }
 
 /**
- * Where a driveway crosses a raised walk (world-frame, axis-aligned, the
- * walk running along x): the walk between x0 and x1 lowered to `drop`, a
- * ramp `ramp` long each side down from the kerb height `k`, and the kerb
- * stone on the road side (`roadZ`: z0 or z1) lowered with it.  The caller
- * breaks its walk for [x0 - ramp, x1 + ramp].
- * @returns { meshes, platforms }: walkable tops in world terms
+ * Where a driveway or a zebra crosses a raised walk (axis-aligned): the walk
+ * between x0 and x1 lowered to `drop`, a ramp `ramp` long each side down
+ * from the kerb height `k`, and the kerb stone on the road side (`roadZ`:
+ * z0 or z1) lowered with it.  Written for a walk running along x; `axis:
+ * 'z'` reads every x as z and z as x (a walk running along z).  The caller
+ * breaks its walk for [x0 - ramp, x1 + ramp].  `base`: the slabs' bottom.
+ * @returns { meshes, platforms }: walkable tops in the caller's frame
  */
-export function droppedKerb({ x0, x1, z0, z1, roadZ, k = 0.15, drop = 0.04, ramp = 0.8, walkMat, kerbMat }) {
+export function droppedKerb({ x0, x1, z0, z1, roadZ, k = 0.15, drop = 0.04, ramp = 0.8, walkMat, kerbMat, axis = 'x', base = 0, tile = 1, rampLo = true, rampHi = true }) {
   const meshes = [];
   const platforms = [];
-  /** A slab from a to b along x, its top from h0 at a to h1 at b. */
+  const swap = axis === 'z';
+  /** A slab from a to b along the walk, its top from h0 at a to h1 at b. */
   const span = (a, b, za, zb, h0, h1, mat) => {
     const g = new THREE.BoxGeometry(b - a, 1, zb - za);
+    g.translate((a + b) / 2, 0.5, (za + zb) / 2);
     const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) {
-      const t = (p.getX(i) + (b - a) / 2) / (b - a);
-      p.setY(i, p.getY(i) > 0 ? h0 + (h1 - h0) * t : 0);
+      const t = (p.getX(i) - a) / (b - a);
+      p.setY(i, p.getY(i) > 0.5 ? h0 + (h1 - h0) * t : base);
+      if (swap) { const x = p.getX(i); p.setX(i, p.getZ(i)); p.setZ(i, x); }
+    }
+    if (swap) {
+      // a swap of axes is a mirror: turn every triangle back round
+      const ix = g.index.array;
+      for (let i = 0; i < ix.length; i += 3) { const q = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = q; }
     }
     g.computeVertexNormals();
+    // world-mapped, like the walk it stands in (pavers keep their size)
+    const n = g.attributes.normal, uv = g.attributes.uv;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      if (Math.abs(n.getY(i)) > 0.5) uv.setXY(i, x / tile, -z / tile);
+      else if (Math.abs(n.getX(i)) > Math.abs(n.getZ(i))) uv.setXY(i, z / tile, y / tile);
+      else uv.setXY(i, x / tile, y / tile);
+    }
     const m = new THREE.Mesh(g, mat);
-    m.position.set((a + b) / 2, 0, (za + zb) / 2);
     m.castShadow = false;
     m.receiveShadow = true;
     meshes.push(m);
   };
-  span(x0 - ramp, x0, z0, z1, k, drop, walkMat);
+  // (a stretch that runs to the walk's end, at a corner, has no ramp there)
+  if (rampLo) span(x0 - ramp, x0, z0, z1, k, drop, walkMat);
   span(x0, x1, z0, z1, drop, drop, walkMat);
-  span(x1, x1 + ramp, z0, z1, drop, k, walkMat);
+  if (rampHi) span(x1, x1 + ramp, z0, z1, drop, k, walkMat);
   if (kerbMat) {
     // the kerb stone along the road edge, lowered with the walk (a bevelled
-    // driveway kerb: a finger's height of lip, no step for a tyre)
+    // kerb: a finger's height of lip, no step for a tyre or a pram)
     const [ka, kb] = roadZ === z0 ? [z0 - 0.02, z0 + 0.14] : [z1 - 0.14, z1 + 0.02];
-    span(x0 - ramp, x0, ka, kb, k + 0.01, drop + 0.012, kerbMat);
+    if (rampLo) span(x0 - ramp, x0, ka, kb, k + 0.01, drop + 0.012, kerbMat);
     span(x0, x1, ka, kb, drop + 0.012, drop + 0.012, kerbMat);
-    span(x1, x1 + ramp, ka, kb, drop + 0.012, k + 0.01, kerbMat);
+    if (rampHi) span(x1, x1 + ramp, ka, kb, drop + 0.012, k + 0.01, kerbMat);
   }
   // walkable: the lowered stretch, and each ramp in two steps
-  platforms.push({ x0, x1, z0, z1, top: drop });
+  const plat = (a, b, top) => platforms.push(swap ? { x0: z0, x1: z1, z0: a, z1: b, top } : { x0: a, x1: b, z0, z1, top });
+  plat(x0, x1, drop);
   const mid = (k + drop) / 2;
-  for (const [a, b, h] of [
-    [x0 - ramp, x0 - ramp / 2, (k + mid) / 2], [x0 - ramp / 2, x0, (mid + drop) / 2],
-    [x1, x1 + ramp / 2, (mid + drop) / 2], [x1 + ramp / 2, x1 + ramp, (k + mid) / 2],
-  ]) platforms.push({ x0: a, x1: b, z0, z1, top: h });
+  if (rampLo) { plat(x0 - ramp, x0 - ramp / 2, (k + mid) / 2); plat(x0 - ramp / 2, x0, (mid + drop) / 2); }
+  if (rampHi) { plat(x1, x1 + ramp / 2, (mid + drop) / 2); plat(x1 + ramp / 2, x1 + ramp, (k + mid) / 2); }
   return { meshes, platforms };
 }

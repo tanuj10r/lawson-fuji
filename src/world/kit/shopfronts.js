@@ -7,6 +7,7 @@ import {
   makeCrates, makeMilkCrate, makePlanter, makeBench, makeBicycle, makeBucket, makeFlowerBed, makeVendBin, makeAircon,
 } from '../props.js';
 import { addVending } from '../vending.js';
+import { walkRoom, WALK_CLEAR } from './street/walks.js';
 import { hangLaundry, sideWindows } from './houses.js';
 import { ROADS } from '../../config.js';
 import { barberTex } from './tex.js';
@@ -205,7 +206,12 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
   const vOut = walk ? -0.35 : 0.45;
   const yOut = walk ? ROADS.asphaltY + ROADS.kerbH : 0;   // on the pavement, not in it
   const ry = F.ry;
+  // (town quality pass) on a pavement, only where the walk keeps its 1.2 m
+  const sMid = (lot.s0 + lot.s1) / 2;
+  const roomy = (u, halfU, depth) => !walk || !net || lot.e.c === undefined
+    || walkRoom(ctx, net, lot.e, lot.side, sMid + u - halfU, sMid + u + halfU, lot.e.t - depth, lot.e.t) >= WALK_CLEAR;
   const put = (obj, u, col = 0.3, h = 1.0) => {
+    if (!roomy(u, col + 0.2, 0.25 + 2 * Math.min(col, 0.45))) return null;
     const p = F.at(u, vOut);
     obj.position.set(p.x, yOut, p.z);
     obj.rotation.y = ry;
@@ -249,6 +255,7 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
       case 'produce': put(makeProduceStack({ x: 0, y: 0, z: 0, ry, seed }), u, 0.5, 0.9); break;
       case 'freezer': put(makeFreezer({ x: 0, y: 0, z: 0, ry }), u, 0.6, 0.9); break;
       case 'vending': {
+        if (!roomy(u + 0.45, 1.1, 1.0)) break;
         const p = F.at(u, vOut - 0.1);
         addVending(ctx, { detail: true, x: p.x, y: yOut, z: p.z, ry, variant: seed % 3, seed });
         ctx.night?.pool(p.x, p.z, 1.8, { y: yOut, color: 0xe8f0ff, strength: 0.8 });
@@ -260,6 +267,7 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
       case 'bikes': {
         // along the front, 0.35 m off it: the walk keeps its width
         const v = walk ? -0.38 : 0.45;
+        if (!roomy(bikeU, 1.05, 0.62)) break;
         const p = F.at(bikeU, v);
         const flip = bikeU > 0 ? 0 : Math.PI;   // the front wheel toward the shop's end
         const bike = makeBicycle({ x: p.x, y: yOut, z: p.z, ry: ry + flip + r.range(-0.2, 0.2) * 0.15, lean: 0.07, color: r.pick([0x3f6f9c, 0xd8a03c, 0xe8e2d4]) });

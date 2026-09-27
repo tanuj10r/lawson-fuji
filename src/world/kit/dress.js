@@ -5,8 +5,8 @@ import {
 } from '../props.js';
 import { addVending } from '../vending.js';
 import { buildShrubs } from '../trees.js';
-import { ROADS } from '../../config.js';
-import { dressWalks } from './street/walks.js';
+import { ROADS, TOWN } from '../../config.js';
+import { dressWalks, walkRoom, WALK_CLEAR } from './street/walks.js';
 
 /* ------------------------------------------------------------------ *
  * Street dressing (SPEC section 3, density budget).
@@ -23,7 +23,10 @@ const WY = ROADS.asphaltY + ROADS.kerbH;
 
 export function dressStreets(ctx, net, kit, lots, specials = []) {
   // a special lot dresses itself; its frontage is not a gap
-  const inSpecial = (p) => specials.some((q) => p.x > q.x0 - 1.5 && p.x < q.x1 + 1.5 && p.z > q.z0 - 1.5 && p.z < q.z1 + 1.5);
+  // (town quality pass) and the monthly car park is not a gap either: its
+  // trees stood in its way out onto the bridge road
+  const lotsOwn = [...specials, (([x0, z0, x1, z1]) => ({ x0, z0, x1, z1 }))(TOWN.land.parking)];
+  const inSpecial = (p) => lotsOwn.some((q) => p.x > q.x0 - 1.5 && p.x < q.x1 + 1.5 && p.z > q.z0 - 1.5 && p.z < q.z1 + 1.5);
   const trees = [];
   const reg = (kind, p) => ctx.registry?.push({ kind, x: p.x, z: p.z });
   const byEdgeSide = new Map();
@@ -46,6 +49,8 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
       const put = (obj, s, kind = 'prop', col = 0.35, h = 1.0) => {
         const p = net.at(e, s, off);
         if (net.quiet(p.x, p.z)) return null;
+        // on a pavement, only where the walk keeps its clear way
+        if (walk && walkRoom(ctx, net, e, side, s - col - 0.2, s + col + 0.2, Math.abs(off) - Math.min(col, 0.45), Math.abs(off) + 0.45) < WALK_CLEAR) return null;
         obj.position.set(p.x, y, p.z);
         obj.rotation.y = ry;
         obj.userData.detail = true;
@@ -96,7 +101,8 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
           put(g, mid, 'prop', 1.0, 1.2);
         } else if (walk && w > 4 && r.chance(0.5)) {
           const q = net.at(e, mid, off);
-          if (!net.quiet(q.x, q.z)) {
+          const roomy = walkRoom(ctx, net, e, side, mid - 1.9, mid + 2.6, e.t - 0.95, e.t) >= WALK_CLEAR;
+          if (!net.quiet(q.x, q.z) && roomy) {
             addVending(ctx, { detail: true, x: q.x, y, z: q.z, ry, variant: Math.round(mid) % 3, seed: e.seed + Math.round(mid) });
             ctx.night?.pool(q.x, q.z, 2.4, { y, color: 0xe8f0ff, strength: 0.8 });
             const b2 = net.at(e, mid + 1.2, off);
@@ -156,7 +162,9 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
           const w = ctx.toWorld(p);
           return !ctx.colliders.some((c) => (c.top ?? 9) > y + 0.3 && w.x + 0.3 > c.x0 && w.x - 0.3 < c.x1 && w.z + 0.95 > c.z0 && w.z - 0.95 < c.z1);
         };
-        if (pts.every((p) => !net.quiet(p.x, p.z) && free(p) && !poles.some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 1.0))) {
+        const sA = Math.min(s0, s0 + sz * 1.9) - 0.95, sB = Math.max(s0, s0 + sz * 1.9) + 0.95;
+        const roomy = walkRoom(ctx, net, e, side, sA, sB, e.a + 0.2, e.a + 0.8) >= WALK_CLEAR;
+        if (roomy && pts.every((p) => !net.quiet(p.x, p.z) && free(p) && !poles.some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 1.0))) {
           pts.forEach((p, k) => kit.clutter.put('bike', p.x, y, p.z, ry + (k - 1) * 0.05, { roll: 0.07 * (k % 2 ? 1 : -1), color: [0x3f6f9c, 0xd8a03c, 0xe8e2d4, 0x9c5a4a][(k + Math.round(n.z)) % 4] }));
           const a = pts[0], b = pts[2];
           ctx.collide(Math.min(a.x, b.x) - 0.3, Math.min(a.z, b.z) - 0.95, Math.max(a.x, b.x) + 0.3, Math.max(a.z, b.z) + 0.95, y + 1.0);

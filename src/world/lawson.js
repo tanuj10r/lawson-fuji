@@ -313,7 +313,14 @@ export function buildLawson(parent) {
   // breaks where a driveway's dropped kerb crosses it (town quality pass)
   const runs = splitRuns(gaps);
   const D = DRIVEWAYS;
-  const walkRuns = splitRuns([...gaps, ...D.far.map(([a, b]) => [a - D.ramp, b + D.ramp])]);
+  /* the main road's zebra lands on this walk too (town-edge.js signals):
+   * lowered from its west edge to the bridge road's corner, a ramp on the
+   * west side only (a lowered stretch that meets a gap needs none) */
+  const zw = [TOWN.crosswalk.x - TOWN.crosswalk.width / 2 - 0.1, TOWN.crosswalk.x + TOWN.crosswalk.width / 2 + 0.1];
+  const zGap = gaps.find(([g0]) => g0 >= zw[1] - 0.01 && g0 - zw[1] < D.ramp + 0.5);
+  const zebraDrop = { x0: zw[0], x1: zGap ? zGap[0] : zw[1], rampHi: !zGap };
+  const walkRuns = splitRuns([...gaps, ...D.far.map(([a, b]) => [a - D.ramp, b + D.ramp]),
+    [zebraDrop.x0 - D.ramp, zebraDrop.x1 + (zebraDrop.rampHi ? D.ramp : 0)]]);
   const kerbMat = cel({ color: 0xd2d3da, bands: 3 });
   const tactileMat = (len) => {
     const t = tactileTex(false).clone();
@@ -328,13 +335,13 @@ export function buildLawson(parent) {
     platforms.push({ x0, x1, z0: S.roadZ, z1: S.sidewalkZ, top: kerbH });
     ground.add(patch(x0, x1, S.tactileZ - 0.15, S.tactileZ + 0.15, kerbH + 0.004, tactileMat(x1 - x0)));
   }
-  for (const [x0, x1] of D.far) {
-    const k = droppedKerb({ x0, x1, z0: S.roadZ, z1: S.sidewalkZ, roadZ: S.roadZ, k: kerbH, drop: D.drop, ramp: D.ramp, walkMat: paving, kerbMat });
+  for (const [x0, x1, rampHi = true] of [...D.far, [zebraDrop.x0, zebraDrop.x1, zebraDrop.rampHi]]) {
+    const k = droppedKerb({ x0, x1, z0: S.roadZ, z1: S.sidewalkZ, roadZ: S.roadZ, k: kerbH, drop: D.drop, ramp: D.ramp, walkMat: paving, kerbMat, rampHi });
     for (const m of k.meshes) ground.add(m);
     platforms.push(...k.platforms);
     // the guide strip runs on across the driveway, down its ramps and back up
     const tz0 = S.tactileZ - 0.15, tz1 = S.tactileZ + 0.15, ty = 0.004;
-    for (const [a, b, h0, h1] of [[x0 - D.ramp, x0, kerbH, D.drop], [x0, x1, D.drop, D.drop], [x1, x1 + D.ramp, D.drop, kerbH]]) {
+    for (const [a, b, h0, h1] of [[x0 - D.ramp, x0, kerbH, D.drop], [x0, x1, D.drop, D.drop], ...(rampHi ? [[x1, x1 + D.ramp, D.drop, kerbH]] : [])]) {
       const m = new THREE.Mesh(slopeQuad(a, b, tz0, tz1, h0 + ty, h1 + ty), tactileMat(b - a));
       m.receiveShadow = true;
       ground.add(m);

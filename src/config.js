@@ -492,6 +492,15 @@ export const SHOT_SPOTS = [
   { name: 'close-animals-shiba', scene: 'town', pos: [-81.8, 0, 120.2], yaw: 0.615, pitch: -0.45, looks: ['day', 'golden'], close: true },
   { name: 'animals-butterflies', scene: 'town', pos: [-6, 0, -13.8], yaw: 1.5708, pitch: -0.3, looks: ['day'], close: true },
   { name: 'animals-pond-koi', scene: 'town', pos: [77.4, 0, 113.8], yaw: 2.19, pitch: -0.62, looks: ['day'], close: true },
+  // Han and the RX-7 (world/han/): the car park's bay by the bridge road
+  { name: 'han-wide', scene: 'town', pos: [0, 0, 16.5], yaw: 1.85, pitch: -0.03, looks: ['golden'], frame: 'world' },      // from the spawn, turned round
+  { name: 'han-top', scene: 'town', pos: [-24, 0, 19], yaw: 3.1416, pitch: -1.1, lift: 14, looks: ['day'], frame: 'world' },
+  { name: 'han-car', scene: 'town', pos: [19.0, 0, 6.8], yaw: -0.93, pitch: -0.12, looks: ['day', 'golden'] },          // the car and Han at 3 m
+  { name: 'han-close', scene: 'town', pos: [20.7, 0, 3.2], yaw: -2.24, pitch: -0.06, looks: ['day'] },                  // Han at 1.5 m
+  { name: 'han-face', scene: 'town', pos: [21.15, 0, 3.55], yaw: -2.17, pitch: -0.1, looks: ['day'] },                  // his face, close
+  { name: 'han-front', scene: 'town', pos: [25, 0, 11], yaw: 0.315, pitch: -0.1, looks: ['day'] },                      // the car's nose, from the walk
+  { name: 'han-rear', scene: 'town', pos: [20.0, 0, -1.0], yaw: -2.66, pitch: -0.08, looks: ['day'] },                  // its tail, from the aisle
+  { name: 'han-drift-mid', scene: 'town', pos: [20.5, 0, 4.2], yaw: -2.35, pitch: -0.08, looks: ['day'], train: 'han:10.05' },   // mid-slide in the master junction, from the spot
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },

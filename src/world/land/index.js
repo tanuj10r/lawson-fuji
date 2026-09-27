@@ -11,6 +11,7 @@ import { buildPond, pondMats } from './pond.js';
 import { buildGate } from './gate.js';
 import { buildParking } from './parking.js';
 import { buildHills } from './hills.js';
+import { buildHan } from '../han/index.js';
 
 /* ------------------------------------------------------------------ *
  * The land north of the main road (town quality pass; Tan's layout in
@@ -121,4 +122,5 @@ export function buildLand(ctx) {
     if (Math.max(size.x, size.z) > 60) o.userData.ground = true;
   });
   buildHills(lctx);
+  buildHan(lctx);                          // Han and the RX-7, in the car park (world/han/)
 }

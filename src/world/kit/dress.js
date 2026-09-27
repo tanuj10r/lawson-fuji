@@ -104,7 +104,10 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
         const dTree = walk ? e.t + 1.2 : e.a + 1.4;
         if (w > 6 && r.chance(0.55)) {
           const scale = r.range(0.9, 1.2);           // (drawn first: a skipped tree moves nothing else)
-          if (hitsBuilding(mid - 0.35, mid + 0.35, dTree - 0.35, dTree + 0.35)) continue;   // a trunk in a house
+          // a trunk in a house goes, except in the famous views' sightline
+          // behind the store (TOWN.lowPoles), whose frames must not move
+          const inView = TOWN.lowPoles.some(([x0, z0, x1, z1]) => p.x > x0 && p.x < x1 && p.z > z0 && p.z < z1);
+          if (!inView && hitsBuilding(mid - 0.35, mid + 0.35, dTree - 0.35, dTree + 0.35)) continue;
           trees.push({ x: p.x, z: p.z, y: 0, scale, seed: e.seed * 7 + Math.round(mid) });
           ctx.collide(p.x - 0.35, p.z - 0.35, p.x + 0.35, p.z + 0.35, 3);
           reg('prop', p);

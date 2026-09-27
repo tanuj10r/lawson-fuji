@@ -1444,3 +1444,30 @@ is closed. Measured rather than guessed:
   Tan's M2): JS heap 482 -> 399 MB; textures 363 -> 366 MB (the gate
   board); draw calls 756 -> 737; triangles 3.40 -> 2.83 M; ready 4.0 ->
   3.1 s. Town overview: 870 -> 806 calls, 3.34 -> 2.50 M triangles.
+
+## Town pass, wave 1: streets & poles, facades & shopfronts (2026-09-27)
+Two specialist builders (docs/BUILDERS.md); their own judgement calls are
+in docs/decisions/streets.md and facades.md. Mine, at review and merge:
+- **Sent back: "mirrored" shop names.** The fascias read backwards in the
+  facades frames. Not a flipped texture: balconies stood in front of the
+  boards' top halves. Balconies over a fascia now sit higher; noren hang
+  below the new transom; a corner sign stood out of its case.
+- **Not fixed: stepped shadow edges on house walls at 1-3 m.** Present on
+  main before the pass: the 2048 shadow map spans 80 m (about 3.9 cm a
+  texel) and the toon bands turn its soft edge into steps. A tighter
+  shadow area round the player would halve it at no memory cost, but it
+  touches the famous views' shadows: left for a later pass, with Tan.
+- **A real brand** on a shop notice (PayPay) is now 「QR決済 使えます」.
+- **Bikes in a lane's mouth.** The kerb bike rows didn't skip junctions;
+  one row blocked lane z 112 at the spine (the lanes walk got stuck).
+  Street clutter now keeps 1 m clear of every junction. All four walks
+  pass, stuck 0.
+- **Fonts** re-cut for the new sign text: 468 KB; the guide goes 450 ->
+  520 KB rather than splitting the brush face further for 18 KB.
+- **Cost of wave 1** (headless Chrome, Tan's M2, famous view): frame 7.19
+  -> 7.41 ms at 1440p; draw calls 737 -> 751; triangles 2.83 -> 2.95 M;
+  JS heap 399 -> 388 MB; textures 366 -> 355 MB (the painted rooms behind
+  shop glass replaced furniture geometry, and the atlas shrank). Download
+  3.38 -> 3.42 MB. Hero guard 0.258 / 0.353 / 0.148%; stock pass.
+- **The bicycles** are most of the new triangles and draw town-wide (one
+  instanced mesh). If the final frame check shows a cost, split per area.

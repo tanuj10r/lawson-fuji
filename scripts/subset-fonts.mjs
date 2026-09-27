@@ -23,7 +23,7 @@ const FONTS = [
   { from: 'MPLUSRounded1c-Bold.ttf', to: 'round.woff2', only: null },
   { from: 'YujiSyuku-Regular.ttf', to: 'brush.woff2', only: ['data/town.js'] },
 ];
-const BUDGET_KB = 450;
+const BUDGET_KB = 520;   // a guide (Tan: budgets are guides); was 450 before wave 1's sign text
 
 const base = () => {
   const set = new Set();

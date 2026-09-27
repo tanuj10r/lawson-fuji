@@ -31,7 +31,9 @@ export function dressWalks(ctx, net, kit, lots) {
   const reg = (x, z) => ctx.registry?.push({ kind: 'prop', x, z });
   const fixed = () => (ctx.registry ?? []).filter((q) => q.kind === 'pole' || q.kind === 'sign');
   let taken = fixed();
-  const clearOf = (x, z, d) => !taken.some((q) => Math.hypot(q.x - x, q.z - z) < d);
+  // never in a junction or a lane's mouth: that is where people walk through
+  const inJunction = (x, z) => Object.values(net.nodes).some((n) => Math.abs(x - n.x) < n.tx + 1.0 && Math.abs(z - n.z) < n.tz + 1.0);
+  const clearOf = (x, z, d) => !inJunction(x, z) && !taken.some((q) => Math.hypot(q.x - x, q.z - z) < d);
   const occupy = (x, z) => taken.push({ x, z });
   const plazaZ = TOWN.plaza.z0;
 

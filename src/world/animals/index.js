@@ -1,9 +1,322 @@
+import * as THREE from 'three';
+import { TOWN, ANIMALS } from '../../config.js';
+import { pondShore } from '../land/pond.js';
+import { REFLECT } from '../land/mirror.js';
+import { makeShadows, makeMarks } from './shade.js';
+import { buildKoi } from './koi.js';
+import { buildTurtles } from './turtles.js';
+import { buildDucks } from './ducks.js';
+import { buildWaders } from './waders.js';
+import { planPaddies } from '../land/paddies.js';
+import { buildPigeons } from './pigeons.js';
+import { buildShiba } from './shiba.js';
+import { buildButterflies } from './butterflies.js';
+import { lotFrame } from '../kit/lots.js';
+import { sagCurve } from '../../core/util.js';
+import { POLES } from '../../config.js';
+
 /* ------------------------------------------------------------------ *
- * The animals (town quality pass, wave 3): the builder's module.  Called
- * once by town.js with the town's own (turned) context after the core and
- * the land are built; per-frame work goes through ctx.update((dt, cam)).
+ * The animals (town quality pass, wave 3).  Called once by town.js with
+ * the town's own (turned) context after the core and the land are built;
+ * per-frame work goes through ctx.update((dt, cam)).
+ *
+ *   koi.js        鏡池's koi
+ *
+ * Each kind is one instanced mesh, moved by a small state machine on the
+ * CPU and posed by its vertex shader (shade.js).  A kind is updated only
+ * while the camera is within ANIMALS.near of where it lives.
  * ------------------------------------------------------------------ */
 
 export function buildAnimals(ctx, { core } = {}) {
-  return {};
+  const group = new THREE.Group();
+  group.name = 'animals';
+  ctx.add(group);
+  const actx = { ...ctx, add: (o) => { group.add(o); return o; } };
+  const L = TOWN.land;
+
+  /* ---- the pond: its shore, what is in it, where the benches are ---- */
+  const shore = pondShore();
+  const pts = shore.map((p) => [p.x, p.y]);
+  const segDist = (x, z) => {
+    let best = Infinity, bx = 0, bz = 0;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const [ax, az] = pts[j], [cx, cz] = pts[i];
+      const dx = cx - ax, dz = cz - az;
+      const t = THREE.MathUtils.clamp(((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1), 0, 1);
+      const px = ax + dx * t, pz = az + dz * t;
+      const d = Math.hypot(x - px, z - pz);
+      if (d < best) { best = d; bx = px; bz = pz; }
+    }
+    return { d: best, x: bx, z: bz };
+  };
+  const inPoly = (x, z) => {
+    let c = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const [ax, az] = pts[i], [bx, bz] = pts[j];
+      if ((az > z) !== (bz > z) && x < ((bx - ax) * (z - az)) / (bz - az) + ax) c = !c;
+    }
+    return c;
+  };
+  /** in the water, at least `m` from the shore */
+  const inside = (x, z, m = 0) => inPoly(x, z) && (m <= 0 || segDist(x, z).d > m);
+  // the benches' places on the shore (as land/pond.js sets them)
+  const benchAt = [[-56, -52], [-44, -57.5], [-78, -84], [-58, -84]].map(([x, z]) => segDist(x, z));
+  const benches = {
+    at: benchAt,
+    near: (x, z) => Math.min(...benchAt.map((b) => Math.hypot(b.x - x, b.z - z))),
+    /** the camera on the promenade: the nearest shore point, and how far */
+    edgeNear: (x, z) => (inPoly(x, z) ? null : segDist(x, z)),
+  };
+  const water = L.pond.water;
+
+  const shadows = makeShadows(actx, 96);
+  const marks = makeMarks(actx, { rings: 32, wakes: 8 });
+
+  const kinds = [];
+  const pb = L.pond.box;
+  const pondC = { x: (pb[0] + pb[2]) / 2, z: (pb[1] + pb[3]) / 2, r: 60 };
+  const koi = buildKoi(actx, { shore, inside, water, benches, marks });
+  kinds.push({ ...pondC, name: 'koi', wet: true, mesh: 'koi', draw: 55, update: koi.update, list: koi.fish, dbg: koi.dbg });
+  const turtles = buildTurtles(actx, { water, marks, shadows, reflect: REFLECT });
+  kinds.push({ ...pondC, name: 'turtles', shadowed: true, wet: true, mesh: 'turtles', draw: 70, update: turtles.update, list: turtles.list });
+
+  /* ---- ducks: a pair on the pond, two pairs on the river ---- */
+  const R = L.river;
+  const inRiver = (x0, x1) => (x, z) => x > x0 && x < x1 && z > R.z0 + 1.2 && z < R.z1 - 1.2;
+  const ducks = buildDucks(actx, {
+    marks, reflect: REFLECT, bounds: [-20, 0, -50, 110],
+    groups: [
+      { x: -65, z: -58, n: 2, water, roam: 7, area: (x, z) => inside(x, z, 1.2), upend: false },
+      { x: -26, z: -27, n: 2, water: R.water, roam: 12, area: inRiver(-60, -2), flow: 0.12, upend: true },
+      { x: 14, z: -29, n: 2, water: R.water, roam: 8, area: inRiver(3, 31), flow: 0.12, upend: true },
+    ],
+  });
+  kinds.push({ x: -20, z: -45, r: 90, name: 'ducks', wet: true, mesh: 'ducks', draw: 80, update: ducks.update, list: ducks.list });
+
+  /* ---- the grey heron in the river's shallows, by the town-side walk ---- */
+  {
+    const edges = [R.z1 - 0.9, R.z0 + 0.9];
+    const landings = [];
+    for (let x = -104; x <= 26; x += 6) if (Math.abs(x) > 4) for (const z of edges) landings.push([x, z]);
+    const shallow = (x, z) => x > -110 && x < 28 && Math.abs(x) > 2.5 && ((z > R.z1 - 1.7 && z < R.z1 - 0.45) || (z < R.z0 + 1.7 && z > R.z0 + 0.45));
+    const heron = buildWaders(actx, {
+      kind: 'heron', marks, reflect: 0, bounds: [-40, R.water, -28, 90],
+      birds: [{ x: -34, z: R.z1 - 0.95, y: R.bed + 0.01, water: R.water, yaw: 2.2, area: shallow, landings }],
+    });
+    kinds.push({ x: -40, z: -28, r: 80, name: 'heron', wet: true, mesh: 'heron', draw: 110, update: heron.update, list: heron.list });
+  }
+
+  /* ---- little egrets in the flooded paddies, in twos and threes ---- */
+  {
+    const plan = planPaddies();
+    const plot = (zone, row, col) => plan.plots.find((p) => p.zone === zone && p.row === row && p.col === col);
+    // inside a plot, `m` in from its paths
+    const inPlot = (p, m) => (x, z) => {
+      const zs = p.S(x) - m, zn = p.N(x) + m;
+      if (z > zs || z < zn) return false;
+      const v = (zs - z) / (zs - zn || 1);
+      const xl = p.sw + (p.nw - p.sw) * v + m, xr = p.se + (p.ne - p.se) * v - m;
+      return x > xl && x < xr;
+    };
+    const wet = plan.plots.filter((p) => p.kind === 'flood' || p.kind === 'seed');
+    const centre = (p) => { const x = (p.sw + p.se + p.nw + p.ne) / 4; return { x, z: (p.S(x) + p.N(x)) / 2 }; };
+    const birds = [];
+    const flocks = [[plot('far-east', 0, 1), 3], [plot('far-west', 0, 1), 2]];
+    const Y = 0.05;
+    for (const [p, n] of flocks) {
+      if (!p) continue;
+      const area = inPlot(p, 0.7);
+      const c = centre(p);
+      // near the path along the far walk's side, a couple of metres apart
+      const zEdge = p.S(c.x) - 2.2;
+      const landings = [];
+      for (const q of wet) {
+        const cq = centre(q);
+        if (Math.hypot(cq.x - c.x, cq.z - c.z) > 45) continue;
+        for (let k = 0; k < 6; k++) {
+          const x = cq.x + (k - 2.5) * 2.2, z = q.S(x) - 1.5 - (k % 2) * 2.5;
+          if (inPlot(q, 0.8)(x, z)) landings.push([x, z]);
+        }
+      }
+      for (let k = 0; k < n; k++) {
+        const x = c.x + (k - (n - 1) / 2) * 2.4 + (k % 2) * 0.6, z = zEdge - (k % 2) * 1.2;
+        const any = (xx, zz) => wet.some((q) => inPlot(q, 0.7)(xx, zz));
+        birds.push({ x, z, y: Y - 0.045, water: Y, yaw: 1.2 + k * 1.9, area: any, landings });
+      }
+    }
+    const cx = birds.reduce((a, b) => a + b.x, 0) / birds.length, cz = birds.reduce((a, b) => a + b.z, 0) / birds.length;
+    const egrets = buildWaders(actx, { kind: 'egret', birds, marks, reflect: 0, bounds: [cx, 0, cz, 80] });
+    kinds.push({ x: cx, z: cz, r: 60, name: 'egrets', wet: true, mesh: 'egret', draw: 90, update: egrets.update, list: egrets.list });
+  }
+
+  /* ---- pigeons: the station plaza and the shopping spine ---- */
+  {
+    const P = TOWN.plaza, B = TOWN.station.building;
+    const trunk = { x: (P.x0 + P.x1) / 2 + 4, z: (P.z0 + P.z1) / 2 };
+    const plazaAvoid = (x, z) => Math.hypot(x - trunk.x, z - trunk.z) < 4.2 || x < P.x0 + 1 || x > P.x1 - 1 || z < P.z0 + 0.5 || z > P.z1 - 3.5;
+    // the station's roof edge, facing the plaza
+    const roof = [];
+    for (let x = B.x0 + 1; x < B.x1 - 1; x += 0.45) if (x < -56.5 || x > -43.5) roof.push({ x, y: 1.08 + 3.4 + 0.3, z: B.z0 - 0.43, ry: Math.PI, along: 0.3 });
+    // the spine's wires, a few metres either way
+    const wires = (x, z, reach) => {
+      const out = [];
+      for (const run of core?.kit?.wireRuns ?? []) {
+        for (let i = 0; i < run.points.length - 1; i++) {
+          const a = run.points[i], c = run.points[i + 1];
+          const len = a.distanceTo(c);
+          if (len < 6) continue;
+          const curve = sagCurve(a, c, (run.sag ?? POLES.sag) * Math.min(1.6, len / 14), 12);
+          const along = Math.atan2(c.x - a.x, c.z - a.z);
+          for (let t = 0.15; t < 0.86; t += 0.05) {
+            const q = curve.getPoint(t);
+            if (Math.hypot(q.x - x, q.z - z) < reach) out.push({ x: q.x, y: q.y + 0.005, z: q.z, ry: along + Math.PI / 2, along: 0 });
+          }
+        }
+      }
+      return out;
+    };
+    const spine = { x: -50.6, z: 103.5 };
+    const spineWires = wires(spine.x, spine.z, 18);
+    const flocks = [
+      { x: -51.5, z: 131.5, n: ANIMALS.pigeons.plaza, r: 3, y: ctx.groundAt(-51.5, 131.5), perches: roof, avoid: plazaAvoid },
+    ];
+    if (spineWires.length) flocks.push({ x: spine.x, z: spine.z, n: ANIMALS.pigeons.spine, r: 2.0, y: ctx.groundAt(spine.x, spine.z), perches: spineWires, avoid: (x) => Math.abs(x - spine.x) > 2.2 });
+    const pigeons = buildPigeons(actx, { flocks, shadows, bounds: [-51, 3, 118, 42] });
+    kinds.push({ x: -51, z: 118, r: 40, name: 'pigeons', shadowed: true, mesh: 'pigeons', draw: 70, update: pigeons.update, list: pigeons.list });
+  }
+
+  /* ---- the shiba, in a front yard on a lane ---- */
+  if (core?.lots) {
+    const SH = ANIMALS.shiba;
+    const [tx, tz] = SH.near;
+    /* What stands in a yard: every mesh the town has built (houses and
+     * their parts -- outdoor units, meters, steps, pots, bikes, poles), by
+     * its world box, and the colliders.  Ground sheets and decals (thin
+     * and flat) don't count. */
+    const root = ctx.root;
+    root.updateMatrixWorld(true);
+    const box = new THREE.Box3();
+    const solids = [], floors = [];
+    const cw = ctx.toWorld({ x: tx, z: tz });
+    root.traverse((o) => {
+      if (!o.isMesh || o.isInstancedMesh || o.parent === group || o === group) return;
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      box.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+      if (box.max.y - box.min.y < 0.06 || box.min.y > 1.2) return;          // flat on the ground, or overhead
+      // a low slab you stand on (a yard's concrete apron): a floor, not a thing
+      if (box.max.y < 0.25 && (box.max.x - box.min.x) * (box.max.z - box.min.z) > 1.5) { floors.push(box.clone()); return; }
+      if (Math.hypot((box.min.x + box.max.x) / 2 - cw.x, (box.min.z + box.max.z) / 2 - cw.z) > 90) return;
+      if (box.max.x - box.min.x > 40 || box.max.z - box.min.z > 40) return;   // whole-street sheets
+      solids.push(box.clone());
+    });
+    // the town's cats sit where they sit: give them room
+    for (const c of ctx.cats ?? []) {
+      const w = ctx.toWorld({ x: c.position.x, z: c.position.z });
+      solids.push(new THREE.Box3(new THREE.Vector3(w.x - 0.45, 0, w.z - 0.45), new THREE.Vector3(w.x + 0.45, 0.5, w.z + 0.45)));
+    }
+    for (const c of ctx.colliders) if ((c.bottom ?? 0) < 0.8 && (c.top ?? 9) > 0.3) solids.push(new THREE.Box3(new THREE.Vector3(c.x0, 0, c.z0), new THREE.Vector3(c.x1, c.top ?? 9, c.z1)));
+    // is a rect in the lot's frame (u across, v back from the frontage) clear?
+    const clear = (F, u0, u1, v0, v1, pad = 0.12) => {
+      const a = ctx.toWorld(F.at(u0 - pad, v0 - pad)), c = ctx.toWorld(F.at(u1 + pad, v1 + pad));
+      const r = new THREE.Box3(new THREE.Vector3(Math.min(a.x, c.x), 0.02, Math.min(a.z, c.z)), new THREE.Vector3(Math.max(a.x, c.x), 0.9, Math.max(a.z, c.z)));
+      return !solids.some((q) => q.intersectsBox(r));
+    };
+    const lots = core.lots.filter((l) => l.kind === 'house' && l.e.cls === 'lane' && l.w >= 8);
+    const at0 = (l) => lotFrame(core.net, l).at(0, 0);
+    lots.sort((a, b) => Math.hypot(at0(a).x - tx, at0(a).z - tz) - Math.hypot(at0(b).x - tx, at0(b).z - tz));
+    let found = null;
+    /* The dog lies along the frontage in front of its kennel's door (a
+     * shallow yard has room for that), turned a little to the lane:
+     * in the lot's frame the kennel spans u-1.47..u-0.63, the dog u-0.35..
+     * u+0.5, the bowl by its head; nothing along the frontage in front. */
+    for (const lot of lots) {
+      const F = lotFrame(core.net, lot);
+      for (let v = 0.45; v < 1.3 && !found; v += 0.1) {
+        for (let u = -lot.w / 2 + 1.6; u < lot.w / 2 - 0.7 && !found; u += 0.2) {
+          if (clear(F, u - 1.5, u + 0.7, 0.02, v - 0.3, 0) && clear(F, u - 0.35, u + 0.5, v - 0.25, v + 0.25)
+            && clear(F, u - 1.47, u - 0.63, v - 0.33, v + 0.33, 0.25) && clear(F, u + 0.45, u + 0.7, v + 0.15, v + 0.4)) found = { F, u, v, lot };
+        }
+      }
+      if (found) break;
+    }
+    if (found) {
+      const { F, u, v } = found;
+      const p = F.at(u, v), k = F.at(u - 1.05, v), o = F.at(0, 0), du = F.at(1, 0), dv = F.at(0, 1);
+      const ux = du.x - o.x, uz = du.z - o.z, vx = dv.x - o.x, vz = dv.z - o.z;
+      const base = Math.atan2(ux, uz);             // facing along +u, away from the kennel
+      // turned a little toward the lane (-v)
+      const toLane = (a) => Math.sin(a) * -vx + Math.cos(a) * -vz;
+      const tilt = toLane(base + 0.35) > toLane(base - 0.35) ? 0.35 : -0.35;
+      // standing on a yard's apron if there is one
+      const pw = ctx.toWorld(p);
+      const floor = floors.filter((q) => pw.x > q.min.x && pw.x < q.max.x && pw.z > q.min.z && pw.z < q.max.z).reduce((y, q) => Math.max(y, q.max.y), ctx.groundAt(p.x, p.z));
+      const spot = { x: p.x, z: p.z, y: floor, yaw: base + tilt, kennel: k, kennelYaw: base, bowl: F.at(u + 0.58, v + 0.28) };
+      const shiba = buildShiba(actx, { spot, shadows });
+      kinds.push({ x: p.x, z: p.z, r: 5, name: 'shiba', shadowed: true, mesh: 'shiba', draw: 45, update: shiba.update, list: [spot], dog: shiba.dog, spot });
+    }
+  }
+
+  /* ---- cabbage whites over the renge and the walks' flowers ---- */
+  {
+    const W = L.sunk.walk;
+    const patches = [
+      { x: -2.5, z: -47.6, y: 0.2, r: 2.6, n: 4 },            // the renge by the far stairs
+      { x: 70, z: -62, y: 0.2, r: 3, n: 3 },                  // the renge beyond the pump shed
+      { x: -9, z: -16.9, y: W + 0.22, r: 3.2, n: 2 },          // the town-side lower walk's flowers
+      { x: 22, z: -39.2, y: W + 0.22, r: 3, n: 2 },            // the far lower walk
+    ];
+    const butterflies = buildButterflies(actx, { patches });
+    kinds.push({ x: 20, z: -40, r: 70, name: 'butterflies', mesh: 'butterflies', draw: 25, update: butterflies.update, list: butterflies.list });
+  }
+
+  /* ---- the frame: each kind moves only with the camera near ---- */
+  const NEAR = ANIMALS.near;
+  let camL = { x: 0, y: 0, z: 0 };
+  // each kind's meshes (and reflections), hidden when the camera is far off
+  for (const k of kinds) k.meshes = group.children.filter((m) => m.name === `animals-${k.mesh}` || m.name === `animals-${k.mesh}-reflection`);
+  const tick = (dt, cam) => {
+    if (!cam) return;
+    const p = ctx.toLocal({ x: cam.x, z: cam.z });
+    camL = { x: p.x, y: cam.y, z: p.z };
+    let wet = false, any = false;
+    for (const k of kinds) {
+      const d = Math.hypot(k.x - camL.x, k.z - camL.z);
+      // drawn while any of them is within `draw` of the camera
+      let near = Infinity;
+      for (const a of k.list) { const q = Math.hypot(a.x - camL.x, a.z - camL.z); if (q < near) near = q; }
+      const show = near < k.draw;
+      for (const m of k.meshes) m.visible = show;
+      any ||= show && k.shadowed;
+      if (d > NEAR + k.r) continue;
+      k.update(dt, camL);
+      wet ||= !!k.wet;
+    }
+    if (wet) marks.update(dt);
+    if (wet) marks.cull(camL); else for (const m of marks.meshes) m.visible = false;
+    shadows.mesh.visible = any;
+    // under the water: never in the pond's mirror (main.js tags by place, late)
+    for (const m of below) m.layers.disable(REFLECT);
+  };
+  // only the pond's own (turtles, ducks, the stones) belong in its mirror
+  const below = group.children.filter((m) => m.isMesh && !['animals-turtles', 'animals-ducks', 'animals-stones'].includes(m.name));
+  ctx.update(tick);
+
+  /* dev: step the animals on by `sec` seconds (the shots freeze time) */
+  if (import.meta.env?.DEV && typeof window !== 'undefined') {
+    window.__animals = {
+      step(sec = 1, fps = 30, move = null) {
+        for (let t = 0; t < sec; t += 1 / fps) {
+          if (move) camL = { ...camL, x: camL.x + move[0] / fps, z: camL.z + move[1] / fps };
+          for (const k of kinds) if (Math.hypot(k.x - camL.x, k.z - camL.z) <= NEAR + k.r) k.update(1 / fps, camL);
+          marks.update(1 / fps);
+        }
+      },
+      kinds,
+      cam: () => camL,
+      group,
+      edge: (x, z) => benches.edgeNear(x, z),
+    };
+  }
+
+  return { kinds, shadows, marks, reflect: REFLECT };
 }

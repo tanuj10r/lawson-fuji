@@ -466,6 +466,20 @@ export const SHOT_SPOTS = [
   { name: 'pond-lotus', scene: 'town', pos: [-37, 0, -61], yaw: -0.3, pitch: -0.32, looks: ['day'] },
   { name: 'pond-teahouse', scene: 'town', pos: [-58, 0, -81], yaw: 0.05, pitch: 0.06, looks: ['day', 'blue'] },
   { name: 'pond-overview', scene: 'town', pos: [-66, 0, -40], yaw: 0, pitch: -0.55, lift: 34, looks: ['day'] },
+  // wave 3: the animals, close up and in their places
+  { name: 'close-animals-turtles', scene: 'town', pos: [-57.3, 0, -50.9], yaw: 0.05, pitch: -0.42, looks: ['day'], close: true },
+  { name: 'animals-pond-ducks', scene: 'town', pos: [-64.5, 0, -50.2], yaw: 0.25, pitch: -0.22, looks: ['day', 'golden'], close: true },
+  { name: 'animals-river-heron', scene: 'town', pos: [-29.5, 0, -18.5], yaw: 1.24, pitch: -0.1, looks: ['day', 'golden'], close: true },
+  { name: 'close-animals-heron', scene: 'town', pos: [-30, 0, -18.5], yaw: 0.859, pitch: -0.15, looks: ['day', 'golden'], close: true },
+  { name: 'animals-paddy-egrets', scene: 'town', pos: [17.5, 0, -42.6], yaw: -0.2, pitch: -0.12, looks: ['day'], close: true },
+  { name: 'close-animals-egret', scene: 'town', pos: [21.2, 0, -43.9], yaw: 0.05, pitch: -0.32, looks: ['day'], close: true },
+  { name: 'animals-plaza-pigeons', scene: 'town', pos: [-51.2, 0, 127.6], yaw: 3.0, pitch: -0.22, looks: ['day'], close: true },
+  { name: 'close-animals-pigeon', scene: 'town', pos: [-50.6, 0, 129.6], yaw: 3.3, pitch: -0.55, looks: ['day'], close: true },
+  { name: 'animals-spine-pigeons', scene: 'town', pos: [-47.6, 0, 100.2], yaw: 2.4, pitch: -0.3, looks: ['day'], close: true },
+  { name: 'animals-shiba', scene: 'town', pos: [-79.2, 0, 121.5], yaw: 0.902, pitch: -0.2, looks: ['day', 'golden'], close: true },
+  { name: 'close-animals-shiba', scene: 'town', pos: [-81.8, 0, 120.2], yaw: 0.615, pitch: -0.45, looks: ['day', 'golden'], close: true },
+  { name: 'animals-butterflies', scene: 'town', pos: [-2.2, 0, -44.3], yaw: 0.25, pitch: -0.42, looks: ['day'], close: true },
+  { name: 'animals-pond-koi', scene: 'town', pos: [-39.8, 0, -58.5], yaw: 1.45, pitch: -0.55, looks: ['day'], close: true },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },
@@ -533,4 +547,21 @@ export const SOUND = {
   autoDoor: { near: 4, far: 18 },
   fridge: { near: 2.5, far: 9 },           // the cooler: its doors and its compressor
   shelf: { near: 3, far: 10 },             // taking and putting back
+};
+
+/* The animals (town pass, wave 3; src/world/animals/).  Distances in metres,
+ * times in seconds.  Everything moves only within `near` of the camera. */
+export const ANIMALS = {
+  near: 60,
+  koi: { count: 11, watchReach: 3.2, gather: 16, surfaceTime: 3.6 },
+  /* pond sliders on basking stones in 鏡池: [x, z, width, depth, height above the water, yaw] */
+  turtles: { count: 5, flee: 5.5, back: 14, stones: [[-57, -55.2, 1.15, 0.8, 0.2, 0.25], [-56.25, -55.75, 0.5, 0.42, 0.09, 1.1], [-57.6, -54.75, 0.34, 0.3, 0.05, 0.4], [-76.2, -70, 1.0, 0.85, 0.16, 1.2], [-75.6, -70.7, 0.45, 0.4, 0.07, 0.3]] },
+  ducks: { shy: 3.2 },
+  /* the waders: flee within `flee`, fly a hop of [min, max] metres at `flySpeed`, `cruise` above the water */
+  heron: { flee: 7, hop: [25, 70], flySpeed: 3.6, cruise: 2.0, beatHz: 2.1, beatAmp: 0.6, walkChance: 0.12, walkSpeed: 0.12, stepAngle: 0.32 },
+  /* the shiba: in the yard of the lane house nearest `near` (town frame), `inset` behind its frontage */
+  shiba: { near: [30, 79], inset: 0.8, size: 1.0, hear: 16, greet: 4.2, leave: 20 },
+  butterflies: { size: 1.15, beatHz: 9, speed: 0.9, near: 45, shy: 1.0 },
+  pigeons: { plaza: 9, spine: 5, flush: 2.4, flushSpeed: 0.6, shy: 1.3, walkSpeed: 0.2, stepAngle: 0.36, flySpeed: 5, sit: [8, 20], back: 10 },
+  egret: { flee: 6, hop: [8, 30], flySpeed: 3.0, cruise: 1.6, beatHz: 2.8, beatAmp: 0.62, walkChance: 0.55, walkSpeed: 0.2, stepAngle: 0.38 },
 };

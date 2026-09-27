@@ -16,3 +16,6 @@ assets/fonts/
 
 # Town screenshots: regenerate with ?screenshots on the dev server.
 screenshots/
+
+# Specialist builders' worktrees (docs/BUILDERS.md)
+.claude/worktrees/

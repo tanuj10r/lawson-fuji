@@ -214,7 +214,7 @@ export const RIDE = {
     board: 'Board the train',
     boardHint: 'The doors are open: step aboard',
     noTrain: 'No train at the platform yet: the next one is due shortly',
-    ride: 'Ride... (board the train)',
+    ride: 'Ride the train (next one due shortly)',
     station: 'The station',
   },
 };
@@ -259,10 +259,10 @@ export const SHRINE_PRAYER = {
   jp: '参拝',
   steps: [
     'A coin in the offering box, and ring the bell',
-    'Two deep bows  ·  二礼',
-    'Two claps  ·  二拍手',
+    'Two deep bows',
+    'Two claps',
     'Hands together, a quiet wish',
-    'One last bow  ·  一礼',
+    'One last bow',
   ],
-  done: 'Two bows, two claps, one bow (二礼二拍手一礼): how to pray at a shrine',
+  done: 'Two bows, two claps, one bow: how to pray at a shrine',
 };

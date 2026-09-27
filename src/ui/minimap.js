@@ -59,6 +59,18 @@ export function createMinimap(world) {
     c.lineWidth = Math.max(1, r * 0.22); c.strokeStyle = 'rgba(90,64,20,0.85)'; c.stroke();
     c.restore();
   };
+  /* Where each diamond goes: on its spot, unless a place's icon is there,
+   * when it sits on that icon's corner as a badge (the station's and the
+   * shrine's spots stand at their icons); two that land together draw once. */
+  const placeGems = (pts, icons, gr) => {
+    const outp = [];
+    for (let [x, y] of pts) {
+      const ic = icons.find((q) => Math.hypot(q.x - x, q.y - y) < q.r + gr * 0.6);
+      if (ic) { x = ic.x + ic.r * 0.85; y = ic.y - ic.r * 0.85; }
+      if (!outp.some(([a, b]) => Math.hypot(a - x, b - y) < gr * 1.2)) outp.push([x, y]);
+    }
+    return outp;
+  };
   let last = { x: NaN, z: NaN, yaw: NaN };
 
   /* ---- the corner map ---- */
@@ -81,25 +93,30 @@ export function createMinimap(world) {
       const c = Math.cos(yaw), s = Math.sin(yaw);
       return [R + (dx * c - dz * s) * k, R + (dx * s + dz * c) * k, Math.hypot(dx, dz)];
     };
+    const shown = [];
     for (const p of art.places) {
       if (p.id === 'lawson') continue;
       const [x, y, d] = at(p.w.x, p.w.z);
-      if (d < RANGE * 0.95) drawIcon(cc, p.kind, x, y, 10 * dpr);
-    }
-    for (const e of spots()) {
-      const [x, y, d] = at(e.x, e.z);
-      if (d < RANGE * 0.95) gem(cc, x, y, 7 * dpr);
+      if (d < RANGE * 0.95) { drawIcon(cc, p.kind, x, y, 10 * dpr); shown.push({ x, y, r: 10 * dpr }); }
     }
     // the Lawson: always shown, on the rim when it is out of range
     {
-      let [x, y, d] = at(lawson.w.x, lawson.w.z);
+      let [x, y] = at(lawson.w.x, lawson.w.z);
       const rim = R - 16 * dpr;
       if (Math.hypot(x - R, y - R) > rim) {
         const a = Math.atan2(y - R, x - R);
         x = R + Math.cos(a) * rim; y = R + Math.sin(a) * rim;
       }
       drawIcon(cc, 'konbini', x, y, 11 * dpr);
+      shown.push({ x, y, r: 11 * dpr });
     }
+    // the experiences' diamonds, over the icons
+    const pts = [];
+    for (const e of spots()) {
+      const [x, y, d] = at(e.x, e.z);
+      if (d < RANGE * 0.95) pts.push([x, y]);
+    }
+    for (const [x, y] of placeGems(pts, shown, 7 * dpr)) gem(cc, x, y, 7 * dpr);
 
     // the compass ring, turning with the map, 北 at north
     cc.lineWidth = 5 * dpr; cc.strokeStyle = '#fffaf0';
@@ -145,10 +162,10 @@ export function createMinimap(world) {
     // icons first, then labels beside them: right, left, below or above,
     // whichever is clear of the others
     const icons = art.places.map((p) => { const [x, y] = P(p.w.x, p.w.z); taken.push([x - r, y - r, x + r, y + r]); return { p, x, y }; });
-    for (const e of spots()) {
-      const [x, y] = P(e.x, e.z);
-      gem(c, x, y, 9 * dpr);
-    }
+    // the experiences' diamonds: placed first so no label covers them, drawn last, on top
+    const gr = 9 * dpr;
+    const gems = placeGems(spots().map((e) => P(e.x, e.z)), icons.map(({ x, y }) => ({ x, y, r })), gr);
+    for (const [x, y] of gems) taken.push([x - gr, y - gr, x + gr, y + gr]);
     for (const { p, x, y } of icons) {
       drawIcon(c, p.kind, x, y, r);
       c.font = `bold ${15 * dpr}px ${JP}`;
@@ -160,7 +177,9 @@ export function createMinimap(world) {
         [x - bw / 2, y + r + 4 * dpr], [x - bw / 2, y - r - 4 * dpr - bh],
         [x + r + 4 * dpr, y + r], [x - r - 4 * dpr - bw, y + r],
       ];
-      const [bx, by] = tries.find(([a, b]) => !hits([a, b, a + bw, b + bh])) ?? tries[0];
+      // the first clear place; failing that, the one that covers least
+      const over = ([a, b]) => taken.reduce((sum, t) => sum + Math.max(0, Math.min(a + bw, t[2]) - Math.max(a, t[0])) * Math.max(0, Math.min(b + bh, t[3]) - Math.max(b, t[1])), 0);
+      const [bx, by] = tries.find(([a, b]) => !hits([a, b, a + bw, b + bh])) ?? tries.reduce((best, t) => (over(t) < over(best) ? t : best));
       taken.push([bx, by, bx + bw, by + bh]);
       c.fillStyle = 'rgba(255,250,240,0.92)';
       c.beginPath(); c.roundRect(bx, by, bw, bh, 6 * dpr); c.fill();
@@ -170,6 +189,7 @@ export function createMinimap(world) {
       c.fillStyle = '#5a5468'; c.font = `${12 * dpr}px ${JP}`;
       c.fillText(p.jp, bx + 6 * dpr, by + 28 * dpr);
     }
+    for (const [x, y] of gems) gem(c, x, y, gr);
     c.save(); c.translate(ux, uy); c.rotate(-yaw);
     c.beginPath(); c.moveTo(0, -16 * dpr); c.lineTo(11 * dpr, 11 * dpr); c.lineTo(0, 5 * dpr); c.lineTo(-11 * dpr, 11 * dpr); c.closePath();
     c.fillStyle = '#e8453f'; c.fill(); c.lineWidth = 3 * dpr; c.strokeStyle = '#fffaf0'; c.stroke();

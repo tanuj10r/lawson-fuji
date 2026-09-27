@@ -95,8 +95,11 @@ export function makeExperiences(ctx) {
       sp.ring.material.opacity = k * pulse;
       sp.ring.visible = k > 0.01;
       if (sp.gem) {
-        sp.gem.visible = k > 0.01;
-        sp.gem.material.opacity = k;
+        // the diamond goes altogether as you arrive: from under it (seated on the
+        // bench, praying at the box) its faces filled the top of the view as pale beams
+        const kg = k * THREE.MathUtils.smoothstep(d, 1.2, 3.0);
+        sp.gem.visible = kg > 0.01;
+        sp.gem.material.opacity = kg;
         sp.gem.position.y = sp.s.y + sp.s.h + 0.9 + Math.sin(t * 1.8 + sp.w.z) * 0.12;
         sp.gem.rotation.y = t * 0.9;
       }

@@ -1,8 +1,11 @@
 import * as THREE from 'three';
 import { cel } from '../../core/toon.js';
-import { rngKit, bake, trs, sagCurve } from '../../core/util.js';
+import { rngKit, sagCurve } from '../../core/util.js';
 import { makeCrow } from '../props.js';
 import { POLES } from '../../config.js';
+import { Body, loft, blob, limb, at } from '../animals/shapes.js';
+import { dressCat } from '../animals/cat.js';
+import { makeShadows } from '../animals/shade.js';
 
 /* ------------------------------------------------------------------ *
  * Life in the town (SPEC section 3, trees, light and life; M2d).
@@ -20,19 +23,47 @@ import { POLES } from '../../config.js';
 
 const NEAR = 32;
 
-/** A sparrow: round body, head, beak, tail, all one small mesh. */
+/** A tree sparrow (スズメ): a plump brown bird, the chestnut cap, a white
+ * cheek with its black spot, a small black bib, streaked back, a white
+ * wing bar, a stubby dark bill.  One small mesh, painted per vertex. */
 function sparrowGeometry() {
-  const body = new THREE.SphereGeometry(0.06, 7, 5);
-  const head = new THREE.SphereGeometry(0.038, 6, 4);
-  const tail = new THREE.BoxGeometry(0.02, 0.012, 0.07);
-  const beak = new THREE.ConeGeometry(0.01, 0.025, 4);
-  beak.rotateX(Math.PI / 2);
-  return bake([
-    { geometry: body, matrix: trs(0, 0.06, 0, 0, 0, 0, 0.9, 0.85, 1.25) },
-    { geometry: head, matrix: trs(0, 0.105, 0.06) },
-    { geometry: beak, matrix: trs(0, 0.1, 0.1) },
-    { geometry: tail, matrix: trs(0, 0.06, -0.1, 0.35, 0, 0) },
-  ]);
+  const b = new Body();
+  const back = (p) => (Math.sin(p.x * 260) * Math.sin(p.z * 90) > 0.45 ? 0x3e2c22 : 0x9a6c46);
+  b.add(loft([
+    { p: [0, 0.055, -0.07], rx: 0.0, ry: 0.0 },
+    { p: [0, 0.056, -0.06], rx: 0.022, ry: 0.02 },
+    { p: [0, 0.06, -0.025], rx: 0.04, ry: 0.04 },
+    { p: [0, 0.066, 0.015], rx: 0.042, ry: 0.043 },
+    { p: [0, 0.075, 0.045], rx: 0.034, ry: 0.036 },
+    { p: [0, 0.084, 0.06], rx: 0.0, ry: 0.0 },
+  ], 8), { color: (p) => (p.y < 0.062 ? 0xdcd4c4 : p.y < 0.075 && p.z > 0.0 ? 0xcfc6b4 : back(p)) });
+  // folded wings: brown, a white bar, dark tips
+  for (const s of [-1, 1]) {
+    b.add(blob(0.018, 0.022, 0.05, 6, 4), {
+      matrix: at(s * 0.03, 0.074, -0.012, -0.15, s * 0.1, 0),
+      color: (p) => (p.z < -0.045 ? 0x3a2a22 : Math.abs(p.z - 0.004) < 0.005 ? 0xf2eee4 : back(p)),
+    });
+  }
+  // the head: chestnut cap, white cheeks with a black spot, a black bib
+  const hy = 0.094, hz = 0.05;
+  b.add(blob(0.028, 0.027, 0.03, 9, 6), {
+    matrix: at(0, hy, hz),
+    color: (p) => {
+      const ax = Math.abs(p.x);
+      if (p.y > hy + 0.009) return 0x8e4a2c;
+      if (p.y < hy - 0.012 && p.z > hz + 0.012 && ax < 0.012) return 0x1e1a1a;        // the bib
+      if (ax > 0.018 && Math.abs(p.y - (hy - 0.004)) < 0.006 && Math.abs(p.z - hz) < 0.008) return 0x1e1a1a;   // the cheek spot
+      if (ax > 0.012 && p.y < hy + 0.006) return 0xf4f0e6;
+      return 0x8e4a2c;
+    },
+  });
+  b.add(loft([{ p: [0, hy - 0.004, hz + 0.024], rx: 0.009, ry: 0.009 }, { p: [0, hy - 0.006, hz + 0.036], rx: 0.004, ry: 0.004 }, { p: [0, hy - 0.007, hz + 0.042], rx: 0, ry: 0 }], 5), { color: 0x2e2a2a });
+  for (const s of [-1, 1]) b.add(blob(0.004, 0.004, 0.004, 4, 3), { matrix: at(s * 0.02, hy + 0.004, hz + 0.014), color: 0x121010 });
+  // the tail: short, brown
+  b.add(blob(0.017, 0.005, 0.04, 5, 3), { matrix: at(0, 0.064, -0.075, -0.2, 0, 0), color: 0x6a4a34 });
+  // legs: thin, pinkish brown
+  for (const s of [-1, 1]) b.add(limb([s * 0.012, 0.05, 0.005], [s * 0.013, 0.002, 0.012], 0.0035, 0.003, 3), { color: 0xa8826e });
+  return b.build();
 }
 
 /**
@@ -42,7 +73,9 @@ function sparrowGeometry() {
 export function buildLife(ctx, { wireRuns = [], flocks = [], cats = [] }) {
   const r = rngKit(4466);
   const geo = sparrowGeometry();
-  const mat = cel({ color: 0x8a6a52, bands: 3, tint: 0x5c4a58 });
+  const mat = cel({ color: 0xffffff, bands: 3, tint: 0x5c4a58, flat: false, vertexColors: true, cache: false });
+  // the cats: the proper cat in each dressing's place (animals/cat.js)
+  cats.forEach((c, i) => dressCat(c, i));
 
   /* ---- where they sit on the wires ---- */
   const perches = [];
@@ -80,8 +113,16 @@ export function buildLife(ctx, { wireRuns = [], flocks = [], cats = [] }) {
   inst.name = 'sparrows';
   inst.userData.dynamic = true;
   ctx.add(inst);
+  // soft contact shadows under the ground birds (the shadow map can't follow them)
+  const shade = makeShadows(ctx, Math.max(1, birds.filter((b) => b.mode === 'ground').length));
+  for (const b of birds) if (b.mode === 'ground') b.shadow = shade.slot();
   const d = new THREE.Object3D();
   const write = (i, b) => {
+    if (b.shadow !== undefined) {
+      const up = Math.max(0, b.y + (b.hopY ?? 0) - b.home.y);
+      const k = b.mode === 'flying' || up > 0.5 ? Math.max(0, 1 - up / 2) * 0.8 : 1;
+      shade.set(b.shadow, b.x, b.home.y, b.z, 0.035 * k, 0.06 * k, b.ry);
+    }
     d.position.set(b.x, b.y + (b.hopY ?? 0), b.z);
     d.rotation.set(b.peck ? 0.5 : 0, b.ry, 0);
     d.scale.setScalar(1);
@@ -105,6 +146,7 @@ export function buildLife(ctx, { wireRuns = [], flocks = [], cats = [] }) {
     if (!cam) return;
     clock += dt;
     let dirty = false;
+    shade.mesh.visible = birds.some((b) => b.shadow !== undefined && Math.hypot(b.home.x - cam.x, b.home.z - cam.z) < NEAR * 2);
     birds.forEach((b, i) => {
       const dist = Math.hypot(b.x - cam.x, b.z - cam.z);
       if (dist > NEAR && b.mode !== 'flying') return;

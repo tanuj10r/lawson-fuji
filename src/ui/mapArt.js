@@ -23,7 +23,7 @@ const C = {
   building: '#d8cdbd', buildingEdge: '#a89c8e',
   park: '#b8d4a0', shrine: '#e8b8a8', plaza: '#f0d8dc', parking: '#cfcbd4',
   vacant: '#d8d0a8', station: '#c8d8c4', rail: '#8e8698', platform: '#ddd6d0',
-  field: '#d0d8a8', lawson: '#0068b7', forecourt: '#b8b4c0',
+  field: '#d0d8a8', paddy: '#bcd4c8', river: '#8fb8cc', levee: '#a8c890', track: '#d6c8a8', lawson: '#0068b7', forecourt: '#b8b4c0',
 };
 
 export function paintMap(world) {
@@ -52,13 +52,15 @@ export function paintMap(world) {
     c.fillRect(Math.random() * W, Math.random() * H, 2, 2);
   }
 
-  /* ---- the old town (turned frame, as M2 authored it) ---- */
+  /* ---- the land north of the road (town pass; turned frame) ---- */
   {
-    const R = TOWN.residential, P = TOWN.park;
-    for (const f of [[-114, -24, -42, -9], [76, -56, 114, -9]]) rect([f[0], f[1], f[2], f[3]], C.field);
-    rect([P.x0, P.z0, P.x1, P.z1], C.park);
-    rect([R.laneX0, R.laneZ - 2.5, R.sideLaneX + 2.5, R.laneZ + 2.5], C.road);
-    rect([R.sideLaneX - 2.5, R.laneZ + 2.5, R.sideLaneX + 2.5, 0], C.road);
+    const L = TOWN.land;
+    for (const r of [L.near, L.far, L.east]) rect(r, C.paddy);
+    rect([-118, L.levee.z0, 118, L.levee.z1], C.levee);
+    rect([-118, L.farBank.z0, 118, L.farBank.z1], C.levee);
+    rect([-118, L.river.z0, 118, L.river.z1], C.river);
+    rect([L.track.x - L.track.w / 2, L.track.z0, L.track.x + L.track.w / 2, L.track.z1], C.track);
+    rect([L.bridge.x - L.bridge.w / 2, L.river.z0, L.bridge.x + L.bridge.w / 2, L.river.z1], C.walk);
   }
 
   /* ---- the special lots ---- */

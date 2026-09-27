@@ -5,6 +5,7 @@ dist/
 # Audio files are never committed (AGENTS.md, SPEC section 9).
 public/audio/
 assets/audio/
+assets/fonts/
 .DS_Store
 
 # Reference images stay local (third-party photos and art).

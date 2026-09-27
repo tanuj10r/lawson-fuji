@@ -203,7 +203,8 @@ A dense, lived-in, mixed-use town built around the famous view: a tight grid wit
 - The game opens on the famous views, and the town lies ahead: between the Lawson and Mt. Fuji, north of the main road. You walk past the store into it, toward Fuji.
 - From the main road north: the Lawson's neighbours along the road, then residential lanes and a shopping spine running north to the station plaza, the station, and the railway along the far north edge with the level crossing.
 - The Lawson stays on the main road facing it, with Fuji behind. Behind the store, anything inside the famous views' frame stays under the roof's sightline from the hero camera (lower near the store, three storeys by about 60 m back); poles there give way to low lamp posts (防犯灯) with no overhead lines.
-- Behind the start spot, south of the road: the photographers' lot, an older residential lane, a park and fields.
+- Behind the start spot, south of the road: the photographers' lot, then the land (town pass, config.js `TOWN.land`): flooded rice paddies cut by earth paths, a levee with a row of sakura, a river (桜川) about 16 m wide, more paddies, and at the tree line a closed gate, 鹿公園 近日公開 (Deer Park, coming soon), where a later place will join. A farm track runs from the main road's zebra over a bridge to the gate. M2's residential lane, fields and park gave way to it.
+- The town is compact (town pass): the core's lots stop at its lane x 52 (town frame); east of that, behind the main road's own shops, are paddies.
 
 **Town plan: scale**
 
@@ -813,6 +814,7 @@ Build in 8 milestones (M2 in six parts, M2a to M2f), starting from the Sakura Cr
 | M2f | Minimap | A round minimap in the bottom-right corner with a compass, the player's arrow and the town's places; a full map on a key |
 | M3 | Store interior + products | Automatic door, interior fixtures, 30 products, targeting and pickup, basket |
 | M4 | Audio | Audio engine, all SFX, ambience loops, inside/outside mix, door chime, footsteps |
+| TP | Town quality pass (before M5) | A smaller town, the land (paddies, river, levee, Deer Park gate), self-hosted sign fonts, then specialist builders in waves (docs/BUILDERS.md): streets and poles, facades and shopfronts, sakura and greenery, river and paddies, animals (no people yet). Today's cartoon look is kept: no bloom, haze or film effects |
 | M5 | Clerk + checkout | Clerk look, state machine and animations; greeting, scanning, dialogue choices, payment, receipt, voice lines and subtitles |
 | M6 | Extras | Microwave, hot food, coffee machine, day/night cycle, blue-hour van, sit-and-eat, bins, around-town stamps |
 | M7 | Polish + ship | Title screen, stamps, receipt book, photo mode, settings, credits, tutorials, performance pass, deploy |

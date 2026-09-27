@@ -97,3 +97,11 @@ export const SHOP_NOTICES = [
 ];
 export const FOR_RENT = { t: '貸店舗', s: '富士見不動産', tel: '0555-23-0770' };
 export const MENU_TAGS = ['ラーメン', '醤油', '味噌', '塩', '餃子', 'チャーハン', '大盛', 'ビール'];
+
+/* ---- the land (town quality pass) ---- */
+
+/** The river north of the main road. */
+export const RIVER = { jp: '桜川', kana: 'さくらがわ' };
+/** The board on the closed gate at the far side of the paddies: a place to
+ * come (Tan's Deer Park).  The English line is for players, on purpose. */
+export const DEER_PARK = { jp: '鹿公園', soon: '近日公開', en: 'Deer Park · coming soon' };

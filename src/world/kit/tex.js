@@ -14,6 +14,9 @@ import { MENU_TAGS } from '../../data/town.js';
  * ------------------------------------------------------------------ */
 
 export const JP = `'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', sans-serif`;
+/** The self-hosted sign faces (core/fonts.js), each falling back to JP. */
+export const JP_ROUND = `'NF Round', ${JP}`;
+export const JP_BRUSH = `'NF Brush', ${JP}`;
 const cache = new Map();
 
 function canvasTex(key, w, h, draw, { repeat = false, aniso = 8 } = {}) {

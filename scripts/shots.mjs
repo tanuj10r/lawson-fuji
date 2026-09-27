@@ -131,6 +131,8 @@ for (const spot of spots) {
       return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'unknown';
     });
     console.log(`scene ${scene}  (${gpu}), ready in ${((Date.now() - tl) / 1000).toFixed(0)} s`);
+    const fonts = await page.evaluate(() => ['NF Round', 'NF Brush'].map((f) => `${f} ${document.fonts.check(`16px '${f}'`, '富') ? 'ok' : 'MISSING'}`).join(', '));
+    console.log(`  fonts: ${fonts}`);
     // the store's stock (M3d): how many products, never more than CAP of one
     if (scene === 'town') stats._stock = await page.evaluate(() => window.__store?.shop?.stats ?? null);
   }

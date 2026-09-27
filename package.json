@@ -16,7 +16,8 @@
     "shots": "node scripts/shots.mjs",
     "check:names": "node scripts/check-names.mjs",
     "audio": "node scripts/encode-audio.mjs",
-    "size": "node scripts/size.mjs"
+    "size": "node scripts/size.mjs",
+    "fonts": "node scripts/subset-fonts.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

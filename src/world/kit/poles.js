@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { cel, flat } from '../../core/toon.js';
 import { rngKit, cyl } from '../../core/util.js';
 import { makePole, makeWires } from '../props.js';
-import { POLES, ROADS } from '../../config.js';
+import { POLES, ROADS, TOWN } from '../../config.js';
 import { POLE_ADS, AREA } from '../../data/town.js';
 import { plateTex } from './tex.js';
 import { LAYER } from './decals.js';
@@ -97,6 +97,8 @@ export function buildPoles(ctx, net, decals) {
     const busy = [
       ...net.crossings.filter((c) => c.e === e).map((c) => [c.at - 3.5, c.at + 3.5]),
       ...net.busStops.filter((b) => b.e === e).map((b) => [b.at - 7.5, b.at + 7.5]),
+      // the main road's own zebra (signals.js, built in the world frame; the town is turned)
+      ...(e.cls === 'hero' ? [[-TOWN.crosswalk.x - TOWN.crosswalk.width / 2 - 1.5, -TOWN.crosswalk.x + TOWN.crosswalk.width / 2 + 1.5]] : []),
     ];
     const clear = (s) => !busy.some(([a, b]) => s > a && s < b);
 

@@ -13,7 +13,7 @@ for (const f of walk(DIST)) {
   const raw = fs.statSync(f).size, ext = path.extname(f);
   const text = ['.js', '.css', '.html', '.json', '.svg'].includes(ext);
   const wire = text ? zlib.gzipSync(fs.readFileSync(f)).length : raw;
-  const kind = f.includes('/audio/') ? 'audio (after the first click)' : ext === '.js' ? 'code' : ext === '.bin' ? 'Fuji elevation' : 'other';
+  const kind = f.includes('/audio/') ? 'audio (after the first click)' : ext === '.js' ? 'code' : ext === '.bin' ? 'Fuji elevation' : ext === '.woff2' ? 'sign fonts' : 'other';
   rows[kind] = (rows[kind] ?? 0) + wire;
 }
 const mb = (n) => (n / 1024 / 1024).toFixed(2) + ' MB';

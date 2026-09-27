@@ -15,8 +15,17 @@ import { TOWN, ROADS } from '../config.js';
 
 const key = (x, z) => `${x},${z}`;
 
-export function planNetwork() {
-  const G = TOWN.grid;
+/* The grid before the town pass took the two east lanes: every edge keeps
+ * the seed it had then (network.js seeds by list position), so the houses
+ * that frame the famous views stay the ones they were. */
+const LEGACY = (G) => ({
+  ...G,
+  ns: [...G.ns, { x: 62, cls: 'lane', z1: 144 }, { x: 92, cls: 'lane', z1: 144 }],
+  ew: G.ew.map((r) => ({ ...r, x1: 92 })),
+});
+
+/** Lines, nodes and edges of a grid; `slot` maps axis:c:start to an edge. */
+function gridEdges(G) {
   const nodes = {};
   const node = (x, z) => { nodes[key(x, z)] = [x, z]; return key(x, z); };
   const lines = [];   // { axis, c, from, to, cls, opts }
@@ -40,17 +49,28 @@ export function planNetwork() {
     }
   }
   const edges = [];
-  const edgeOf = new Map();
+  const slot = new Map();
   lines.forEach((l, i) => {
     const s = [...stops[i]].sort((p, q) => p - q);
     for (let k = 0; k + 1 < s.length; k++) {
       const [ax, az] = l.axis === 'x' ? [s[k], l.c] : [l.c, s[k]];
       const [bx, bz] = l.axis === 'x' ? [s[k + 1], l.c] : [l.c, s[k + 1]];
       const A = node(ax, az), B = node(bx, bz);
-      edgeOf.set(`${l.axis}:${l.c}:${s[k]}`, edges.length);
+      slot.set(`${l.axis}:${l.c}:${s[k]}`, edges.length);
       edges.push([A, B, l.cls, { ...l.opts }]);
     }
   });
+  return { nodes, edges, slot };
+}
+
+export function planNetwork() {
+  const G = TOWN.grid;
+  const { nodes, edges, slot } = gridEdges(G);
+  const old = gridEdges(LEGACY(G)).slot;
+  for (const [k, i] of slot) {
+    const j = old.get(k);
+    if (j !== undefined && edges[i][3].seed === undefined) edges[i][3].seed = 1000 + j * 17;
+  }
 
   /** Index of the edge on grid line (axis, c) that contains coordinate `at`. */
   const edgeAt = (axis, c, at) => {

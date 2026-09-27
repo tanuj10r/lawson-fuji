@@ -1396,3 +1396,51 @@ is closed. Measured rather than guessed:
   `--verbose`; a lock so parallel agents take turns; closing Chrome and the
   dev server when stopped. New spot `land-overview`; `town-overview-east`
   moved to see the town.
+
+## Town pass, phase 0: the smaller town and the land (2026-09-27)
+- **Tan's calls** (2026-09-26/27): the town may shrink; a river and
+  paddies where the old residential lane, fields and park stood (they had
+  no purpose left); animals yes, people not yet; keep today's cartoon look
+  (no film effects); a "Deer Park, coming soon" spot for a later place;
+  budgets are guides, seamless play is the test.
+- **The shrink.** The core's two east lanes (town x 62 and 92) went, and
+  the east-west lanes stop at x 52 with a guardrail. The main road keeps
+  its shops the whole length (lots ending before z 36 may run to x 97);
+  behind them, east of x 52, paddies. The shrine, small park, apartment,
+  vacant lot, spine, plaza and station are all kept.
+- **Seeds kept.** network.js seeds each edge by its list position, so
+  removing lanes re-drew every house in town, including the ones at the
+  famous views' edges (guard 1.4%). town-plan.js now gives every edge the
+  seed it had in the pre-pass grid (LEGACY): the houses are the ones they
+  were. Guard after: 0.248 / 0.348 / 0.143%.
+- **The land** (TOWN.land, town frame, north is -z): paddies from the far-
+  side row to the levee (z -9.5 to -40), the levee (1.4 m) and river
+  (z -46 to -62, 16 m), a far bank, paddies to the tree line, a farm track
+  from the main road's zebra (town x 35 = world x -35) over a bridge to the
+  Deer Park gate at the north fence. Named 桜川 (Sakuragawa: a common river
+  name, not Sakura Crossing's). Phase 0 builds it as flat placeholders with
+  final colliders; the river & paddies builder replaces the look.
+- **The gate's board** carries an English line ("Deer Park · coming soon")
+  under 鹿公園 近日公開. An exception to Japanese-only world text: it is a
+  message to players about the game, like a title card.
+- **Sign fonts.** M PLUS Rounded 1c Bold (every character in src/, 155 KB)
+  and Yuji Syuku (only src/data/town.js, 290 KB: a brush glyph costs about
+  0.6 KB, so the whole source would be 580 KB), both SIL OFL 1.1, subset
+  by `npm run fonts` from full fonts kept out of git in assets/fonts/.
+  Loaded by core/fonts.js with a top-level await before the town paints
+  its signs (build target es2022; desktop browsers only). Download 2.95 ->
+  3.38 MB (1.08 MB before the first click); ready time unchanged (4 s).
+- **A pole in the zebra.** The kit's main-road poles never knew about the
+  main road's own zebra (signals.js builds it in the world frame), and one
+  stood in its landing on the store side, 80 degrees off the famous views.
+  poles.js now keeps the hero edge clear of it; the walk to the gate needed
+  it.
+- **The walk test was stale.** ?m2check's town routes were still in the
+  pre-M2e.3 (unturned) coordinates and walked into walls; they go through
+  the town's frame now. All pass: spine to plaza 152 m, lanes loop 382 m,
+  road end to end 231 m, and the new one, store to the Deer Park gate over
+  the zebra, the track and the bridge, 114 m, never stuck.
+- **Cost of phase 0** (before -> after, famous view, headless Chrome on
+  Tan's M2): JS heap 482 -> 399 MB; textures 363 -> 366 MB (the gate
+  board); draw calls 756 -> 737; triangles 3.40 -> 2.83 M; ready 4.0 ->
+  3.1 s. Town overview: 870 -> 806 calls, 3.34 -> 2.50 M triangles.

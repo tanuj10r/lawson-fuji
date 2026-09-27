@@ -217,7 +217,10 @@ export const LOOKS = {
  *               railway along the south edge */
 export const TOWN = {
   bounds: { x0: -122, x1: 122, z0: -97, z1: 174 },
-  core: { x0: -97, x1: 97, z0: 20.5, z1: 168 },
+  /* The core's edges (fences, groves).  Lots are cut only west of buildX1,
+   * except the main road's frontage (lots ending before frontZ), which runs
+   * the whole road: east of buildX1 behind it lie paddies (town pass). */
+  core: { x0: -97, x1: 97, z0: 20.5, z1: 168, buildX1: 52, frontZ: 36 },
   /* Everything below is in the town's own frame, which is built turned
    * half round about the main road (world = (-x, 2*main - z)) so the town
    * stands between the Lawson and Fuji (M2e.3, world/ctx.js `turned`).
@@ -225,8 +228,6 @@ export const TOWN = {
    * station at the spine's end, the level crossing on lane x -80. */
   rail: { crossX: -80, z: 162, gauge: 1.067, spacing: 3.8 },
   crosswalk: { x: -35, width: 4 },              // zebra and signals on the main road
-  residential: { laneZ: -41, laneX0: -110, sideLaneX: -21.5 },
-  park: { x0: 22, x1: 70, z0: -58, z1: -12 },
   petals: { air: 150, trees: 250 },               // SPEC 11: 400 on Ultra -- M2's field, plus the fall from the town's sakura
   /* Grid lines of the core.  `ns` run south from the main road (z = main)
    * unless `z0` says otherwise; `ew` run between x0 and x1. */
@@ -239,14 +240,13 @@ export const TOWN = {
       { x: -25, cls: 'lane', z0: 28, z1: 144 },  // starts behind the Lawson's forecourt
       { x: 0, cls: 'lane', z0: 45, z1: 144 },
       { x: 30, cls: 'lane', z1: 144 },
-      { x: 62, cls: 'lane', z1: 144 },
-      { x: 92, cls: 'lane', z1: 144 },
     ],
+    // (the town pass took the two east lanes, x 62 and 92: paddies now)
     ew: [
-      { z: 45, x0: -80, x1: 92 },
-      { z: 80, x0: -80, x1: 92 },
-      { z: 112, x0: -80, x1: 92 },
-      { z: 144, x0: -25, x1: 92 },
+      { z: 45, x0: -80, x1: 52 },
+      { z: 80, x0: -80, x1: 52 },
+      { z: 112, x0: -80, x1: 52 },
+      { z: 144, x0: -25, x1: 52 },
     ],
   },
   plaza: { x0: -78, x1: -27, z0: 126, z1: 148 },
@@ -276,6 +276,21 @@ export const TOWN = {
    * the famous views stand. */
   frontRow: { z0: -7.5, z1: 7.3 },
   photoLot: [-32, -9, 27, 7.4],
+  /* The land (town quality pass), where M2's old town stood: north of the
+   * main road, behind the famous views, in the town's frame (north is -z).
+   * Rects are [x0, z0, x1, z1]; heights are tops in metres.  world/land/
+   * builds it; nothing else is placed here. */
+  land: {
+    near: [-118, -40, 118, -9.5],           // paddies between the road's far-side row and the levee
+    levee: { z0: -46, z1: -40, top: 1.4, crest: 2.4 },   // the town-side bank (堤防); a path on its crest
+    river: { z0: -62, z1: -46, bed: -1.2 },  // 16 m of water, its surface just below the ground
+    farBank: { z0: -65, z1: -62, top: 0.8 },
+    far: [-118, -95, 118, -65],             // paddies beyond the river, to the tree line
+    east: [54, 38, 95, 154],                // the freed block south of the road, behind its shops
+    track: { x: 35, w: 3.2, z0: -95, z1: -9.5 },          // farm track from the main road's zebra (world x -35)
+    bridge: { x: 35, w: 4.2, z0: -66, z1: -40 },           // carries the track over the river
+    deerGate: { x: 35, z: -95.5 },          // 鹿公園, coming soon (a later place hangs off it)
+  },
 };
 
 /* The flat ground plane under everything. */
@@ -391,6 +406,8 @@ export const SHOT_SPOTS = [
   { name: 'town-overview', scene: 'town', pos: [0, 0, 95], yaw: 0, pitch: -0.5, lift: 95, looks: ['golden'], frame: 'world' },
   { name: 'town-overview-east', scene: 'town', pos: [150, 0, 80], yaw: -1.5708, pitch: -0.55, lift: 80, looks: ['day'] },
   // the land north of the main road (town pass): paddies, the river, the Deer Park gate
+  { name: 'land-track', scene: 'town', pos: [35, 0, -9], yaw: 0, pitch: 0.02, looks: ['day', 'golden'] },
+  { name: 'land-gate', scene: 'town', pos: [35, 0, -89], yaw: 0, pitch: 0.04, looks: ['day'] },
   { name: 'land-overview', scene: 'town', pos: [0, 0, 12], yaw: 3.1416, pitch: -0.5, lift: 60, looks: ['day', 'golden'], frame: 'world' },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
@@ -423,8 +440,8 @@ export const PLACES = [
   { id: 'station', kind: 'station', jp: 'さくら富士駅', en: 'Sakura-Fuji Station', at: [-51, 151.5] },
   { id: 'crossing', kind: 'crossing', jp: '踏切', en: 'Level crossing', at: [-80, 162] },
   { id: 'parking', kind: 'parking', jp: 'コインパーキング', en: 'Coin parking', at: [50, 27] },
-  { id: 'oldLane', kind: 'home', jp: '住宅街', en: 'Old residential lane', at: [-60, -41] },
-  { id: 'oldPark', kind: 'park', jp: '公園', en: 'Old park', at: [46, -35] },
+  { id: 'river', kind: 'park', jp: '桜川', en: 'River and paddies', at: [0, -43] },
+  { id: 'deerGate', kind: 'park', jp: '鹿公園', en: 'Deer Park (coming soon)', at: [35, -92] },
 ];
 /** A place's world position (x, z). */
 export function placeAt(p) {

@@ -1,17 +1,15 @@
 import * as THREE from 'three';
 import { cel, flat } from '../core/toon.js';
 import { TOWN, STREET, LAWSON, mainRoadGaps } from '../config.js';
-import { makeHouse, makeWall, makeTimberFence, makeBlockFence } from './buildings.js';
-import { buildGrove, buildShrubs } from './trees.js';
-import { plant } from './kit/green.js';
+import { makeTimberFence } from './buildings.js';
+import { buildGrove } from './trees.js';
 import {
-  makePole, makeWires, makeBicycle, makePlanter, makeBarrier, makeCone,
-  makeBench, makeTapPost, makeLaundryPole, makeBikeRack, makeSignPost, makeAircon,
+  makePole, makeWires, makeBicycle, makeBarrier, makeCone, makeBikeRack, makeSignPost,
 } from './props.js';
 import { addVending } from './vending.js';
 import { parkVehicle } from './vehicles.js';
 import { buildSignals } from './signals.js';
-import { closedBoard, binLabel, fieldTex } from './town-tex.js';
+import { closedBoard, binLabel } from './town-tex.js';
 
 /* ------------------------------------------------------------------ *
  * The town's north side (SPEC section 3): M2's frame-edge blocks, kept
@@ -72,9 +70,10 @@ function walk(ctx, x0, x1, z0, z1, mat) {
  *                       spot see -- the main road's walks, ends, crossing
  *                       and signals, the Lawson's own dressing, and the two
  *                       sakura framing the view
- *   buildOldTown(ctx)   the turned frame: M2's residential lane, fields,
- *                       park, their poles and wires, and the edge's tree
- *                       lines and fence (coordinates as M2 authored them) */
+ *   buildOldTown(ctx)   the turned frame: the main road's north poles and
+ *                       wires, and the edge's tree lines and fence (M2's
+ *                       lane, fields and park gave way to the land, town
+ *                       pass) */
 
 export function buildFrame(ctx) {
   const S = STREET;
@@ -164,148 +163,8 @@ export function buildFrame(ctx) {
 
 export function buildOldTown(ctx) {
   const B = TOWN.bounds;
-  const mats = Object.fromEntries(Object.entries(MAT).map(([k, f]) => [k, f()]));
-
-  /* ============================ residential lane ============================ */
-  {
-    const R = TOWN.residential;
-    const z = R.laneZ;
-    ctx.add(patch(R.laneX0, R.sideLaneX + 2.5, z - 2.5, z + 2.5, 0.005, mats.lane));
-    ctx.add(patch(R.sideLaneX - 2.5, R.sideLaneX + 2.5, z + 2.5, 0, 0.005, mats.lane));
-    ctx.add(makeTimberFence({ x: R.laneX0 - 0.4, z, y: 0, len: 5.2, axis: 'z', h: 1.6 }));
-    ctx.collide(R.laneX0 - 0.7, z - 2.6, R.laneX0 - 0.1, z + 2.6, 1.6);
-
-    const xs = [-32, -45, -58, -71, -84, -97];
-    const widths = [7.4, 6.6, 7.2, 6.8, 7.4, 6.6];
-    const fenceKinds = [makeBlockFence, makeTimberFence, makeWall];
-    const bikeCols = [0x3f6f9c, 0xd8a03c, 0x9c5a4a, 0x4f8f6a, 0xe8e2d4, 0x8f6fb5];
-    let n = 0;
-    for (const side of [1, -1]) {                 // 1: between lane and main road
-      xs.forEach((x, i) => {
-        const w = widths[(i + (side > 0 ? 0 : 3)) % widths.length];
-        const dd = 7.0;
-        const hz = side > 0 ? z + 2.5 + 2.2 + dd / 2 : z - 2.5 - 2.2 - dd / 2;
-        const seed = 600 + n;
-        const floors = (i + (side > 0 ? 0 : 1)) % 3 === 0 ? 1 : 2;
-        ctx.add(makeHouse({
-          x, z: hz, y: 0, w, d: dd, face: side > 0 ? 'z-' : 'z+', floors, seed,
-          wall: (n * 3) % 8, roof: n % 4, roofKind: ['gable', 'hip', 'gable', 'flat'][n % 4],
-        }));
-        ctx.collide(x - w / 2 - 0.1, hz - dd / 2 - 0.1, x + w / 2 + 0.1, hz + dd / 2 + 0.1, 2.72 * floors);
-        ctx.registry?.push({ kind: 'building', x, z: hz, rect: [x - w / 2, hz - dd / 2, x + w / 2, hz + dd / 2] });
-        // garden wall along the lane, with the gate gap on one side
-        const fz = side > 0 ? z + 2.5 + 0.35 : z - 2.5 - 0.35;
-        const gate = (n % 2 ? 1 : -1) * (w / 2 - 1.1);
-        const segs = [[x - w / 2 - 0.4, x + gate - 0.6], [x + gate + 0.6, x + w / 2 + 0.4]];
-        for (const [a, b] of segs) {
-          if (b - a < 0.6) continue;
-          const f = fenceKinds[n % 3]({ x: (a + b) / 2, z: fz, y: 0, len: b - a, axis: 'x', h: 0.8, fence: n % 2 === 0 });
-          ctx.add(f);
-          ctx.collide(a, fz - 0.18, b, fz + 0.18, f.userData.top ?? 1.0);
-        }
-        // the garden: a bicycle by the gate, pots, washing on the side
-        const gz = (fz + (side > 0 ? hz - dd / 2 : hz + dd / 2)) / 2;
-        ctx.add(makeBicycle({ x: x + gate, z: gz, y: 0, ry: Math.PI / 2 + 0.1 * side, lean: 0.07, color: bikeCols[n % bikeCols.length] }));
-        ctx.collide(x + gate - 0.3, gz - 0.9, x + gate + 0.3, gz + 0.9, 1.0);
-        ctx.add(makePlanter({ x: x - gate * 0.5, z: gz, y: 0, r: 0.22, flower: true, seed: 700 + n, n: 5 }));
-        ctx.add(makePlanter({ x: x - gate * 0.5 + 0.6, z: gz + 0.2, y: 0, r: 0.18, flower: n % 2 === 0, seed: 720 + n, n: 4 }));
-        ctx.collide(x - gate * 0.5 - 0.3, gz - 0.3, x - gate * 0.5 + 0.85, gz + 0.45, 0.7);
-        if (n % 3 !== 1) {
-          ctx.add(makeLaundryPole({ x: x + w / 2 + 0.9, z: hz, y: 0, ry: Math.PI / 2, len: 2.4, h: 1.9, seed: 740 + n }));
-          ctx.collide(x + w / 2 + 0.6, hz - 1.3, x + w / 2 + 1.2, hz + 1.3, 1.9);
-        }
-        if (n % 2) {
-          ctx.add(makeAircon({ x: x - w / 2 - 0.35, z: hz + 1.2, y: 0, ry: -Math.PI / 2 }));
-          ctx.collide(x - w / 2 - 0.75, hz + 0.7, x - w / 2, hz + 1.7, 0.8);
-        }
-        n++;
-      });
-    }
-  }
-
-  /* ============================ fields and fill ============================
-   * The open ground between the zones is farmland, which is what the edge of
-   * a town under Fuji actually is: three vegetable fields. */
-  {
-    const fields = [
-      // (pulled back from the main road: its far side is a row of shops now, M2e)
-      [-114, -42, -24, -9, 0],    // west, between the lane and the main road
-      [76, 114, -56, -9, 1],      // east of the park
-    ];
-    for (const [x0, x1, z0, z1, v] of fields) {
-      const tex = fieldTex(v).clone();
-      tex.repeat.set((x1 - x0) / 8, (z1 - z0) / 8);
-      tex.needsUpdate = true;
-      const f = patch(x0, x1, z0, z1, 0.007, cel({ color: 0xffffff, bands: 3, tint: 0x6f5a80, map: tex }));
-      ctx.add(f);
-      // a low ridge of earth round each, so the edge reads
-      for (const [a, b, c, d] of [[x0, x1, z0 - 0.3, z0], [x0, x1, z1, z1 + 0.3], [x0 - 0.3, x0, z0, z1], [x1, x1 + 0.3, z0, z1]]) {
-        ctx.add(slab(a, b, 0, 0.12, c, d, mats.gravel));
-      }
-    }
-
-    // (M2's two low houses behind the store went: the town's lots stand there now)
-  }
-
-  /* ================================== park ================================== */
-  {
-    const P = TOWN.park;
-    ctx.add(patch(P.x0, P.x1, P.z0, P.z1, 0.006, mats.lawn));
-    const midX = (P.x0 + P.x1) / 2, midZ = (P.z0 + P.z1) / 2;
-    ctx.add(patch(midX - 1.1, midX + 1.1, P.z0, 8.3, 0.009, mats.gravel));   // path in from the walk
-    ctx.add(patch(P.x0, P.x1, midZ - 1.1, midZ + 1.1, 0.009, mats.gravel));
-    // low fence with openings on the paths
-    const fences = [
-      [P.x0, midX - 1.4, P.z1, 'x'], [midX + 1.4, P.x1, P.z1, 'x'],
-      [P.x0, P.x1, P.z0, 'x'],
-      [P.z0, midZ - 1.4, P.x0, 'z'], [midZ + 1.4, P.z1, P.x0, 'z'],
-      [P.z0, midZ - 1.4, P.x1, 'z'], [midZ + 1.4, P.z1, P.x1, 'z'],
-    ];
-    for (const [a, b, at, axis] of fences) {
-      const c = (a + b) / 2;
-      const f = makeTimberFence(axis === 'x'
-        ? { x: c, z: at, y: 0, len: b - a, axis: 'x', h: 0.7 }
-        : { x: at, z: c, y: 0, len: b - a, axis: 'z', h: 0.7 });
-      ctx.add(f);
-      if (axis === 'x') ctx.collide(a, at - 0.15, b, at + 0.15, 0.9);
-      else ctx.collide(at - 0.15, a, at + 0.15, b, 0.9);
-    }
-    for (const [x, z, ry] of [[midX - 6, midZ - 1.9, 0], [midX + 7, midZ + 1.9, Math.PI], [midX - 1.9, P.z0 + 12, Math.PI / 2]]) {
-      ctx.add(makeBench({ x, z, y: 0, ry, len: 1.8 }));
-      const c = Math.abs(Math.sin(ry)) > 0.5;
-      ctx.collide(x - (c ? 0.35 : 0.95), z - (c ? 0.95 : 0.35), x + (c ? 0.35 : 0.95), z + (c ? 0.95 : 0.35), 0.8);
-    }
-    // the drinking fountain
-    ctx.add(makeTapPost({ x: midX + 2.2, z: midZ + 2.4, y: 0, h: 0.9 }));
-    ctx.collide(midX + 1.9, midZ + 2.1, midX + 2.5, midZ + 2.7, 1.0);
-    const shrubs = [
-      { x: P.x0 + 3, z: P.z1 - 3, r: 0.6, count: 5, spread: 2.2, seed: 811, y: 0 },
-      { x: P.x1 - 3, z: P.z1 - 3, r: 0.6, count: 5, spread: 2.2, seed: 812, y: 0 },
-      { x: P.x0 + 3, z: P.z0 + 3, r: 0.6, count: 5, spread: 2.2, seed: 813, y: 0 },
-      { x: P.x1 - 4, z: P.z0 + 4, r: 0.6, count: 5, spread: 2.2, seed: 814, y: 0 },
-    ];
-    buildShrubs(ctx, shrubs);
-    for (const b of shrubs) ctx.collide(b.x - b.spread / 2 - 0.4, b.z - b.spread / 2 - 0.4, b.x + b.spread / 2 + 0.4, b.z + b.spread / 2 + 0.4, 1.0);
-  }
-
-  /* ================================= sakura ================================= */
-  {
-    const spots = [
-      // the park (the two framing the view are buildFrame's)
-      { x: 30, z: -20, scale: 1.15, seed: 1103, lean: 0.07 },
-      { x: 42, z: -17, scale: 1.05, seed: 1104, lean: 0.1 },
-      { x: 58, z: -22, scale: 1.2, seed: 1105, lean: 0.06 },
-      { x: 33, z: -45, scale: 1.1, seed: 1106, lean: 0.09 },
-      { x: 50, z: -50, scale: 1.25, seed: 1107, lean: 0.05 },
-      { x: 63, z: -40, scale: 1.0, seed: 1108, lean: 0.08 },
-    ];
-    // the town's painted cherry (kit/sakura.js), batched with the rest
-    ctx.sakura.push(...spots.map((s) => ({ ...s, y: 0 })));
-    // and green among them (M2e): camphors on the park's far side, a pine by the lane
-    plant(ctx, 'camphor', { x: 66, z: -52, y: 0, scale: 1.3, seed: 1121 });
-    plant(ctx, 'camphor', { x: 26, z: -54, y: 0, scale: 1.1, seed: 1122 });
-    plant(ctx, 'zelkova', { x: 68, z: -15, y: 0, scale: 1.0, seed: 1123 });
-  }
+  // (town pass) M2's residential lane, its fields and the old park went:
+  // the land north of the road is paddies and a river now (world/land/)
 
   /* ============================ poles and wires ============================ */
   {
@@ -321,7 +180,6 @@ export function buildOldTown(ctx) {
      * laid the nearest pair's shadow across the sign.  The real store has
      * no overhead lines in front of it either. */
     const north = [-104, -74, -44, 44, 74, 104].map((x, i) => pole(x, 9.4, 9.2, 1201 + i, { lamp: i % 2 === 0, armDir: 1 }));
-    const res = [-48, -73, -98].map((x, i) => pole(x, TOWN.residential.laneZ - 3.1, 8.6, 1241 + i, { lamp: true, armDir: 1 }));
 
     const at = (i, dy = 0, dz = 0) => new THREE.Vector3(poles[i].x, poles[i].top - 0.6 + dy, poles[i].z + dz);
     const runs = [];
@@ -330,9 +188,6 @@ export function buildOldTown(ctx) {
     };
     chain(north.slice(0, 3), [[0, -0.6], [-0.42, 0], [-0.86, 0.6]]);
     chain(north.slice(3), [[0, -0.6], [-0.42, 0], [-0.86, 0.6]]);
-    chain(res, [[0, -0.5], [-0.5, 0.5]]);
-    // out to the residential lane
-    chain([north[2], res[0]], [[-1.2, 0]]);
     makeWires(ctx, runs);
   }
 

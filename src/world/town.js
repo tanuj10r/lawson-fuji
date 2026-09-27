@@ -11,6 +11,7 @@ import { buildCore } from './town-core.js';
 import { buildPetals } from './petals.js';
 import { mergeStatic } from './merge.js';
 import { buildTownSakura } from './kit/sakura.js';
+import { buildLand } from './land/index.js';
 
 /* ------------------------------------------------------------------ *
  * The town (SPEC section 3).
@@ -68,6 +69,7 @@ export function buildTown(scene) {
   const frame = buildFrame(ctx);
   T.sakura = [];                 // the old town's trees join the town's batch
   buildOldTown(T);
+  buildLand(T);                  // paddies, the river, the Deer Park gate (town pass)
   // the Lawson's lot is worn with the town's own decals (oil, scuffs,
   // patches), placed in world terms and turned into the town's frame
   T.onDecals = (decals) => dressLawsonGround({

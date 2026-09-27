@@ -64,6 +64,7 @@ the current milestone needs.
 - One milestone per session (SPEC section 12). Propose a short plan, wait
   for OK, implement, then check every acceptance item and report pass/fail.
 - Log judgement calls in DECISIONS.md.
+- Specialist builders (town pass): docs/BUILDERS.md, their files only.
 - Keep this file under 80 lines.
 
 ## Commands
@@ -71,4 +72,5 @@ the current milestone needs.
 - npm run dev     (dev server)
 - npm run audio   (assets/audio/ -> public/audio/, AAC, 3 MB budget)
 - npm run size    (first-visit download; report it when it grows)
+- npm run fonts   (assets/fonts/ -> subset sign fonts in src/assets/fonts/)
 - npm run build   (static dist/)

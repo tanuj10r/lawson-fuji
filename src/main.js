@@ -1,3 +1,4 @@
+import './core/fonts.js';     // first: the sign fonts are ready before the town paints its signs
 import * as THREE from 'three';
 import { PAL } from './core/palette.js';
 import { Pipeline } from './core/post.js';
@@ -736,8 +737,10 @@ if (import.meta.env?.DEV) {
         player.locked = false;
         log(`walk ${name}: ${t.toFixed(0)} s, ${dist.toFixed(0)} m, stuck ${stuck}`);
       };
+      // routes authored in the town's own frame (built turned, M2e.3)
+      const inTown = (pts) => pts.map(([x, z]) => { const w = world.frame.toWorld({ x, z }); return [w.x, w.z]; });
       // M2b: the famous view -> down the spine -> the plaza
-      walkRoute('spine-to-plaza', [[0, 18.6], [-48.4, 18.6], [-48.4, 124]]);
+      walkRoute('spine-to-plaza', inTown([[0, 18.6], [-48.4, 18.6], [-48.4, 124]]));
       /* The walker steers straight at each waypoint, so pavements are checked
        * separately: at every 0.25 m along the spine's two pavements there has
        * to be a gap the player (0.34 m round) fits through. */
@@ -756,9 +759,9 @@ if (import.meta.env?.DEV) {
         }
       }
       // a loop round the lanes of the core
-      walkRoute('lanes-loop', [[-25.5, 19.5], [-25.5, 80], [92, 80], [92, 146], [0, 146], [0, 112], [-50, 112], [-50, 45], [-25.5, 45]]);
-      // the north side: the residential lane behind the store
-      walkRoute('north-lane', [[-21.5, 20], [-21.5, 5], [-21.5, -41], [-108, -41]]);
+      walkRoute('lanes-loop', inTown([[-25.5, 19.5], [-25.5, 80], [30, 80], [30, 146], [0, 146], [0, 112], [-50, 112], [-50, 45], [-25.5, 45]]));
+      // the north side (town pass): over the zebra, up the farm track, over the bridge to the Deer Park gate
+      walkRoute('to-the-gate', [[-35, 6], [-35, 21], [-35, 38], [-35, 120]]);   // world: the zebra is at x -35
       // the barricade west to the barricade east, along the main road
       walkRoute('road-end-to-end', [[-116, 13.8], [116, 13.8]]);
 

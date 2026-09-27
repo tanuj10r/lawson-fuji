@@ -55,6 +55,9 @@ chose to use it (DECISIONS.md, M3d).
   (https://www.youtube.com/@JoonasGebhard,
   https://www.youtube.com/watch?v=9Lott0KfVLg), used with credit
 - Clerk voice: VOICEVOX:<character name>
+- Sign fonts (SIL Open Font License 1.1, subset): M PLUS Rounded 1c by
+  the Rounded M+ Project Authors; Yuji Syuku by the Yuji Project Authors
+  (Kinuta Font Factory)
 - three.js and Vite (MIT)
 
 ## Disclaimer

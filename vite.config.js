@@ -65,7 +65,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    target: 'es2020',
+    target: 'es2022',       // top-level await: the sign fonts load before the town draws (desktop browsers only)
     assetsInlineLimit: 0,
     // three.js is one big chunk on purpose, so the size warning is just noise
     chunkSizeWarningLimit: 1200,

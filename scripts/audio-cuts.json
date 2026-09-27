@@ -179,6 +179,24 @@
       "kbps": 40,
       "_": "the shrine's wind chimes, heard in its grounds"
     },
+    "shrine-bell": {
+      "ext": ".wav",
+      "start": 0.0,
+      "len": 2.3,
+      "peak": 0.7,
+      "kbps": 40,
+      "fadeOut": 0.3,
+      "_": "the bell cluster shaken on its rope (made by scripts/make-shrine-sounds.mjs)"
+    },
+    "shrine-clap": {
+      "ext": ".wav",
+      "start": 0.0,
+      "len": 0.5,
+      "peak": 0.8,
+      "kbps": 40,
+      "fadeOut": 0.1,
+      "_": "one hand clap in the shrine's courtyard (made by scripts/make-shrine-sounds.mjs)"
+    },
     "rural-flute": {
       "src": "Rural-japan-flute",
       "start": 0.0,

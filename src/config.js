@@ -401,6 +401,15 @@ export const SHOT_SPOTS = [
   { name: 'town-lane-houses', scene: 'town', pos: [52, 0, 79.4], yaw: 1.5708, pitch: 0.04, looks: ['day', 'blue'], ref: '03-street-shrine-house.png' },
   { name: 'town-lane-junction', scene: 'town', pos: [-25.6, 0, 62], yaw: 3.1416, pitch: 0.02, looks: ['day'], ref: '09-konbini-corner-tomare.png' },
   { name: 'town-shrine', scene: 'town', pos: [11, 0, 77.6], yaw: 2.9, pitch: 0.05, looks: ['day'], ref: '04-shrine-pole-ramen.png' },
+  // the Inari shrine (experience 3): lot x 6..20, z 82.7..101.5, frontage on lane z 80
+  { name: 'shrine-approach', scene: 'town', pos: [13, 0, 77.5], yaw: 3.1416, pitch: 0.09, looks: ['day'] },
+  { name: 'shrine-tunnel', scene: 'town', pos: [13, 0, 88.2], yaw: 3.1416, pitch: 0.05, looks: ['day'] },
+  { name: 'shrine-hall', scene: 'town', pos: [7.4, 0, 90.7], yaw: -2.35, pitch: 0.13, looks: ['day'] },
+  { name: 'shrine-fox', scene: 'town', pos: [13.4, 0, 85.15], yaw: -1.95, pitch: 0.1, looks: ['day'] },
+  { name: 'shrine-golden', scene: 'town', pos: [13.1, 0, 92.2], yaw: 0.04, pitch: 0.03, looks: ['golden'] },
+  { name: 'shrine-back', scene: 'town', pos: [13.1, 0, 93.3], yaw: 0.04, pitch: 0.02, looks: ['day'] },   // walking out: the donors' names
+  { name: 'shrine-night', scene: 'town', pos: [13, 0, 80.9], yaw: 3.1416, pitch: 0.08, looks: ['blue'] },
+  { name: 'shrine-overview', scene: 'town', pos: [13, 0, 76], yaw: 3.1416, pitch: -0.75, lift: 16, looks: ['day'] },
   { name: 'town-coin-parking', scene: 'town', pos: [50, 0, 18.6], yaw: 3.1416, pitch: 0.0, looks: ['day'] },   // moved west of the store (M2e.3)
   { name: 'town-apartment', scene: 'town', pos: [28.2, 0, 83], yaw: -2.4, pitch: 0.06, looks: ['day'] },
   { name: 'town-vacant', scene: 'town', pos: [47, 0, 113.6], yaw: 0.35, pitch: 0.0, looks: ['golden'] },

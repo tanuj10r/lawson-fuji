@@ -151,17 +151,25 @@ function stoneGeo() {
  * pass (which reads depth) draws no line round every blade and petal:
  * grass and flowers read as painted texture, not scribble.  `up`: normals
  * straight up, lit like the ground they grow from (no band noise). */
+/** A lotus or lily pad: a flat disc with its notch. */
+function padGeo() {
+  const g = new THREE.CircleGeometry(1, 14, 0.25, Math.PI * 2 - 0.5);
+  g.rotateX(-Math.PI / 2);
+  return g;
+}
+
 const KINDS = {
   tuft: { geo: tuftGeo, color: 0xffffff, tint: 0x6a7a8a, side: THREE.DoubleSide, soft: true, up: true },
   reed: { geo: reedGeo, color: 0xffffff, tint: 0x7a7088, side: THREE.DoubleSide, up: true },
   head: { geo: headGeo, color: 0xffffff, tint: 0xb090b0, soft: true, up: true },
   stone: { geo: stoneGeo, color: 0xffffff, tint: 0x5e5a78, smooth: true },
+  pad: { geo: padGeo, color: 0xffffff, tint: 0x5a7a70, up: true },
 };
 
 /** Instances of every small kind, gathered from all the land's parts, then
  * built as one InstancedMesh per kind. */
 export function makeScatter() {
-  const lists = { tuft: [], reed: [], head: [], stone: [] };
+  const lists = { tuft: [], reed: [], head: [], stone: [], pad: [] };
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(), p = new THREE.Vector3();
   return {
     lists,

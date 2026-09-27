@@ -111,6 +111,9 @@ export const LAND_SIGNS = {
   paddy: ['田んぼに', '入らないでください'],   // on the farm track, by the flooded plots
   pump: ['揚水機場'],                           // the pump shed's plate
 };
+/** The pond beyond the river (Tan's bench by the water in Nara, made our
+ * own): its name stone, and the tea house's curtain. */
+export const POND = { jp: '鏡池', kana: 'かがみいけ', teahouse: 'かがみ茶屋' };
 /** The board on the closed gate at the far side of the paddies: a place to
  * come (Tan's Deer Park).  The English line is for players, on purpose. */
 export const DEER_PARK = { jp: '鹿公園', soon: '近日公開', en: 'Deer Park · coming soon' };

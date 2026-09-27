@@ -28,9 +28,9 @@ import { makeHan, POSES, blendPose } from './han.js';
 
 /** The bay Han's car stands in (town frame): parking.js keeps it and its
  * neighbours free of parked cars. */
-export const HAN_BAY = { x: 22.95, z: 4.7, keep: 5.1 };
+export const HAN_BAY = { x: 24.15, z: 4.7, keep: 5.1 };   // the car park's reserved bay (land/parking.js: the road row's east end)
 /** The glow Han waits by: step in and he goes. */
-export const HAN_SPOT = { x: 20.5, z: 4.2, r: 0.85 };
+export const HAN_SPOT = { x: HAN_BAY.x - 2.45, z: 4.2, r: 0.85 };
 
 const SONG = 17.74;            // han-drift's length
 const T_IN = 2.8;              // Han is in and the door shut: the drive starts

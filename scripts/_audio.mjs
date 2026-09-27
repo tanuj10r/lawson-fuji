@@ -140,11 +140,6 @@ const ctl = await page.evaluate(async () => {
   player.pos.set(-4, player.pos.y, -8);
   await new Promise((r) => setTimeout(r, 600));
   seen.store = read();
-  window.__store.setPanel(true);
-  await new Promise((r) => setTimeout(r, 500));
-  seen.panel = read();
-  window.__store.setPanel(false);
-  await new Promise((r) => setTimeout(r, 500));
   window.__scene.enterHero('golden');
   await new Promise((r) => setTimeout(r, 600));
   seen.famousView = read();
@@ -152,8 +147,8 @@ const ctl = await page.evaluate(async () => {
 });
 check('the keys shown follow the place',
   ctl.town.includes('M') && ctl.town.includes('Shift') && !ctl.town.includes('Tab')
-  && ctl.store.includes('Tab') && ctl.store.includes('E') && !ctl.store.includes('Shift')
-  && ctl.panel.join() === 'W / S,X,Tab' && ctl.famousView.join() === 'WASD,1 2 3', ctl);
+  && ctl.store.includes('E') && !ctl.store.includes('Tab')
+  && ctl.famousView.join() === 'WASD,1 2 3', ctl);   // (the basket panel went with the konbini rework: its keys are the store's)
 
 check('no 404s', missing.length === 0, missing);
 check('the first frame did not wait on audio', firstFrame < 60 && before.fetched === 0, { readyS: firstFrame });

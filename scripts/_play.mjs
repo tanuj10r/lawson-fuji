@@ -292,6 +292,49 @@ try {
     return { what, seated, standing: !player.seat, toasts: window.__toasts.slice(), audible: window.__audible(), frame };
   }, (r) => r.seated && r.standing && r.toasts.every(english));
 
+  /* ---- one experience must not break another ---- */
+  // a famous-view key while seated: it only stands you up (the player's rule)
+  await step('40-seated-key', async () => {
+    const { player } = window.__scene;
+    const s = window.__spotOf('slowlife');
+    window.__standBy(s.x, s.z, 2.0, 0.5);
+    await window.__wait(300);
+    window.__press('KeyE');
+    await window.__wait(2000);
+    window.__press('Digit1');
+    await window.__wait(1800);
+    return { seat: !!player.seat, at: [+player.pos.x.toFixed(1), +player.pos.z.toFixed(1)], d: +Math.hypot(player.pos.x - s.x, player.pos.z - s.z).toFixed(1) };
+  }, (r) => !r.seat && r.d < 4);
+  // a famous-view key mid-prayer: the prayer lets go of the view
+  await step('41-prayer-then-view', async () => {
+    const { player } = window.__scene;
+    const s = window.__spotOf('shrine');
+    window.__standBy(s.x, s.z, 2.0, 0.9);
+    await window.__wait(300);
+    window.__press('KeyE');
+    await window.__wait(1500);
+    window.__press('KeyM');                       // no map while the prayer holds you
+    await window.__wait(200);
+    const mapOpen = !document.querySelector('.fullmap').classList.contains('hidden');
+    window.__press('Digit1');
+    await window.__wait(1500);
+    return { mapOpen, suspended: player.suspended, yaw: +player.yaw.toFixed(2), pitch: +player.pitch.toFixed(2), at: [+player.pos.x.toFixed(1), +player.pos.z.toFixed(1)] };
+  }, (r) => !r.mapOpen && !r.suspended && r.at[0] === 0 && r.at[1] === 16.5);
+  // Han's show, then straight into the store: nothing of his keeps going
+  await step('42-han-then-store', async () => {
+    const { sound } = window.__scene;
+    const s = window.__spotOf('han');
+    window.__standBy(s.x, s.z, 2.0, 0.9);
+    await window.__wait(300);
+    window.__press('KeyE');
+    await window.__wait(1000);
+    const running = window.__han.state().run;
+    const { player, world } = window.__scene;
+    player.pos.set(-2.3, world.heightAt(-2.3, -3), -3);
+    await window.__wait(800);
+    return { running, inside: sound.debug?.state?.inside ?? null, audible: window.__audible() };
+  });
+
   // the Osaka posters are framed by shots.mjs (poster-station, poster-gate)
 
   // every spot's glow and marker from 4.5 m: nothing under things, in walls or overlapping

@@ -52,13 +52,6 @@
       "kbps": 40,
       "fadeOut": 0.08
     },
-    "microwave-ding": {
-      "start": 0.0,
-      "len": 1.1,
-      "peak": 0.7,
-      "kbps": 40,
-      "fadeOut": 0.2
-    },
     "stamp": {
       "event": 2,
       "len": 0.4,

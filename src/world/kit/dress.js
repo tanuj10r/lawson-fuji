@@ -103,8 +103,9 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
         if (net.quiet(p.x, p.z)) continue;
         const dTree = walk ? e.t + 1.2 : e.a + 1.4;
         if (w > 6 && r.chance(0.55)) {
-          if (hitsBuilding(mid - 1.2, mid + 1.2, dTree - 1.2, dTree + 1.2)) continue;
-          trees.push({ x: p.x, z: p.z, y: 0, scale: r.range(0.9, 1.2), seed: e.seed * 7 + Math.round(mid) });
+          const scale = r.range(0.9, 1.2);           // (drawn first: a skipped tree moves nothing else)
+          if (hitsBuilding(mid - 0.35, mid + 0.35, dTree - 0.35, dTree + 0.35)) continue;   // a trunk in a house
+          trees.push({ x: p.x, z: p.z, y: 0, scale, seed: e.seed * 7 + Math.round(mid) });
           ctx.collide(p.x - 0.35, p.z - 0.35, p.x + 0.35, p.z + 0.35, 3);
           reg('prop', p);
           if (w > 9) put(makePlanter({ x: 0, y: 0, z: 0, r: 0.3, flower: true, seed: e.seed + Math.round(a), n: 6 }), a + 1.2, 'prop', 0.3, 0.8);
@@ -115,6 +116,7 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
         } else if (walk && w > 4 && r.chance(0.5)) {
           const q = net.at(e, mid, off);
           const roomy = walkRoom(ctx, net, e, side, mid - 1.9, mid + 2.6, e.t - 0.95, e.t) >= WALK_CLEAR;
+          const gashapon = !net.quiet(q.x, q.z) && r.chance(0.5);   // (drawn either way: nothing else moves)
           if (!net.quiet(q.x, q.z) && roomy) {
             addVending(ctx, { detail: true, x: q.x, y, z: q.z, ry, variant: Math.round(mid) % 3, seed: e.seed + Math.round(mid) });
             ctx.night?.pool(q.x, q.z, 2.4, { y, color: 0xe8f0ff, strength: 0.8 });
@@ -124,7 +126,7 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
             put(vb, mid + 2.2, 'prop', 0.3, 1.0);
             reg('prop', q); reg('prop', b2);
             // and, as often as not, a bank of capsule-toy machines beside them
-            if (r.chance(0.5) && w > 5.2) {
+            if (gashapon && w > 5.2) {
               const gp = net.at(e, mid - 1.3, off);
               if (!net.quiet(gp.x, gp.z)) {
                 kit.clutter?.put('gashapon', gp.x, y, gp.z, ry);

@@ -544,6 +544,7 @@ export const DRIVEWAYS = {
   north: [[-56.8, -51.6]],
   ramp: 0.8,      // each side, from the kerb's height down to `drop`
   drop: 0.04,     // the lowered walk's top
+  zebraBand: 0.9, // at a zebra only this much of the walk drops, from the kerb (shop fronts and the guide line keep their level)
 };
 
 /** Where the main road's north walk breaks for the town's roads that meet it (world x). */

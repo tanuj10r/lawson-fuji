@@ -111,7 +111,7 @@ export function buildRoads(ctx, net, decals) {
           const [t0, t1] = [e.c + Math.min(o0, o1), e.c + Math.max(o0, o1)];
           const k = droppedKerb({
             x0: at - HALF, x1: at + HALF, z0: t0, z1: t1, roadZ: e.c + o0, k: WY, drop: ROADS.asphaltY + 0.025, ramp: R,
-            walkMat: m.walk, kerbMat: m.kerb, axis: e.axis, base: WY - 0.2, tile: PAVER_TILE,
+            walkMat: m.walk, kerbMat: m.kerb, axis: e.axis, base: WY - 0.2, tile: PAVER_TILE, band: DRIVEWAYS.zebraBand,
           });
           for (const q of k.meshes) group.add(q);
           for (const p of k.platforms) ctx.platform(p);
@@ -220,6 +220,8 @@ export function buildRoads(ctx, net, decals) {
           const o = e.cls === 'shopping' ? (r.chance(0.5) ? r.range(0.35, 0.7) : r.range(1.5, spec.walk - 0.3)) : r.range(0.5, spec.walk - 0.4);
           const p = net.at(e, s, side * (e.a + o));
           if (net.quiet(p.x, p.z)) continue;
+          // not on a zebra's dropped band, where a lid would float
+          if (o < DRIVEWAYS.zebraBand + 0.3 && net.crossings.some((c) => c.e === e && Math.abs(s - c.at) < 1.6 + DRIVEWAYS.ramp + 0.3)) continue;
           const gas = r.chance(0.5);
           decals.add(gas ? 'gasLid' : 'valveLid', p.x, p.z, gas ? 0.26 : 0.32, gas ? 0.26 : 0.32, r.chance(0.5) ? f : fr, WY, LAYER.lid);
         }

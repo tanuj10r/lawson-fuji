@@ -335,8 +335,8 @@ export function buildLawson(parent) {
     platforms.push({ x0, x1, z0: S.roadZ, z1: S.sidewalkZ, top: kerbH });
     ground.add(patch(x0, x1, S.tactileZ - 0.15, S.tactileZ + 0.15, kerbH + 0.004, tactileMat(x1 - x0)));
   }
-  for (const [x0, x1, rampHi = true] of [...D.far, [zebraDrop.x0, zebraDrop.x1, zebraDrop.rampHi]]) {
-    const k = droppedKerb({ x0, x1, z0: S.roadZ, z1: S.sidewalkZ, roadZ: S.roadZ, k: kerbH, drop: D.drop, ramp: D.ramp, walkMat: paving, kerbMat, rampHi });
+  for (const [x0, x1, rampHi = true, band = null] of [...D.far, [zebraDrop.x0, zebraDrop.x1, zebraDrop.rampHi, D.zebraBand]]) {
+    const k = droppedKerb({ x0, x1, z0: S.roadZ, z1: S.sidewalkZ, roadZ: S.roadZ, k: kerbH, drop: D.drop, ramp: D.ramp, walkMat: paving, kerbMat, rampHi, band });
     for (const m of k.meshes) ground.add(m);
     platforms.push(...k.platforms);
     // the guide strip runs on across the driveway, down its ramps and back up

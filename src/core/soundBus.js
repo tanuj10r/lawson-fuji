@@ -1,0 +1,31 @@
+/* ------------------------------------------------------------------ *
+ * The world's way to the sound engine (Tan's experiences).  World code
+ * is built before main.js makes the engine, so it asks here: zones and
+ * one-shots queue until main.js attaches the engine, then pass straight
+ * through.  See core/sound.js `zone` and `oneShot`.
+ * ------------------------------------------------------------------ */
+
+let engine = null;
+const pending = [];
+const handles = [];
+
+export const soundBus = {
+  /** Attach the engine (main.js, once). */
+  attach(sound) {
+    engine = sound;
+    for (const [kind, name, o, h] of pending.splice(0)) {
+      if (kind === 'zone') h.real = engine.zone(name, o);
+    }
+  },
+  /** A looping track heard only near a place: see sound.zone. */
+  zone(name, o) {
+    const h = { real: null, set(p) { if (h.real) h.real.set(p); else Object.assign(o, p); } };
+    handles.push(h);
+    if (engine) h.real = engine.zone(name, o);
+    else pending.push(['zone', name, o, h]);
+    return h;
+  },
+  /** A placed one-off; dropped if the engine isn't running yet (before the first click). */
+  oneShot(name, o) { engine?.oneShot(name, o); },
+  get ready() { return !!engine?.ready; },
+};

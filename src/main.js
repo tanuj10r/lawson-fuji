@@ -7,6 +7,7 @@ import { setOutlineResolution } from './core/outline.js';
 import { Player } from './core/player.js';
 import { createHud } from './core/hud.js';
 import { createSound } from './core/sound.js';
+import { soundBus } from './core/soundBus.js';
 import { WALK_SIGNALS } from './world/signals.js';
 import { buildTown } from './world/town.js';
 import { tagReflections } from './world/land/mirror.js';
@@ -149,6 +150,7 @@ if (shop) {
  * same first click that takes the pointer lock (browsers start no audio
  * before a gesture).  Every sound of a place is local to it. */
 const sound = createSound({ volume: volumeGain(volumeStep) });
+soundBus.attach(sound);          // the world's zones and one-shots (core/soundBus.js)
 hud.setMuted(sound.muted);
 const rememberVolume = () => {
   try { localStorage.setItem(VOLUME_STORAGE_KEY, String(volumeStep)); } catch { /* optional */ }

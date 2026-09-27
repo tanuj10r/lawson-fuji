@@ -15,7 +15,7 @@ import path from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const SRC = path.join(ROOT, 'assets/audio'), OUT = path.join(ROOT, 'public/audio');
-const BUDGET = 3 * 1024 * 1024, SR = 44100;
+const BUDGET = 4.5 * 1024 * 1024, SR = 44100;   // 3 MB until Tan's experiences (2026-09-28)
 const { files, skip } = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/audio-cuts.json'), 'utf8'));
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'audio-'));
 fs.mkdirSync(OUT, { recursive: true });
@@ -68,7 +68,7 @@ const manifest = {};
 let total = 0;
 const rows = [];
 for (const [name, c] of Object.entries(files)) {
-  const mp3 = path.join(SRC, (c.src ?? name) + '.mp3');     // `src`: the file it is cut from, if not its own name
+  const mp3 = path.join(SRC, (c.src ?? name) + (c.ext ?? '.mp3'));     // `src`: the file it is cut from, if not its own name; `ext`: .aiff for voices made with `say`
   if (!fs.existsSync(mp3)) { rows.push([name, 'missing (the procedural sound is used)']); continue; }
   const wav = path.join(tmp, name + '.wav');
   execFileSync('afconvert', ['-f', 'WAVE', '-d', `LEI16@${SR}`, '-c', '1', mp3, wav]);
@@ -131,5 +131,5 @@ fs.rmSync(tmp, { recursive: true, force: true });
 for (const [n, r] of rows) console.log(`  ${n.padEnd(16)} ${r}`);
 for (const [n, why] of Object.entries(skip ?? {})) console.log(`  ${n.padEnd(16)} skipped: ${why}`);
 const ok = total <= BUDGET;
-console.log(`AUDIO ${(total / 1024 / 1024).toFixed(2)} MB in ${Object.keys(manifest).length} files, budget 3 MB: ${ok ? 'pass' : 'FAIL'}`);
+console.log(`AUDIO ${(total / 1024 / 1024).toFixed(2)} MB in ${Object.keys(manifest).length} files, budget 4.5 MB: ${ok ? 'pass' : 'FAIL'}`);
 if (!ok) process.exitCode = 1;

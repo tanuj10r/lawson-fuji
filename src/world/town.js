@@ -12,6 +12,7 @@ import { buildPetals } from './petals.js';
 import { mergeStatic } from './merge.js';
 import { buildTownSakura } from './kit/sakura.js';
 import { buildLand } from './land/index.js';
+import { makeExperiences } from './experiences.js';
 import { buildAnimals } from './animals/index.js';
 import { makeNight } from './kit/night.js';
 
@@ -43,6 +44,10 @@ export function buildTown(scene) {
    * walk into it from the famous views.  T is that frame; the world ctx
    * keeps the Lawson, the road and what the famous views see. --- */
   const T = ctx.turned(TOWN.grid.main, 'town-turned');
+  // experience spots (Tan's seven things to do): one set per frame
+  const expWorld = makeExperiences(ctx), expTown = makeExperiences(T);
+  ctx.experiences = expWorld;
+  T.experiences = expTown;
   // the density registry lives in the town's frame, with its decals and lots
   const registry = [];
   T.registry = registry;
@@ -159,6 +164,8 @@ export function buildTown(scene) {
   return {
     root,
     reflectRect,
+    /** Every experience spot, world positions (the minimap's stars). */
+    experiences: { get list() { return [...expWorld.list, ...expTown.list]; } },
     colliders: ctx.colliders,
     interactables: ctx.interactables,
     bounds: WORLD.bounds,

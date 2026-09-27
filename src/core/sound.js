@@ -238,6 +238,24 @@ export function createSound({ volume = 0.5 } = {}) {
     return L;
   }
   let beds = {}, music = null, hum = null, fridge = null;
+  /* Experience zones (Tan's experiences): a looping track heard only near a
+   * place, e.g. the discount store's theme or the shrine's wind chimes.
+   * Beyond `far` it does not play at all; between near and far it fades. */
+  const zones = [];
+  function zoneTick(z) {
+    const d = Math.hypot(z.x - listener.x, z.z - listener.z);
+    const want = !muted && d < z.far ? z.level * falloff(d, z) * (z.indoor && !state.inside ? 0.35 : 1) : 0;
+    if (want > 0 && !z.node) {
+      z.g = ac.createGain(); z.g.gain.value = 0;
+      z.p = ac.createPanner(); z.p.panningModel = 'HRTF'; z.p.rolloffFactor = 0;
+      z.p.positionX.value = z.x; z.p.positionY.value = z.y; z.p.positionZ.value = z.z;
+      z.g.connect(z.p).connect(z.indoor ? inGain : outBus);
+      z.node = loopNode(z.name, z.g, 1);
+    }
+    if (!z.node) return;
+    z.node.set(want > 0, 1.2);
+    z.g.gain.setTargetAtTime(want, now(), 0.25);
+  }
   const walks = [];
   const bell = { src: null, timer: null, gain: null, on: false };
 
@@ -263,6 +281,20 @@ export function createSound({ volume = 0.5 } = {}) {
 
   /* ------------------------------ the api ------------------------------ */
   const api = {
+    /**
+     * A looping track that belongs to a place (Tan's experiences): heard from
+     * `far` in, full from `near`, nowhere else.  { x, z, y, near, far,
+     * level, indoor }.  Returns a handle: { set(opts) } to move or retune it.
+     */
+    zone(name, o) {
+      const z = { name, x: 0, z: 0, y: 2, near: 8, far: 30, level: 0.6, indoor: false, ...o, node: null };
+      zones.push(z);
+      return { set: (p) => Object.assign(z, p) };
+    },
+    /** A placed one-off (a line said, a track played on interaction). */
+    oneShot(name, { x, z, y = 1.6, near = 6, far = 40, gain = 1, recipe = null } = {}) {
+      play(name, { at: x === undefined ? null : { x, y, z }, range: x === undefined ? null : { near, far }, gain, recipe });
+    },
     get ready() { return !!ac; },
     get muted() { return muted; },
     get volume() { return volume; },
@@ -331,6 +363,7 @@ export function createSound({ volume = 0.5 } = {}) {
       if (!ac || !music) return;
       const t = now(), L = ac.listener;
       listener.x = camera.position.x; listener.y = camera.position.y; listener.z = camera.position.z;
+      for (const z of zones) zoneTick(z);
       camera.getWorldDirection(_f);
       if (L.positionX) {
         L.positionX.setTargetAtTime(listener.x, t, 0.02); L.positionY.setTargetAtTime(listener.y, t, 0.02); L.positionZ.setTargetAtTime(listener.z, t, 0.02);

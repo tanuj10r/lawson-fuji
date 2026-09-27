@@ -417,6 +417,15 @@ export const SHOT_SPOTS = [
   { name: 'crossing-fence', scene: 'town', pos: [-78.4, 0, 155.6], yaw: -2.5, pitch: 0.0, looks: ['day'], train: 'approach', ref: '20-level-crossing-fence.png' },
   { name: 'crossing-path', scene: 'town', pos: [-28.5, 0, 156.6], yaw: -2.3, pitch: -0.05, looks: ['day'], ref: '21-crossing-path-fence.png' },
   { name: 'platform-canopy', scene: 'town', pos: [-56, 0, 167.2], yaw: -1.5708, pitch: 0.06, looks: ['day'], train: 'platform', ref: '22-platform-canopy.png' },
+  // the station and train experiences (2026-09-28): the gates and the master, the train close up and inside, the Osaka posters
+  { name: 'station-concourse', scene: 'town', pos: [-55.6, 0, 148.7], yaw: -1.95, pitch: 0.06, looks: ['day'], train: 'platform', indoor: true, close: true },
+  { name: 'station-master', scene: 'town', pos: [-54.0, 0, 154.5], yaw: 2.36, pitch: -0.08, looks: ['day'], train: 'platform', close: true },
+  { name: 'train-front', scene: 'town', pos: [-26.8, 0, 157.4], yaw: 2.24, pitch: 0.02, looks: ['day', 'blue'], train: 'platform', close: true },
+  { name: 'train-side', scene: 'town', pos: [-31.5, 0, 156.4], yaw: 1.92, pitch: 0.02, looks: ['day'], train: 'platform', close: true },
+  { name: 'train-inside', scene: 'town', pos: [-44.65, 0, 160.75], yaw: 0.62, pitch: -0.04, looks: ['day', 'blue'], train: 'platform', close: true },
+  { name: 'train-under', scene: 'town', pos: [-36.5, 0, 157.2], yaw: 2.6, pitch: -0.3, looks: ['day'], train: 'platform', close: true },
+  { name: 'poster-station', scene: 'town', pos: [-46.3, 0, 150.9], yaw: -0.12, pitch: 0.05, looks: ['day'], train: 'platform', indoor: true, close: true },
+  { name: 'poster-gate', scene: 'town', pos: [27.4, 0, -35.4], yaw: 0.12, pitch: 0.02, looks: ['day'], close: true },
   // M2e: close-ups, at arm's length, where finish shows (no density check)
   { name: 'close-lawson-front', scene: 'town', pos: [3.5, 0, 2.6], yaw: 0.25, pitch: 0.12, looks: ['day'], close: true },
   { name: 'close-lawson-side', scene: 'town', pos: [15.5, 0, 3.5], yaw: 0.75, pitch: 0.1, looks: ['day'], close: true },

@@ -9,10 +9,17 @@ import { makeBusStop, makeVehicle } from '../vehicles.js';
 import { addVending } from '../vending.js';
 import { LAYER } from '../kit/decals.js';
 import { TRACK_Z } from './track.js';
+import { PITCH, DOORS } from './emu.js';
 import {
   nameBoardTex, entranceTex, platformNumberTex, gateSignTex, fareMapTex, machineScreenTex,
   windowSignTex, timetableTex, clockFaceTex, areaMapTex, posterTex, taxiSignTex, makeDepartureBoard, labelTex,
+  machineSignTex, icReaderTex, gateSignalTex, osakaPosterTex, boardingMarkTex,
 } from './tex.js';
+import { RIDE } from '../../data/town.js';
+import { soundBus } from '../../core/soundBus.js';
+import { buildMaster } from './master.js';
+import { makeBoarding, say, host } from './boarding.js';
+import { whistle } from './sfx.js';
 import { buildShop } from '../kit/shopfronts.js';
 import { lampMaterial } from '../kit/poles.js';
 import { makeAircon, makeBicycle, makeNoticeBoard } from '../props.js';
@@ -167,7 +174,7 @@ function smallBuilding(ctx, g, { x0, z0, x1, z1, y = 0, h = 2.8, face, sign, wal
   return b;
 }
 
-export function buildStation(ctx, { kit, service }) {
+export function buildStation(ctx, { kit, service, sets, onEvent }) {
   const m = mats();
   const g = new THREE.Group();
   g.name = 'station';
@@ -282,6 +289,8 @@ export function buildStation(ctx, { kit, service }) {
   }
 
   /* ---- concourse ---- */
+  const T0 = 0.25;
+  const gz = B.z1 - 1.4;
   {
     // the staffed window: an office in the west end, a window onto the concourse
     const offX = B.x0 + 7.5;
@@ -303,42 +312,16 @@ export function buildStation(ctx, { kit, service }) {
     clock(ctx, g, offX + 0.14, PH + 2.95, B.z0 + 1.1, Math.PI / 2, 0.3);
     reg(ctx, 'prop', offX + 0.5, (B.z0 + B.z1) / 2);
 
-    // ticket machines on the east wall, the fare map over them
-    for (let i = 0; i < 2; i++) {
-      const z = B.z0 + 1.6 + i * 1.1;
-      const x = B.x1 - 0.6;
-      const mach = box(0.6, 1.7, 0.9, m.cabinet, x, PH + 0.85, z);
-      mach.castShadow = true;
-      g.add(mach);
-      hullOutline(mach, { thickness: 0.003 });
-      const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.45), flat({ color: 0xffffff, map: machineScreenTex(), cache: false }));
-      scr.position.set(x - 0.31, PH + 1.15, z);
-      scr.rotation.y = -Math.PI / 2;
-      scr.rotation.x = -0.25;
-      g.add(scr);
-      g.add(box(0.05, 0.1, 0.4, m.dark, x - 0.31, PH + 0.75, z));
-      ctx.collide(x - 0.3, z - 0.45, x + 0.3, z + 0.45, PH + 1.7);
-      reg(ctx, 'prop', x, z);
-    }
-    board(g, fareMapTex(), 2.8, 1.05, B.x1 - 0.27, PH + 2.55, B.z0 + 2.15, -Math.PI / 2);
+    // the ticket machines: a row of four on the east wall, the fare map over them
+    ticketMachines(ctx, g, { x: B.x1 - T0, z0: B.z0 + 1.0, n: 4, pitch: 0.86 });
+    board(g, machineSignTex(), 1.6, 0.3, B.x1 - T0 - 0.02, PH + 2.05, B.z0 + 1.0 + 0.86 * 1.5, -Math.PI / 2);
+    board(g, fareMapTex(), 3.4, 1.28, B.x1 - T0 - 0.02, PH + 2.95, B.z0 + 1.0 + 0.86 * 1.5, -Math.PI / 2);
 
-    // the ticket gates: five cabinets, walkable aisles between
-    const gz = B.z1 - 1.4;
+    // the ticket gates (自動改札): five cabinets, four aisles
     for (let k = 0; k < 5; k++) {
       const x = cxE - 4 + k * 2;
-      const cab = new THREE.Group();
-      cab.add(box(0.32, 1.0, 1.3, m.cabinet, 0, 0.5, 0));
-      cab.add(box(0.34, 0.08, 1.34, m.dark, 0, 1.02, 0));
-      // reader panel and the lit indicators at each end
-      cab.add(box(0.26, 0.02, 0.3, m.blue, 0, 1.07, -0.3));
-      cab.add(box(0.1, 0.12, 0.02, k % 2 ? m.green : m.blue, 0, 0.85, -0.66));
-      cab.add(box(0.1, 0.12, 0.02, m.green, 0, 0.85, 0.66));
-      // flaps, open
-      for (const s of [-1, 1]) cab.add(box(0.28, 0.3, 0.03, cel({ color: 0xf2c23c, bands: 3 }), s * 0.3, 0.7, 0.1));
-      cab.position.set(x, PH, gz);
-      cab.traverse((n) => { if (n.isMesh) n.castShadow = true; });
-      g.add(cab);
-      ctx.collide(x - 0.17, gz - 0.65, x + 0.17, gz + 0.65, PH + 1.0);
+      g.add(ticketGate(x, gz, k));
+      ctx.collide(x - 0.17, gz - 0.7, x + 0.17, gz + 0.7, PH + 1.0);
       reg(ctx, 'prop', x, gz);
     }
     // a rail from the gates to each side wall, so the gates are the way through
@@ -350,8 +333,11 @@ export function buildStation(ctx, { kit, service }) {
     boards.push(dep);
     board(g, dep.texture, 2.4, 0.8, cxE + 3.8, PH + 2.95, gz - 0.9, Math.PI).userData.keep = true;   // live: never atlased
     // posters and a bench on the walls
-    [[B.x1 - 0.14, B.z1 - 2.6, -Math.PI / 2, 0], [B.x0 + 8.4, B.z1 - 2.2, Math.PI / 2, 1], [cxE - 4.5, B.z0 + 0.14, 0, 2], [cxE + 4.5, B.z0 + 0.14, 0, 3]]
+    [[B.x0 + 8.4, B.z1 - 2.2, Math.PI / 2, 1], [cxE - 4.5, B.z0 + 0.14, 0, 2]]
       .forEach(([x, z, ry, v]) => board(g, posterTex(v), 0.7, 0.98, x, PH + 1.7, z, ry));
+    // Osaka, coming soon: the big one inside the entrance, a tall one by the gates
+    board(g, osakaPosterTex('wide'), 2.0, 1.25, cxE + 5.2, PH + 1.65, B.z0 + T0 + 0.02, 0);
+    board(g, osakaPosterTex('tall'), 0.72, 1.01, cxE + 10.0, PH + 1.75, B.z1 - T0 - 0.02, Math.PI);
     const bench = makeBench({ x: cxE + 6.2, y: PH, z: B.z0 + 0.8, ry: 0, len: 2.2, wood: true });
     g.add(bench);
     ctx.collide(cxE + 5.0, B.z0 + 0.3, cxE + 7.4, B.z0 + 1.3, PH + 0.8);
@@ -359,6 +345,7 @@ export function buildStation(ctx, { kit, service }) {
   }
 
   /* ================================ platforms ================================ */
+  const edgeLines = [], marks = [];
   for (const P of PLAT) {
     const zc = (P.z0 + P.z1) / 2;
     const deck = box(PL.x1 - PL.x0, PH, P.z1 - P.z0, m.deck, (PL.x0 + PL.x1) / 2, PH / 2, zc);
@@ -369,10 +356,16 @@ export function buildStation(ctx, { kit, service }) {
     // the edge: a darker coping and a line nobody may stand beyond
     const ez = P.edge - P.face * 0.2;
     g.add(box(PL.x1 - PL.x0, 0.03, 0.4, m.edge, (PL.x0 + PL.x1) / 2, PH + 0.005, ez));
-    ctx.collide(PL.x0, P.edge - P.face * 0.05 - 0.05, PL.x1, P.edge - P.face * 0.05 + 0.05, PH + 1.2);
+    if (P.n !== 1) ctx.collide(PL.x0, P.edge - P.face * 0.05 - 0.05, PL.x1, P.edge - P.face * 0.05 + 0.05, PH + 1.2);   // platform 1's opens at the doors (boarding.js)
     // yellow tactile line, a metre in from the edge
     for (let x = PL.x0 + 0.3; x < PL.x1 - 0.15; x += 0.3) {
       kit.decals.add('tactileLine', x, P.edge - P.face * 0.95, 0.3, 0.3, { x: 1, z: 0 }, PH - ROADS.asphaltY, LAYER.paint);
+    }
+    // the raised inner line along the tactile blocks (内方線), and the white line at the coping
+    edgeLines.push({ geometry: new THREE.BoxGeometry(PL.x1 - PL.x0 - 0.6, 0.012, 0.05), matrix: trs((PL.x0 + PL.x1) / 2, PH + 0.006, P.edge - P.face * 1.16) });
+    // where the doors stop: a mark on the platform at each (乗車位置)
+    for (const [x, car, door] of doorMarks(P)) {
+      marks.push({ geometry: markPlane(car, door), matrix: trs(x, PH + 0.012, P.edge - P.face * 0.52, -Math.PI / 2, 0, P.face > 0 ? Math.PI : 0) });
     }
     // canopy over the middle
     const c0 = -64, c1 = -36, colZ = P.edge - P.face * 2.3;
@@ -423,7 +416,7 @@ export function buildStation(ctx, { kit, service }) {
       ctx.collide(x - 0.95, bz - 0.35, x + 0.95, bz + 0.35, PH + 0.8);
       reg(ctx, 'prop', x, bz);
     }
-    for (const x of [-56.5, -42.5]) {
+    for (const x of [P.n === 1 ? -57.6 : -56.5, -42.5]) {
       g.add(makeBins({ x, y: PH, z: bz, ry }));
       ctx.collide(x - 0.8, bz - 0.35, x + 0.8, bz + 0.35, PH + 1.0);
       reg(ctx, 'prop', x, bz);
@@ -437,6 +430,26 @@ export function buildStation(ctx, { kit, service }) {
     // (behind both platforms the lineside fences close the station)
     // the platform ends: railings, except where the in-station crossing leaves
     railing(ctx, { axis: 'z', from: P.z0, to: P.z1, at: PL.x0 + 0.1, h: 1.1, y: PH });
+  }
+
+  {
+    const lines = new THREE.Mesh(bake(edgeLines), cel({ color: 0xf2c23c, bands: 3, tint: 0x8a6a50 }));
+    lines.receiveShadow = true;
+    lines.userData.noOutline = true;
+    g.add(lines);
+    const mk = new THREE.Mesh(bake(marks), flat({ color: 0xffffff, map: boardingMarkTex(), transparent: true, depthWrite: false, cache: false }));
+    mk.userData.noOutline = true;
+    mk.renderOrder = 2;
+    g.add(mk);
+  }
+  /* platform 1, by the building: a vending machine, the Osaka poster, the Shibuya board */
+  {
+    const P1 = PLAT[0];
+    addVending(ctx, { detail: true, x: -68.5, y: PH, z: P1.z0 + 0.55, ry: 0, variant: 2, seed: 8890 });
+    reg(ctx, 'prop', -68.5, P1.z0 + 0.55);
+    ctx.night?.pool(-68.5, P1.z0 + 1.3, 1.8, { y: PH, color: 0xe8f0ff, strength: 0.8 });
+    board(g, osakaPosterTex('tall'), 0.72, 1.01, -61.2, PH + 1.55, B.z1 + 0.03, 0);
+    board(g, posterTex(3), 0.7, 0.98, -40.4, PH + 1.55, B.z1 + 0.03, 0);
   }
 
   /* ---- a waiting room on platform 2, and the station's annex ---- */
@@ -600,5 +613,178 @@ export function buildStation(ctx, { kit, service }) {
   };
   redraw();
   ctx.update((dt) => { acc += dt; if (acc >= 1) { acc = 0; redraw(); } });
-  return { group: g, boards, platforms: PLAT, PH };
+
+  /* ================================ the experiences ================================ */
+  const P1 = PLAT[0];
+  // the station master, on platform 1 just through the gates, facing them
+  const MX = { x: cxE - 4.3, z: P1.z0 + 0.8 };
+  const master = buildMaster(ctx, { x: MX.x, z: MX.z, y: PH, yaw: Math.PI });
+  const boarding = makeBoarding(ctx, { service, P: P1, PH, sets });
+  // where he points: the arriving train's cab
+  const cabOf = (r) => ({ x: r.x + r.dir * (r.len / 2 - 1), z: r.z });
+  onEvent?.((name, r) => {
+    boarding.onEvent(name, r);
+    if (name === 'arrive') master.point(cabOf(r));
+    if (name === 'doorsClosed') master.whistle(cabOf(r), () => whistle(ctx.toWorld({ x: MX.x, z: MX.z })));
+  });
+  // the experience spots: the station at the gates, the train by the door nearest them
+  let greeted = false;
+  const stationSpot = ctx.experiences?.add({
+    id: 'station', name: RIDE.say.station, jp: '駅', x: cxE, z: gz - 1.25, y: PH, r: 1.25, h: 2.0,
+    action: () => {
+      master.bow(true);
+      say(greeted ? RIDE.say.welcomeBack : RIDE.say.welcome, 4200);
+      greeted = true;
+      stationSpot?.done();
+    },
+  });
+  const doorX = boarding.doorsX.reduce((a, b) => (Math.abs(b - cxE) < Math.abs(a - cxE) ? b : a));
+  const trainSpot = ctx.experiences?.add({
+    id: 'train', name: RIDE.say.ride, jp: '電車', x: doorX, z: P1.edge - 1.25, y: PH, r: 1.1, h: 2.0,
+    action: () => { if (boarding.board()) trainSpot?.done(); },
+  });
+  // the station's sound: its announcements and bustle, heard in the concourse and on the platforms
+  soundBus.zone('station-ambience', { ...ctx.toWorld({ x: cxE, z: (B.z0 + P1.z1) / 2 }), y: 3, near: 8, far: 30, level: 0.45 });
+
+  let lastZ = null, labelOpen = null;
+  const MASTER_NEAR = 60;
+  return {
+    group: g, boards, platforms: PLAT, PH, master, boarding,
+    /** Each frame (line/index.js): `me` the camera in this frame. */
+    update(dt, cam, me) {
+      boarding.update(dt, cam);
+      const open = boarding.state.open;
+      if (open !== labelOpen) { labelOpen = open; trainSpot?.setLabel(`電車  ·  ${open ? RIDE.say.board : RIDE.say.ride}`); }
+      const d = Math.hypot(me.x - MX.x, me.z - MX.z);
+      if (d > MASTER_NEAR) { lastZ = null; return; }
+      // coming through the gates: a bow
+      if (lastZ !== null && Math.abs(me.x - cxE) < 5 && Math.sign(me.z - gz) !== Math.sign(lastZ - gz) && d < 7) master.bow();
+      lastZ = me.z;
+      master.update(dt, me);
+    },
+  };
+}
+
+/** Where the doors stop along a platform: [x, car, door] (car 1 is the leading cab). */
+function doorMarks(P) {
+  const out = [];
+  const dir = P.n === 1 ? 1 : -1;
+  for (let i = 0; i < 2; i++) {
+    const cx = TOWN.station.stopX + dir * (0.5 - i) * PITCH;
+    DOORS.forEach((d, j) => out.push([cx + dir * d, i + 1, dir > 0 ? 4 - j : j + 1]));
+  }
+  return out;
+}
+/** A plane showing one boarding mark from the atlas. */
+function markPlane(car, door) {
+  const g = new THREE.PlaneGeometry(0.44, 0.33);
+  const k = (car - 1) * 4 + (door - 1);
+  const uv = g.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setX(i, (k + uv.getX(i)) / 8);
+  return g;
+}
+
+/**
+ * One ticket gate (自動改札) at (x, gz): a cream cabinet on a dark plinth,
+ * blue side panels with the flaps (open) and their yellow edges, the IC
+ * reader on its angled pad, the ticket slots, a blue light along the top,
+ * and the green arrow / red bar at each end.
+ */
+function ticketGate(x, gz, k) {
+  const m = mats();
+  const G = new THREE.Group();
+  G.position.set(x, PH, gz);
+  const parts = { cabinet: [], dark: [], blue: [], flap: [], yellow: [], light: [] };
+  const P = (key, w, h, d, px, py, pz, rx = 0) => parts[key].push({ geometry: new THREE.BoxGeometry(w, h, d), matrix: trs(px, py, pz, rx) });
+  P('dark', 0.32, 0.06, 1.38, 0, 0.03, 0);
+  P('cabinet', 0.3, 0.9, 1.32, 0, 0.51, 0);
+  P('dark', 0.33, 0.045, 1.36, 0, 0.98, 0);
+  // the ends are rounded off: a softer cap at each end
+  for (const e of [-1, 1]) P('cabinet', 0.3, 0.86, 0.06, 0, 0.5, e * 0.68);
+  for (const s of [-1, 1]) {
+    const aisle = (s < 0 && k > 0) || (s > 0 && k < 4);
+    // the blue side panel, and the flap housing with its flap out a little, yellow on its edge
+    P('blue', 0.012, 0.52, 0.92, s * 0.156, 0.52, 0);
+    if (aisle) {
+      P('flap', 0.07, 0.3, 0.34, s * 0.19, 0.7, 0.08);
+      P('yellow', 0.072, 0.3, 0.03, s * 0.19, 0.7, 0.26);
+      P('dark', 0.02, 0.36, 0.42, s * 0.16, 0.7, 0.08);
+    }
+    // the light line along the top edge
+    P('light', 0.012, 0.02, 1.2, s * 0.158, 0.93, 0);
+  }
+  // the readers: on the entry end for this aisle, and the exit end for the other
+  const readers = [];
+  for (const [e, s] of [[-1, 1], [1, -1]]) {
+    if ((s > 0 && k === 4) || (s < 0 && k === 0)) continue;
+    P('dark', 0.16, 0.06, 0.24, s * 0.06, 1.03, e * 0.42, e * 0.35);
+    readers.push({ geometry: new THREE.CircleGeometry(0.085, 20), matrix: trs(s * 0.06, 1.066, e * 0.42, -Math.PI / 2 - e * 0.35, 0, 0) });
+    P('dark', 0.1, 0.012, 0.03, -s * 0.07, 1.006, e * 0.12);      // the ticket slot
+  }
+  P('dark', 0.1, 0.012, 0.03, 0, 1.006, 0.3);
+  const colors = { cabinet: m.cabinet, dark: m.dark, blue: cel({ color: 0x3f72c4, bands: 3, tint: 0x3f4a7a }), flap: cel({ color: 0x5a86d6, bands: 3, tint: 0x3f4a7a }), yellow: cel({ color: 0xf2c23c, bands: 3, tint: 0x8a6a50 }), light: m.blue };
+  for (const [key, list] of Object.entries(parts)) {
+    if (!list.length) continue;
+    const mesh = new THREE.Mesh(bake(list), colors[key]);
+    mesh.castShadow = key === 'cabinet';
+    if (key === 'light' || key === 'yellow') mesh.userData.noOutline = true;
+    G.add(mesh);
+  }
+  if (readers.length) {
+    const r = new THREE.Mesh(bake(readers), flat({ color: 0xffffff, map: icReaderTex(), cache: false }));
+    r.userData.noOutline = true;
+    G.add(r);
+  }
+  // the ends' signals: every gate lets you in; the odd ones are entry-only from the platform side
+  for (const e of [-1, 1]) {
+    const ok = e < 0 || k % 2 === 0;
+    const sgl = new THREE.Mesh(new THREE.PlaneGeometry(0.13, 0.13), flat({ color: 0xffffff, map: gateSignalTex(ok), cache: false }));
+    sgl.position.set(0, 0.84, e * 0.715);
+    sgl.rotation.y = e < 0 ? Math.PI : 0;
+    sgl.userData.noOutline = true;
+    G.add(sgl);
+  }
+  return G;
+}
+
+/**
+ * The ticket machines (券売機): a row against a wall at x, facing -x.  Each:
+ * a cream body with a green head, the sloped touch screen, coin and note
+ * slots, the IC pad, the tray.
+ */
+function ticketMachines(ctx, g, { x, z0, n, pitch }) {
+  const m = mats();
+  const parts = { cabinet: [], dark: [], head: [], steel: [], light: [] };
+  const P = (key, w, h, d, px, py, pz, rz = 0) => parts[key].push({ geometry: new THREE.BoxGeometry(w, h, d), matrix: trs(px, PH + py, pz, 0, 0, rz) });
+  const screens = [], pads = [];
+  for (let i = 0; i < n; i++) {
+    const z = z0 + (i + 0.5) * pitch;
+    P('cabinet', 0.56, 1.72, pitch - 0.06, x - 0.28, 0.86, z);
+    P('head', 0.58, 0.2, pitch - 0.04, x - 0.29, 1.8, z);
+    P('light', 0.01, 0.08, pitch - 0.2, x - 0.585, 1.8, z);
+    // the screen's hood, sloping back
+    P('dark', 0.1, 0.52, pitch - 0.16, x - 0.6, 1.2, z, -0.3);
+    screens.push({ geometry: new THREE.PlaneGeometry(pitch - 0.24, 0.42), matrix: new THREE.Matrix4().compose(new THREE.Vector3(x - 0.66, PH + 1.2, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.3, -Math.PI / 2, 0, 'YXZ')), new THREE.Vector3(1, 1, 1)) });
+    // the shelf under it: coins, notes, the IC pad
+    P('steel', 0.16, 0.04, pitch - 0.14, x - 0.64, 0.9, z);
+    P('dark', 0.02, 0.1, 0.04, x - 0.565, 0.98, z - 0.2);
+    P('dark', 0.02, 0.03, 0.2, x - 0.565, 0.8, z + 0.1);
+    pads.push({ geometry: new THREE.PlaneGeometry(0.12, 0.12), matrix: trs(x - 0.645, PH + 0.925, z + 0.12, -Math.PI / 2, 0, 0) });
+    // the tray, low
+    P('dark', 0.08, 0.14, pitch - 0.3, x - 0.58, 0.42, z);
+    P('steel', 0.1, 0.02, pitch - 0.28, x - 0.6, 0.35, z);
+    ctx.collide(x - 0.62, z - pitch / 2 + 0.03, x, z + pitch / 2 - 0.03, PH + 1.8);
+    reg(ctx, 'prop', x - 0.3, z);
+  }
+  const colors = { cabinet: m.cabinet, dark: m.dark, head: cel({ color: new THREE.Color(RIDE.color).getHex(), bands: 3, tint: 0x3f5a6a }), steel: m.steel, light: m.light };
+  for (const [key, list] of Object.entries(parts)) {
+    const mesh = new THREE.Mesh(bake(list), colors[key]);
+    mesh.castShadow = key === 'cabinet';
+    if (key === 'light') mesh.userData.noOutline = true;
+    g.add(mesh);
+    if (key === 'cabinet') hullOutline(mesh, { thickness: 0.003 });
+  }
+  const sc = new THREE.Mesh(bake(screens), flat({ color: 0xffffff, map: machineScreenTex(), cache: false }));
+  const pd = new THREE.Mesh(bake(pads), flat({ color: 0xffffff, map: icReaderTex(), cache: false }));
+  for (const o of [sc, pd]) { o.userData.noOutline = true; g.add(o); }
 }

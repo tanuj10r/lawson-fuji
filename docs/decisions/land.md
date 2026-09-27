@@ -43,3 +43,26 @@
   coming into view with the 21 new trees, which also carry most of the
   triangles. Textures about 4 MB (six 256 px tiles, the track at 256 x 512,
   plates).
+
+## ひと休み, the slow-life spot (experiences, 2026-09-28)
+- Place: the pond's lawn just south of the paddies' edge (town 73, 102.2),
+  facing 鏡池 and Fuji (seated yaw 3.13, town frame). The pond's water sits
+  0.4 m below the promenade, so from a seated eye only a band of it shows;
+  the view is the lawn, the pond's point, the railway cherries and Fuji.
+  The paddies are behind you (they are what you see walking up from lane
+  z 80's end: slowlife-wide).
+- The tree is a town sakura (T.sakura, scale 1.55), set ahead-left of the
+  bench rather than straight over it, so that seated its crown frames the
+  top-left of the view; standing, the bench is still under its edge. Its
+  petal fall, fallen carpet and batch come from kit/sakura.js as for every
+  town tree.
+- Jizo, not a hokora: one small stone figure (lathe robe, round head, red
+  bib and knitted cap, an offering cup, wildflowers) reads at 4 m; a hokora
+  would add a roof and a second read.
+- "Time slows": only what this spot owns slows (its own 36 drifting petals,
+  two cabbage whites, the water's glints) to 0.35 pace while seated; the
+  town's petal shower (petals.js) is not ours and keeps its pace. April, so
+  butterflies, not dragonflies.
+- Sitting is core/player.js sit()/stand(): any key or a deliberate mouse
+  move (> 90 px once settled) stands you up; seated, main.js hides the E
+  prompt and shows "Any key: Stand up". Actions get ({ player, hud }).

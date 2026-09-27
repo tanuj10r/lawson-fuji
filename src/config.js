@@ -477,6 +477,10 @@ export const SHOT_SPOTS = [
   { name: 'pond-lotus', scene: 'town', pos: [92, 0, 134], yaw: 2.19, pitch: -0.35, looks: ['day'] },
   { name: 'pond-teahouse', scene: 'town', pos: [62, 0, 112], yaw: 0.165, pitch: 0.05, looks: ['day', 'blue'] },
   { name: 'pond-overview', scene: 'town', pos: [76, 0, 88], yaw: 3.1416, pitch: -0.55, lift: 30, looks: ['day'] },
+  // ひと休み, the slow-life bench where the paddies meet 鏡池 (world/land/slowlife.js)
+  { name: 'slowlife-spot', scene: 'town', pos: [71.6, 0, 108.2], yaw: -0.4, pitch: 0.04, looks: ['day', 'golden'] },
+  { name: 'slowlife-seated', scene: 'town', pos: [73.0, 0, 102.24], yaw: 3.13, pitch: 0.11, lift: -0.48, looks: ['golden', 'day'] },
+  { name: 'slowlife-wide', scene: 'town', pos: [53.5, 0, 80.2], yaw: -2.43, pitch: -0.02, looks: ['golden', 'day'] },
   { name: 'pond-rail', scene: 'town', pos: [76, 0, 148.5], yaw: 0.06, pitch: -0.05, looks: ['day', 'golden'] },   // from the railway bank, back across the water to the town
   // wave 3: the animals, close up and in their places
   { name: 'close-animals-turtles', scene: 'town', pos: [66.5, 0, 118.5], yaw: -2.06, pitch: -0.42, looks: ['day'], close: true },
@@ -540,6 +544,23 @@ export function mainRoadGaps() {
     .filter((r) => r.z0 === undefined || r.z0 < TOWN.grid.main)   // lanes that meet the road, or cross it
     .map((r) => [-r.x - ROADS[r.cls].asphalt / 2, -r.x + ROADS[r.cls].asphalt / 2]);
 }
+
+/* ひと休み, the slow-life spot (Tan's experiences; world/land/slowlife.js),
+ * in the town's frame.  [x, z, ry] for the pieces; the view is where the
+ * seated eye looks (town-frame yaw, pitch, eye height above the ground). */
+export const SLOWLIFE = {
+  bench: [73.0, 102.2, -0.08],
+  tree: [75.9, 105.2, 1.55],                // the sakura: x, z, scale
+  jizo: [71.15, 102.1, 0.3],
+  lantern: [74.3, 109.3, 0.2],
+  view: { yaw: 3.13, pitch: 0.11, eye: 1.12 },
+  sound: { near: 5, far: 22, level: 0.45, seated: 0.62 },
+  near: 50,                                  // the petals, butterflies and glints move only this close
+  slowTo: 0.35,                              // time's pace while you sit
+  petals: { count: 36, at: [73, 105], half: [5, 3.5], top: 4.2 },
+  butterflies: { count: 2, at: [73.2, 105.2], size: 1.5, beatHz: 5 },
+  glints: { count: 34, box: [60, 115, 88, 140] },
+};
 
 /* Local sounds (SPEC section 9): anything that belongs to a place is heard
  * only as you near that place, never across town.  `near`: full volume

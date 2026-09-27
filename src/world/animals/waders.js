@@ -33,7 +33,7 @@ function waderGeometry(o) {
     color: (p) => o.bodyColor(p, k),
   });
   // the tail: short, under the wingtips
-  b.add(blob(0.05 * k, 0.018 * k, 0.09 * k, 8, 5), { matrix: at(0, 0.55 * k, -0.2 * k, -tilt + 0.35, 0, 0), color: o.tail });
+  b.add(blob(0.045 * k, 0.016 * k, 0.07 * k, 8, 5), { matrix: at(0, 0.56 * k, -0.15 * k, -tilt + 0.1, 0, 0), color: o.tail });
   // neck: an S from the shoulders to the head; extended (morph) it reaches forward and down
   const retracted = o.neck.map(([y, z]) => [0, y * k, z * k]);
   const extended = o.neckOut.map(([y, z]) => [0, y * k, z * k]);
@@ -67,8 +67,8 @@ function waderGeometry(o) {
   // plumes: thin streamers from the nape, lying back
   for (const [dx, len, dy] of o.plumes) {
     const pl = loft([
-      { p: [dx * k, 0, 0], rx: 0.006 * k, ry: 0.004 * k },
-      { p: [dx * k, -0.01 * k, -len * 0.5 * k], rx: 0.004 * k, ry: 0.003 * k },
+      { p: [dx * k, 0, 0], rx: 0.006 * k * (o.plumeR ?? 1), ry: 0.004 * k * (o.plumeR ?? 1) },
+      { p: [dx * k, -0.01 * k, -len * 0.5 * k], rx: 0.004 * k * (o.plumeR ?? 1), ry: 0.003 * k * (o.plumeR ?? 1) },
       { p: [dx * k, -0.03 * k, -len * k], rx: 0.0, ry: 0.0 },
     ], 5);
     head(pl, at(hR[0], hR[1] + 0.012 * k, hR[2] - 0.03 * k, headTilt - 0.25), o.plumeColor);
@@ -163,30 +163,35 @@ void rig(inout vec3 p, inout vec3 n) {
 `;
 
 const HERON = {
-  scale: 1, tilt: 0.72, span: 0.86, chord: 0.36, bill: 0.13, headTilt: 0.12,
+  scale: 1, tilt: 0.72, span: 0.86, chord: 0.36, bill: 0.15, headTilt: 0.12,
   neck: [[0.72, 0.12], [0.84, 0.08], [0.96, 0.1], [1.03, 0.15], [1.05, 0.2]],
   neckOut: [[0.72, 0.12], [0.76, 0.28], [0.74, 0.43], [0.68, 0.54], [0.64, 0.6]],
   neckR: [0.05, 0.036, 0.028, 0.026, 0.026],
-  plumes: [[-0.004, 0.13, 0], [0.004, 0.11, 0]],
+  plumes: [[-0.005, 0.2, 0], [0.005, 0.16, 0]],
   bodyColor: (p, k) => {
-    // grey back and folded wings, a black patch at the bend of the wing,
-    // black primaries at the back, pale grey underneath
-    if (p.y < 0.56 * k && p.z > -0.1 * k) return 0xe2e3e6;
-    if (p.z < -0.12 * k && p.y < 0.6 * k) return 0x3a3c44;
-    if (p.z > 0.06 * k && p.y > 0.66 * k && Math.abs(p.x) > 0.05 * k) return 0x2c2e36;
-    return (p.z * 40) % 1 < 0.15 ? 0xc4c8d0 : 0xaeb3bd;
+    // アオサギ: blue-grey back and folded wings, a black band along the side
+    // of the breast up to the bend of the wing, black flight feathers at the
+    // back, pale grey below
+    const ax = Math.abs(p.x);
+    if (p.z < -0.13 * k && p.y > 0.55 * k) return 0x2a2c34;                      // primaries over the tail
+    if (p.z > 0.02 * k && ax > 0.05 * k && p.y > 0.6 * k && p.y < 0.7 * k) return 0x23242c;   // the black shoulder band
+    if (p.y < 0.57 * k) return 0xc9ccd4;                                          // underparts
+    return (p.z * 40) % 1 < 0.14 ? 0x8a93a6 : 0x9ca5b6;                          // the grey mantle, feathered
   },
-  tail: 0x9aa0ac,
-  neckColor: (p, k) => (Math.abs(p.x) < 0.012 * k && p.z > 0.1 * k && p.y < 0.92 * k && Math.sin(p.y * 190) > 0 ? 0x2e2e36 : p.y < 0.76 * k ? 0xd6d8dc : 0xf2f2ee),
+  tail: 0x7a8294,
+  // the neck white, a double line of black streaks down its front
+  neckColor: (p, k) => (p.z > 0.1 * k && Math.abs(Math.abs(p.x) - 0.007 * k) < 0.006 * k && p.y < 0.98 * k && Math.sin(p.y * 160) > -0.4 ? 0x23242c : 0xf2f2ee),
   headColor: (p, k, c) => {
     const dy = p.y - c[1], dz = p.z - c[2];
-    if (dy > -0.004 * k && dy < 0.02 * k && Math.abs(p.x) > 0.018 * k && dz < 0.035 * k) return 0x25262c;   // the eye stripe to the nape
-    if (dy > 0.024 * k && dz < 0.01 * k) return 0x25262c;
-    return 0xf6f6f2;
+    // the black stripe from the eye back to the crest
+    if (dy > -0.006 * k && dy < 0.022 * k && Math.abs(p.x) > 0.014 * k && dz < 0.034 * k) return 0x1e1f26;
+    if (dy > 0.026 * k && dz < 0.004 * k) return 0x1e1f26;
+    return 0xf8f8f4;
   },
-  billColor: 0xe0a238, eye: 0xe8d23a, plumeColor: 0x25262c,
-  wingColor: (u, v) => (u > 0.6 ? 0x2c2e36 : v < -0.22 ? 0x6a707e : v > 0.3 && u < 0.3 ? 0xc0c4cc : 0xa2a8b4),   // black hand, dark trailing edge, pale coverts
-  legColor: 0xb89a5c, footColor: 0xa48850,
+  billColor: 0xe79a2e, eye: 0xf0dc3a, plumeColor: 0x1e1f26,
+  wingColor: (u, v) => (u > 0.58 ? 0x23242c : v < -0.22 ? 0x5c6476 : v > 0.3 && u < 0.3 ? 0xb2b8c6 : 0x8e98ac),
+  legColor: 0xc9ac5e, footColor: 0xb89a50,
+  plumeR: 1.6,
 };
 
 const EGRET = {
@@ -214,7 +219,7 @@ export function buildWaders(ctx, { kind, birds, marks, reflect, bounds }) {
   const r = rngKit(kind === 'heron' ? 9501 : 9601);
   const geo = waderGeometry(spec);
   const hipLen = 0.54 * spec.scale;
-  const mat = animalMaterial({ key: kind, rig: RIG, tint: kind === 'heron' ? 0x7c7aa0 : 0x9a94b8, uniforms: { uHip: { value: hipLen } }, bands: 'soft3' });
+  const mat = animalMaterial({ key: kind, rig: RIG, tint: kind === 'heron' ? 0x6a6890 : 0x9a94b8, uniforms: { uHip: { value: hipLen } }, bands: kind === 'heron' ? 3 : 'soft3' });
   const herd = new Herd(ctx, geo, mat, birds.length, kind, { reflect, bounds });
   // their reflection in the paddy water or the river (both painted, not mirrors)
   reflectionOf(ctx, herd, {

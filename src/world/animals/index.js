@@ -189,31 +189,68 @@ export function buildAnimals(ctx, { core } = {}) {
   if (core?.lots) {
     const SH = ANIMALS.shiba;
     const [tx, tz] = SH.near;
-    // a yard you can see into: no wall, fence or hedge along the frontage,
-    // and room for a dog and its kennel between the gate and the house
-    const blocked = (p, top = 0.35) => {
-      const w = ctx.toWorld(p);
-      return ctx.colliders.some((c) => w.x > c.x0 && w.x < c.x1 && w.z > c.z0 && w.z < c.z1 && (c.top ?? 9) > top && (c.bottom ?? 0) < 0.4);
+    /* What stands in a yard: every mesh the town has built (houses and
+     * their parts -- outdoor units, meters, steps, pots, bikes, poles), by
+     * its world box, and the colliders.  Ground sheets and decals (thin
+     * and flat) don't count. */
+    const root = ctx.root;
+    root.updateMatrixWorld(true);
+    const box = new THREE.Box3();
+    const solids = [], floors = [];
+    const cw = ctx.toWorld({ x: tx, z: tz });
+    root.traverse((o) => {
+      if (!o.isMesh || o.isInstancedMesh || o.parent === group || o === group) return;
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      box.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+      if (box.max.y - box.min.y < 0.06 || box.min.y > 1.2) return;          // flat on the ground, or overhead
+      // a low slab you stand on (a yard's concrete apron): a floor, not a thing
+      if (box.max.y < 0.25 && (box.max.x - box.min.x) * (box.max.z - box.min.z) > 1.5) { floors.push(box.clone()); return; }
+      if (Math.hypot((box.min.x + box.max.x) / 2 - cw.x, (box.min.z + box.max.z) / 2 - cw.z) > 90) return;
+      if (box.max.x - box.min.x > 40 || box.max.z - box.min.z > 40) return;   // whole-street sheets
+      solids.push(box.clone());
+    });
+    // the town's cats sit where they sit: give them room
+    for (const c of ctx.cats ?? []) {
+      const w = ctx.toWorld({ x: c.position.x, z: c.position.z });
+      solids.push(new THREE.Box3(new THREE.Vector3(w.x - 0.45, 0, w.z - 0.45), new THREE.Vector3(w.x + 0.45, 0.5, w.z + 0.45)));
+    }
+    for (const c of ctx.colliders) if ((c.bottom ?? 0) < 0.8 && (c.top ?? 9) > 0.3) solids.push(new THREE.Box3(new THREE.Vector3(c.x0, 0, c.z0), new THREE.Vector3(c.x1, c.top ?? 9, c.z1)));
+    // is a rect in the lot's frame (u across, v back from the frontage) clear?
+    const clear = (F, u0, u1, v0, v1, pad = 0.12) => {
+      const a = ctx.toWorld(F.at(u0 - pad, v0 - pad)), c = ctx.toWorld(F.at(u1 + pad, v1 + pad));
+      const r = new THREE.Box3(new THREE.Vector3(Math.min(a.x, c.x), 0.02, Math.min(a.z, c.z)), new THREE.Vector3(Math.max(a.x, c.x), 0.9, Math.max(a.z, c.z)));
+      return !solids.some((q) => q.intersectsBox(r));
     };
     const lots = core.lots.filter((l) => l.kind === 'house' && l.e.cls === 'lane' && l.w >= 8);
     const at0 = (l) => lotFrame(core.net, l).at(0, 0);
     lots.sort((a, b) => Math.hypot(at0(a).x - tx, at0(a).z - tz) - Math.hypot(at0(b).x - tx, at0(b).z - tz));
     let found = null;
-    for (const lot of lots.slice(0, 40)) {
+    /* The dog lies along the frontage in front of its kennel's door (a
+     * shallow yard has room for that), turned a little to the lane:
+     * in the lot's frame the kennel spans u-1.47..u-0.63, the dog u-0.35..
+     * u+0.5, the bowl by its head; nothing along the frontage in front. */
+    for (const lot of lots) {
       const F = lotFrame(core.net, lot);
-      let open = true;
-      for (let u = -lot.w / 2 + 0.6; u < lot.w / 2 - 0.6 && open; u += 0.4) if (blocked(F.at(u, 0.2), 0.5) || blocked(F.at(u, 0.5), 0.5)) open = false;
-      if (!open) continue;
-      for (let u = -lot.w / 2 + 1.2; u < lot.w / 2 - 1.8 && !found; u += 0.3) {
-        const free = [[0, 0.5], [0, 0.9], [0, 1.2], [-0.3, 0.9], [0.3, 0.9], [0.9, 0.7], [1.3, 0.7], [0.9, 1.3], [1.3, 1.3]].every(([du, v]) => !blocked(F.at(u + du, v)));
-        if (free) found = { F, u, lot };
+      for (let v = 0.45; v < 1.3 && !found; v += 0.1) {
+        for (let u = -lot.w / 2 + 1.6; u < lot.w / 2 - 0.7 && !found; u += 0.2) {
+          if (clear(F, u - 1.5, u + 0.7, 0.02, v - 0.3, 0) && clear(F, u - 0.35, u + 0.5, v - 0.25, v + 0.25)
+            && clear(F, u - 1.47, u - 0.63, v - 0.33, v + 0.33, 0.25) && clear(F, u + 0.45, u + 0.7, v + 0.15, v + 0.4)) found = { F, u, v, lot };
+        }
       }
       if (found) break;
     }
     if (found) {
-      const { F, u } = found;
-      const p = F.at(u, 0.85), k = F.at(u + 1.1, 1.0);
-      const spot = { x: p.x, z: p.z, y: ctx.groundAt(p.x, p.z), yaw: F.ry + 0.4, kennel: k };
+      const { F, u, v } = found;
+      const p = F.at(u, v), k = F.at(u - 1.05, v), o = F.at(0, 0), du = F.at(1, 0), dv = F.at(0, 1);
+      const ux = du.x - o.x, uz = du.z - o.z, vx = dv.x - o.x, vz = dv.z - o.z;
+      const base = Math.atan2(ux, uz);             // facing along +u, away from the kennel
+      // turned a little toward the lane (-v)
+      const toLane = (a) => Math.sin(a) * -vx + Math.cos(a) * -vz;
+      const tilt = toLane(base + 0.35) > toLane(base - 0.35) ? 0.35 : -0.35;
+      // standing on a yard's apron if there is one
+      const pw = ctx.toWorld(p);
+      const floor = floors.filter((q) => pw.x > q.min.x && pw.x < q.max.x && pw.z > q.min.z && pw.z < q.max.z).reduce((y, q) => Math.max(y, q.max.y), ctx.groundAt(p.x, p.z));
+      const spot = { x: p.x, z: p.z, y: floor, yaw: base + tilt, kennel: k, kennelYaw: base, bowl: F.at(u + 0.58, v + 0.28) };
       const shiba = buildShiba(actx, { spot, shadows });
       kinds.push({ x: p.x, z: p.z, r: 5, name: 'shiba', shadowed: true, mesh: 'shiba', draw: 45, update: shiba.update, list: [spot], dog: shiba.dog, spot });
     }

@@ -16,107 +16,140 @@ import { animalMaterial, Herd, ease, turn, painted } from './shade.js';
  * aPose2 x breath, y ears back
  * ------------------------------------------------------------------ */
 
-const RED = 0xcf7f3e, RED_D = 0xb5652e, CREAM = 0xf3e6cc, BLACK = 0x1c1818;
+const RED = 0xcf7f3e, RED_D = 0xb96a33, CREAM = 0xf4e8d0, BLACK = 0x1c1818;
 const UP = 0.19;                      // how far the body rises when it stands
+
+/* 裏白 (urajiro): the cream underside, read from which way a surface faces,
+ * so it blends round the body the way the real marking does. */
+const under = (n, k = -0.35) => n.y < k;
+const front = (n, p, w) => n.z > 0.25 && n.y < 0.35 && Math.abs(p.x) < w;
 
 function shibaGeometry() {
   const b = new Body();
   const rise = () => [0, UP, 0];
-  // the body, lying: a barrel on the ground, cream underneath
-  const cream = (p, under) => (p.y < under ? CREAM : RED);
+  // the body, lying flat: a barrel on the ground, the chest a little up
   b.add(loft([
     { p: [0, 0.13, -0.24], rx: 0.02, ry: 0.02 },
-    { p: [0, 0.135, -0.215], rx: 0.085, ry: 0.085 },
-    { p: [0, 0.14, -0.13], rx: 0.1, ry: 0.098 },
-    { p: [0, 0.15, -0.02], rx: 0.106, ry: 0.108 },
-    { p: [0, 0.165, 0.08], rx: 0.112, ry: 0.12 },
-    { p: [0, 0.18, 0.15], rx: 0.094, ry: 0.11 },
-    { p: [0, 0.19, 0.2], rx: 0.04, ry: 0.05 },
+    { p: [0, 0.132, -0.215], rx: 0.085, ry: 0.085 },
+    { p: [0, 0.135, -0.13], rx: 0.1, ry: 0.098 },
+    { p: [0, 0.142, -0.02], rx: 0.105, ry: 0.104 },
+    { p: [0, 0.155, 0.08], rx: 0.11, ry: 0.114 },
+    { p: [0, 0.17, 0.15], rx: 0.094, ry: 0.106 },
+    { p: [0, 0.18, 0.2], rx: 0.04, ry: 0.05 },
   ], 20, [0, 1, 0], 3), {
     morph: rise,
-    color: (p) => {
-      if (p.z > 0.12 && Math.abs(p.x) < 0.06 && p.y < 0.2) return CREAM;       // the chest
-      if (p.y > 0.23 && Math.abs(p.x) < 0.05 && p.z < 0.05) return RED_D;     // a darker line down the back
-      return cream(p, 0.085);
+    color: (p, n) => {
+      if (front(n, p, 0.07) && p.y < 0.2) return CREAM;                        // the chest
+      if (under(n)) return CREAM;                                               // the belly
+      if (n.y > 0.8 && p.z < 0.05) return RED_D;                                // a darker saddle
+      return RED;
     },
   });
-  // the haunches: round thighs on the ground either side (lying), under the hips (standing)
+  // haunches.  Lying, the hips rolled over to the right, that thigh flat on
+  // the ground (a resting dog, not a crouch); standing, under the hips.
   for (const s of [-1, 1]) {
-    b.add(blob(0.05, 0.07, 0.085, 14, 10), {
-      matrix: at(s * 0.078, 0.1, -0.13, 0.25, 0, s * 0.15),
-      morph: at(s * 0.058, 0.31, -0.15, 0.2, 0, 0, [0.72, 0.8, 0.72]),
-      color: (p, n, l) => (l.y < -0.035 && l.z > -0.02 ? CREAM : RED),
+    b.add(blob(0.052, 0.068, 0.088, 14, 10), {
+      matrix: at(s * 0.078, 0.092, -0.13, 0.2, 0, s * 0.25),
+      morph: at(s * 0.058, 0.305, -0.15, 0.15, 0, 0, [0.74, 0.86, 0.74]),
+      color: (p, n) => (under(n, -0.5) ? CREAM : RED),
     });
-    // the shoulders over the forelegs
-    b.add(blob(0.042, 0.06, 0.06, 12, 8), { matrix: at(s * 0.062, 0.13, 0.11), morph: at(s * 0.058, 0.3, 0.115), color: RED });
+    b.add(blob(0.042, 0.06, 0.06, 12, 8), { matrix: at(s * 0.062, 0.125, 0.11), morph: at(s * 0.058, 0.3, 0.115), color: (p, n) => (front(n, p, 0.2) && n.x * s < 0.3 ? CREAM : RED) });
   }
-  // a ruff round the neck
-  b.add(blob(0.085, 0.08, 0.06, 16, 10), { matrix: at(0, 0.19, 0.15, -0.5, 0, 0), morph: rise, color: (p) => (p.z > 0.17 && Math.abs(p.x) < 0.05 ? CREAM : RED) });
+  // a ruff round the neck, cream at the throat
+  b.add(blob(0.085, 0.08, 0.06, 16, 10), { matrix: at(0, 0.18, 0.15, -0.5, 0, 0), morph: rise, color: (p, n) => (front(n, p, 0.055) ? CREAM : RED) });
   // neck and head: turning about the neck's root
   const piv = [0, 0.2, 0.15];
   const head = { part: 1, pivot: piv, morph: rise };
   b.add(loft([
-    { p: [0, 0.16, 0.12], rx: 0.07, ry: 0.07 },
-    { p: [0, 0.22, 0.17], rx: 0.065, ry: 0.062 },
-    { p: [0, 0.27, 0.2], rx: 0.058, ry: 0.058 },
-    { p: [0, 0.3, 0.22], rx: 0.0, ry: 0.0 },
-  ], 16, [0, 0, 1], 2), { ...head, color: (p) => (p.z > 0.17 && Math.abs(p.x) < 0.045 && p.y < 0.26 ? CREAM : RED) });
+    { p: [0, 0.16, 0.12], rx: 0.068, ry: 0.068 },
+    { p: [0, 0.22, 0.17], rx: 0.06, ry: 0.058 },
+    { p: [0, 0.27, 0.205], rx: 0.052, ry: 0.052 },
+    { p: [0, 0.29, 0.222], rx: 0.0, ry: 0.0 },
+  ], 16, [0, 0, 1], 2), { ...head, color: (p, n) => (front(n, p, 0.04) || under(n, -0.5) ? CREAM : RED) });
   const hc = [0, 0.3, 0.24];
-  // the skull, cheeks puffed out cream
-  b.add(blob(0.07, 0.064, 0.07, 20, 14), {
-    ...head, matrix: at(hc[0], hc[1], hc[2]),
-    color: (p) => (p.y < hc[1] - 0.012 && p.z > hc[2] - 0.02 ? CREAM : p.y > hc[1] + 0.035 && Math.abs(p.x) < 0.02 && p.z > hc[2] + 0.03 ? CREAM : RED),
-  });
-  for (const s of [-1, 1]) b.add(blob(0.04, 0.034, 0.04, 14, 10), { ...head, matrix: at(s * 0.046, hc[1] - 0.024, hc[2] + 0.035), color: CREAM });
-  // the muzzle: short and tapering, cream, a black nose
+  const HS = 1.18;
+  const hm = (m = new THREE.Matrix4()) => new THREE.Matrix4().makeTranslation(hc[0], hc[1], hc[2])
+    .multiply(new THREE.Matrix4().makeScale(HS, HS, HS)).multiply(new THREE.Matrix4().makeTranslation(-hc[0], -hc[1], -hc[2])).multiply(m);
+  // the skull: broad between the ears, full at the cheeks, then the wedge
+  // of the muzzle: the fox-like face
+  const skull = blob(0.06, 0.054, 0.058, 22, 16);
+  {
+    const P = skull.attributes.position;
+    for (let i = 0; i < P.count; i++) {
+      const y = P.getY(i), z = P.getZ(i);
+      const cheek = 1 + 0.16 * Math.max(0, -y / 0.054) * Math.max(0, z / 0.058 + 0.3);
+      P.setX(i, P.getX(i) * cheek);
+    }
+    skull.computeVertexNormals();
+  }
+  // urajiro on the face: below a line from under the eye down to the jaw's
+  // corner (the cheeks and the side of the muzzle), the bridge stays red
+  const face = (p) => {
+    const dy = (p.y - hc[1]) / HS, dz = (p.z - hc[2]) / HS, ax = Math.abs(p.x) / HS;
+    if (dz > 0.03 && dy > -0.014 && ax < 0.017) return RED;                     // the bridge of the nose
+    if (dy < -0.006 - 0.12 * Math.max(0, -dz) && dz > -0.035) return CREAM;       // cheeks, jaw, muzzle
+    if (dy > 0.024 && dy < 0.032 && ax > 0.018 && ax < 0.03 && dz > 0.03) return CREAM;   // the brow dots
+    return RED;
+  };
+  b.add(skull, { ...head, matrix: hm(at(hc[0], hc[1], hc[2])), color: face });
   b.add(loft([
-    { p: [0, hc[1] - 0.012, hc[2] + 0.04], rx: 0.04, ry: 0.034 },
-    { p: [0, hc[1] - 0.018, hc[2] + 0.085], rx: 0.03, ry: 0.026 },
-    { p: [0, hc[1] - 0.022, hc[2] + 0.115], rx: 0.02, ry: 0.018 },
-    { p: [0, hc[1] - 0.022, hc[2] + 0.125], rx: 0.0, ry: 0.0 },
-  ], 14, [0, 1, 0], 2), { ...head, color: (p) => (p.y > hc[1] - 0.004 && p.z < hc[2] + 0.08 ? RED : CREAM) });
-  b.add(blob(0.014, 0.011, 0.01, 8, 5), { ...head, matrix: at(0, hc[1] - 0.012, hc[2] + 0.123), color: BLACK });
-  // eyes: small, dark, a little almond (slanted); cream brows over them
+    { p: [0, hc[1] - 0.01, hc[2] + 0.02], rx: 0.048, ry: 0.038 },
+    { p: [0, hc[1] - 0.017, hc[2] + 0.052], rx: 0.036, ry: 0.03 },
+    { p: [0, hc[1] - 0.022, hc[2] + 0.078], rx: 0.027, ry: 0.023 },
+    { p: [0, hc[1] - 0.024, hc[2] + 0.094], rx: 0.02, ry: 0.018 },
+    { p: [0, hc[1] - 0.025, hc[2] + 0.101], rx: 0.0, ry: 0.0 },
+  ], 14, [0, 1, 0], 2), { ...head, matrix: hm(), color: face });
+  b.add(blob(0.017, 0.012, 0.012, 10, 6), { ...head, matrix: hm(at(0, hc[1] - 0.019, hc[2] + 0.099)), color: BLACK });
+  // the mouth's line, dark under the muzzle's side
+  for (const s of [-1, 1]) b.add(blob(0.004, 0.003, 0.03, 5, 3), { ...head, matrix: hm(at(s * 0.019, hc[1] - 0.036, hc[2] + 0.064, 0.1, s * 0.25, 0)), color: 0x5a3c30 });
+  // eyes: small, dark, almond, set on the slant of the face
   for (const s of [-1, 1]) {
-    b.add(blob(0.011, 0.008, 0.006, 8, 5), { ...head, matrix: at(s * 0.03, hc[1] + 0.012, hc[2] + 0.062, 0, 0, s * 0.35), color: BLACK });
-    b.add(blob(0.01, 0.006, 0.006, 6, 4), { ...head, matrix: at(s * 0.028, hc[1] + 0.03, hc[2] + 0.06), color: CREAM });
+    b.add(blob(0.0115, 0.0062, 0.005, 10, 6), { ...head, matrix: hm(at(s * 0.027, hc[1] + 0.012, hc[2] + 0.051, 0, s * 0.45, s * 0.32)), color: BLACK });
   }
-  // ears: pricked, thick triangles leaning forward, cream inside
+  // ears: triangles, wide at the base, pricked and tipped forward, cream inside
   for (const s of [-1, 1]) {
-    const e = new THREE.ConeGeometry(0.036, 0.085, 6, 1);
-    e.scale(1.1, 1, 0.55);
-    b.add(e, { ...head, matrix: at(s * 0.042, hc[1] + 0.088, hc[2] - 0.008, 0.22, 0, -s * 0.2), color: (p) => (p.z > hc[2] + 0.004 && p.y < hc[1] + 0.105 ? CREAM : RED) });
+    const e = new THREE.ConeGeometry(0.036, 0.074, 4, 1);
+    e.rotateY(Math.PI / 4);
+    e.scale(1.0, 1, 0.5);
+    b.add(e, { ...head, matrix: hm(at(s * 0.035, hc[1] + 0.07, hc[2] - 0.006, 0.28, 0, -s * 0.2)), color: (p, n, l) => (l.z > 0.004 && l.y < 0.02 && Math.abs(l.x) < 0.02 ? 0xf0d8c4 : RED) });
   }
-  // the tail: a thick cream-and-red curl over the back
+  // the tail: a thick curl over the back, cream beneath
   const tb = [0, 0.2, -0.22];
   const curl = loft([
-    { p: [0, 0.2, -0.23], rx: 0.036, ry: 0.036 },
-    { p: [0, 0.27, -0.26], rx: 0.04, ry: 0.04 },
-    { p: [0, 0.33, -0.22], rx: 0.04, ry: 0.04 },
-    { p: [0.01, 0.34, -0.14], rx: 0.036, ry: 0.036 },
-    { p: [0.045, 0.3, -0.1], rx: 0.03, ry: 0.03 },
-    { p: [0.07, 0.27, -0.13], rx: 0.02, ry: 0.02 },
-    { p: [0.075, 0.265, -0.15], rx: 0.0, ry: 0.0 },
+    { p: [0, 0.2, -0.23], rx: 0.042, ry: 0.042 },
+    { p: [0, 0.27, -0.26], rx: 0.048, ry: 0.048 },
+    { p: [0, 0.335, -0.22], rx: 0.048, ry: 0.048 },
+    { p: [0.012, 0.345, -0.14], rx: 0.044, ry: 0.044 },
+    { p: [0.048, 0.305, -0.1], rx: 0.036, ry: 0.036 },
+    { p: [0.072, 0.275, -0.13], rx: 0.024, ry: 0.024 },
+    { p: [0.078, 0.268, -0.15], rx: 0.0, ry: 0.0 },
   ], 12, [1, 0, 0], 3);
-  b.add(curl, { part: 2, pivot: tb, morph: rise, color: (p) => (p.y > 0.315 || p.x > 0.03 ? RED : CREAM) });
-  // legs.  Lying: the forelegs out in front on the ground, the hind legs
-  // folded along the flanks.  Standing (the morph): straight under the body.
-  const leg = (lie, stand, r0, r1, paw) => {
-    const mk = (pts) => loft(pts.map((q, i) => ({ p: q, rx: i === 0 ? r0 : i === pts.length - 1 ? 0.0 : r0 + (r1 - r0) * (i / (pts.length - 1)), ry: i === 0 ? r0 : i === pts.length - 1 ? 0.0 : r0 + (r1 - r0) * (i / (pts.length - 1)) })), 10, [0, 1, 0], 3);
+  b.add(curl, { part: 2, pivot: tb, morph: rise, color: (p, n) => (n.y > 0.2 || p.x > 0.045 ? RED : CREAM) });
+  // legs: each a loft through its joints, lying and standing, the same
+  // sections (so the morph between them is a clean fold, never a knot),
+  // and a round paw that rides with it
+  const leg = (lie, stand, radii, pawLie, pawStand) => {
+    const mk = (pts) => loft(pts.map((q, i) => ({ p: q, rx: radii[i], ry: radii[i] })), 10, [1, 0, 0], 3);
     const gl = mk(lie), gs = mk(stand);
     const PS = gs.attributes.position;
     let vi = 0;
-    b.add(gl, { part: 3, color: (p, n, l) => (paw(l) ? CREAM : RED), morph: (p) => { const d = [PS.getX(vi) - p.x, PS.getY(vi) - p.y, PS.getZ(vi) - p.z]; vi++; return d; } });
+    // red outside, cream on the inner face and the lower leg (by how far down the leg, not by height)
+    const N = gl.attributes.position.count, rings = N - 2;
+    let ci = 0;
+    b.add(gl, { part: 3, color: (p, n, l) => { const t = ci++ / rings; return t > 0.72 || n.x * Math.sign(l.x) < -0.55 ? CREAM : RED; }, morph: () => { const d = [PS.getX(vi) - gl.attributes.position.getX(vi), PS.getY(vi) - gl.attributes.position.getY(vi), PS.getZ(vi) - gl.attributes.position.getZ(vi)]; vi++; return d; } });
+    b.add(blob(0.022, 0.015, 0.03, 10, 6), { part: 3, matrix: at(...pawLie), morph: at(...pawStand), color: CREAM });
   };
   for (const s of [-1, 1]) {
-    // forelegs: shoulder, elbow, wrist, paw
-    leg([[s * 0.06, 0.15, 0.12], [s * 0.065, 0.06, 0.14], [s * 0.062, 0.025, 0.22], [s * 0.062, 0.02, 0.29], [s * 0.062, 0.02, 0.3]],
-      [[s * 0.06, 0.34, 0.12], [s * 0.06, 0.2, 0.125], [s * 0.06, 0.08, 0.13], [s * 0.06, 0.02, 0.15], [s * 0.06, 0.02, 0.16]],
-      0.035, 0.026, (l) => l.y < 0.045 && l.z > 0.2);
-    // hind legs: hip, knee, hock, paw
-    leg([[s * 0.075, 0.13, -0.15], [s * 0.1, 0.07, -0.04], [s * 0.095, 0.03, -0.12], [s * 0.09, 0.02, -0.02], [s * 0.09, 0.02, -0.01]],
-      [[s * 0.065, 0.3, -0.17], [s * 0.068, 0.2, -0.13], [s * 0.066, 0.1, -0.21], [s * 0.066, 0.02, -0.18], [s * 0.066, 0.02, -0.17]],
-      0.045, 0.026, (l) => l.y < 0.04 && l.z > -0.06);
+    // forelegs: straight and slim when standing; out in front, lying
+    leg([[s * 0.06, 0.13, 0.12], [s * 0.064, 0.05, 0.14], [s * 0.062, 0.03, 0.2], [s * 0.062, 0.026, 0.25]],
+      [[s * 0.058, 0.33, 0.12], [s * 0.058, 0.2, 0.116], [s * 0.058, 0.08, 0.124], [s * 0.058, 0.036, 0.13]],
+      [0.03, 0.022, 0.019, 0.018], [s * 0.062, 0.018, 0.27], [s * 0.058, 0.016, 0.142]);
+    // hind legs: thigh, the angled shank, the hock, the upright foot.  Lying,
+    // the right one stretched out to the side, the left tucked under.
+    const lie = [[s * 0.065, 0.1, -0.15], [s * 0.084, 0.07, -0.09], [s * 0.09, 0.05, -0.14], [s * 0.092, 0.036, -0.075]];
+    leg(lie,
+      [[s * 0.06, 0.3, -0.16], [s * 0.064, 0.19, -0.115], [s * 0.063, 0.095, -0.2], [s * 0.063, 0.036, -0.19]],
+      [0.036, 0.022, 0.018, 0.017], [s * 0.094, 0.018, -0.045], [s * 0.063, 0.016, -0.175]);
   }
   return b.build();
 }
@@ -150,7 +183,7 @@ void rig(inout vec3 p, inout vec3 n) {
 `;
 
 /** A kennel: pale timber, a dark red roof, a round door; the dog's bowl. */
-function kennelGeometry() {
+function kennelGeometry(bowl = [0.45, 0.5]) {
   const b = new Body();
   const wood = (p) => (Math.sin(p.y * 70) > 0.85 ? 0xa4845e : 0xc4a57c);
   b.add(new THREE.BoxGeometry(0.62, 0.46, 0.72).translate(0, 0.25, 0), { color: wood });
@@ -171,8 +204,8 @@ function kennelGeometry() {
   b.add(door, { matrix: at(0, 0.2, 0.362), color: 0x2a221e });
   b.add(new THREE.PlaneGeometry(0.3, 0.2).translate(0, 0.1, 0.362), { color: 0x2a221e });
   // a steel bowl
-  b.add(new THREE.CylinderGeometry(0.09, 0.07, 0.05, 14).translate(0.45, 0.025, 0.5), { color: 0xc4c8d0 });
-  b.add(new THREE.CylinderGeometry(0.075, 0.075, 0.01, 14).translate(0.45, 0.045, 0.5), { color: 0x7fa8c8 });
+  b.add(new THREE.CylinderGeometry(0.09, 0.07, 0.05, 14).translate(bowl[0], 0.025, bowl[1]), { color: 0xc4c8d0 });
+  b.add(new THREE.CylinderGeometry(0.075, 0.075, 0.01, 14).translate(bowl[0], 0.045, bowl[1]), { color: 0x7fa8c8 });
   return b.build();
 }
 
@@ -184,9 +217,12 @@ export function buildShiba(ctx, { spot, shadows }) {
   const herd = new Herd(ctx, geo, mat, 1, 'shiba', { bounds: [spot.x, spot.y, spot.z, 3] });
   // the kennel, a pace behind and to one side
   const kx = spot.kennel?.x ?? spot.x + Math.cos(spot.yaw) * 0.85, kz = spot.kennel?.z ?? spot.z - Math.sin(spot.yaw) * 0.85;
-  const kennel = new THREE.Mesh(kennelGeometry(), painted());
+  const kyaw = spot.kennelYaw ?? spot.yaw;
+  // the bowl where the placer found room, in the kennel's own frame
+  const bw = spot.bowl ? [(spot.bowl.x - kx) * Math.cos(kyaw) - (spot.bowl.z - kz) * Math.sin(kyaw), (spot.bowl.x - kx) * Math.sin(kyaw) + (spot.bowl.z - kz) * Math.cos(kyaw)] : undefined;
+  const kennel = new THREE.Mesh(kennelGeometry(bw), painted());
   kennel.position.set(kx, spot.y, kz);
-  kennel.rotation.y = spot.yaw;
+  kennel.rotation.y = kyaw;
   kennel.castShadow = kennel.receiveShadow = true;
   kennel.name = 'animals-kennel';
   ctx.add(kennel);
@@ -215,7 +251,7 @@ export function buildShiba(ctx, { spot, shadows }) {
     if (d > A.leave) dog.away += dt; else dog.away = 0;
     if (dog.state === 'doze') {
       dog.look += (0.2 - dog.look) * Math.min(1, dt);
-      dog.nod += (0.55 - dog.nod) * Math.min(1, dt * 1.5);
+      dog.nod += (0.85 - dog.nod) * Math.min(1, dt * 1.5);
       if (dog.seen > 0.6) dog.state = 'watch';
     } else if (dog.state === 'watch' || dog.state === 'up') {
       dog.look += (toYaw - dog.look) * Math.min(1, dt * 3);

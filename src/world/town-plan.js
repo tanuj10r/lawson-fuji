@@ -120,7 +120,7 @@ export const SPECIALS = [
   // a corner plot on the main road, as coin parking always is: west of the
   // Lawson's forecourt now the town stands behind the store (M2e.3)
   { kind: 'coinParking', x0: 42, z0: 20.5, x1: 62 - lane - 0.4, z1: 34.5, face: 'z-' },
-  { kind: 'shrine', x0: 6, z0: 80 + lane + 0.4, x1: 20, z1: 97, face: 'z-' },
+  { kind: 'shrine', x0: 6, z0: 80 + lane + 0.4, x1: 20, z1: 101.5, face: 'z-' },   // deepened for the torii tunnel and two halls (experience 3)
   { kind: 'apartment', x0: 30 + lane + 0.5, z0: 86, x1: 30 + lane + 12.5, z1: 102, face: 'x-' },
   { kind: 'vacant', x0: 40, z0: 98, x1: 51, z1: 112 - lane - 0.3, face: 'z+' },
   { kind: 'park', x0: 5, z0: 112 + lane + 0.4, x1: 24, z1: 132, face: 'z-' },

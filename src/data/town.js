@@ -163,3 +163,34 @@ export const SHOP_LETTERING = {
 };
 /** The sweet shop's wooden menu tags, over its counter. */
 export const SWEET_TAGS = ['だんご', '大福', 'さくら餅', 'どら焼', 'もなか', '羊羹', 'おはぎ', '柏餅'];
+
+/* ---- 富士見稲荷神社, the Inari shrine experience (2026-09-28) ----
+ * World text (brush face) and the prayer's English subtitles.  The donors
+ * on the tunnel's torii are ours: the town's shops and families. */
+export const SHRINE_TEXT = {
+  gaku: '稲荷大明神',                 // the main torii's plaque
+  stone: '富士見稲荷神社',            // the name pillar (社号標)
+  lantern: '奉納',                    // the hanging lanterns at the hall
+  // down the backs of the tunnel's pillars: a donor on one, the date on the other
+  donors: [
+    '奉納 山田商店', '奉納 富士見建設株式会社', '奉納 佐藤家一同', '奉納 さくら湯',
+    '奉納 富士見酒造', '奉納 鈴木工務店', '奉納 河口屋', '奉納 田中家',
+    '奉納 富士見町商店会', '奉納 小林精肉店', '奉納 高橋家', '奉納 ふじみ食堂',
+  ],
+  dates: ['令和五年四月吉日', '令和六年三月吉日', '令和四年十月吉日', '令和六年十一月吉日', '平成三十年四月吉日', '令和二年五月吉日'],
+  ema: ['合格祈願', '商売繁盛', '家内安全', '良縁成就', '健康第一', '五穀豊穣'],
+};
+
+/** The prayer at the hall (UI: English; the Japanese only beside it). */
+export const SHRINE_PRAYER = {
+  name: 'Pray at the shrine',
+  jp: '参拝',
+  steps: [
+    'A coin in the offering box, and ring the bell',
+    'Two deep bows  ·  二礼',
+    'Two claps  ·  二拍手',
+    'Hands together, a quiet wish',
+    'One last bow  ·  一礼',
+  ],
+  done: 'Two bows, two claps, one bow (二礼二拍手一礼): how to pray at a shrine',
+};

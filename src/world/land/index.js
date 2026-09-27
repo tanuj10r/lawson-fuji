@@ -11,6 +11,7 @@ import { buildPond, pondMats } from './pond.js';
 import { buildGate } from './gate.js';
 import { buildParking } from './parking.js';
 import { buildHills } from './hills.js';
+import { buildSlowLife } from './slowlife.js';
 
 /* ------------------------------------------------------------------ *
  * The land north of the main road (town quality pass; Tan's layout in
@@ -94,6 +95,7 @@ export function buildLand(ctx) {
   const pondParts = makeParts(mats);
   buildPond(pctx, pondParts, scatter, water);
   buildGate(lctx, parts);
+  buildSlowLife(lctx, scatter);            // ひと休み: the bench where the paddies meet the pond (Tan's experiences)
 
   // past the far walk: a strip of grass to the tree line, the town's edge
   {

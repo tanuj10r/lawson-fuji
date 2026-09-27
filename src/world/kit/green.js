@@ -28,10 +28,11 @@ export const LOOKS = {
     skin: () => leafTex('broad'), skinRepeat: [2, 1], card: () => leafCardTex('broad'),
     wood: 0x6a5a58, ground: { drift: 'leaves' },
     form: {
-      trunkH: 2.6, lean: 0.12, girth: 0.2, limbs: [5, 7], heroLimbs: [7, 9],
-      tilt: [0.35, 0.7], heroTilt: [0.45, 0.8], len: 2.6, heroLen: 3.2, rise: 1.2,
-      forks: 2, fineTwigs: 2, fineLen: 0.8, perTree: [110, 210], cushion: 0.5, spread: 0.85,
-      droop: 0.4, flatten: [0.6, 0.8], wide: 1.1, rimFrom: 0.6,
+      // a vase: steep limbs that hardly bend, lobes up their length (sakura pass)
+      lobes: true, trunkH: 2.6, lean: 0.12, girth: 0.2, limbs: [4, 5], heroLimbs: [5, 7],
+      tilt: [0.2, 0.4], heroTilt: [0.25, 0.45], len: 3.6, heroLen: 4.2, bend: [0.12, 0.22],
+      fineTwigs: 2, fineLen: 0.6, lobeR: 1.0, perLobe: 8, cushion: 0.5,
+      droop: 0.3, flatten: [0.6, 0.8], wide: 1.1, rimFrom: 0.7,
     },
   },
   camphor: {
@@ -39,10 +40,11 @@ export const LOOKS = {
     skin: () => leafTex('glossy'), skinRepeat: [2, 1], card: () => leafCardTex('glossy'),
     wood: 0x5a4e4c, ground: { drift: 'leaves' },
     form: {
-      trunkH: 2.2, lean: 0.2, girth: 0.3, limbs: [5, 7], heroLimbs: [7, 9],
-      tilt: [0.7, 1.05], heroTilt: [0.8, 1.2], len: 2.3, heroLen: 3.0, rise: 1,
-      forks: 2, fineTwigs: 1, fineLen: 0.7, perTree: [140, 280], cushion: 0.55, spread: 0.95,
-      droop: 0.5, flatten: [0.7, 0.85], wide: 1.15, rimFrom: 0.65,
+      // round and dense: lobes packed into one dome, a heavy trunk under it (sakura pass)
+      lobes: true, trunkH: 2.2, lean: 0.2, girth: 0.3, limbs: [4, 5], heroLimbs: [5, 6],
+      tilt: [0.45, 0.7], heroTilt: [0.55, 0.8], len: 3.0, heroLen: 3.4, bend: [0.25, 0.4],
+      fineTwigs: 1, fineLen: 0.5, lobeR: 1.2, perLobe: 9, cushion: 0.55,
+      droop: 0.4, flatten: [0.7, 0.85], wide: 1.15, rimFrom: 0.7,
     },
   },
   maple: {

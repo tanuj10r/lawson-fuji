@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PAL } from '../core/palette.js';
-import { flat } from '../core/toon.js';
+import { flat, cel } from '../core/toon.js';
 import { petalTex } from '../core/textures.js';
 import { rngKit } from '../core/util.js';
 import { centerX, groundY } from './street.js';
@@ -282,4 +282,225 @@ function buildFallenPetals(ctx, tex) {
     inst.userData.noOutline = true;
     ctx.add(inst);
   });
+}
+
+/* ------------------------------------------------------------------ *
+ * Petals where they land (sakura pass).
+ *
+ * Under every cherry the petals are dropped, not painted: a ray falls from
+ * the canopy and a petal lies wherever it lands -- the walk, a bench's
+ * slats, a planter's rim, a car roof, a wall's coping.  On the carriageway
+ * the wind clears them, except in the gutter, where the kerb stops them and
+ * they pile up; there a drift decal thickens the pile.  The river gets
+ * rafts of them, strung out along the current.
+ *
+ * Everything is one instanced mesh (a flat petal, three tones as instance
+ * colours), shaded like the ground under it, and out of the depth buffer so
+ * the ink pass does not outline every petal into speckle.
+ * ------------------------------------------------------------------ */
+
+const FALLEN_TONES = [0xfff2f6, 0xfcd9e4, 0xf3bdd0];
+
+/**
+ * @param trees  [{ x, z, y, r, top, seed }] in ctx's frame (kit/canopy.js)
+ * @param opts.decals  the town's decal set, for gutter drifts
+ * @param opts.river   { z0, z1, x0, x1, y }: the river's surface, rafts on it
+ */
+export function buildFallen(ctx, trees, { decals, river } = {}) {
+  const root = ctx.root;
+  root.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  /* what a petal can land on: static meshes under the town's root, their
+   * boxes in the root's frame (instanced things, glass and decals are
+   * passed through) */
+  const solid = [];
+  const box = new THREE.Box3();
+  const rel = new THREE.Matrix4();
+  root.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || !o.visible || o.userData.shadowOnly || o.userData.noOutline) return;
+    const m = o.material;
+    if (Array.isArray(m) || m.transparent || m.depthWrite === false || m.alphaTest > 0) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    rel.multiplyMatrices(inv, o.matrixWorld);
+    box.copy(o.geometry.boundingBox).applyMatrix4(rel);
+    solid.push({ o, x0: box.min.x, x1: box.max.x, z0: box.min.z, z1: box.max.z, y1: box.max.y });
+  });
+
+  const rng = rngKit(5151);
+  const mats = [];
+  const ray = new THREE.Raycaster();
+  const down = new THREE.Vector3(0, -1, 0).transformDirection(root.matrixWorld);
+  const o = new THREE.Vector3(), hitN = new THREE.Vector3(), hp = new THREE.Vector3();
+  const nm = new THREE.Matrix3();
+  const dummy = new THREE.Object3D();
+  const put = (x, y, z, tilt = 0.12) => {
+    dummy.position.set(x, y + 0.012, z);
+    dummy.rotation.set(-Math.PI / 2 + rng.range(-tilt, tilt), rng.range(-tilt, tilt), rng.range(0, Math.PI * 2));
+    const k = rng.range(0.85, 1.45);
+    dummy.scale.set(k, k, 1);
+    dummy.updateMatrix();
+    mats.push([dummy.matrix.clone(), rng.int(0, 2)]);
+  };
+  const g = (x, z) => ctx.groundAt?.(x, z) ?? 0;
+  const KERB = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+  for (const t of trees) {
+    const R = t.r * 1.15;
+    const objs = solid
+      .filter((q) => q.x1 > t.x - R && q.x0 < t.x + R && q.z1 > t.z - R && q.z0 < t.z + R && q.y1 < t.top)
+      .map((q) => q.o);
+    const n = Math.round(Math.min(420, 15 * R * R));
+    for (let i = 0; i < n; i++) {
+      // thickest under the crown's middle, thinning past its edge
+      const a = rng.range(0, Math.PI * 2), d = R * Math.pow(rng.next(), 0.7);
+      const x = t.x + Math.cos(a) * d, z = t.z + Math.sin(a) * d;
+      let y = g(x, z), onTop = false;
+      if (objs.length) {
+        o.set(x, t.top, z).applyMatrix4(root.matrixWorld);
+        ray.set(o, down);
+        ray.far = t.top + 2;
+        const hit = ray.intersectObjects(objs, false)[0];
+        if (hit) {
+          const hy = hp.copy(hit.point).applyMatrix4(inv).y;
+          // only what lies flat holds a petal; a roof's pitch or a wall's face lets it slide
+          if (hy > y + 0.02) {
+            if (!hit.face) continue;
+            nm.getNormalMatrix(hit.object.matrixWorld);
+            hitN.copy(hit.face.normal).applyMatrix3(nm).normalize();
+            if (hitN.y < 0.8) continue;
+            y = hy; onTop = true;
+          }
+        }
+      }
+      if (!onTop && y < 0.05) {
+        // the carriageway: blown clear, except where a kerb stops them
+        const k = KERB.find(([dx, dz]) => { const h = g(x + dx * 0.8, z + dz * 0.8) - y; return h > 0.06 && h < 0.4; });
+        if (!k) { if (rng.next() < 0.65) put(x, y, z); continue; }
+        // walk to the kerb's foot and pile there
+        const [ux, uz] = k;
+        let bx = x, bz = z;
+        for (let s = 0; s < 16 && g(bx + ux * 0.06, bz + uz * 0.06) - y < 0.06; s++) { bx += ux * 0.06; bz += uz * 0.06; }
+        for (let j = 0; j < 4; j++) put(bx - ux * rng.range(0.02, 0.3), y, bz - uz * rng.range(0.02, 0.3));
+        if (decals && rng.next() < 0.08) {
+          decals.add('petals', bx - ux * 0.25, bz - uz * 0.25, rng.range(0.5, 0.8), rng.range(1.2, 2.2), { x: -uz, z: ux }, y, 4);
+        }
+        continue;
+      }
+      put(x, y, z, onTop ? 0.05 : 0.12);
+    }
+  }
+
+  // the river: rafts strung out along the current, and a thin scatter
+  if (river) {
+    const { x0 = -118, x1 = 118, z0, z1, y } = river;
+    for (let k = 0; k < 28; k++) {
+      const cx = rng.range(x0 + 4, x1 - 4), cz = rng.range(z0 + 1.5, z1 - 1.5);
+      const len = rng.range(3, 9), wid = rng.range(0.4, 1.3), ang = rng.range(-0.25, 0.25);
+      const m = Math.round(len * wid * rng.range(40, 70));
+      for (let i = 0; i < m; i++) {
+        const u = rng.range(-0.5, 0.5) * len, v = (rng.next() + rng.next() - 1) * wid * (1 - Math.abs(u) / len);
+        put(cx + Math.cos(ang) * u - Math.sin(ang) * v, y, cz + Math.sin(ang) * u + Math.cos(ang) * v, 0.03);
+      }
+    }
+    for (let i = 0; i < 400; i++) put(rng.range(x0, x1), y, rng.range(z0 + 0.5, z1 - 0.5), 0.03);
+  }
+
+  if (!mats.length) return null;
+  const geo = new THREE.PlaneGeometry(0.16, 0.12);
+  const mat = cel({
+    color: 0xffffff, map: petalTex(), bands: 2, tint: 0x8a78a8, transparent: true, opacity: 0.95,
+    depthWrite: false, alphaTest: 0.32, side: THREE.DoubleSide, cache: false,
+  });
+  const inst = new THREE.InstancedMesh(geo, mat, mats.length);
+  const col = new THREE.Color();
+  mats.forEach(([m, tone], i) => { inst.setMatrixAt(i, m); inst.setColorAt(i, col.set(FALLEN_TONES[tone])); });
+  inst.computeBoundingSphere();
+  inst.name = 'fallenPetals';
+  inst.renderOrder = 2;
+  inst.receiveShadow = true;
+  inst.castShadow = false;
+  inst.userData.noOutline = true;
+  inst.userData.dynamic = true;        // one instanced draw of its own, not merged by cell
+  ctx.add(inst);
+  return inst;
+}
+
+/**
+ * A shower from the cherries near the player: a small field of petals that
+ * leave the canopies overhead, on top of the town's fall (town.js), so under
+ * a big tree the air is thick with them.  Runs only within `reach` of a
+ * cherry; beyond it, hidden and idle.  Hooked into ctx.update.
+ */
+export function buildShower(ctx, emitters, { count = 150, reach = 26 } = {}) {
+  if (!emitters.length) return null;
+  const rng = rngKit(7373);
+  const geo = new THREE.PlaneGeometry(0.17, 0.125);
+  const mat = flat({
+    color: 0xffffff, map: petalTex(), transparent: true, opacity: 0.95,
+    depthWrite: false, side: THREE.DoubleSide, alphaTest: 0.32, cache: false,
+  });
+  const inst = new THREE.InstancedMesh(geo, mat, count);
+  inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  const col = new THREE.Color();
+  for (let i = 0; i < count; i++) inst.setColorAt(i, col.set([PAL.petal, PAL.blossomLight, PAL.petalDeep][i % 3]));
+  inst.frustumCulled = false;
+  inst.renderOrder = 4;
+  inst.visible = false;
+  inst.name = 'sakuraShower';
+  inst.userData.noOutline = true;
+  inst.userData.dynamic = true;
+  ctx.add(inst);
+
+  const cam = new THREE.Vector3(1e6, 0, 1e6);
+  let near = [];
+  const P = Array.from({ length: count }, () => ({
+    x: 0, y: -5, z: 0, fall: rng.range(0.35, 0.75), amp: rng.range(0.25, 0.7), f: rng.range(0.5, 1.3),
+    ph: rng.range(0, 10), spin: new THREE.Vector3(rng.range(-1, 1), rng.range(-1, 1), rng.range(-1, 1)).normalize(),
+    rate: rng.range(0.6, 2.4), ang: rng.range(0, 6.28), s: rng.range(0.8, 1.25),
+  }));
+  const spawn = (p, anywhere) => {
+    if (!near.length) { p.y = -5; return; }
+    const e = near[Math.floor(rng.next() * near.length)];
+    const a = rng.range(0, Math.PI * 2), d = Math.sqrt(rng.next()) * e.r;
+    p.x = e.x + Math.cos(a) * d; p.z = e.z + Math.sin(a) * d;
+    p.y = anywhere ? rng.range(0.2, e.y) : e.y + rng.range(-1.2, 0.4);
+  };
+  const dummy = new THREE.Object3D();
+  let t = 0, active = false;
+  const step = (dt) => {
+    t += dt;
+    for (let i = 0; i < count; i++) {
+      const p = P[i];
+      p.y -= p.fall * dt;
+      p.x += (p.amp * Math.sin(t * p.f + p.ph) * 0.5 + 0.08) * dt;
+      p.z += p.amp * Math.sin(t * p.f * 2.3 + p.ph * 1.7) * 0.3 * dt;
+      p.ang += p.rate * dt;
+      if (p.y < 0.05) spawn(p, false);
+      dummy.position.set(p.x, p.y, p.z);
+      dummy.quaternion.setFromAxisAngle(p.spin, p.ang);
+      dummy.scale.setScalar(p.s);
+      dummy.updateMatrix();
+      inst.setMatrixAt(i, dummy.matrix);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+  };
+  ctx.update((dt) => { if (active) step(dt); });
+  return {
+    mesh: inst,
+    /** The camera (or its position) in ctx's frame, once a frame. */
+    follow(c) {
+      const p = c.position ?? c;
+      if (Math.hypot(p.x - cam.x, p.z - cam.z) < 2) return;
+      cam.set(p.x, p.y ?? 0, p.z);
+      near = emitters.filter((e) => Math.hypot(e.x - cam.x, e.z - cam.z) < reach);
+      const was = active;
+      active = near.length > 0;
+      inst.visible = active;
+      if (active && !was) {
+        // arrive under the trees with the air already full
+        for (const p of P) spawn(p, true);
+        for (let i = 0; i < 10; i++) step(0.1);
+      }
+    },
+  };
 }

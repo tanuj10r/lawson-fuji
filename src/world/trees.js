@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PAL } from '../core/palette.js';
 import { cel, flat } from '../core/toon.js';
 import { bake, trs, rngKit } from '../core/util.js';
+import { leafTex } from './kit/paint.js';
 
 /* ------------------------------------------------------------------ *
  * Cherry trees.
@@ -211,6 +212,8 @@ export function buildSakura(ctx, spots) {
  * water instead of the one pale, moving thing on a shore.
  */
 const GREEN_TONES = [0x8cb884, 0x5f9470, PAL.cedar, PAL.willow];
+/* The far tree lines' tones: kit/green.js's camphor, lit to deep (sakura pass). */
+const FAR_TONES = [0xcfe6ac, 0xa4cc8a, 0x7eae78, PAL.willow];
 
 /**
  * @param spots [{ x, z, y, scale, seed, lean, leanDir, spread, tone }]
@@ -389,16 +392,26 @@ export function buildGrove(ctx, spots, opts = {}) {
   wood.name = 'groveWood';
   ctx.add(wood);
 
-  const blobGeo = new THREE.IcosahedronGeometry(1, far ? 0 : 1);
+  const blobGeo = new THREE.IcosahedronGeometry(1, 1);
   if (far) {
     /* A far tree line is one draw: the three tones ride as instance colours
-     * on a white material rather than as three meshes. */
+     * on a white material rather than as three meshes.
+     *
+     * Painted like the town's own green (kit/green.js, sakura pass): round
+     * shading (radial normals, no facets -- at detail 0 with flat shading it
+     * read as low-poly lollipops behind the station), the camphor's leaf
+     * skin, and the camphor's pale spring tones with a blue-violet shade. */
+    const p = blobGeo.attributes.position, nr = blobGeo.attributes.normal, v = new THREE.Vector3();
+    for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i).normalize(); nr.setXYZ(i, v.x, v.y, v.z); }
+    const skin = leafTex('glossy').clone();
+    skin.repeat.set(2, 1);
+    skin.needsUpdate = true;
     const all = blobs.flatMap((list, i) => list.map((mx) => [mx, i]));
-    const inst = new THREE.InstancedMesh(blobGeo, cel({ color: 0xffffff, bands: 3, tint: 0x5b6f8c }), all.length);
+    const inst = new THREE.InstancedMesh(blobGeo, cel({ color: 0xffffff, map: skin, flat: false, bands: 3, tint: 0x6a7e9c }), all.length);
     const col = new THREE.Color();
     all.forEach(([mx, i], k) => {
       inst.setMatrixAt(k, mx);
-      inst.setColorAt(k, col.set(GREEN_TONES[i]));
+      inst.setColorAt(k, col.set(FAR_TONES[i]));
     });
     inst.castShadow = false;
     inst.receiveShadow = false;

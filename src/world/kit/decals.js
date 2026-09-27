@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { cel } from '../../core/toon.js';
 import { decalAtlas, cellUV } from './tex.js';
+import { streetAtlas, streetUV, isStreetCell } from './street/atlas.js';
 
 /* ------------------------------------------------------------------ *
  * Flat decals from the kit atlas: every marking, manhole, grate, lid,
@@ -29,56 +30,69 @@ export function makeDecals() {
     add(cell, x, z, across, along, f = { x: 0, z: -1 }, y = 0.02, layer = LAYER.paint) {
       quads.push({ cell, x, z, across, along, fx: f.x, fz: f.z, y, layer });
     },
-    /** Build the mesh (call once, after everything is added). */
+    /** Build the mesh (call once, after everything is added).  Cells from the
+     *  streets' own atlas (street/atlas.js) go in a second mesh, drawn after
+     *  the first, so a lid or worn word is never painted over by a patch. */
     build(name = 'decals') {
-      quads.sort((a, b) => a.layer - b.layer);
-      const n = quads.length;
-      const pos = new Float32Array(n * 4 * 3);
-      const uv = new Float32Array(n * 4 * 2);
-      const nor = new Float32Array(n * 4 * 3);
-      const idx = new Uint32Array(n * 6);
-      quads.forEach((q, i) => {
-        const [u0, v0, u1, v1] = cellUV(q.cell);
-        const rx = -q.fz, rz = q.fx;          // reader's right
-        const hl = q.along / 2, hw = q.across / 2;
-        // a hair above the surface, a little more per layer
-        const y = q.y + 0.004 + q.layer * 0.0008;
-        const corners = [
-          [-hw, -hl, u0, v0], [hw, -hl, u1, v0], [hw, hl, u1, v1], [-hw, hl, u0, v1],
-        ];
-        corners.forEach(([a, l, u, v], k) => {
-          const o = (i * 4 + k);
-          pos[o * 3] = q.x + rx * a + q.fx * l;
-          pos[o * 3 + 1] = y;
-          pos[o * 3 + 2] = q.z + rz * a + q.fz * l;
-          nor[o * 3 + 1] = 1;
-          uv[o * 2] = u;
-          uv[o * 2 + 1] = v;
-        });
-        const b = i * 4;
-        idx.set([b, b + 1, b + 2, b, b + 2, b + 3], i * 6);
-      });
-      const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-      g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-      g.setIndex(new THREE.BufferAttribute(idx, 1));
-      g.computeBoundingSphere();
-      const mat = cel({
-        color: 0xffffff, map: decalAtlas(), bands: 3, tint: 0x6a608f,
-        transparent: true, depthWrite: false, cache: false,
-      });
-      mat.polygonOffset = true;
-      mat.polygonOffsetFactor = -2;
-      mat.polygonOffsetUnits = -4;
-      const mesh = new THREE.Mesh(g, mat);
-      mesh.name = name;
-      mesh.receiveShadow = true;
-      mesh.renderOrder = 1;
-      mesh.userData.noOutline = true;
-      // one mesh already; keep the batcher from re-sorting its quads
-      mesh.userData.keep = true;
-      return mesh;
+      const main = quads.filter((q) => !isStreetCell(q.cell));
+      const street = quads.filter((q) => isStreetCell(q.cell));
+      const a = meshOf(main, decalAtlas(), cellUV, name, 1);
+      if (!street.length) return a;
+      const g = new THREE.Group();
+      g.name = name;
+      g.add(a, meshOf(street, streetAtlas(), streetUV, `${name}-street`, 2));
+      return g;
     },
   };
+}
+
+function meshOf(quads, map, uvOf, name, order) {
+  quads.sort((a, b) => a.layer - b.layer);
+  const n = quads.length;
+  const pos = new Float32Array(n * 4 * 3);
+  const uv = new Float32Array(n * 4 * 2);
+  const nor = new Float32Array(n * 4 * 3);
+  const idx = new Uint32Array(n * 6);
+  quads.forEach((q, i) => {
+    const [u0, v0, u1, v1] = uvOf(q.cell);
+    const rx = -q.fz, rz = q.fx;          // reader's right
+    const hl = q.along / 2, hw = q.across / 2;
+    // a hair above the surface, a little more per layer
+    const y = q.y + 0.004 + q.layer * 0.0008;
+    const corners = [
+      [-hw, -hl, u0, v0], [hw, -hl, u1, v0], [hw, hl, u1, v1], [-hw, hl, u0, v1],
+    ];
+    corners.forEach(([a, l, u, v], k) => {
+      const o = (i * 4 + k);
+      pos[o * 3] = q.x + rx * a + q.fx * l;
+      pos[o * 3 + 1] = y;
+      pos[o * 3 + 2] = q.z + rz * a + q.fz * l;
+      nor[o * 3 + 1] = 1;
+      uv[o * 2] = u;
+      uv[o * 2 + 1] = v;
+    });
+    const b = i * 4;
+    idx.set([b, b + 1, b + 2, b, b + 2, b + 3], i * 6);
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  g.computeBoundingSphere();
+  const mat = cel({
+    color: 0xffffff, map, bands: 3, tint: 0x6a608f,
+    transparent: true, depthWrite: false, cache: false,
+  });
+  mat.polygonOffset = true;
+  mat.polygonOffsetFactor = -2;
+  mat.polygonOffsetUnits = -4;
+  const mesh = new THREE.Mesh(g, mat);
+  mesh.name = name;
+  mesh.receiveShadow = true;
+  mesh.renderOrder = order;
+  mesh.userData.noOutline = true;
+  // one mesh already; keep the batcher from re-sorting its quads
+  mesh.userData.keep = true;
+  return mesh;
 }

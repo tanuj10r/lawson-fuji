@@ -6,6 +6,7 @@ import { POLES, ROADS, TOWN } from '../../config.js';
 import { POLE_ADS, AREA } from '../../data/town.js';
 import { plateTex } from './tex.js';
 import { LAYER } from './decals.js';
+import { poleTagTex } from './street/boards.js';
 
 /* ------------------------------------------------------------------ *
  * Poles and wires (SPEC section 3).
@@ -71,7 +72,7 @@ function streetLamp(pole, H, side) {
   return bulb;
 }
 
-export function buildPoles(ctx, net, decals) {
+export function buildPoles(ctx, net, decals, clutter = null) {
   const guard = plateTex('guard').face;
   const all = [];               // { g, e, s, side }
   const lamps = [];             // where each street lamp's light falls (M2d night)
@@ -139,6 +140,9 @@ export function buildPoles(ctx, net, decals) {
         plates.push({ map: plateTex('hydrant').face, y: 3.0, h: 0.95, arc: 1.5 });
         const q = net.at(e, s + 1.2, side * (e.a - 0.8 - (e.spec.gutter || 0)));
         decals.add('mhFire', q.x, q.z, 0.62, 0.62, net.along(e, 1), ROADS.asphaltY, LAYER.lid);
+        // the yellow box painted round it, so nobody parks on it
+        const fb = net.at(e, s + 1.2, side * (e.a - 0.65 - (e.spec.gutter || 0)));
+        decals.add('fireBox', fb.x, fb.z, 1.3, 1.4, { x: side * (e.axis === 'z' ? 1 : 0), z: side * (e.axis === 'x' ? 1 : 0) }, ROADS.asphaltY, LAYER.symbol);
       } else if (r.chance(POLES.adChance)) {
         const ad = r.pick(POLE_ADS);
         plates.push({ map: plateTex('poleAd', ad).face, y: 3.05, h: 1.9, arc: 1.55 });
@@ -149,6 +153,8 @@ export function buildPoles(ctx, net, decals) {
         const chome = AREA.chome[(e.i + Math.floor(s / 60)) % AREA.chome.length];
         plates.push({ map: plateTex('address', { t: `${AREA.name}${chome}` }).face, y: 4.55, h: 0.85, arc: 1.2 });
       }
+      // the pole's number tag, on the side that faces along the street
+      plates.push({ map: poleTagTex(n), y: 2.3, h: 0.36, arc: 0.75, face: face + Math.PI / 2 });
       const g = makePole({
         x: p.x, y, z: p.z, h: H, seed: e.seed + n,
         transformer: n % POLES.transformerEvery === 0,
@@ -163,12 +169,14 @@ export function buildPoles(ctx, net, decals) {
       if (bulb) lamps.push(inFrame(bulb));
       ctx.collide(p.x - 0.24, p.z - 0.24, p.x + 0.24, p.z + 0.24, y + H);
       ctx.registry?.push({ kind: 'pole', x: p.x, z: p.z });
-      const rec = { g, e, s, side, x: p.x, z: p.z, H };
+      const rec = { g, e, s, side, x: p.x, z: p.z, H, y, n };
       list.push(rec);
       all.push(rec);
     }
     byEdge.set(e, list);
   }
+
+  const stays = clutter ? poleGear(net, byEdge, clutter) : [];
 
   /* ---- the cable web ---- */
   const world = (rec, k) => { rec.g.updateMatrix(); return rec.g.userData.anchors[k].clone().applyMatrix4(rec.g.matrix); };
@@ -258,8 +266,55 @@ export function buildPoles(ctx, net, decals) {
       const lite = { seg: 8, radial: 3 };
       const a = makeWires(ctx, runs, lite);
       const b = makeWires(ctx, tel, lite);
-      const c = makeWires(ctx, drops, { seg: 6, radial: 3 });
+      const c = makeWires(ctx, [...drops, ...stays], { seg: 6, radial: 3 });
       return [a, b, c].filter(Boolean);
     },
   };
+}
+
+/* ------------------------------------------------------------------ *
+ * Pole gear (town quality pass), on every street pole, instanced:
+ *   steps   足場ボルト from 2.6 m up, left and right along the street
+ *   boxes   a grey switch box on one pole in four without a transformer
+ *   stays   支線: at each end of a run, a stay wire from 5.6 m down to the
+ *           kerb line beyond the pole, in its yellow-and-black guard
+ * Returns the stay wires, strung with the service drops.
+ * ------------------------------------------------------------------ */
+function poleGear(net, byEdge, clutter) {
+  const v = new THREE.Vector3();
+  const stays = [];
+  const local = (rec, x, y, z) => { rec.g.updateMatrix(); return v.set(x, y, z).applyMatrix4(rec.g.matrix).clone(); };
+  for (const [e, list] of byEdge) {
+    list.forEach((rec, i) => {
+      const { H } = rec;
+      const r = rngKit(e.seed * 7 + i);
+      // the pole's local x runs along the street on both axes
+      const rAt = (h) => 0.19 - (0.08 * h) / H;
+      for (let h = 2.6, k = 0; h < H - 1.9; h += 0.45, k++) {
+        const s = k % 2 ? 1 : -1;
+        const p = local(rec, s * rAt(h), h, 0);
+        clutter.put('bolt', p.x, p.y, p.z, Math.atan2(p.x - rec.x, p.z - rec.z));
+      }
+      if (rec.n % POLES.transformerEvery !== 0 && rec.n % 4 === 1) {
+        const s = r.chance(0.5) ? 1 : -1;
+        const p = local(rec, 0, 5.0, 0), q = local(rec, s, 5.0, 0);
+        clutter.put('polebox', p.x, p.y, p.z, Math.atan2(q.x - p.x, q.z - p.z));
+      }
+      // stays at the two ends of the run, pulling away from it
+      const end = i === 0 ? -1 : i === list.length - 1 ? 1 : 0;
+      if (!end || list.length < 2) return;
+      const sA = rec.s + end * 2.3;
+      if (sA < e.a0 - 0.4 || sA > e.a1 + 0.4) return;
+      const top = local(rec, 0, 5.6, 0);
+      const off = rec.side * (e.a + (e.spec.walk > 0 ? 0.35 : 0.32));
+      const q = net.at(e, sA, off);
+      if (net.quiet(q.x, q.z) || net.low?.(q.x, q.z)) return;
+      const foot = new THREE.Vector3(q.x, rec.y, q.z);
+      const dir = top.clone().sub(foot).normalize();
+      top.addScaledVector(dir, -0.16);
+      stays.push({ points: [top, foot], sag: 0.01, r: POLES.dropR * 1.3 });
+      clutter.put('sleeve', foot.x, foot.y, foot.z, Math.atan2(dir.x, dir.z), { tilt: Math.acos(dir.y) });
+    });
+  }
+  return stays;
 }

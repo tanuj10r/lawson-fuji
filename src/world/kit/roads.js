@@ -123,12 +123,23 @@ export function buildRoads(ctx, net, decals) {
     const f = net.along(e, 1);
     const fr = { x: -f.z, z: f.x };        // rotated a quarter: across the road
     const [mh0, mh1] = MARKINGS.manholeEvery;
-    for (let s = e.a0 + r.range(4, 10); s < e.a1 - 3; s += r.range(mh0, mh1)) {
-      const kind = r.pick(['mhSewer', 'mhSewer', 'mhCity', 'mhWater', 'mhSquare']);
+    let designed = e.cls === 'shopping';        // the spine shows off the town's own lid once per block
+    // clear of the painted words (markings.js): numerals 12 m in, 止まれ 4 m in, zebras
+    const painted = (s) => [e.a0 + 12, e.a1 - 12, e.a0 + 4.2, e.a1 - 4.2].some((w) => Math.abs(s - w) < 2.2)
+      || net.crossings.some((c) => c.e === e && Math.abs(s - c.at) < 4);
+    for (let s = e.a0 + r.range(4, 10), next = 0; s < e.a1 - 3; s += next) {
+      next = r.range(mh0, mh1);
+      if (painted(s)) { next = 1.5; continue; }
+      let kind = r.pick(['mhSewer', 'mhSewer', 'mhCity', 'mhWater', 'mhSquare', 'mhRelief', 'mhRelief']);
+      if (designed) { kind = 'mhFuji'; designed = false; }
+      else if (r.chance(0.12)) kind = 'mhFuji';
       const inner = e.cls === 'main' ? ROADS.main.carriage / 2 - 1 : e.a - (spec.gutter || 0) - 0.8;
       const p = net.at(e, s, r.range(-inner, inner));
-      const size = kind === 'mhSquare' ? 0.75 : r.pick([0.6, 0.75, 0.9]);
-      decals.add(kind, p.x, p.z, size, size, r.chance(0.5) ? f : fr, AY, LAYER.lid);
+      const size = kind === 'mhSquare' ? 0.75 : kind === 'mhFuji' || kind === 'mhRelief' ? 0.62 : r.pick([0.6, 0.75, 0.9]);
+      const dir = r.chance(0.5) ? f : fr;
+      decals.add(kind, p.x, p.z, size, size, dir, AY, LAYER.lid);
+      // the newer asphalt squared off round a lid that has been reset
+      if (r.chance(0.45)) decals.add('patchDark', p.x, p.z, size * 2.1, size * 2.1, dir, AY, LAYER.wear);
     }
     // drain grates at the kerb on kerbed roads
     if (spec.walk > 0) {
@@ -169,6 +180,40 @@ export function buildRoads(ctx, net, decals) {
       for (let k = 0; k < Math.round(per * 5); k++) {
         const p = net.at(e, r.range(e.a0, e.a1), edgeOff);
         decals.add('leaves', p.x, p.z, 0.5, r.range(1.2, 2.5), f, AY, LAYER.wear);
+      }
+    }
+
+    /* ---- kerbed streets (town quality pass) ----
+     * the concrete L-gutter along each kerb foot, in 1 m pieces (the grates
+     * sit in it), small valve and gas lids on the pavement, and on the
+     * shopping street the tactile guide line with warning pads at each end */
+    if (spec.walk > 0) {
+      for (const side of [-1, 1]) {
+        const w0 = net.walkEnd(e, side, 'lo'), w1 = net.walkEnd(e, side, 'hi');
+        const n = Math.max(1, Math.round(e.len));
+        for (let k = 0; k < n; k++) {
+          const p = net.at(e, e.a0 + (k + 0.5) * (e.len / n), side * (e.a - 0.17));
+          decals.add('lid', p.x, p.z, 0.34, e.len / n + 0.002, f, AY, LAYER.wear);
+        }
+        for (let s = w0 + r.range(1, 4); s < w1 - 1; s += r.range(5, 11)) {
+          // either side of the shopping street's guide line, never on it
+          const o = e.cls === 'shopping' ? (r.chance(0.5) ? r.range(0.35, 0.7) : r.range(1.5, spec.walk - 0.3)) : r.range(0.5, spec.walk - 0.4);
+          const p = net.at(e, s, side * (e.a + o));
+          if (net.quiet(p.x, p.z)) continue;
+          const gas = r.chance(0.5);
+          decals.add(gas ? 'gasLid' : 'valveLid', p.x, p.z, gas ? 0.26 : 0.32, gas ? 0.26 : 0.32, r.chance(0.5) ? f : fr, WY, LAYER.lid);
+        }
+        if (e.cls === 'shopping') {
+          const off = side * (e.a + spec.walk * 0.5);
+          for (let s = w0 + 0.75; s < w1 - 0.75; s += 0.3) {
+            const p = net.at(e, s, off);
+            decals.add('tactileLine', p.x, p.z, 0.3, 0.3, f, WY, LAYER.paint);
+          }
+          for (const s of [w0 + 0.45, w1 - 0.45]) {
+            const p = net.at(e, s, off);
+            tactilePad(decals, p.x, p.z, f);
+          }
+        }
       }
     }
 

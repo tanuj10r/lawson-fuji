@@ -6,6 +6,7 @@ import {
 import { addVending } from '../vending.js';
 import { buildShrubs } from '../trees.js';
 import { ROADS } from '../../config.js';
+import { dressWalks } from './street/walks.js';
 
 /* ------------------------------------------------------------------ *
  * Street dressing (SPEC section 3, density budget).
@@ -103,6 +104,15 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
             const vb = makeVendBin({ x: 0, y: 0, z: 0 });
             put(vb, mid + 2.2, 'prop', 0.3, 1.0);
             reg('prop', q); reg('prop', b2);
+            // and, as often as not, a bank of capsule-toy machines beside them
+            if (r.chance(0.5) && w > 5.2) {
+              const gp = net.at(e, mid - 1.3, off);
+              if (!net.quiet(gp.x, gp.z)) {
+                kit.clutter?.put('gashapon', gp.x, y, gp.z, ry);
+                ctx.collide(gp.x - 0.5, gp.z - 0.5, gp.x + 0.5, gp.z + 0.5, y + 1.4);
+                reg('prop', gp);
+              }
+            }
           }
         } else {
           put(makePlanter({ x: 0, y: 0, z: 0, r: 0.28, flower: r.chance(0.7), seed: e.seed + Math.round(a), n: 5 }), a + 1.0, 'prop', 0.3, 0.8);
@@ -139,6 +149,9 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
       }
     }
   }
+
+  // the walks' own clutter: bicycles, boards, crates, capsule toys (town quality pass)
+  if (kit.clutter) dressWalks(ctx, net, kit, lots);
 
   ctx.sakura.push(...trees);           // built with the town's other sakura in one batch
   if (ctx.hedges?.length) buildShrubs(ctx, ctx.hedges);

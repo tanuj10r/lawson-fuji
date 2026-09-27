@@ -20,6 +20,8 @@ import { tactilePad } from './roads.js';
  * ------------------------------------------------------------------ */
 
 const AY = ROADS.asphaltY;
+/** Worn versions of road words (street/atlas.js). */
+const OLD = { tomare: 'tomareOld', n30: 'n30Old' };
 
 /** Heading of the traffic on `side` of an edge (+1 = toward its hi end). */
 const headingOn = (e, side) => (e.axis === 'x' ? -side : side);
@@ -50,7 +52,10 @@ export function paintMarkings(net, decals) {
     const p = net.at(e, s, off);
     if (net.quiet(p.x, p.z)) return;
     const f = net.along(e, dir);
-    decals.add(cell, p.x, p.z, across, along, f, AY, LAYER.symbol);
+    // two in five of the lanes' words are worn half away by tyres (the
+    // spine's are repainted: it is the town's showpiece)
+    const worn = OLD[cell] && e.cls === 'lane' && (((Math.round(p.x * 7 + p.z * 13) % 5) + 5) % 5) < 2;
+    decals.add(worn ? OLD[cell] : cell, p.x, p.z, across, along, f, AY, LAYER.symbol);
   };
 
   /* ---- along every edge ---- */

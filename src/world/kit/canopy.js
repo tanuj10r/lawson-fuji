@@ -24,6 +24,7 @@ export function buildCanopyTrees(ctx, spots, look, { decals, name = look.name } 
   if (!spots.length) return null;
   const F = look.form;
   const wood = [];
+  const woodTrees = [];          // layered crowns: each tree's wood, near and far
   const blobs = [[], [], []];
   const cards = [[], [], []];
   const trunkGeo = new THREE.CylinderGeometry(0.7, 1.0, 1, 8, 1);
@@ -52,8 +53,8 @@ export function buildCanopyTrees(ctx, spots, look, { decals, name = look.name } 
     if (F.lobes) {
       // the layered crown (kit/sakura.js SAKURA): limbs in three bends, the
       // blossom in lobes at their ends, each lit on top and shaded below
-      const g = growLobed(F, look, r, S, base, hero, { trunkGeo, limbGeo, twigGeo }, blobs, cards);
-      wood.push(...g.wood);
+      const g = growLobed(F, look, r, S, base, hero, blobs, cards);
+      woodTrees.push({ hi: g.wood, lo: g.woodLo, x: base.x, z: base.z });
       settle(spot, r, S, base, hero, g.trunkH, g.top, g.reach, g.crownY);
       continue;
     }
@@ -161,10 +162,49 @@ export function buildCanopyTrees(ctx, spots, look, { decals, name = look.name } 
     if (look.fallen) fallen.push({ x: base.x, z: base.z, y: spot.y ?? 0, r: reach ?? 2.6 * S, top: top.y, seed: spot.seed ?? 1 });
   }
 
-  const woodMesh = new THREE.Mesh(bake(wood), cel({ color: look.wood ?? 0x5e4a52, bands: 3, tint: look.woodTint ?? 0x3e3448 }));
-  woodMesh.castShadow = woodMesh.receiveShadow = true;
-  woodMesh.name = name + 'Wood';
-  ctx.add(woodMesh);
+  const woodMat = cel({ color: look.wood ?? 0x5e4a52, bands: look.woodBands ?? 3, tint: look.woodTint ?? 0x3e3448, flat: !F.lobes, ...(look.woodGlow ? { emissive: look.wood, emissiveIntensity: 0, cache: false } : {}) });
+  // after dark the bark keeps a little of its brown, so a limb never goes to a black cut-out
+  if (look.woodGlow) ctx.night?.glowing(woodMat, look.wood, look.woodGlow);
+  let woodMesh = null, woodSwap = null;
+  if (wood.length) {
+    woodMesh = new THREE.Mesh(bake(wood), woodMat);
+    woodMesh.castShadow = woodMesh.receiveShadow = true;
+    woodMesh.name = name + 'Wood';
+    ctx.add(woodMesh);
+  }
+  if (woodTrees.length) {
+    /* The layered crowns' wood: smooth-shaded and round near the player, a
+     * coarse copy past NEAR, switched per tree in one batched draw.  It takes
+     * no shadow: the limbs sit in their own blossom's shadow, which left them
+     * flat ambient, near black (like the blossom, which takes none either). */
+    const geos = woodTrees.map((t) => [bake(t.hi), bake(t.lo)]);
+    let nv = 0, ni = 0;
+    for (const pair of geos) for (const g of pair) { nv += g.attributes.position.count; ni += g.index ? g.index.count : 0; }
+    const bm = new THREE.BatchedMesh(geos.length * 2, nv, ni, woodMat);
+    const ids = geos.map(([hi, lo]) => {
+      const h = bm.addInstance(bm.addGeometry(hi));
+      const l = bm.addInstance(bm.addGeometry(lo));
+      bm.setVisibleAt(h, false);
+      hi.dispose(); lo.dispose();
+      return [h, l];
+    });
+    bm.castShadow = true;
+    bm.receiveShadow = false;
+    bm.name = name + 'Wood';
+    bm.userData.dynamic = true;          // switched at run time: not for the cell merge
+    ctx.add(bm);
+    woodMesh ??= bm;
+    const near = new Uint8Array(woodTrees.length);
+    woodSwap = (p) => {
+      woodTrees.forEach((t, i) => {
+        const n = Math.hypot(t.x - p.x, t.z - p.z) < 32 ? 1 : 0;
+        if (n === near[i]) return;
+        near[i] = n;
+        bm.setVisibleAt(ids[i][0], !!n);
+        bm.setVisibleAt(ids[i][1], !n);
+      });
+    };
+  }
 
   /* The canopy, with distance-based detail (SPEC 11): near the player a
    * cushion is six little balls merged, each shaded round (radial normals),
@@ -227,6 +267,7 @@ export function buildCanopyTrees(ctx, spots, look, { decals, name = look.name } 
     if (hasView) cam.getWorldDirection(fwd); else fwd.set(0, 0, 0);
     if (Math.hypot(p.x - last.x, p.z - last.z) < 2 && fwd.angleTo(last.fwd) < 0.15) return;
     last.x = p.x; last.z = p.z; last.fwd.copy(fwd);
+    woodSwap?.(p);
     // the view's half-diagonal, plus a margin for the turn before the next sort
     const cone = hasView
       ? Math.cos(Math.min(Math.PI, Math.atan(Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2) * Math.hypot(1, cam.aspect)) + 0.45))
@@ -307,18 +348,31 @@ function clumpGeometry(detail, single = false) {
  * side the way a painter blocks them in.  Returns the wood parts and the
  * numbers the caller needs.
  * ------------------------------------------------------------------ */
-function growLobed(F, look, r, S, base, hero, geos, blobs, cards) {
+function growLobed(F, look, r, S, base, hero, blobs, cards) {
   const wood = [];
+  /* The wood is round at arm's length: smooth-shaded tapered pieces with
+   * enough sides for a lit and a shaded flank, each piece starting at the
+   * radius the last one ended on, and a knot at every bend so a joint never
+   * shows as a crease.  All of it is one merged mesh (a few thousand
+   * triangles a tree) near the player; past NEAR it swaps for a coarse
+   * copy (five sides, no knots, no fine twigs), as the blossom does. */
+  const woodLo = [];
   const up = new THREE.Vector3(0, 1, 0);
-  const branch = (geo, a, b, rad) => {
+  const piece = (a, b, r0, r1) => {
     const dir = new THREE.Vector3().subVectors(b, a);
     const len = dir.length();
-    if (len < 1e-3) return;
+    if (len < 1e-3 || r0 <= 0) return;
     const q = new THREE.Quaternion().setFromUnitVectors(up, dir.normalize());
     const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
-    wood.push({ geometry: geo, matrix: new THREE.Matrix4().compose(mid, q, new THREE.Vector3(rad, len, rad)) });
+    const sides = r0 > 0.12 ? 12 : r0 > 0.05 ? 9 : 5;
+    const matrix = new THREE.Matrix4().compose(mid, q, new THREE.Vector3(r0, len, r0));
+    wood.push({ geometry: taperGeo(r1 / r0, sides), matrix });
+    if (r0 > 0.03) woodLo.push({ geometry: taperGeo(r1 / r0, 5), matrix });
   };
-  const { trunkGeo, limbGeo, twigGeo } = geos;
+  const knot = (p, rad) => {
+    if (rad < 0.045) return;
+    wood.push({ geometry: knotGeo(), matrix: new THREE.Matrix4().compose(p, new THREE.Quaternion(), new THREE.Vector3(rad, rad, rad)) });
+  };
   const girth = F.girth * S;
 
   // the trunk: short and stout, a kink, a flared foot
@@ -326,14 +380,16 @@ function growLobed(F, look, r, S, base, hero, geos, blobs, cards) {
   const lean = new THREE.Vector3(r.range(-1, 1), 0, r.range(-1, 1)).multiplyScalar(F.lean * S);
   const knee = base.clone().add(new THREE.Vector3(lean.x * 0.35, trunkH * 0.5, lean.z * 0.35));
   const top = base.clone().add(new THREE.Vector3(lean.x, trunkH, lean.z));
-  branch(trunkGeo, base, knee, girth);
-  branch(trunkGeo, knee, top, girth * 0.86);
-  wood.push({ geometry: trunkGeo, matrix: trs(base.x, base.y + 0.16 * S, base.z, 0, r.range(0, 3), 0, girth * 1.45, 0.32 * S, girth * 1.45) });
+  piece(base, knee, girth, girth * 0.86);
+  knot(knee, girth * 0.86);
+  piece(knee, top, girth * 0.86, girth * 0.74);
+  knot(top, girth * 0.78);
+  piece(base.clone().add(new THREE.Vector3(0, -0.05, 0)), base.clone().add(new THREE.Vector3(lean.x * 0.1, 0.4 * S, lean.z * 0.1)), girth * 1.5, girth * 0.98);
   // a root or two breaking the ground
   for (let k = 0; k < 3; k++) {
     const a = r.range(0, Math.PI * 2);
     const foot = base.clone().add(new THREE.Vector3(Math.cos(a) * girth * 2.4, 0.02, Math.sin(a) * girth * 2.4));
-    branch(twigGeo, base.clone().add(new THREE.Vector3(0, 0.35 * S, 0)), foot, girth * 0.55);
+    piece(base.clone().add(new THREE.Vector3(0, 0.35 * S, 0)), foot, girth * 0.55, girth * 0.22);
   }
 
   // limbs: three bends each, rising steeply, then out, then over; each
@@ -343,12 +399,14 @@ function growLobed(F, look, r, S, base, hero, geos, blobs, cards) {
   const limbs = r.int(l0, l1);
   const len = (hero ? F.heroLen : F.len) * S;
   const a0 = r.range(0, Math.PI * 2);
-  const bent = (geo, p, q, rad) => {
+  const bent = (p, q, r0, r1) => {
     const m = p.clone().lerp(q, r.range(0.4, 0.6));
-    const d = p.distanceTo(q) * 0.12;
+    const d = p.distanceTo(q) * 0.1;
     m.x += r.range(-d, d); m.y += r.range(0, d); m.z += r.range(-d, d);
-    branch(geo, p, m, rad);
-    branch(geo, m, q, rad * 0.88);
+    const rm = Math.sqrt(r0 * r1);
+    piece(p, m, r0, rm);
+    knot(m, rm);
+    piece(m, q, rm, r1);
   };
   const toward = (p, az, tilt, l) => p.clone().add(new THREE.Vector3(Math.cos(az) * Math.sin(tilt) * l, Math.cos(tilt) * l, Math.sin(az) * Math.sin(tilt) * l));
   for (let i = 0; i < limbs; i++) {
@@ -362,14 +420,17 @@ function growLobed(F, look, r, S, base, hero, geos, blobs, cards) {
     for (let seg = 0; seg < 3; seg++) {
       const l = L * [0.4, 0.33, 0.27][seg];
       const q = toward(p, az, tilt, l);
-      bent(seg === 0 ? limbGeo : twigGeo, p, q, rad);
-      rad *= 0.68;
+      // the last length thins to a point under its lobe, not a sawn stump
+      const k = seg === 2 ? 0.42 : 0.7;
+      bent(p, q, rad, rad * k);
+      rad *= k;
+      knot(q, rad);
       // a fork at each bend, reaching sideways and a little up, blossom on its end
       if (seg >= 1 || r.next() < 0.5) {
         const faz = az + r.sign() * r.range(0.55, 1.0);
         const ft = Math.max(0.3, tilt * r.range(0.6, 0.9));
         const e = toward(q, faz, ft, L * r.range(0.22, 0.32));
-        bent(twigGeo, q, e, rad * 0.7);
+        bent(q, e, rad * 0.7, rad * 0.4);
         sites.push({ p: e, w: seg === 0 ? 0.75 : 0.85 });
         twigs(e, faz, rad * 0.35);
       }
@@ -384,7 +445,8 @@ function growLobed(F, look, r, S, base, hero, geos, blobs, cards) {
   function twigs(at, az, rad) {
     for (let t = 0; t < F.fineTwigs; t++) {
       const d = new THREE.Vector3(Math.cos(az + r.range(-0.8, 0.8)), r.range(-0.1, 0.7), Math.sin(az + r.range(-0.8, 0.8))).normalize();
-      branch(twigGeo, at, at.clone().addScaledVector(d, S * r.range(0.8, 1.4) * F.fineLen), Math.max(0.018 * S, rad));
+      const r0 = Math.max(0.018 * S, rad);
+      piece(at, at.clone().addScaledVector(d, S * r.range(0.8, 1.4) * F.fineLen), r0, r0 * 0.35);
     }
   }
   // lobes over the crown close the dome
@@ -431,5 +493,23 @@ function growLobed(F, look, r, S, base, hero, geos, blobs, cards) {
       }
     }
   }
-  return { wood, trunkH, top, reach, crownY: (yMin + yMax) / 2 };
+  return { wood, woodLo, trunkH, top, reach, crownY: (yMin + yMax) / 2 };
+}
+
+/* Wood pieces for the layered crown: an open cylinder of unit base radius
+ * and length, `ratio` wide at its top (quantised, so pieces share a few
+ * geometries), and a smooth knot for the bends. */
+const TAPER = new Map();
+function taperGeo(ratio, sides) {
+  const q = Math.min(1, Math.max(0.25, Math.round(ratio * 20) / 20));
+  const key = q + '|' + sides;
+  if (!TAPER.has(key)) TAPER.set(key, new THREE.CylinderGeometry(q, 1, 1, sides, 1, true));
+  return TAPER.get(key);
+}
+let KNOT = null;
+function knotGeo() {
+  if (!KNOT) {
+    KNOT = new THREE.SphereGeometry(1, 8, 5);
+  }
+  return KNOT;
 }

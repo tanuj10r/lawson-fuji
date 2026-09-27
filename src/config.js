@@ -393,6 +393,7 @@ export const SHOT_SPOTS = [
   { name: 'close-street-pole', scene: 'town', pos: [-45.3, 0, 104], yaw: 2.85, pitch: 0.45, looks: ['day'], close: true },
   { name: 'close-street-kerb', scene: 'town', pos: [-46.6, 0, 56], yaw: 2.5, pitch: -0.08, looks: ['day'], close: true },
   { name: 'close-green-river', scene: 'town', pos: [12, 0, -42], yaw: 0.3, pitch: -0.5, lift: 3.5, looks: ['day'], close: true },
+  { name: 'close-green-limb', scene: 'town', pos: [-49, 0, 129.8], yaw: 2.9, pitch: 0.6, looks: ['day', 'blue'], close: true },
   { name: 'close-sakura', scene: 'town', pos: [-50, 0, 128], yaw: 3.1416, pitch: 0.55, looks: ['day'], close: true, ref: '12-station-plaza-big-sakura.png' },
   // M3a: inside the Lawson (world frame; judged against reference/konbini-details.md)
   { name: 'store-door', scene: 'town', pos: [-2.3, 0, -0.6], yaw: 0, pitch: -0.05, looks: ['day'], close: true, frame: 'world' },

@@ -53,8 +53,10 @@ export const SAKURA = {
   ...SAKURA_CLASSIC,
   tones: [0xfff4f7, 0xfbdbe7, 0xefbfd3],
   tints: [0xe6d2e2, 0xd8c0dc, 0xc4a8cc],
-  wood: 0x4a3a42,
-  woodTint: 0x2c2436,
+  wood: 0x6e5a53,
+  woodBands: 'soft3',            // bark keeps a lit and a shaded flank even from below
+  woodTint: 0x5a4c6a,
+  woodGlow: 0.12,                   // at blue hour the limbs stay brown, not black
   fallen: true,                     // petals lie round it (world/petals.js)
   form: {
     lobes: true,

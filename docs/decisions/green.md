@@ -42,3 +42,16 @@
   camphor's leaf skin (a clone sharing the same image) and its tones.
 - **Spot added:** `close-green-river` (on the levee, looking down at the
   water) to check the rafts.
+- **Round bark at arm's length (review fix).** The layered crowns' wood is
+  now tapered pieces that start where the last one ended (12/9/5 sides by
+  radius), smooth-shaded, with a knot at each bend and limb tips thinning
+  to a point. Within 32 m of the player a tree shows that; past it a
+  coarse copy (5 sides, no knots or fine twigs). Both live in one
+  BatchedMesh per batch, switched per tree in the canopy's own update:
+  one draw, and fewer triangles than the merged wood it replaces. Bark is
+  a warm grey-brown 0x6e5a53 on the high-key soft3 ramp, takes no shadow
+  (under its own blossom it went flat ambient, near black) and keeps a
+  little of its brown after dark (night glow 0.12). The kept-classic trees
+  still use the M2e faceted wood.
+- **Spot added:** `close-green-limb` (under the plaza cherry, looking up
+  into its limbs at about 1.5 m; day and blue).

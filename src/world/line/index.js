@@ -7,6 +7,7 @@ import { buildStation } from './station.js';
 import { buildHouse } from '../kit/houses.js';
 import { ROADS } from '../../config.js';
 import { rngKit } from '../../core/util.js';
+import { trainVoice, sfxListen } from './sfx.js';
 
 /* ------------------------------------------------------------------ *
  * The line, the station and the trains (SPEC section 3, M2c).
@@ -33,11 +34,31 @@ export function buildLine(ctx, { kit }) {
   const crossing = buildCrossing(ctx, { x: R.crossX, kit });
   const sets = [buildEmu(ctx, { seed: 2104 }), buildEmu(ctx, { seed: 2231 })];
   const listeners = [];
-  const service = makeService({ sets, crossing, onEvent: (name, run) => listeners.forEach((f) => f(name, run)) });
-  const station = buildStation(ctx, { kit, service });
+  const local = [];            // the station's own listeners (the master, boarding), in this frame
+  const service = makeService({ sets, crossing, onEvent: (name, run) => { local.forEach((f) => f(name, run)); listeners.forEach((f) => f(name, run)); } });
+  const station = buildStation(ctx, { kit, service, sets, onEvent: (f) => local.push(f) });
   buildBeyond(ctx, kit);
   lineCherries(ctx);
-  ctx.update((dt) => service.update(dt));
+  /* the trains' sound and their straps: only near */
+  const voices = sets.map(() => trainVoice());
+  const lastV = sets.map(() => 0);
+  ctx.update((dt, cam) => {
+    service.update(dt);
+    if (!cam) return;
+    sfxListen(cam);
+    const me = ctx.toLocal({ x: cam.x, z: cam.z });
+    service.runs.forEach((r, i) => {
+      const dx = Math.max(0, Math.abs(me.x - r.x) - r.len / 2), d = Math.hypot(dx, me.z - r.z);
+      const visible = r.phase !== 'idle';
+      const dv = dt > 0 ? (r.v - lastV[i]) / dt : 0;
+      lastV[i] = r.v;
+      sets[i].animate(dt, r.v, visible && d < 45);
+      // the nearest point of the train, in the world
+      const nx = Math.max(r.x - r.len / 2, Math.min(r.x + r.len / 2, me.x));
+      voices[i].step(dt, { v: r.v, dv, at: ctx.toWorld({ x: nx, z: r.z }), phase: r.phase, visible });
+    });
+    station.update(dt, cam, me);
+  });
   return {
     track, crossing, sets, service, station,
     z: LINE_Z,

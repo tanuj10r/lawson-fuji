@@ -1,10 +1,12 @@
 import * as THREE from 'three';
-import { STATION, LINE, TAXI } from '../../data/town.js';
-import { JP } from '../kit/tex.js';
+import { STATION, LINE, TAXI, RIDE, NAME_BOARD, CAR_ADS } from '../../data/town.js';
+import { JP, JP_ROUND, JP_BRUSH } from '../kit/tex.js';
 
 /* ------------------------------------------------------------------ *
  * Canvas2D art for the station and the train (AGENTS.md: drawn in code).
- * Every name comes from data/town.js.
+ * Every name comes from data/town.js.  Each texture is the size it is
+ * seen at; the LED boards are drawn as real dot matrices (a low-res
+ * paint, each pixel a round lamp), so they read as LEDs up close.
  * ------------------------------------------------------------------ */
 
 const cache = new Map();
@@ -20,10 +22,10 @@ function tex(key, w, h, draw) {
   return t;
 }
 
-function fit(c, str, x, y, maxW, size, color, { weight = 'bold', align = 'center' } = {}) {
+function fit(c, str, x, y, maxW, size, color, { weight = 'bold', align = 'center', font = JP } = {}) {
   let s = size;
   do {
-    c.font = `${weight} ${s}px ${JP}`;
+    c.font = `${weight} ${s}px ${font}`;
     if (c.measureText(str).width <= maxW) break;
     s -= 1;
   } while (s > 6);
@@ -33,36 +35,215 @@ function fit(c, str, x, y, maxW, size, color, { weight = 'bold', align = 'center
   c.fillText(str, x, y);
 }
 
-const NAVY = '#1f3f7a', GREEN = '#2f7a4a', CREAM = '#f7f2e4', INK = '#23222c';
+const NAVY = '#1f3f7a', GREEN = RIDE.color, CREAM = '#f7f2e4', INK = '#23222c', PINK = RIDE.pink;
+const SANS = `'Helvetica Neue', Helvetica, Arial, sans-serif`;
 const here = LINE.stations.findIndex((s) => s.jp === STATION.jp);
-const prev = LINE.stations[here - 1], next = LINE.stations[here + 1];
+const D = RIDE.dest;
 
-/** The destination board on the train's cab end. */
-export const destTex = (dir) =>
-  tex('dest' + dir, 512, 128, (c, w, h) => {
-    const d = LINE.dest[dir];
-    c.fillStyle = '#1b2030'; c.fillRect(0, 0, w, h);
-    c.fillStyle = '#f2e6b0'; c.fillRect(10, 22, 110, 84);
-    fit(c, d.kind, 65, 64, 96, 56, '#1b2030');
-    fit(c, d.jp, w * 0.62, h / 2, w * 0.55, 78, '#f2e6b0');
+/* ------------------------------- LEDs ------------------------------- */
+
+const AMBER = '#ffa726', ORANGE = '#ff6a1a', LGREEN = '#3fe070', LRED = '#ff3b30', LWHITE = '#f4f0e0';
+
+/**
+ * A dot-matrix panel: `paint(o, cols, rows)` draws at one pixel per lamp on
+ * a transparent canvas; every pixel is then drawn as a round lamp, lit in
+ * its colour or dark.
+ */
+function led(c, x0, y0, cols, rows, pitch, paint) {
+  const off = document.createElement('canvas');
+  off.width = cols; off.height = rows;
+  const o = off.getContext('2d');
+  o.textBaseline = 'middle';
+  paint(o, cols, rows);
+  const d = o.getImageData(0, 0, cols, rows).data;
+  const r = pitch * 0.4;
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const k = (j * cols + i) * 4;
+      const on = d[k + 3] > 96;
+      c.fillStyle = on ? `rgb(${d[k]},${d[k + 1]},${d[k + 2]})` : '#2a2522';
+      c.beginPath(); c.arc(x0 + (i + 0.5) * pitch, y0 + (j + 0.5) * pitch, on ? r : r * 0.8, 0, Math.PI * 2); c.fill();
+    }
+  }
+}
+/** Text on the low-res LED canvas: crisp at one pixel per lamp. */
+function ledText(o, str, x, y, size, color, { align = 'left', font = JP, weight = 'bold', maxW = 999 } = {}) {
+  let s = size;
+  do { o.font = `${weight} ${s}px ${font}`; if (o.measureText(str).width <= maxW) break; s -= 1; } while (s > 6);
+  o.fillStyle = color; o.textAlign = align; o.textBaseline = 'middle';
+  o.fillText(str, x, y);
+}
+/** A train type in the LED manner: a lit block with the word cut out of it. */
+function ledKind(o, str, x, y, w, h, color) {
+  o.fillStyle = color; o.fillRect(x, y, w, h);
+  o.globalCompositeOperation = 'destination-out';
+  ledText(o, str, x + w / 2, y + h / 2 + 1, h - 2, '#000', { align: 'center', maxW: w - 2 });
+  o.globalCompositeOperation = 'source-over';
+}
+const kindColor = (k) => (k === '快速' ? ORANGE : LGREEN);
+
+/** The destination LED on the train's front (and, small, on its sides). */
+export const destTex = (dir, small = false) =>
+  tex('dest' + dir + small, small ? 256 : 512, small ? 64 : 128, (c, w, h) => {
+    const d = D[dir];
+    c.fillStyle = '#0c0b0c'; c.fillRect(0, 0, w, h);
+    const cols = small ? 64 : 128, rows = small ? 16 : 32, p = w / cols;
+    led(c, 0, 0, cols, rows, p, (o) => {
+      if (small) {
+        ledKind(o, d.kind, 1, 1, 22, 14, kindColor(d.kind));
+        ledText(o, d.jp, 44, 8.5, 14, AMBER, { align: 'center', maxW: 38 });
+      } else {
+        ledKind(o, d.kind, 2, 4, 40, 24, kindColor(d.kind));
+        ledText(o, d.jp, 88, 16.5, 24, AMBER, { align: 'center', maxW: 76 });
+      }
+    });
   });
 
-/** 駅名標: the station's name, the line colour band, the neighbours. */
+/** 運行番号: the run number in its little window on the front. */
+export const runNoTex = () =>
+  tex('runNo', 128, 48, (c, w, h) => {
+    c.fillStyle = '#0c0b0c'; c.fillRect(0, 0, w, h);
+    led(c, 0, 0, 32, 12, 4, (o) => ledText(o, RIDE.car.run, 16, 6.5, 11, AMBER, { align: 'center', font: SANS, maxW: 31 }));
+  });
+
+/**
+ * The departure board (発車標): a live LED panel, redrawn only when what it
+ * says changes.  rows: [{ time, kind, dest, track }]
+ */
+export function makeDepartureBoard(w = 768, h = 256) {
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const c = cv.getContext('2d');
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  let last = '';
+  return {
+    texture: t,
+    draw(rows) {
+      const key = JSON.stringify(rows);
+      if (key === last) return;
+      last = key;
+      c.fillStyle = '#101014'; c.fillRect(0, 0, w, h);
+      // the header strip: printed, not LED
+      c.fillStyle = '#23283a'; c.fillRect(0, 0, w, 44);
+      const heads = [['種別', 68], ['時刻', 224], ['行先', 464], ['のりば', 688]];
+      for (const [s, x] of heads) fit(c, s, x, 23, 150, 24, '#c8d2e8', { weight: '600' });
+      const cols = 192, rows0 = 52, p = w / cols;
+      led(c, 0, 48, cols, rows0, p, (o) => {
+        rows.slice(0, 2).forEach((r, i) => {
+          const y = 1 + i * 26;
+          ledKind(o, r.kind, 3, y + 2, 28, 20, kindColor(r.kind));
+          ledText(o, r.time, 56, y + 12, 19, LGREEN, { align: 'center', font: SANS, maxW: 42 });
+          ledText(o, r.dest, 116, y + 12, 21, AMBER, { align: 'center', maxW: 70 });
+          ledText(o, `${r.track}`, 172, y + 12, 21, LWHITE, { align: 'center', font: SANS });
+        });
+      });
+      t.needsUpdate = true;
+    },
+  };
+}
+
+/* ------------------------------ the train ------------------------------ */
+
+/** The car number, stencilled on the body side by the cab. */
+export const carNumberTex = (n = 0) =>
+  tex('carNo' + n, 256, 48, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    c.fillStyle = 'rgba(210,214,222,1)'; c.fillRect(0, 0, w, h);
+    fit(c, n ? RIDE.car.number2 : RIDE.car.number, w / 2, h / 2 + 1, w - 16, 34, '#2a2c34', { weight: '600' });
+  });
+
+/** The pair of LCDs over each door inside: next stop, and our own ad. */
+export const doorLcdTex = () =>
+  tex('doorLcd', 512, 144, (c, w, h) => {
+    c.fillStyle = '#16161c'; c.fillRect(0, 0, w, h);
+    // left: 次は 渋谷
+    const L = { x: 8, y: 8, w: 240, h: 128 };
+    c.fillStyle = '#ffffff'; c.fillRect(L.x, L.y, L.w, L.h);
+    c.fillStyle = GREEN; c.fillRect(L.x, L.y, L.w, 30);
+    fit(c, `${D.east.kind}  ${D.east.jp} 行`, L.x + L.w / 2, L.y + 16, L.w - 16, 20, '#ffffff');
+    fit(c, '次は', L.x + 40, L.y + 62, 70, 22, INK);
+    fit(c, D.east.jp, L.x + 150, L.y + 70, 150, 50, INK);
+    fit(c, `Next  ${D.east.en}`, L.x + L.w / 2, L.y + 112, L.w - 20, 20, '#4a4a58', { weight: '600', font: SANS });
+    // right: the Osaka teaser, small
+    const R = { x: 264, y: 8, w: 240, h: 128 };
+    osakaScene(c, R.x, R.y, R.w, R.h, 3);
+    c.fillStyle = 'rgba(20,14,40,0.55)'; c.fillRect(R.x, R.y + R.h - 40, R.w, 40);
+    fit(c, `${RIDE.osaka.title}  ${RIDE.osaka.sub}`, R.x + R.w / 2, R.y + R.h - 20, R.w - 16, 20, '#ffd84a');
+  });
+
+/** Every ad card in the car, on one small atlas: `n` cells across. */
+export const CAR_AD_CELLS = CAR_ADS.length;
+export const carAdsTex = () =>
+  tex('carAds', 1024, 192, (c, w, h) => {
+    const cw = w / CAR_ADS.length;
+    CAR_ADS.forEach((a, i) => {
+      const x = i * cw;
+      c.save();
+      c.beginPath(); c.rect(x, 0, cw, h); c.clip();
+      if (a.osaka) {
+        osakaScene(c, x, 0, cw, h, 11);
+        c.fillStyle = 'rgba(20,14,40,0.6)'; c.fillRect(x, 0, cw, 58);
+        fit(c, a.t, x + cw / 2, 20, cw - 10, 22, a.fg);
+        fit(c, a.s, x + cw / 2, 44, cw - 10, 16, '#ffffff');
+      } else {
+        c.fillStyle = a.bg; c.fillRect(x, 0, cw, h);
+        c.fillStyle = a.fg; c.globalAlpha = 0.18;
+        c.beginPath(); c.arc(x + cw * 0.7, h * 0.55, 48, 0, Math.PI * 2); c.fill();
+        c.globalAlpha = 1;
+        fit(c, a.t, x + cw / 2, h * 0.34, cw - 12, 24, a.fg, { font: JP_ROUND });
+        c.fillStyle = a.fg; c.fillRect(x, h - 48, cw, 48);
+        fit(c, a.s, x + cw / 2, h - 24, cw - 10, 17, a.bg);
+      }
+      c.restore();
+      c.fillStyle = '#d8d8dc'; c.fillRect(x, 0, 2, h);
+    });
+  });
+
+/** 優先席 stickers on the priority seats' windows. */
+export const prioritySticker = () =>
+  tex('priority', 128, 64, (c, w, h) => {
+    c.fillStyle = '#f08a2a'; c.fillRect(0, 0, w, h);
+    fit(c, RIDE.car.priority, w / 2, h * 0.4, w - 12, 28, '#ffffff');
+    fit(c, 'Priority Seat', w / 2, h * 0.8, w - 12, 12, '#ffffff', { font: SANS });
+  });
+
+/* ------------------------------ the station ------------------------------ */
+
+/** 駅名標: the station's name, kana and romaji, the line's band with the neighbours. */
 export const nameBoardTex = () =>
   tex('nameBoard', 1024, 320, (c, w, h) => {
-    c.fillStyle = CREAM; c.fillRect(0, 0, w, h);
-    c.fillStyle = GREEN; c.fillRect(0, h * 0.62, w, 26);
-    fit(c, STATION.jp, w / 2, h * 0.3, w * 0.6, 120, INK);
-    fit(c, STATION.en, w / 2, h * 0.52, w * 0.5, 34, '#5a5a66', { weight: '600' });
-    if (prev) { fit(c, `← ${prev.jp}`, 30, h * 0.82, w * 0.4, 44, INK, { align: 'left' }); fit(c, prev.en, 30, h * 0.94, w * 0.4, 20, '#6a6a74', { align: 'left', weight: '600' }); }
-    if (next) { fit(c, `${next.jp} →`, w - 30, h * 0.82, w * 0.4, 44, INK, { align: 'right' }); fit(c, next.en, w - 30, h * 0.94, w * 0.4, 20, '#6a6a74', { align: 'right', weight: '600' }); }
+    const NB = NAME_BOARD;
+    c.fillStyle = '#fbfbf8'; c.fillRect(0, 0, w, h);
+    // the station number, in the line's colour
+    c.fillStyle = GREEN; c.fillRect(60, 46, 104, 104);
+    c.fillStyle = '#ffffff'; c.fillRect(70, 56, 84, 84);
+    fit(c, NB.no.slice(0, 2), 112, 80, 70, 30, GREEN, { font: SANS });
+    fit(c, NB.no.slice(2), 112, 118, 70, 40, INK, { font: SANS });
+    fit(c, NB.kana, w / 2, 48, w * 0.4, 34, INK, { weight: '600' });
+    fit(c, STATION.jp, w / 2, 118, w * 0.6, 104, INK);
+    fit(c, 'Sakura-Fuji', w / 2, 188, w * 0.5, 34, '#4a4a56', { weight: '600', font: SANS });
+    // the band
+    c.fillStyle = GREEN; c.fillRect(0, 218, w, 62);
+    c.fillStyle = PINK; c.fillRect(0, 280, w, 8);
+    c.fillStyle = '#ffffff';
+    c.beginPath(); c.moveTo(w / 2 - 30, 218); c.lineTo(w / 2 + 30, 218); c.lineTo(w / 2, 246); c.fill();
+    for (const [n, x, al, arrow] of [[NB.west, 28, 'left', '◀ '], [NB.east, w - 28, 'right', ' ▶']]) {
+      const t = al === 'left' ? `${arrow}${n.kana}` : `${n.kana}${arrow}`;
+      fit(c, t, x, 238, w * 0.36, 30, '#ffffff', { align: al });
+      fit(c, `${n.en}  ${n.no}`, x + (al === 'left' ? 36 : -36), 266, w * 0.34, 18, '#e8f4ec', { align: al, weight: '600', font: SANS });
+    }
+    fit(c, n2(NB), w / 2, 304, w * 0.6, 16, '#8a8a94', { weight: '600' });
   });
+const n2 = () => `${RIDE.line}  ${RIDE.lineEn}`;
 
 /** The station's name over the entrance. */
 export const entranceTex = () =>
   tex('entrance', 1024, 256, (c, w, h) => {
     c.fillStyle = CREAM; c.fillRect(0, 0, w, h);
     c.fillStyle = GREEN; c.fillRect(0, 0, w, 22); c.fillRect(0, h - 22, w, 22);
+    c.fillStyle = PINK; c.fillRect(0, h - 30, w, 8);
     fit(c, `${STATION.jp}駅`, w * 0.42, h * 0.5, w * 0.62, 150, INK);
     fit(c, STATION.en, w * 0.83, h * 0.42, w * 0.3, 36, '#5a5a66', { weight: '600' });
     fit(c, LINE.name, w * 0.83, h * 0.66, w * 0.3, 32, GREEN);
@@ -70,10 +251,12 @@ export const entranceTex = () =>
 
 export const platformNumberTex = (n) =>
   tex('platNo' + n, 256, 256, (c, w, h) => {
+    const d = n === 1 ? D.east : D.west;
     c.fillStyle = NAVY; c.fillRect(0, 0, w, h);
-    c.fillStyle = CREAM; c.beginPath(); c.arc(w / 2, h * 0.42, 80, 0, Math.PI * 2); c.fill();
-    fit(c, String(n), w / 2, h * 0.44, 120, 130, NAVY);
-    fit(c, n === 1 ? `${LINE.dest.east.jp} 方面` : `${LINE.dest.west.jp} 方面`, w / 2, h * 0.86, w - 20, 34, CREAM);
+    c.fillStyle = CREAM; c.beginPath(); c.arc(w / 2, h * 0.4, 76, 0, Math.PI * 2); c.fill();
+    fit(c, String(n), w / 2, h * 0.42, 120, 124, NAVY, { font: SANS });
+    fit(c, `${d.jp} 方面`, w / 2, h * 0.8, w - 20, 34, CREAM);
+    fit(c, `for ${d.en}`, w / 2, h * 0.93, w - 20, 20, '#c8d2e8', { weight: '600', font: SANS });
   });
 
 /** 改札口 sign over the gates, with the platforms and where they go. */
@@ -81,55 +264,125 @@ export const gateSignTex = () =>
   tex('gateSign', 1024, 192, (c, w, h) => {
     c.fillStyle = NAVY; c.fillRect(0, 0, w, h);
     fit(c, '改札口', w * 0.14, h * 0.46, w * 0.24, 80, CREAM);
-    fit(c, 'Ticket Gate', w * 0.14, h * 0.82, w * 0.24, 24, '#c8d2e8', { weight: '600' });
-    for (const [n, x, d] of [[1, 0.44, LINE.dest.east], [2, 0.76, LINE.dest.west]]) {
+    fit(c, 'Ticket Gate', w * 0.14, h * 0.82, w * 0.24, 24, '#c8d2e8', { weight: '600', font: SANS });
+    for (const [n, x, d] of [[1, 0.44, D.east], [2, 0.76, D.west]]) {
       c.fillStyle = CREAM; c.beginPath(); c.arc(w * x - 110, h / 2, 34, 0, Math.PI * 2); c.fill();
-      fit(c, String(n), w * x - 110, h / 2 + 2, 50, 50, NAVY);
+      fit(c, String(n), w * x - 110, h / 2 + 2, 50, 50, NAVY, { font: SANS });
       fit(c, `${d.jp} 方面`, w * x + 20, h * 0.42, w * 0.22, 48, CREAM);
-      fit(c, `for ${d.en}`, w * x + 20, h * 0.76, w * 0.22, 24, '#c8d2e8', { weight: '600' });
+      fit(c, `for ${d.en}`, w * x + 20, h * 0.76, w * 0.22, 24, '#c8d2e8', { weight: '600', font: SANS });
     }
   });
 
-/** The fare map over the ticket machines: the line, fares from here. */
+/** The fare map over the ticket machines: the line, the fares, the through service to Shibuya. */
 export const fareMapTex = () =>
-  tex('fareMap', 1024, 384, (c, w, h) => {
+  tex('fareMap', 1280, 480, (c, w, h) => {
     c.fillStyle = '#fbf8f0'; c.fillRect(0, 0, w, h);
-    fit(c, `${LINE.name}  きっぷうりば  運賃表`, w / 2, 40, w - 60, 38, INK);
-    const y = h * 0.56, x0 = 90, x1 = w - 90;
-    c.fillStyle = GREEN; c.fillRect(x0, y - 7, x1 - x0, 14);
-    LINE.stations.forEach((s, i) => {
-      const x = x0 + ((x1 - x0) * i) / (LINE.stations.length - 1);
-      const me = i === here;
-      c.fillStyle = me ? '#d8302c' : CREAM; c.strokeStyle = GREEN; c.lineWidth = 6;
-      c.beginPath(); c.arc(x, y, me ? 22 : 16, 0, Math.PI * 2); c.fill(); c.stroke();
-      fit(c, s.jp, x, y - 58, 150, 34, me ? '#d8302c' : INK);
-      fit(c, me ? '現在地' : `${s.fare}`, x, y + 56, 140, 36, me ? '#d8302c' : NAVY);
+    c.fillStyle = GREEN; c.fillRect(0, 0, w, 64);
+    c.fillStyle = PINK; c.fillRect(0, 64, w, 6);
+    fit(c, `${RIDE.line}  きっぷうりば  運賃表`, w * 0.36, 33, w * 0.6, 38, '#ffffff');
+    fit(c, 'Fares (yen)', w * 0.86, 33, w * 0.24, 28, '#e8f4ec', { weight: '600', font: SANS });
+    // the stations, west to east: the through service beyond 大月 drawn dashed
+    const all = [...RIDE.through.map((s) => ({ ...s, jr: true })), ...LINE.stations];
+    const y = h * 0.52, x0 = 80, x1 = w - 80;
+    const X = (i) => x0 + ((x1 - x0) * i) / (all.length - 1);
+    const j0 = RIDE.through.length;
+    c.strokeStyle = '#8a8a94'; c.lineWidth = 12; c.setLineDash([22, 12]);
+    c.beginPath(); c.moveTo(X(0), y); c.lineTo(X(j0), y); c.stroke();
+    c.setLineDash([]);
+    c.fillStyle = GREEN; c.fillRect(X(j0), y - 8, X(all.length - 1) - X(j0), 16);
+    all.forEach((s, i) => {
+      const x = X(i), me = s.jp === STATION.jp;
+      c.fillStyle = me ? '#d8302c' : '#ffffff'; c.strokeStyle = s.jr ? '#8a8a94' : GREEN; c.lineWidth = 6;
+      c.beginPath(); c.arc(x, y, me ? 24 : 17, 0, Math.PI * 2); c.fill(); c.stroke();
+      fit(c, s.jp, x, y - 62, 150, 38, me ? '#d8302c' : INK);
+      fit(c, s.en, x, y - 30, 150, 15, '#6a6a74', { weight: '600', font: SANS });
+      fit(c, me ? '現在地' : `${s.fare}`, x, y + 52, 140, 38, me ? '#d8302c' : NAVY, { font: me ? JP : SANS });
     });
-    fit(c, 'おとな の 運賃（円）  こども は 半額', w / 2, h - 30, w - 80, 24, '#6a6a74', { weight: '600' });
+    // the ribbon: this train runs through to Shibuya
+    c.fillStyle = PINK;
+    c.beginPath(); c.roundRect(X(0) - 40, h - 118, X(j0) - X(0) + 330, 58, 29); c.fill();
+    fit(c, RIDE.throughNote, X(0) + (X(j0) - X(0) + 250) / 2, h - 100, X(j0) - X(0) + 280, 24, '#ffffff');
+    fit(c, RIDE.throughNoteEn, X(0) + (X(j0) - X(0) + 250) / 2, h - 74, X(j0) - X(0) + 280, 18, '#fff4f7', { weight: '600', font: SANS });
+    fit(c, 'おとな の 運賃（円）  こども は 半額', w * 0.72, h - 88, w * 0.44, 24, '#6a6a74', { weight: '600' });
+    fit(c, 'IC運賃 は 1円単位', w * 0.72, h - 56, w * 0.44, 20, '#8a8a94', { weight: '600' });
   });
 
 /** A ticket machine's touch screen. */
 export const machineScreenTex = () =>
   tex('machineScreen', 256, 192, (c, w, h) => {
     c.fillStyle = '#e8f0fa'; c.fillRect(0, 0, w, h);
-    c.fillStyle = NAVY; c.fillRect(0, 0, w, 34);
-    fit(c, 'きっぷ ・ チャージ', w / 2, 18, w - 20, 20, CREAM);
+    c.fillStyle = GREEN; c.fillRect(0, 0, w, 34);
+    fit(c, 'きっぷ ・ チャージ', w / 2, 18, w - 20, 20, '#ffffff');
     const fares = [160, 180, 230, 310, 520, 'IC'];
     fares.forEach((f, i) => {
       const x = 14 + (i % 3) * 78, y = 46 + Math.floor(i / 3) * 70;
       c.fillStyle = typeof f === 'string' ? '#f2c23c' : '#ffffff'; c.fillRect(x, y, 70, 60);
       c.strokeStyle = '#8fa4c8'; c.lineWidth = 2; c.strokeRect(x, y, 70, 60);
-      fit(c, String(f), x + 35, y + 30, 60, 26, INK);
+      fit(c, String(f), x + 35, y + 30, 60, 26, INK, { font: SANS });
     });
   });
 
-/** 窓口 over the staffed window. */
+/** The sign over the ticket machines. */
+export const machineSignTex = () =>
+  tex('machineSign', 512, 96, (c, w, h) => {
+    c.fillStyle = NAVY; c.fillRect(0, 0, w, h);
+    fit(c, RIDE.machines.jp, w * 0.3, h * 0.42, w * 0.5, 48, CREAM);
+    fit(c, RIDE.machines.en, w * 0.3, h * 0.82, w * 0.5, 18, '#c8d2e8', { weight: '600', font: SANS });
+    c.fillStyle = '#f2c23c'; c.beginPath(); c.roundRect(w * 0.62, 18, w * 0.34, h - 36, 10); c.fill();
+    fit(c, RIDE.machines.ic, w * 0.79, h / 2, w * 0.3, 26, INK);
+  });
+
+/** The ticket office window: our own name, a sakura for its mark. */
 export const windowSignTex = () =>
   tex('windowSign', 512, 128, (c, w, h) => {
-    c.fillStyle = CREAM; c.fillRect(0, 0, w, h);
-    c.fillStyle = NAVY; c.fillRect(0, 0, 14, h);
-    fit(c, '駅務室  窓口', w / 2 + 6, h * 0.42, w - 60, 54, INK);
-    fit(c, 'きっぷ ・ 定期券 ・ おわすれもの', w / 2 + 6, h * 0.8, w - 60, 22, '#6a6a74', { weight: '600' });
+    c.fillStyle = '#1d6b42'; c.fillRect(0, 0, w, h);
+    // the mark: a white disc with a five-petal sakura
+    c.fillStyle = '#ffffff'; c.beginPath(); c.arc(64, h / 2, 46, 0, Math.PI * 2); c.fill();
+    c.fillStyle = PINK;
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+      c.beginPath(); c.ellipse(64 + Math.cos(a) * 18, h / 2 + Math.sin(a) * 18, 15, 11, a, 0, Math.PI * 2); c.fill();
+    }
+    c.fillStyle = '#fff4a8'; c.beginPath(); c.arc(64, h / 2, 7, 0, Math.PI * 2); c.fill();
+    fit(c, RIDE.office.jp, 300, h * 0.4, 340, 56, '#ffffff');
+    fit(c, `${RIDE.office.en}  ·  ${RIDE.office.sub}`, 300, h * 0.8, 360, 20, '#d8f0e0', { weight: '600' });
+  });
+
+/** The IC reader's plate on a gate: a wave mark in a ring. */
+export const icReaderTex = () =>
+  tex('icReader', 128, 128, (c, w, h) => {
+    c.fillStyle = '#1e7fd8'; c.fillRect(0, 0, w, h);
+    c.strokeStyle = '#ffffff'; c.lineWidth = 6;
+    c.beginPath(); c.arc(w / 2, h / 2, 50, 0, Math.PI * 2); c.stroke();
+    c.lineWidth = 5;
+    for (const r of [14, 26, 38]) { c.beginPath(); c.arc(w / 2 - 22, h / 2, r, -0.7, 0.7); c.stroke(); }
+    fit(c, 'IC', w / 2 + 16, h / 2 + 2, 50, 34, '#ffffff', { font: SANS });
+  });
+
+/** A gate's end: the green arrow (enter) or the red bar (no entry). */
+export const gateSignalTex = (ok) =>
+  tex('gateSig' + ok, 64, 64, (c, w, h) => {
+    c.fillStyle = '#101014'; c.fillRect(0, 0, w, h);
+    c.fillStyle = ok ? LGREEN : LRED;
+    if (ok) {
+      c.beginPath(); c.moveTo(14, 26); c.lineTo(34, 26); c.lineTo(34, 14); c.lineTo(54, 32); c.lineTo(34, 50); c.lineTo(34, 38); c.lineTo(14, 38); c.fill();
+    } else {
+      c.save(); c.translate(w / 2, h / 2); c.rotate(Math.PI / 4); c.fillRect(-22, -6, 44, 12); c.rotate(Math.PI / 2); c.fillRect(-22, -6, 44, 12); c.restore();
+    }
+  });
+
+/** 乗車位置: where each door stops, painted on the platform (car-door, 8 marks). */
+export const boardingMarkTex = () =>
+  tex('boardingMarks', 1024, 96, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    for (let k = 0; k < 8; k++) {
+      const x = k * 128, car = Math.floor(k / 4) + 1, door = (k % 4) + 1;
+      c.fillStyle = GREEN; c.beginPath(); c.roundRect(x + 6, 30, 116, 60, 10); c.fill();
+      // the arrow to the train
+      c.beginPath(); c.moveTo(x + 64, 2); c.lineTo(x + 86, 28); c.lineTo(x + 42, 28); c.fill();
+      c.fillStyle = PINK; c.fillRect(x + 6, 82, 116, 8);
+      fit(c, `${car}号車 ${door}`, x + 64, 56, 104, 30, '#ffffff');
+    }
   });
 
 /** 時刻表: departures by hour, both ways. */
@@ -138,7 +391,7 @@ export const timetableTex = () =>
     c.fillStyle = '#fbfaf6'; c.fillRect(0, 0, w, h);
     c.fillStyle = NAVY; c.fillRect(0, 0, w, 70);
     fit(c, `${STATION.jp}  時刻表`, w / 2, 36, w - 40, 38, CREAM);
-    for (const [col, d] of [[0, LINE.dest.east], [1, LINE.dest.west]]) {
+    for (const [col, d] of [[0, D.east], [1, D.west]]) {
       fit(c, `${d.jp} 方面`, w * (0.3 + col * 0.44), 96, w * 0.4, 26, NAVY);
     }
     for (let hr = 6; hr <= 23; hr++) {
@@ -181,14 +434,14 @@ export const areaMapTex = () =>
     for (const [t, x, y] of pins) { c.fillStyle = '#2458b8'; c.fillRect(x - 6, y - 6, 12, 12); fit(c, t, x + 60, y, 110, 20, INK, { align: 'center' }); }
   });
 
-/** Station posters: a festival, a hiking line, manners. */
+/** Station posters: a festival, a hiking line, manners, where the platforms go. */
 export const posterTex = (v) =>
   tex('stPoster' + v, 256, 360, (c, w, h) => {
     const sets = [
       { bg: '#f7d8e2', fg: '#8a2f4a', t: '富士見 桜まつり', s: '4月上旬  駅前ひろば' },
       { bg: '#d8ecf6', fg: '#1f4f7a', t: '富士山麓 ハイキング', s: `${LINE.name}で いこう` },
       { bg: '#f6f0d8', fg: '#6a4a1a', t: 'かけこみ乗車は', s: 'おやめください' },
-      { bg: '#e2f2dc', fg: '#2f5a2a', t: 'のりば ご案内', s: `1番線 ${LINE.dest.east.jp} ・ 2番線 ${LINE.dest.west.jp}` },
+      { bg: '#e2f2dc', fg: '#2f5a2a', t: 'のりば ご案内', s: `1番線 ${D.east.jp} ・ 2番線 ${D.west.jp}` },
     ];
     const st = sets[v % sets.length];
     c.fillStyle = st.bg; c.fillRect(0, 0, w, h);
@@ -204,43 +457,187 @@ export const taxiSignTex = () =>
     fit(c, TAXI, w / 2, h * 0.5, w - 20, 40, INK);
   });
 
-/**
- * The departure board (発車標): a live canvas, redrawn when the service
- * changes.  rows: [{ time, kind, dest, track }]
- */
-export function makeDepartureBoard(w = 768, h = 256) {
-  const cv = document.createElement('canvas');
-  cv.width = w; cv.height = h;
-  const c = cv.getContext('2d');
-  const t = new THREE.CanvasTexture(cv);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 8;
-  let last = '';
-  return {
-    texture: t,
-    draw(rows) {
-      const key = JSON.stringify(rows);
-      if (key === last) return;
-      last = key;
-      c.fillStyle = '#14161e'; c.fillRect(0, 0, w, h);
-      c.fillStyle = '#24283a'; c.fillRect(0, 0, w, 50);
-      fit(c, '発車時刻  Departures', w / 2, 26, w - 40, 26, '#c8d2e8', { weight: '600' });
-      rows.slice(0, 2).forEach((r, i) => {
-        const y = 94 + i * 80;
-        fit(c, r.kind, 70, y, 100, 36, '#6ee08a');
-        fit(c, r.time, 220, y, 150, 44, '#ffd560');
-        fit(c, r.dest, 440, y, 230, 44, '#ffd560');
-        fit(c, `${r.track}番線`, 660, y, 150, 34, '#f2f2f2');
-      });
-      t.needsUpdate = true;
-    },
-  };
-}
-
 /** A plain label: a word on a coloured plate (待合室, お手洗い, 交番). */
 export const labelTex = (text, bg = CREAM, fg = INK, sub = '') =>
   tex(`label|${text}|${bg}|${fg}|${sub}`, 512, 160, (c, w, h) => {
     c.fillStyle = bg; c.fillRect(0, 0, w, h);
     fit(c, text, w / 2, sub ? h * 0.4 : h / 2, w - 40, 84, fg);
     if (sub) fit(c, sub, w / 2, h * 0.8, w - 40, 26, fg, { weight: '600' });
+  });
+
+/* --------------------------- Osaka, coming soon --------------------------- */
+
+/**
+ * Dotonbori at night, our own drawing: the canal between two walls of
+ * neon, the tall signboards, a big red crab over a restaurant (no name on
+ * it), a bridge across, the lights running down into the water.
+ */
+function osakaScene(c, x, y, w, h, seed = 1) {
+  let s = seed * 9301 + 49297;
+  const r = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
+  c.save();
+  c.beginPath(); c.rect(x, y, w, h); c.clip();
+  const sky = c.createLinearGradient(0, y, 0, y + h * 0.7);
+  sky.addColorStop(0, '#20145a'); sky.addColorStop(0.6, '#6a2f8e'); sky.addColorStop(1, '#c0508e');
+  c.fillStyle = sky; c.fillRect(x, y, w, h);
+  const water = y + h * 0.7;
+  const cx = x + w * 0.5;
+  const neon = ['#ff4fa3', '#ffd84a', '#4ff0ff', '#ff7a3a', '#8aff6a', '#ffffff', '#b58aff'];
+  // far buildings: a skyline of lit blocks down the canal
+  for (let i = 0; i < 12; i++) {
+    const bx = cx - w * 0.18 + (i / 12) * w * 0.36, bw = w * 0.035, top = y + h * (0.36 + r() * 0.1);
+    c.fillStyle = '#4a3278'; c.fillRect(bx, top, bw, water - top);
+    c.fillStyle = neon[i % neon.length]; c.globalAlpha = 0.8; c.fillRect(bx, top + 4, bw, 3); c.globalAlpha = 1;
+  }
+  // the two banks, stepping back toward the far end
+  for (const side of [-1, 1]) {
+    for (let k = 5; k >= 0; k--) {
+      const t = k / 6;
+      const edge = cx + side * (w * 0.52 - t * w * 0.34);
+      const bw = w * (0.22 - t * 0.025);
+      const top = y + h * (0.05 + t * 0.2 + r() * 0.06);
+      const bx0 = side < 0 ? edge - bw * 0.2 : edge - bw * 0.8;
+      c.fillStyle = k % 2 ? '#3a2868' : '#4c3480';
+      c.fillRect(bx0, top, bw, water - top);
+      // rows of lit windows
+      c.fillStyle = 'rgba(255,214,150,0.75)';
+      for (let yy = top + 8; yy < water - 16; yy += 11) for (let xx = bx0 + 4; xx < bx0 + bw - 6; xx += 9) if (r() < 0.45) c.fillRect(xx, yy, 4, 5);
+      // neon bands across the front
+      for (let b = 0; b < 3; b++) {
+        c.fillStyle = neon[(k + b * 2 + (side > 0 ? 1 : 0)) % neon.length];
+        c.fillRect(bx0, top + (water - top) * (0.3 + b * 0.22), bw, Math.max(2, h * 0.008));
+      }
+      // a tall signboard standing off the building, lit
+      const sw = Math.max(10, bw * 0.34), sh = (water - top) * 0.7;
+      const sx = side < 0 ? bx0 + bw - sw * 0.6 : bx0 - sw * 0.4;
+      const col = neon[(k * 3 + (side > 0 ? 2 : 0)) % neon.length];
+      const inv = (k + (side > 0 ? 1 : 0)) % 2 === 0;
+      c.fillStyle = col; c.fillRect(sx - 2, top + 4, sw + 4, sh + 4);
+      c.fillStyle = inv ? col : '#1a1030'; c.fillRect(sx, top + 6, sw, sh);
+      const word = RIDE.osaka.neon[(k * 2 + (side > 0 ? 1 : 0)) % RIDE.osaka.neon.length];
+      const fs = Math.min(sw - 4, (sh - 8) / Math.max(2, word.length) - 1);
+      c.fillStyle = inv ? '#1a1030' : col;
+      c.font = `bold ${fs}px ${JP}`; c.textAlign = 'center'; c.textBaseline = 'top';
+      [...word].forEach((ch, i) => c.fillText(ch, sx + sw / 2, top + 10 + i * (fs + 1)));
+    }
+  }
+  // a big lit billboard over the right bank
+  {
+    const bw = w * 0.26, bh = h * 0.12, bx = x + w * 0.66, by = y + h * 0.1;
+    c.fillStyle = '#ffd84a'; c.fillRect(bx - 3, by - 3, bw + 6, bh + 6);
+    const gr = c.createLinearGradient(bx, 0, bx + bw, 0);
+    gr.addColorStop(0, '#ff4fa3'); gr.addColorStop(1, '#ff7a3a');
+    c.fillStyle = gr; c.fillRect(bx, by, bw, bh);
+    fit(c, 'たこ焼', bx + bw / 2, by + bh / 2, bw - 8, bh * 0.8, '#ffffff');
+  }
+  // the crab over the nearest restaurant, left: a big friendly red crab, no lettering
+  crab(c, x + w * 0.2, y + h * 0.2, w * 0.15);
+  // the bridge across the canal, lit along its rail
+  c.fillStyle = '#2a1a4a';
+  c.beginPath(); c.moveTo(x + w * 0.1, water - h * 0.015); c.quadraticCurveTo(cx, water - h * 0.11, x + w * 0.9, water - h * 0.015);
+  c.lineTo(x + w * 0.9, water + h * 0.01); c.quadraticCurveTo(cx, water - h * 0.08, x + w * 0.1, water + h * 0.01); c.fill();
+  c.fillStyle = '#ffe6a0';
+  for (let i = 0; i <= 16; i++) {
+    const u = i / 16, bxp = x + w * (0.1 + 0.8 * u), byp = water - h * 0.015 - Math.sin(Math.PI * u) * h * 0.047;
+    c.beginPath(); c.arc(bxp, byp - 2, Math.max(1.5, h * 0.006), 0, Math.PI * 2); c.fill();
+  }
+  // the canal, and every light running down into it
+  const wg = c.createLinearGradient(0, water, 0, y + h);
+  wg.addColorStop(0, '#3a2068'); wg.addColorStop(1, '#160c30');
+  c.fillStyle = wg; c.fillRect(x, water, w, y + h - water);
+  for (let i = 0; i < 46; i++) {
+    const rx = x + r() * w, rl = h * (0.05 + r() * 0.24);
+    c.fillStyle = neon[i % neon.length]; c.globalAlpha = 0.7;
+    for (let j = 0; j < rl; j += 4) c.fillRect(rx + Math.sin(j * 0.45) * 3, water + 3 + j, 3 + r() * 5, 2);
+  }
+  c.globalAlpha = 1;
+  // lanterns strung along the near walk
+  for (let i = 0; i < 14; i++) {
+    const lx = x + (i + 0.5) * (w / 14), ly = water + h * 0.02 + Math.sin((i / 13) * Math.PI) * h * 0.02;
+    c.fillStyle = i % 2 ? '#ff5a4a' : '#fff0d0';
+    c.beginPath(); c.ellipse(lx, ly, Math.max(2, w * 0.011), Math.max(3, h * 0.016), 0, 0, Math.PI * 2); c.fill();
+  }
+  c.restore();
+}
+
+function crab(c, x, y, s) {
+  c.save();
+  c.translate(x, y);
+  c.strokeStyle = '#e8321e'; c.lineCap = 'round';
+  // legs, four a side
+  c.lineWidth = s * 0.08;
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 4; i++) {
+      const a = side * (0.3 + i * 0.28);
+      c.beginPath(); c.moveTo(side * s * 0.4, s * 0.05 * i);
+      c.lineTo(side * s * (0.75 + i * 0.05), -s * 0.1 + s * 0.12 * i);
+      c.lineTo(side * s * (0.95 + i * 0.04), s * (0.25 + 0.1 * i) + a * 0.01);
+      c.stroke();
+    }
+    // the big claws, raised
+    c.lineWidth = s * 0.1;
+    c.beginPath(); c.moveTo(side * s * 0.3, -s * 0.2); c.lineTo(side * s * 0.55, -s * 0.6); c.stroke();
+    c.fillStyle = '#ff4a2a';
+    c.beginPath(); c.ellipse(side * s * 0.6, -s * 0.78, s * 0.16, s * 0.24, side * 0.3, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#1a1030';
+    c.beginPath(); c.moveTo(side * s * 0.6, -s * 0.95); c.lineTo(side * s * 0.66, -s * 0.72); c.lineTo(side * s * 0.54, -s * 0.72); c.fill();
+  }
+  // the shell
+  c.fillStyle = '#ff4a2a';
+  c.beginPath(); c.ellipse(0, 0, s * 0.5, s * 0.34, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#ff8a5a';
+  c.beginPath(); c.ellipse(-s * 0.12, -s * 0.1, s * 0.22, s * 0.1, -0.2, 0, Math.PI * 2); c.fill();
+  // eyes on stalks
+  for (const side of [-1, 1]) {
+    c.fillStyle = '#ff4a2a'; c.fillRect(side * s * 0.12 - s * 0.03, -s * 0.5, s * 0.06, s * 0.2);
+    c.fillStyle = '#ffffff'; c.beginPath(); c.arc(side * s * 0.12, -s * 0.52, s * 0.07, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#1a1030'; c.beginPath(); c.arc(side * s * 0.12, -s * 0.52, s * 0.035, 0, Math.PI * 2); c.fill();
+  }
+  c.restore();
+}
+
+/**
+ * The Osaka teaser: 'tall' (a B1 on a wall), 'wide' (the concourse's big
+ * one, and the board at the Deer Park gate).
+ */
+export const osakaPosterTex = (shape = 'tall') =>
+  tex('osaka' + shape, shape === 'tall' ? 512 : 1024, shape === 'tall' ? 720 : 640, (c, w, h) => {
+    const O = RIDE.osaka;
+    c.fillStyle = '#fbf6ea'; c.fillRect(0, 0, w, h);
+    if (shape === 'tall') {
+      osakaScene(c, 0, h * 0.2, w, h * 0.62, 5);
+      // title block
+      c.fillStyle = '#1a1240'; c.fillRect(0, 0, w, h * 0.2);
+      fit(c, O.title, w / 2, h * 0.075, w - 40, 64, '#ffd84a');
+      c.fillStyle = PINK; c.beginPath(); c.roundRect(w * 0.14, h * 0.125, w * 0.72, h * 0.06, 20); c.fill();
+      fit(c, O.sub, w / 2, h * 0.155, w * 0.68, 34, '#ffffff');
+      // 道頓堀 down the right, brushed, on a lantern-red strip
+      c.fillStyle = 'rgba(200,40,40,0.9)'; c.fillRect(w - 86, h * 0.24, 66, h * 0.4);
+      c.fillStyle = '#fff4e0'; c.font = `64px ${JP_BRUSH}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      [...O.place].forEach((ch, i) => c.fillText(ch, w - 53, h * 0.3 + i * 76));
+      // the foot: the teaser line, the English, coming soon
+      c.fillStyle = '#fbf6ea'; c.fillRect(0, h * 0.82, w, h * 0.18);
+      fit(c, O.teaser, w / 2, h * 0.855, w - 40, 34, '#1a1240', { font: JP_ROUND });
+      fit(c, O.en, w / 2, h * 0.905, w - 40, 22, '#4a3a6a', { weight: '600', font: SANS });
+      c.fillStyle = GREEN; c.fillRect(0, h * 0.94, w, h * 0.06);
+      fit(c, `${O.soon}  ·  ${RIDE.line}`, w / 2, h * 0.97, w - 40, 22, '#ffffff', { font: SANS });
+    } else {
+      osakaScene(c, w * 0.34, 0, w * 0.66, h * 0.86, 7);
+      c.fillStyle = '#1a1240'; c.fillRect(0, 0, w * 0.34, h);
+      fit(c, '大阪行き', w * 0.17, h * 0.16, w * 0.3, 84, '#ffd84a');
+      fit(c, 'きっぷ', w * 0.17, h * 0.3, w * 0.3, 72, '#ffd84a');
+      c.fillStyle = PINK; c.beginPath(); c.roundRect(w * 0.025, h * 0.4, w * 0.29, h * 0.1, 24); c.fill();
+      fit(c, O.sub, w * 0.17, h * 0.45, w * 0.26, 44, '#ffffff');
+      fit(c, O.teaser, w * 0.17, h * 0.6, w * 0.3, 34, '#f0e8ff', { font: JP_ROUND });
+      fit(c, 'Tickets to Osaka', w * 0.17, h * 0.71, w * 0.3, 34, '#ffffff', { font: SANS });
+      fit(c, 'reservations open soon', w * 0.17, h * 0.77, w * 0.3, 26, '#d8d0f0', { weight: '600', font: SANS });
+      // 道頓堀 over the scene, brushed
+      c.fillStyle = 'rgba(200,40,40,0.9)'; c.beginPath(); c.roundRect(w * 0.83, h * 0.06, w * 0.13, h * 0.5, 10); c.fill();
+      c.fillStyle = '#fff4e0'; c.font = `80px ${JP_BRUSH}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      [...O.place].forEach((ch, i) => c.fillText(ch, w * 0.895, h * 0.14 + i * 92));
+      c.fillStyle = GREEN; c.fillRect(0, h * 0.86, w, h * 0.14);
+      c.fillStyle = PINK; c.fillRect(0, h * 0.86, w, 8);
+      fit(c, O.soon, w * 0.17, h * 0.93, w * 0.3, 44, '#ffffff', { font: SANS });
+      fit(c, `${RIDE.line}  →  ${STATION.jp}  →  大阪`, w * 0.66, h * 0.93, w * 0.6, 36, '#ffffff');
+    }
   });

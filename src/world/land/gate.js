@@ -4,6 +4,7 @@ import { TOWN } from '../../config.js';
 import { DEER_PARK } from '../../data/town.js';
 import { sheetGeo } from './geo.js';
 import { gateBoardTex } from './tex.js';
+import { osakaPosterTex } from '../line/tex.js';
 
 /* ------------------------------------------------------------------ *
  * The Deer Park gate (鹿公園), at the tree line where the track ends: a
@@ -115,6 +116,33 @@ export function buildGate(ctx, parts) {
     cap.translate(lx, 1.88, lz);
     parts.add('roof', cap);
     ctx.collide(lx - 0.25, lz - 0.25, lx + 0.25, lz + 0.25, 2);
+  }
+
+  // beside the gate, a teaser for the next place: the Osaka poster on a timber board
+  {
+    const bx = x - 3.9, bz = z + 1.6, ry = 0.35;
+    const c = Math.cos(ry), sn = Math.sin(ry);
+    const along = (u, v = 0) => [bx + c * u + sn * v, bz - sn * u + c * v];
+    for (const u of [-0.9, 0.9]) {
+      const [px, pz] = along(u, -0.04);
+      parts.box('gateWood', px - 0.06, px + 0.06, 0, 2.05, pz - 0.06, pz + 0.06);
+    }
+    const frame = new THREE.BoxGeometry(1.86, 1.24, 0.06);
+    frame.rotateY(ry);
+    const [fx, fz] = along(0, -0.02);
+    frame.translate(fx, 1.32, fz);
+    parts.add('roofDark', frame);
+    const cap = new THREE.BoxGeometry(2.0, 0.08, 0.2);
+    cap.rotateY(ry);
+    cap.translate(fx, 1.98, fz);
+    parts.add('roof', cap);
+    const poster = new THREE.Mesh(new THREE.PlaneGeometry(1.72, 1.075), flat({ map: osakaPosterTex('wide') }));
+    const [ppx, ppz] = along(0, 0.016);
+    poster.position.set(ppx, 1.32, ppz);
+    poster.rotation.y = ry;
+    ctx.add(poster);
+    const [cx0, cz0] = along(-0.95), [cx1, cz1] = along(0.95);
+    ctx.collide(Math.min(cx0, cx1) - 0.1, Math.min(cz0, cz1) - 0.12, Math.max(cx0, cx1) + 0.1, Math.max(cz0, cz1) + 0.12, 2.1);
   }
 
   // a sakura either side of the forecourt

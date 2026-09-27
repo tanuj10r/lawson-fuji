@@ -181,3 +181,56 @@ export const DONPEN = {
   // the hand-lettered price cards (POP) stuck on everything
   pop: ['激安!', '298円', '爆安', '198円', 'お一人様3点まで', '本日限り', '大人気!', '999円', '訳あり特価', '店長イチオシ', '驚きの価格', '58円'],
 };
+
+/* ---- the station and the train (experiences build, 2026-09-28) ----
+ * Track 1's trains run through to Shibuya (a fun liberty: the in-train
+ * announcement says so); track 2's run up the line to 河口湖.  The world's
+ * lettering is Japanese; `say` is the English the player reads (subtitles). */
+export const RIDE = {
+  line: '富士見線', lineEn: 'Fujimi Line', color: '#2f8a55', pink: '#f08aa8',
+  dest: {
+    east: { kind: '快速', kindEn: 'Rapid', jp: '渋谷', en: 'Shibuya', via: '大月・新宿方面' },
+    west: { kind: '各停', kindEn: 'Local', jp: '河口湖', en: 'Kawaguchiko', via: '富士山麓方面' },
+  },
+  /** the fare map, west to east as drawn: the through service beyond 大月 */
+  through: [{ jp: '渋谷', en: 'SHIBUYA', fare: 1980 }, { jp: '新宿', en: 'SHINJUKU', fare: 1850 }],
+  throughNote: 'この電車は 大月から JR線 渋谷まで 直通運転',
+  throughNoteEn: 'Through service to Shibuya',
+  office: { jp: 'さくらの窓口', en: 'Ticket Office', sub: 'きっぷ ・ 定期券 ・ 特急券' },
+  machines: { jp: 'きっぷうりば', en: 'Tickets', ic: 'IC チャージ' },
+  gates: { ic: 'IC専用', both: 'きっぷ・IC', out: '出口' },
+  master: { cap: '駅長', plate: 'さくら富士駅 駅長' },
+  car: { number: 'クハ 2104', number2: 'クモハ 2204', priority: '優先席', weak: '弱冷房車', run: '1204F' },
+  osaka: {
+    title: '大阪行き きっぷ', sub: '予約受付 まもなく', place: '道頓堀', en: 'Tickets to Osaka · reservations open soon',
+    neon: ['たこ焼', 'かに', 'ラーメン', 'ホテル', '串カツ', 'お好み焼'], soon: 'COMING SOON', teaser: 'つぎの旅は、大阪へ。',
+  },
+  say: {
+    welcome: 'Station master: "Welcome to Sakura-Fuji Station! Mind your step, and enjoy the ride."',
+    welcomeBack: 'Station master: "Welcome back! The next train to Shibuya will be along shortly."',
+    doorsClosing: 'Doors closing — please step off',
+    stepOff: 'The doors are closing. You step back onto the platform.',
+    board: 'Board the train',
+    boardHint: 'The doors are open: step aboard',
+    noTrain: 'No train at the platform yet: the next one is due shortly',
+    ride: 'Ride... (board the train)',
+    station: 'The station',
+  },
+};
+/** The 駅名標 (station name board): kana, station numbers, the neighbours either side. */
+export const NAME_BOARD = {
+  kana: 'さくらふじ', no: 'FJ05',
+  west: { jp: 'ふじみ台', kana: 'ふじみだい', en: 'Fujimidai', no: 'FJ04' },
+  east: { jp: 'こもれび野', kana: 'こもれびの', en: 'Komorebino', no: 'FJ06' },
+};
+/** Ads in the train (中吊り, and the cards over the windows): our own. */
+export const CAR_ADS = [
+  { t: '大阪行き きっぷ', s: '予約受付 まもなく', bg: '#2a1e5c', fg: '#ffd84a', osaka: true },
+  { t: '富士山麓 ハイキング', s: '富士見線で いこう', bg: '#d8ecf6', fg: '#1f4f7a' },
+  { t: 'さくらおにぎり', s: 'ニッポン 新発売', bg: '#fde8ef', fg: '#b6413a' },
+  { t: '鹿公園', s: '近日公開', bg: '#efe3c8', fg: '#6a3a20' },
+  { t: '河口湖 温泉', s: '日帰り 900円', bg: '#e6f1e2', fg: '#2f5a2a' },
+  { t: 'えいご はじめよう', s: 'ふじみ英会話', bg: '#fff6d8', fg: '#c0561a' },
+  { t: '優先席付近では', s: 'マナーモードに', bg: '#f2f2f2', fg: '#1f3f7a' },
+  { t: '桜まつり', s: '4月上旬 さくら富士駅前', bg: '#f7d8e2', fg: '#8a2f4a' },
+];

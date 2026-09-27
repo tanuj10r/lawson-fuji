@@ -1,5 +1,5 @@
 import { TOWN } from '../../config.js';
-import { LINE } from '../../data/town.js';
+import { RIDE } from '../../data/town.js';
 import { TRACK_Z } from './track.js';
 
 /* ------------------------------------------------------------------ *
@@ -202,7 +202,7 @@ export function makeService({ sets, crossing, onEvent }) {
         else if (r.phase === 'depart') secs = 240;
         else secs = { opening: S.dwell, dwell: S.dwell - r.t, chime: 3, closing: 2, hold: 1 }[r.phase] ?? 60;
         const at = new Date(now.getTime() + Math.max(0, secs) * 1000);
-        const d = r.dir > 0 ? LINE.dest.east : LINE.dest.west;
+        const d = r.dir > 0 ? RIDE.dest.east : RIDE.dest.west;
         rows.push({ secs, time: `${at.getHours()}:${String(at.getMinutes()).padStart(2, '0')}`, kind: d.kind, dest: d.jp, track: r.i + 1 });
       }
       return rows.sort((a, b) => a.secs - b.secs);

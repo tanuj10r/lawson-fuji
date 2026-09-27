@@ -80,7 +80,7 @@ function mats() {
     seatPri: live(0xb4606e, 0x6a4a6a),
     seatBase: live(0xb8bac4),
     pole: live(0xd8dce4, 0x666090),
-    strap: cel({ color: 0xf4f2ec, bands: 3, tint: 0x6f6796 }),
+    strap: live(0xf4f2ec, 0x6f6796),
     door: cel({ color: 0xffffff, bands: 3, tint: 0x6a6a92, vertexColors: true, cache: false }),
     light: flat({ color: 0xfffbea }),
     glass: flat({ color: 0xa8c4e0, transparent: true, opacity: 0.2, depthWrite: false }),
@@ -96,7 +96,7 @@ function mats() {
     carNo: [flat({ color: 0xffffff, map: carNumberTex(0) }), flat({ color: 0xffffff, map: carNumberTex(1) })],
     priority: flat({ color: 0xffffff, map: prioritySticker() }),
   };
-  M.interior = [M.lining, M.floor, M.seat, M.seatPri, M.seatBase, M.pole];
+  M.interior = [M.lining, M.floor, M.seat, M.seatPri, M.seatBase, M.pole, M.strap];
   return M;
 }
 

@@ -421,7 +421,7 @@ export const SHOT_SPOTS = [
   { name: 'station-concourse', scene: 'town', pos: [-55.6, 0, 148.7], yaw: -1.95, pitch: 0.06, looks: ['day'], train: 'platform', indoor: true, close: true },
   { name: 'station-master', scene: 'town', pos: [-54.0, 0, 154.5], yaw: 2.36, pitch: -0.08, looks: ['day'], train: 'platform', close: true },
   { name: 'train-front', scene: 'town', pos: [-26.8, 0, 157.4], yaw: 2.24, pitch: 0.02, looks: ['day', 'blue'], train: 'platform', close: true },
-  { name: 'train-side', scene: 'town', pos: [-31.5, 0, 156.4], yaw: 1.92, pitch: 0.02, looks: ['day'], train: 'platform', close: true },
+  { name: 'train-side', scene: 'town', pos: [-27.4, 0, 157.0], yaw: 1.76, pitch: 0.02, looks: ['day'], train: 'platform', close: true },
   { name: 'train-inside', scene: 'town', pos: [-44.65, 0, 160.75], yaw: 0.62, pitch: -0.04, looks: ['day', 'blue'], train: 'platform', close: true },
   { name: 'train-under', scene: 'town', pos: [-36.5, 0, 157.2], yaw: 2.6, pitch: -0.3, looks: ['day'], train: 'platform', close: true },
   { name: 'poster-station', scene: 'town', pos: [-46.3, 0, 150.9], yaw: -0.12, pitch: 0.05, looks: ['day'], train: 'platform', indoor: true, close: true },

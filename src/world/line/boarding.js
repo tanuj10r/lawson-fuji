@@ -151,7 +151,7 @@ export function makeBoarding(ctx, { service, P, PH, sets }) {
       if (dStation > 110) { far = true; warmed = false; }
       if (far && dStation < 80 && !warmed && soundBus.ready) {
         warmed = true; far = false;
-        soundBus.oneShot('train-nextstop', { x: camWorld.x, z: camWorld.z, gain: 0.0001, near: 1, far: 3 });
+        soundBus.oneShot('train-nextstop', { x: camWorld.x, z: camWorld.z, gain: 0.0001, near: 1, far: 400 });   // silent: it only fetches the file
       }
 
       const p = playerLocal();

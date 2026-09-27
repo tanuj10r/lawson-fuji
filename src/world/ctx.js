@@ -19,8 +19,13 @@ export function makeCtx(scene, root) {
 
   /** Height of the walkable surface.  `fromY`: only platforms within a step
    * of it count, so something can be walked under as well as on. */
+  /* Sunken ground (town pass: the river's channel): rects where the base
+   * ground lies below 0.  Platforms (stairs, walks) inside one stand on it. */
+  const sinks = [];
+
   function heightAt(x, z, fromY) {
     let h = 0;
+    for (const k of sinks) if (x > k.x0 && x < k.x1 && z > k.z0 && z < k.z1 && k.y < h) h = k.y;
     const reach = fromY === undefined ? Infinity : fromY + 0.55;
     for (const p of platforms) {
       if (p.top > reach) continue;
@@ -53,6 +58,12 @@ export function makeCtx(scene, root) {
         platforms.push({ ...p, x0: Math.min(a, b), x1: Math.max(a, b), z0: Math.min(c, d), z1: Math.max(c, d) });
       },
       cut: () => {},
+      /** Lower the base ground to `y` (< 0) over a rect; town.js leaves the
+       * ground plane open there, so the builder must floor and wall it. */
+      sink: (x0, z0, x1, z1, y) => {
+        const a = wx(x0), b = wx(x1), c = wz(z0), d = wz(z1);
+        sinks.push({ x0: Math.min(a, b), x1: Math.max(a, b), z0: Math.min(c, d), z1: Math.max(c, d), y });
+      },
       groundAt: (x, z) => heightAt(wx(x), wz(z)),
       interact: (i) => interactables.push(i),
       update: (fn) => updaters.push(fn),
@@ -88,5 +99,6 @@ export function makeCtx(scene, root) {
   ctx.platforms = platforms;
   ctx.updaters = updaters;
   ctx.heightAt = heightAt;
+  ctx.sinks = sinks;
   return ctx;
 }

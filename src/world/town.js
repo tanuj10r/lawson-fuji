@@ -32,21 +32,6 @@ export function buildTown(scene) {
   // the shared painted weather every worn surface reads (M2e, kit/paint.js)
   setWearTexture(wearAtlas());
 
-  /* --- ground --- */
-  const groundMat = cel({ color: WORLD.groundColor, bands: 3, tint: 0x7a7396, cache: false });
-  groundMat.userData.live = true;
-  {
-    const size = WORLD.groundHalf * 2;
-    const g = new THREE.PlaneGeometry(size, size, 1, 1);
-    g.rotateX(-Math.PI / 2);
-    const m = new THREE.Mesh(g, groundMat);
-    m.receiveShadow = true;
-    m.frustumCulled = false;
-    m.userData.keep = true;
-    m.name = 'ground';
-    root.add(m);
-  }
-
   /* --- the Lawson and the road in front of it (M1) --- */
   const lawson = buildLawson(root);
   ctx.colliders.push(...lawson.colliders);
@@ -119,6 +104,28 @@ export function buildTown(scene) {
   });
   for (const m of fall.meshes) m.userData.dynamic = true;
   for (const m of petals.meshes) m.userData.dynamic = true;
+
+  /* --- ground: one plane, open over any sunken ground (ctx.sink: the
+   * river's channel, town pass), so it is built after everything else --- */
+  const groundMat = cel({ color: WORLD.groundColor, bands: 3, tint: 0x7a7396, cache: false });
+  groundMat.userData.live = true;
+  {
+    const h = WORLD.groundHalf;
+    const shape = new THREE.Shape([new THREE.Vector2(-h, -h), new THREE.Vector2(h, -h), new THREE.Vector2(h, h), new THREE.Vector2(-h, h)]);
+    // the shape lies in (x, -z): it is turned flat below, so y becomes -z
+    for (const k of ctx.sinks) {
+      const x0 = Math.max(-h + 1, k.x0), x1 = Math.min(h - 1, k.x1), z0 = Math.max(-h + 1, k.z0), z1 = Math.min(h - 1, k.z1);
+      shape.holes.push(new THREE.Path([new THREE.Vector2(x0, -z1), new THREE.Vector2(x0, -z0), new THREE.Vector2(x1, -z0), new THREE.Vector2(x1, -z1)]));
+    }
+    const g = new THREE.ShapeGeometry(shape);
+    g.rotateX(-Math.PI / 2);
+    const m = new THREE.Mesh(g, groundMat);
+    m.receiveShadow = true;
+    m.frustumCulled = false;
+    m.userData.keep = true;
+    m.name = 'ground';
+    root.add(m);
+  }
 
   // batched per 128 m cell, so the camera and the shadow map can cull
   // the Lawson keeps its own textures: the famous view never changes

@@ -136,6 +136,46 @@ const PAINT = {
       fit(c, p.nameJa.replace(/ ?\d+%$/, ''), x, CELL * 0.8, CELL * 0.46, 20, '#1a1a24');
     }
   },
+  nine(c, p, m) {
+    // Strong Nine: a brushed-silver can, a big lemon cut open, the 9 huge in
+    // the store's own colours, STRONG NINE running up the side (twice round)
+    const g = c.createLinearGradient(0, 0, CELL, 0);
+    for (let i = 0; i <= 8; i++) g.addColorStop(i / 8, i % 2 ? '#f4f6fa' : '#b8bec8');
+    c.fillStyle = g; c.fillRect(0, 0, CELL, CELL);
+    for (const x of [CELL * 0.25, CELL * 0.75]) {
+      // the lemon, halved: rind, pith, segments
+      c.fillStyle = '#f2d02a'; c.beginPath(); c.arc(x, CELL * 0.3, 34, 0, 7); c.fill();
+      c.fillStyle = '#fbf2b0'; c.beginPath(); c.arc(x, CELL * 0.3, 27, 0, 7); c.fill();
+      c.strokeStyle = '#f2d02a'; c.lineWidth = 3;
+      for (let k = 0; k < 8; k++) { c.beginPath(); c.moveTo(x, CELL * 0.3); c.lineTo(x + Math.cos(k * 0.785) * 26, CELL * 0.3 + Math.sin(k * 0.785) * 26); c.stroke(); }
+      // the number, in a deep blue with a lemon keyline
+      c.font = `900 118px ${JP}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.lineWidth = 8; c.strokeStyle = '#f2d02a'; c.strokeText('9', x - 8, CELL * 0.66);
+      c.fillStyle = '#1e3a8a'; c.fillText('9', x - 8, CELL * 0.66);
+      fit(c, '%', x + 38, CELL * 0.74, 30, 34, '#1e3a8a');
+      fit(c, 'STRONG NINE', x, CELL * 0.9, CELL * 0.46, 22, '#1a1a24');
+    }
+    c.fillStyle = '#1e3a8a'; c.fillRect(0, 0, CELL, CELL * 0.07);
+  },
+  wafer(c, p, m) {
+    // Choco Wafer Jumbo's wrapper: chocolate brown, the wafer's grid in a
+    // window, a gold band with JUMBO.  The face is 1.8 times wider than tall,
+    // so it is drawn in a squeezed frame (VW wide) and comes out true.
+    c.fillStyle = hex(m.body); c.fillRect(0, 0, CELL, CELL);
+    const k = 0.068 / 0.124, VW = CELL / k;
+    c.save(); c.scale(k, 1);
+    c.fillStyle = '#c89048'; c.beginPath(); c.roundRect(VW * 0.06, CELL * 0.26, VW * 0.42, CELL * 0.5, 18); c.fill();
+    c.strokeStyle = '#a06a30'; c.lineWidth = 5;
+    for (let i = 1; i < 6; i++) { const x = VW * (0.06 + i * 0.42 / 6); c.beginPath(); c.moveTo(x, CELL * 0.26); c.lineTo(x, CELL * 0.76); c.stroke(); }
+    for (let i = 1; i < 4; i++) { const y = CELL * (0.26 + i * 0.125); c.beginPath(); c.moveTo(VW * 0.06, y); c.lineTo(VW * 0.48, y); c.stroke(); }
+    c.fillStyle = '#f6ecd6'; c.fillRect(VW * 0.06, CELL * 0.49, VW * 0.42, CELL * 0.05);      // the ice between the wafers
+    fit(c, 'チョコ', VW * 0.74, CELL * 0.3, VW * 0.4, 58, '#f6ecd6');
+    fit(c, 'ウエハース', VW * 0.74, CELL * 0.5, VW * 0.44, 50, '#f6ecd6');
+    c.fillStyle = hex(m.band); c.beginPath(); c.roundRect(VW * 0.54, CELL * 0.64, VW * 0.4, CELL * 0.22, 12); c.fill();
+    fit(c, 'JUMBO', VW * 0.74, CELL * 0.76, VW * 0.36, 52, '#4a2a1c');
+    c.restore();
+    c.fillStyle = hex(m.band); c.fillRect(0, 0, CELL, CELL * 0.08); c.fillRect(0, CELL * 0.92, CELL, CELL * 0.08);
+  },
   fruitsando(c, p, m) {
     // the cut face: white bread, whipped cream, strawberries halved, kiwi
     c.fillStyle = '#f6ecd6'; c.fillRect(0, 0, CELL, CELL);
@@ -273,7 +313,8 @@ function paintCell(c, p) {
     case 'bento': return PAINT.bento(c, p, m);
     case 'sandwich': return PAINT.sandwich(c, p, m);
     case 'pet': case 'pet2l': return m.wave ? PAINT.ion(c, p, m) : PAINT.wrap(c, p, m);
-    case 'tallcan': case 'slimcan': return m.strong ? PAINT.strong(c, p, m) : PAINT.wrap(c, p, m, { liquid: hex(m.body) });
+    case 'tallcan': case 'slimcan': return m.nine ? PAINT.nine(c, p, m) : m.strong ? PAINT.strong(c, p, m) : PAINT.wrap(c, p, m, { liquid: hex(m.body) });
+    case 'wafer': return PAINT.wafer(c, p, m);
     case 'sakecup': return PAINT.wrap(c, p, m, { liquid: '#e8f0f4' });
     case 'whisky': case 'wine': return PAINT.bottleFront(c, p, m);
     case 'fruitsando': return PAINT.fruitsando(c, p, m);

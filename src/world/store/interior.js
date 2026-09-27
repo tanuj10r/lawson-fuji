@@ -180,7 +180,11 @@ export function buildInterior(group, { lit, colliders }) {
     const x0 = cx - 0.45, x1 = cx + 0.45;
     p.box(cx - 0.03, cx + 0.03, FLOOR, H, zA, zB, C.upright);                        // the spine
     p.box(x0, x1, FLOOR, 0.12, zA, zB, C.kick);
-    p.box(x0 - 0.02, x1 + 0.02, H - 0.03, H, zA - 0.02, zB + 0.02, C.upright);        // the top cap
+    // the top: a cap on the spine and a rail along each edge, the top shelf open
+    // above them as a real gondola's is (a full-width board had the tall
+    // bottles on the top shelf standing through it)
+    p.box(cx - 0.12, cx + 0.12, H - 0.03, H, zA - 0.02, zB + 0.02, C.upright);
+    for (const e of [x0 - 0.02, x1]) p.box(e, e + 0.02, H - 0.03, H, zA - 0.02, zB + 0.02, C.upright);
     for (const side of [-1, 1]) {
       const xs = side < 0 ? x0 : x1;
       for (let k = 0; k < 5; k++) {
@@ -469,8 +473,10 @@ export function buildDoor(root, { alu, glassMat, colliders, near = 1.8, hold = 2
     onMove: null,
     get open() { return open; },
     /** `p` the player's position (the store's frame is the world's). */
+    /** (p) => true keeps the door shut on the player at `p` (the konbini: nothing unpaid goes out). */
+    hold: null,
     update(dt, p) {
-      const dist = Math.hypot(Math.max(0, Math.abs(p.x - LAWSON.doorX) - lw), p.z);
+      const dist = api.hold?.(p) ? Infinity : Math.hypot(Math.max(0, Math.abs(p.x - LAWSON.doorX) - lw), p.z);
       if (dist < near) clear = 0; else clear += dt;
       const want = dist < near || clear < hold ? 1 : 0;
       if (want !== was) { was = want; api.onMove?.(want === 1); }

@@ -1,44 +1,69 @@
 import * as THREE from 'three';
 import { STORE, LAWSON } from '../../config.js';
-import { PRODUCT } from '../../data/catalog.js';
+import { PRODUCT, FEATURED } from '../../data/catalog.js';
 import { STRINGS } from '../../data/strings.js';
+import { soundBus } from '../../core/soundBus.js';
 import { productGeometry, placeUnit, unitMatrix } from './products.js';
-import { basketModel, packBasket, onTop, BASKET } from './basket.js';
+import { onTopClamped, ease, easeOut, clamp01 } from './figure.js';
+import { makeHands, coinGeometry } from './hands.js';
+import { makeCashier } from './cashier.js';
+import { makeEating } from './eat.js';
 
 /* ------------------------------------------------------------------ *
- * Shopping (M3c; SPEC 5 and 6.3).
+ * The Nippon Konbini (Tan's experience; SPEC 6 made simple).
  *
- * Aiming: inside the store the crosshair's ray is tested against plain
- * boxes -- one per shelf facing (the front unit and the rows behind it),
- * the fridge doors, the basket stack -- not against the meshes, so the
- * thousands of facings cost a fraction of a millisecond, and only indoors.
+ * Everybody has ¥1,000.  Walk in to the chime and "irasshaimase", and your
+ * two hands rise into view: the left holds the folded note, the right
+ * takes what you pick.  Four things glow: the sando case (an egg sando and
+ * a fruit sando side by side), the onigiri, the Strong Nine in the chu-hi
+ * fridge and the Choco Wafer Jumbo in the ice case.  Take up to two (E);
+ * X puts the last one back.  Everything else on the shelves is scenery.
  *
- * Taking: the facing's count drops, the next one slides forward (the
- * gravity shelf, the pushed-up row), the rows behind thin out, and when
- * the last goes the gap shows.  The unit itself arcs into the basket in
- * view.  Putting back runs the same arc the other way, to its own slot.
+ * At the till (E) the cashier scans each one, says the total, your left
+ * hand pays, the change comes back into it, "arigatou gozaimasu".  You
+ * can't walk out with anything unpaid: the door stays shut and says so.
+ * Outside you eat it all, first person.  Then the spot by the door is
+ * marked done, and you can go in again: a fresh ¥1,000 each visit.
  *
- * The basket: optional.  Without one you hold two things at most.  Walk
- * out with anything unpaid and it all goes back, with the basket.
+ * Aiming is boxes, not meshes (M3c): the featured facings, and the till.
+ * Only indoors.  The hands, what they hold and the flights are drawn on
+ * top of the world (store/figure.js).
  * ------------------------------------------------------------------ */
 
-const ZONES = new Set(['drinks', 'chilled', 'gondola', 'endcap', 'icecase', 'freezer', 'selfserve']);
-const IN_VIEW = new THREE.Vector3(-0.34, -0.45, -0.84);        // the basket, in the camera's frame
-const IN_HAND = [new THREE.Vector3(0.2, -0.17, -0.6), new THREE.Vector3(0.1, -0.19, -0.64)];
 const hw = LAWSON.width / 2;
+const S = STRINGS.store;
+const Q = Math.PI / 2;
+/* every total two of the featured things can come to: each has its own
+ * spoken line (scripts/gen-voices.mjs makes the same list) */
+const PRICES = FEATURED.flatMap((f) => f.ids).map((id) => PRODUCT[id].priceYen);
+export const TOTALS = new Set(PRICES.flatMap((a, i) => [a, ...PRICES.slice(i).map((b) => a + b)]));
+/* the till: the register the cashier stands at, and what is on its counter (store frame) */
+const REG_Z = STORE.till.z;
+const TILL = {
+  cashier: new THREE.Vector3(STORE.till.x, 0.02, REG_Z),
+  box: new THREE.Box3(new THREE.Vector3(5.95, 0.85, REG_Z - 0.62), new THREE.Vector3(7.9, 1.95, REG_Z + 0.62)),
+  // either side of the customer display's post, on the counter in front of the register
+  put: [new THREE.Vector3(6.3, 0.975, REG_Z - 0.23), new THREE.Vector3(6.3, 0.975, REG_Z + 0.21)],
+  scan: new THREE.Vector3(6.6, 1.26, REG_Z - 0.05),              // lifted over the register's scanner
+  bag: [new THREE.Vector3(6.62, 0.975, REG_Z + 0.38), new THREE.Vector3(6.6, 0.975, REG_Z + 0.52)],
+  tray: new THREE.Vector3(6.18, 0.995, REG_Z - 0.38),
+  // where you stand to pay, and where you look
+  stand: new THREE.Vector3(5.3, 0, REG_Z - 0.05),
+  look: new THREE.Vector3(6.9, 1.3, REG_Z - 0.02),
+};
 
 export function makeShop(inside, { doors, lit }) {
   const units = inside.userData.units;
 
-  /* ---------------- the facings you can take, as boxes ---------------- */
+  /* ------------------- the featured facings, as boxes ------------------- */
   const pickable = [];
   const bb = new THREE.Box3(), m4 = new THREE.Matrix4();
   for (const u of units) {
-    if (u.front || !ZONES.has(u.slot?.zone)) continue;
+    if (u.front || !u.feature) continue;
     const box = new THREE.Box3();
-    for (const v of [u, ...u.backs]) {
-      unitMatrix(v, m4);
-      box.union(bb.copy(productGeometry(v.id).boundingBox).applyMatrix4(m4));
+    for (const w of [u, ...u.backs]) {
+      unitMatrix(w, m4);
+      box.union(bb.copy(productGeometry(w.id).boundingBox).applyMatrix4(m4));
     }
     u.box = box;
     u.centre = box.getCenter(new THREE.Vector3());
@@ -50,183 +75,393 @@ export function makeShop(inside, { doors, lit }) {
     pickable.push(u);
   }
 
-  /* ---------------- the basket stacks, the top one of each ---------------- */
-  const stacks = inside.userData.basketStacks.map((at) => {
-    const top = basketModel(lit);
-    top.position.set(at.x, at.y, at.z);
-    top.userData.dynamic = true;
-    inside.add(top);
-    const box = new THREE.Box3(new THREE.Vector3(at.x - 0.27, 0, at.z - 0.2), new THREE.Vector3(at.x + 0.27, at.y + BASKET.h, at.z + 0.2));
-    return { top, box };
+  /* ---- the four spots: a soft glow behind the block and on its shelf edge, a marker ----
+   * Only while you are inside (the famous views never see them).  All of it is
+   * userData.dynamic: the town's static merge must not bake it in place. */
+  const glowTex = (radial) => {
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = radial ? 64 : 32;
+    const g = c.getContext('2d');
+    const gr = radial ? g.createRadialGradient(32, 32, 2, 32, 32, 32) : g.createLinearGradient(0, 0, 0, 32);
+    if (radial) { gr.addColorStop(0, 'rgba(255,226,140,1)'); gr.addColorStop(0.55, 'rgba(255,214,110,0.55)'); gr.addColorStop(1, 'rgba(255,214,110,0)'); }
+    else { gr.addColorStop(0, 'rgba(255,215,106,0)'); gr.addColorStop(0.5, 'rgba(255,236,160,1)'); gr.addColorStop(1, 'rgba(255,215,106,0)'); }
+    g.fillStyle = gr; g.fillRect(0, 0, 64, c.height);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  };
+  const glow = { depthWrite: false, transparent: true, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0 };
+  const glowMat = new THREE.MeshBasicMaterial({ map: glowTex(false), ...glow });
+  const haloMat = new THREE.MeshBasicMaterial({ map: glowTex(true), ...glow });
+  const gemMat = new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, depthWrite: false, toneMapped: false, opacity: 0 });
+  const gemGeo = new THREE.OctahedronGeometry(0.05, 0).scale(1, 1.5, 1);
+  const spots = FEATURED.map((f) => {
+    const us = pickable.filter((u) => u.feature === f.key);
+    const box = new THREE.Box3();
+    for (const u of us) box.union(u.box);
+    const s = us[0]?.slot;
+    const g = new THREE.Group();
+    g.name = 'spot-' + f.key;
+    g.visible = false;
+    g.userData.dynamic = true;
+    if (s) {
+      const c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
+      const along = s.zone === 'chilled' ? sz.z : sz.x;
+      const strip = new THREE.Mesh(new THREE.PlaneGeometry(along + 0.14, 0.12), glowMat);
+      const halo = new THREE.Mesh(new THREE.PlaneGeometry(along + 0.5, s.zone === 'icecase' ? sz.z + 0.35 : 0.5), haloMat);
+      const gem = new THREE.Mesh(gemGeo, gemMat);
+      if (s.zone === 'chilled') {                 // the rail faces the aisle (+x); the halo on the case's back
+        strip.position.set(s.rail + 0.006, s.y - 0.03, c.z); strip.rotation.y = Q;
+        halo.position.set(-hw + 0.28 + 0.125, s.y + 0.14, c.z); halo.rotation.y = Q;
+        gem.position.set(s.rail + 0.12, s.y + 0.22, c.z);
+      } else if (s.zone === 'drinks') {           // behind the fridge door: the rail, the cooler's back; the marker out front
+        strip.position.set(c.x, s.y - 0.045, s.rail + 0.004);
+        halo.position.set(c.x, s.y + 0.14, -LAWSON.depth + 0.28 + 0.06);
+        gem.position.set(c.x, s.y + 0.26, s.rail + 0.2);
+      } else {                                    // the ice case: its front rim, and the basket's floor
+        strip.position.set(c.x, 0.815, -3.0 + 0.008);
+        halo.position.set(c.x, 0.605, c.z); halo.rotation.x = -Q;
+        gem.position.set(c.x, 1.1, c.z);
+      }
+      for (const m of [strip, halo, gem]) { m.userData.noOutline = true; m.renderOrder = 5; }
+      g.add(halo, strip, gem);
+      g.userData.gem = gem; g.userData.y = gem.position.y;
+    }
+    inside.add(g);
+    return { ...f, units: us, box, group: g };
   });
-  let from = null;             // the stack your basket came from
 
-  /* ----------------- what you carry, drawn over the world ----------------- */
+  /* ----------------------------- the cast ----------------------------- */
   const view = new THREE.Group();          // follows the camera (main.js adds it to the scene)
   view.matrixAutoUpdate = false;
   view.name = 'shop-view';
   const fx = new THREE.Group();            // flights, in world terms
   fx.name = 'shop-fx';
-  const held = basketModel(lit);
-  held.traverse((o) => { if (o.isMesh) { onTop(o.material); o.renderOrder = 10; o.frustumCulled = false; } });
-  held.visible = false;
-  held.rotation.set(0.5, 0.45, 0.04);
-  view.add(held);
+  const hands = makeHands(lit);
+  view.add(hands.view);
+  const cashier = makeCashier(lit);
+  cashier.root.position.copy(TILL.cashier);
+  cashier.root.rotation.y = -Q;            // facing the shop
+  cashier.root.userData.dynamic = true;
+  inside.add(cashier.root);
+  cashier.update(0);                        // her resting pose, even before you come near
+  // the customer display on the register: the running total, shown while you pay
+  const display = (() => {
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 64;
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.13), new THREE.MeshBasicMaterial({ map: t }));
+    mesh.position.set(6.1 + 0.04, 1.22, REG_Z);
+    mesh.rotation.y = -Q;
+    mesh.visible = false;
+    mesh.userData.noOutline = true;
+    mesh.userData.dynamic = true;
+    inside.add(mesh);
+    return {
+      mesh,
+      show(label, amount) {
+        const g = c.getContext('2d');
+        g.fillStyle = '#10141a'; g.fillRect(0, 0, 128, 64);
+        g.fillStyle = '#58f08a'; g.font = 'bold 30px monospace'; g.textAlign = 'right'; g.textBaseline = 'middle';
+        g.fillText(String(amount), 118, 36);
+        g.font = 'bold 13px "Hiragino Kaku Gothic ProN", sans-serif'; g.textAlign = 'left'; g.fillText(label, 8, 14);
+        t.needsUpdate = true;
+        mesh.visible = true;
+      },
+    };
+  })();
+
+  /* what you carry: the product's own page material, drawn on top */
   const pageMat = new Map();
   const topMat = (u) => {
     const src = u.mat;
-    if (!pageMat.has(src)) { const m = onTop(src.clone()); lit.push(m); pageMat.set(src, m); }
+    if (!pageMat.has(src)) { const m = onTopClamped(src.clone()); lit.push(m); pageMat.set(src, m); }
     return pageMat.get(src);
   };
   const itemMesh = (u) => {
     const m = new THREE.Mesh(productGeometry(u.id), topMat(u));
-    m.matrixAutoUpdate = false;
     m.frustumCulled = false;
     m.renderOrder = 11;
     return m;
   };
 
   /* ------------------------------- state ------------------------------- */
-  const cart = [];            // { id, u } in the order taken
-  let hasBasket = false;
-  const flights = [];
-  const slides = [];
-  const showing = [];         // meshes in the basket or the hands
-  let wasInside = false;
+  const held = [];              // { id, u, mesh, hand, paid, where: 'flying' | 'hand' | 'counter' }
+  const flights = [], slides = [], pendingTakes = [];
+  let wasInside = false, wallet = STORE.wallet, change = 0;
+  let phase = 'out';            // out | shop | till | paid | eat
+  let checkout = null;          // the running checkout's timeline
+  let doorHint = false, primed = false;
   const api = {
-    view, fx,
-    get cart() { return cart; },
-    get hasBasket() { return hasBasket; },
-    onChange: null,           // main.js: the badge and the panel
-    flash: null,              // main.js: hud.flash
+    view, fx, hands, cashier,
+    get held() { return held; },
+    get phase() { return phase; },
+    get wallet() { return wallet; },
+    get busy() { return phase === 'till'; },
+    get canPutBack() { return phase === 'shop' && held.some((h) => !h.paid && h.where === 'hand'); },
+    onChange: null,            // main.js: the HUD
+    onSay: null,               // main.js: a line spoken, for the subtitles
+    flash: null,               // main.js: hud.flash
+    onSound: null,             // main.js: (kind, unit?) -> the sound engine
+    onEnter: null, onExit: null,
+    player: null,              // main.js: the player, held still while you pay
+    isFamousView: () => false, // main.js
+    spot: null,                // lawson.js: the konbini's experience spot outside
+  };
+  const changed = () => api.onChange?.(api.hud());
+  api.hud = () => ({
+    wallet: phase === 'paid' || phase === 'eat' ? wallet : STORE.wallet - total(),
+    slots: [0, 1].map((i) => { const h = held.find((x) => x.hand === i && x.where !== 'gone'); return h ? { id: h.id, paid: h.paid } : null; }),
+    paid: phase === 'paid' || phase === 'eat',
+    change,
+    show: (wasInside || phase === 'paid' || phase === 'eat') && phase !== 'out',
+  });
+
+  /* ------------------------------ sounds ------------------------------ */
+  const at = (p) => inside.localToWorld(p.clone());
+  const tillAt = () => at(new THREE.Vector3(6.6, 1.1, REG_Z));
+  /** A sound at the till (the beep, the drawer, the coins), heard only near it. */
+  const tillSound = (name, recipe, gain = 1) => { const w = tillAt(); soundBus.oneShot(name, { x: w.x, y: w.y, z: w.z, ...STORE.tillSound, gain, recipe }); };
+  /** The cashier says `line` (strings.js store.lines): her voice from where she stands, the subtitle, her mouth. */
+  function say(key, file = 'v-' + key, text = S.lines[key]) {
+    const w = at(new THREE.Vector3(STORE.till.x, 1.5, REG_Z));
+    soundBus.oneShot(file, { x: w.x, y: w.y, z: w.z, ...STORE.voice, gain: 1, recipe: 'ui-tap' });
+    cashier.talk(text.dur ?? 1.2);
+    api.onSay?.(text);
+  }
+  /** Sounds at you (eating). */
+  const EAT_RECIPE = { bite: 'soft', munch: 'paper', gulp: 'bottle', 'can-open': 'can', wrapper: 'plastic' };
+  const mine = (name) => soundBus.oneShot(name, { gain: STORE.eatGain[name] ?? 0.8, recipe: EAT_RECIPE[name] });
+  /* The engine plays a file only once it is decoded, and a recipe until then:
+   * ask for them all quietly as you come near, so the first of each is real. */
+  function prime() {
+    if (primed || !soundBus.ready) return;
+    primed = true;
+    for (const n of ['v-irasshaimase', 'v-oazukari', 'v-arigatou', 'v-arigatou-mashita', 'v-total', 'till-beep', 'coins', 'register-drawer', 'bite', 'munch', 'gulp', 'can-open', 'wrapper']) soundBus.oneShot(n, { gain: 0 });
+  }
+
+  /* ----------------------------- flights ----------------------------- */
+  /** Fly `mesh` from world matrix `from` to wherever `to()` says (a world matrix), then `done()`. */
+  const _pa = new THREE.Vector3(), _pb = new THREE.Vector3(), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _sa = new THREE.Vector3(), _sb = new THREE.Vector3();
+  function fly(mesh, from, to, { dur = STORE.flight, arc = 0.12, done = null } = {}) {
+    mesh.matrixAutoUpdate = false;
+    fx.add(mesh);
+    const f = { mesh, from: from.clone(), to, t: 0, dur, arc, done };
+    flights.push(f);
+    return f;
+  }
+  const worldOf = (obj) => { obj.updateWorldMatrix(true, false); return obj.matrixWorld; };
+  /** A thing on the counter at `p` (store frame), its front toward you. */
+  const counterMatrix = (p, ry = -Q) => new THREE.Matrix4().makeRotationY(ry).setPosition(at(p));
+  /** Hold `mesh` in the anchor, centred and facing you. */
+  function holdIn(mesh, anchor) {
+    mesh.matrixAutoUpdate = true;
+    const c = mesh.geometry.boundingBox.getCenter(new THREE.Vector3());
+    mesh.position.copy(c).multiplyScalar(-1);
+    mesh.rotation.set(0, 0, 0);
+    mesh.scale.setScalar(1);
+    anchor.add(mesh);
+  }
+  /** Where the cashier's right hand holds `mesh` (scanning it). */
+  const gripMatrix = (mesh) => () => {
+    const c = mesh.geometry.boundingBox.getCenter(new THREE.Vector3());
+    return new THREE.Matrix4().copy(worldOf(cashier.arms.R.grip)).multiply(new THREE.Matrix4().makeTranslation(-c.x, -c.y, -c.z));
+  };
+  const anchorMatrix = (i, mesh) => () => {
+    const a = hands.anchor(i);
+    const c = mesh.geometry.boundingBox.getCenter(new THREE.Vector3());
+    return new THREE.Matrix4().copy(worldOf(a)).multiply(new THREE.Matrix4().makeTranslation(-c.x, -c.y, -c.z));
   };
 
-  /* ----------------------------- visuals ----------------------------- */
-  function refreshSlot(u) {
-    [u, ...u.backs].forEach((v, i) => placeUnit(v, 0, i >= u.count));
-  }
-  function layout() {
-    for (const m of showing) m.parent?.remove(m);
-    showing.length = 0;
-    held.visible = hasBasket;
-    const landed = cart.filter((c) => !c.flying);
-    if (hasBasket) {
-      const mats = packBasket(landed.map((c) => c.id), STORE.basketShown);
-      mats.forEach((mm, i) => {
-        const m = itemMesh(landed[i].u);
-        m.matrix.copy(mm);
-        held.add(m); showing.push(m);
-      });
-    } else {
-      landed.forEach((c, i) => {
-        const m = itemMesh(c.u);
-        m.matrixAutoUpdate = true;
-        m.position.copy(IN_HAND[i] ?? IN_HAND[1]);
-        m.rotation.set(0.35, -0.5, 0);
-        const g = productGeometry(c.id).boundingBox;
-        m.position.y -= (g.max.y - g.min.y) / 2;
-        view.add(m); showing.push(m);
-      });
-    }
-    api.onChange?.();
-  }
-
-  /** Where the i-th item sits now, in world terms (the end of a flight in). */
-  const _w = new THREE.Matrix4();
-  function slotWorld(i, id, out) {
-    if (hasBasket) {
-      const mats = packBasket([...cart.filter((c) => !c.flying).map((c) => c.id), id], STORE.basketShown);
-      held.updateMatrix();
-      out.copy(view.matrix).multiply(held.matrix).multiply(mats[Math.min(i, mats.length - 1)]);
-    } else {
-      _w.compose(IN_HAND[Math.min(i, 1)], new THREE.Quaternion().setFromEuler(new THREE.Euler(0.35, -0.5, 0)), new THREE.Vector3(1, 1, 1));
-      out.copy(view.matrix).multiply(_w);
-    }
-    return out;
-  }
-  function unitWorld(u, out) {
-    return unitMatrix(u, out).premultiply(inside.matrixWorld);
-  }
-
-  /* ----------------------------- actions ----------------------------- */
-  const total = () => cart.reduce((n, c) => n + PRODUCT[c.id].priceYen, 0);
-  function take(u) {
-    if (!hasBasket && cart.length >= STORE.carry) { api.flash?.(STRINGS.store.handsFull); return; }
-    // the wallet (¥1,000, Tan): what would take you over it stays on the shelf
-    const price = PRODUCT[u.id].priceYen, left = STORE.wallet - total();
-    if (price > left) { api.flash?.(STRINGS.store.noMoney(left, price), true); refuse = 0.5; api.onSound?.('refuse', u); return; }
-    const from = unitWorld(u, new THREE.Matrix4());
+  /* ------------------------------ taking ------------------------------ */
+  const total = () => held.filter((h) => !h.paid && h.where !== 'gone').reduce((n, h) => n + PRODUCT[h.id].priceYen, 0);
+  const inHands = () => held.filter((h) => h.where !== 'gone');
+  function refreshSlot(u) { [u, ...u.backs].forEach((w, i) => placeUnit(w, 0, i >= u.count)); }
+  function take(u, doorOpen = false) {
+    if (phase !== 'shop') return;
+    if (inHands().length >= STORE.carry) { api.flash?.(S.handsFull); return; }
+    const price = PRODUCT[u.id].priceYen;
+    if (price > STORE.wallet - total()) { api.flash?.(S.noMoney(STORE.wallet - total(), price), true); api.onSound?.('refuse', u); return; }
+    // the chu-hi is behind a fridge door: it swings open first
+    if (u.door && u.door.open < 0.6 && !doorOpen) { doors.open(u.door); pendingTakes.push({ u, t: 0.32 }); return; }
+    const hand = held.some((h) => h.hand === 0 && h.where !== 'gone') ? 1 : 0;
+    const from = unitMatrix(u, new THREE.Matrix4()).premultiply(inside.matrixWorld);
     u.count--;
-    const item = { id: u.id, u, flying: true };
-    cart.push(item);
     const mesh = itemMesh(u);
-    fx.add(mesh);
-    flights.push({ item, mesh, t: 0, from, into: true });
+    const h = { id: u.id, u, mesh, hand, paid: false, where: 'flying' };
+    held.push(h);
+    fly(mesh, from, anchorMatrix(hand, mesh), { done: () => { h.where = 'hand'; holdIn(mesh, hands.anchor(hand)); hands[hand ? 'L' : 'R'].item = h; changed(); } });
     api.onSound?.('take', u);
-    // the next one comes forward; the rows behind thin out; the gap shows
     refreshSlot(u);
     if (u.count > 0 && u.slot.zone !== 'icecase') slides.push({ u, t: -0.08 });
-    else if (u.count <= 0) highlight(null);
-    api.onChange?.();
+    changed();
   }
-  /** Put the cart's item back (from the panel): it flies to its own slot. */
-  function putBack(item) {
-    const i = cart.indexOf(item);
-    if (i < 0 || item.flying) return;
-    const from = new THREE.Matrix4();
-    const shown = showing[cart.filter((c) => !c.flying).indexOf(item)];
-    if (shown) { shown.updateMatrixWorld(); from.copy(shown.matrixWorld); } else slotWorld(0, item.id, from);
-    cart.splice(i, 1);
-    const mesh = itemMesh(item.u);
-    fx.add(mesh);
-    flights.push({ item, mesh, t: 0, from, into: false });
-    layout();
+  /** Put the last unpaid thing back on its shelf (X). */
+  function putBack() {
+    const h = [...held].reverse().find((x) => !x.paid && x.where === 'hand');
+    if (!h || phase !== 'shop') return false;
+    const from = worldOf(h.mesh).clone();
+    h.where = 'gone';
+    hands[h.hand ? 'L' : 'R'].item = null;
+    held.splice(held.indexOf(h), 1);
+    fly(h.mesh, from, () => unitMatrix(h.u, new THREE.Matrix4()).premultiply(inside.matrixWorld), {
+      done: () => { fx.remove(h.mesh); h.u.count++; refreshSlot(h.u); api.onSound?.('put', h.u); },
+    });
+    // the other one moves to the right hand, so the right is always the first
+    const other = held.find((x) => x.where === 'hand' && x.hand === 1);
+    if (other && h.hand === 0) {
+      other.hand = 0; hands.L.item = null; hands.R.item = other;
+      holdIn(other.mesh, hands.anchor(0));
+    }
+    changed();
+    return true;
   }
-  /** Everything unpaid goes back at once, and the basket to its stack. */
-  function returnAll() {
-    for (const f of flights) { fx.remove(f.mesh); if (!f.into) { f.item.u.count++; refreshSlot(f.item.u); } }
-    flights.length = 0;
-    for (const c of cart) { c.u.count++; refreshSlot(c.u); }
-    cart.length = 0;
-    hasBasket = false;
-    if (from) from.top.visible = true;
-    layout();
+  /** Walked out with unpaid things (a famous-view key, say): they go straight back. */
+  function returnUnpaid() {
+    let n = 0;
+    for (const h of [...held]) {
+      if (h.paid) continue;
+      h.mesh.removeFromParent();
+      if (h.where !== 'gone') { h.u.count++; refreshSlot(h.u); n++; }
+      held.splice(held.indexOf(h), 1);
+    }
+    hands.R.item = held.find((x) => x.hand === 0) ?? null;
+    hands.L.item = held.find((x) => x.hand === 1) ?? null;
+    changed();
+    return n;
   }
 
-  /* the rim on what you aim at: its own shape, a touch larger, back faces only */
-  const rimMat = new THREE.MeshBasicMaterial({ color: 0x9fd0ff, side: THREE.BackSide, transparent: true, opacity: 0.85, depthWrite: false });
-  const rim = new THREE.Mesh(new THREE.BufferGeometry(), rimMat);
-  rim.matrixAutoUpdate = false;
-  rim.visible = false;
-  rim.userData.noOutline = true;
-  rim.userData.dynamic = true;
-  rim.renderOrder = 4;
-  inside.add(rim);
-  const _s = new THREE.Matrix4(), _cc = new THREE.Vector3();
-  let rimOn = null, refuse = 0;          // refuse: seconds of the red shake left
-  function highlight(u) {
-    if (u === rimOn && (!u || rim.visible)) return;
-    rimOn = u;
-    rim.visible = !!u;
-    if (!u) return;
-    const g = productGeometry(u.id);
-    rim.geometry = g;
-    refuse = 0;
-    // grow about the product's own middle
-    g.boundingBox.getCenter(_cc);
-    const k = 1.1;
-    _s.makeTranslation(_cc.x, _cc.y, _cc.z).multiply(new THREE.Matrix4().makeScale(k, k, k)).multiply(new THREE.Matrix4().makeTranslation(-_cc.x, -_cc.y, -_cc.z));
-    unitMatrix(u, rim.matrix);
-    rim.matrix.multiply(_s);
-    rimBase.copy(rim.matrix);
-    rim.matrixWorldNeedsUpdate = true;
+  /* ------------------------------ paying ------------------------------ */
+  /* The checkout, as a timeline of moments (seconds from pressing E). */
+  function startCheckout() {
+    const items = held.filter((h) => !h.paid && h.where === 'hand');
+    if (phase !== 'shop' || !items.length || flights.length) return;
+    phase = 'till';
+    const sum = total();
+    // the total line: one said for this amount, if we have it
+    const totalFile = TOTALS.has(sum) ? 'v-total-' + sum : 'v-total';
+    soundBus.oneShot(totalFile, { gain: 0 });
+    const ev = [];
+    const T = (t, fn) => ev.push({ t, fn });
+    const p = api.player;
+    const from = p ? { yaw: p.yaw, pitch: p.pitch } : null;
+    // face the till
+    if (p) p.suspended = true;
+    T(0, () => { cashier.lookAt = null; say('oazukari'); cashier.pose({ headX: 0.2, headY: 0 }); });
+    items.forEach((h, i) => {
+      // each goes onto the counter
+      T(0.1 + i * 0.15, () => {
+        const f = worldOf(h.mesh).clone();
+        h.mesh.removeFromParent();
+        hands[h.hand ? 'L' : 'R'].item = null;
+        h.where = 'flying';
+        fly(h.mesh, f, () => counterMatrix(TILL.put[i]), { dur: 0.42, done: () => { h.where = 'counter'; } });
+      });
+      // she leans in, takes it in her right hand, passes it over the scanner (beep), and sets it down by the bag
+      const t0 = 0.7 + i * 0.85;
+      T(t0, () => cashier.pose({ bow: 0.22, rShX: -1.25, rShZ: 0.05, rShY: 0, rElX: -0.25, twist: -0.1, headX: 0.35, headY: 0 }));
+      T(t0 + 0.28, () => fly(h.mesh, counterMatrix(TILL.put[i]), gripMatrix(h.mesh), { dur: 0.22, arc: 0.04, done: () => holdIn(h.mesh, cashier.arms.R.grip) }));
+      T(t0 + 0.5, () => cashier.pose({ bow: 0.05, rShX: -1.05, rElX: -0.7, rShY: 0.2, headX: 0.25 }));
+      T(t0 + 0.62, () => { tillSound('till-beep', 'ui-tap', 0.9); display.show('小計', items.slice(0, i + 1).reduce((n, x) => n + PRODUCT[x.id].priceYen, 0)); });
+      T(t0 + 0.78, () => {
+        const f = worldOf(h.mesh).clone();
+        h.mesh.removeFromParent();
+        fly(h.mesh, f, () => counterMatrix(TILL.bag[i], -Q), { dur: 0.22, arc: 0.05 });
+        cashier.pose({ rShY: -0.35, rShX: -0.8, rElX: -0.9 });
+      });
+    });
+    const tn = 0.7 + items.length * 0.85 + 0.05;
+    T(tn, () => { cashier.rest(); cashier.lookAt = lookTarget; say('total', totalFile, S.lines.total(sum)); display.show('合計', sum); });
+    // the left hand pays: forward to the tray, the note left in it
+    T(tn + 1.0, () => { hands.L.off.set(0, 0, 0); payReach = 0; });
+    T(tn + 1.3, () => {
+      hands.showNote(false);
+      const note = hands.note.clone();
+      note.traverse((o) => { o.frustumCulled = false; });
+      trayNote = note;
+      fly(note, worldOf(hands.note).clone(), () => new THREE.Matrix4().makeRotationX(-Q).setPosition(at(TILL.tray)), { dur: 0.4, arc: 0.05 });
+    });
+    T(tn + 1.7, () => { payReach = -1; });
+    T(tn + 1.8, () => { cashier.pose({ lShX: -0.95, lShZ: 0.05, lElX: -0.5, twist: 0.1 }); });
+    T(tn + 2.1, () => { trayNote?.removeFromParent(); trayNote = null; tillSound('register-drawer', 'box'); display.show('お預り', STORE.wallet); cashier.pose({ lShX: -0.3, lElX: -1.2 }); });
+    change = STORE.wallet - sum;
+    T(tn + 2.55, () => {
+      display.show('おつり', change);
+      if (change <= 0) return;
+      const coins = new THREE.Mesh(coinGeometry(change), hands.skinMat);
+      coins.frustumCulled = false; coins.renderOrder = 11;
+      fly(coins, new THREE.Matrix4().setPosition(at(TILL.tray)), () => worldOf(hands.coins).clone(), { dur: 0.45, arc: 0.1, done: () => { fx.remove(coins); hands.setChange(change); tillSound('coins', 'can', 0.7); } });
+      cashier.pose({ lShX: -1.1, lElX: -0.3 });
+    });
+    // your things come back to you, and her thanks with a bow
+    T(tn + 3.05, () => {
+      cashier.rest();
+      items.forEach((h, i) => {
+        h.paid = true;
+        const hand = i;
+        h.hand = hand;
+        fly(h.mesh, counterMatrix(TILL.bag[i], -Q), anchorMatrix(hand, h.mesh), { dur: 0.45, done: () => { h.where = 'hand'; holdIn(h.mesh, hands.anchor(hand)); hands[hand ? 'L' : 'R'].item = h; changed(); } });
+      });
+    });
+    T(tn + 3.3, () => { say('arigatou'); cashier.bow(1, 0.9); });
+    T(tn + 4.2, () => {
+      phase = 'paid';
+      wallet = change;
+      if (api.player) api.player.suspended = false;
+      cashier.lookAt = lookTarget;
+      api.flash?.(S.paid(change), 3200);
+      changed();
+    });
+    checkout = { ev, t: 0, from, sum };
+    changed();
   }
-  const rimBase = new THREE.Matrix4(), _sh = new THREE.Matrix4();
+  let payReach = null, trayNote = null;
+  function abortCheckout() {
+    checkout = null;
+    for (const f of [...flights]) { flights.splice(flights.indexOf(f), 1); if (f.mesh !== trayNote) f.mesh.removeFromParent(); }
+    trayNote?.removeFromParent(); trayNote = null;
+    for (const h of held) { h.mesh.removeFromParent(); h.u.count++; refreshSlot(h.u); }
+    held.length = 0;
+    hands.R.item = hands.L.item = null;
+    hands.L.off.set(0, 0, 0); payReach = null;
+    hands.showNote(true); hands.setChange(0); change = 0;
+    display.mesh.visible = false;
+    cashier.rest(); cashier.lookAt = lookTarget;
+    if (api.player) api.player.suspended = false;
+    phase = 'out';
+    hands.raise(false);
+    changed();
+  }
+
+  /* ------------------------------ eating ------------------------------ */
+  const eating = makeEating(hands, hands.skinMat, mine);
+  function startEating() {
+    phase = 'eat';
+    const items = held.filter((h) => h.paid && h.where === 'hand').sort((a, b) => a.hand - b.hand);
+    items.forEach((h) => { h.onEaten = () => { h.where = 'gone'; hands[h.hand ? 'L' : 'R'].item = null; changed(); }; });
+    eating.start(items.map((h) => ({ id: h.id, mesh: h.mesh, hand: h.hand, get onEaten() { return h.onEaten; } })));
+    changed();
+  }
+  function finishEating() {
+    for (const h of held) h.mesh.removeFromParent();
+    held.length = 0;
+    hands.R.item = hands.L.item = null;
+    hands.setChange(0);
+    change = 0;
+    display.mesh.visible = false;
+    phase = wasInside ? 'shop' : 'out';
+    if (!wasInside) hands.raise(false);
+    api.spot?.done();
+    api.flash?.(S.ate, 4200);
+    changed();
+  }
 
   /* ----------------------------- aiming ----------------------------- */
   const ray = new THREE.Ray(), inv = new THREE.Matrix4(), hit = new THREE.Vector3(), eye = new THREE.Vector3();
   const targets = new Map();
   const target = (key, make) => targets.get(key) ?? targets.set(key, make()).get(key);
+  let aimed = null;
   function aim(camera) {
     inv.copy(inside.matrixWorld).invert();
     camera.getWorldPosition(ray.origin);
@@ -234,90 +469,135 @@ export function makeShop(inside, { doors, lit }) {
     ray.applyMatrix4(inv);
     eye.copy(ray.origin);
     const R = STORE.reach;
+    // the till: pay for what you hold
+    if (ray.intersectBox(TILL.box, hit) && hit.distanceTo(eye) < R + 0.4) {
+      if (phase === 'shop' && held.some((h) => !h.paid && h.where === 'hand')) {
+        return target('pay' + total(), () => ({ label: S.pay(total()), action: startCheckout, kind: 'till' }));
+      }
+    }
+    if (phase !== 'shop') return null;
     let best = null, bestT = R;
     for (const u of pickable) {
       if (u.count <= 0) continue;
-      const c = u.centre;
-      if (Math.abs(c.x - eye.x) > R + 0.5 || Math.abs(c.z - eye.z) > R + 0.5) continue;
+      if (Math.abs(u.centre.x - eye.x) > R + 0.5 || Math.abs(u.centre.z - eye.z) > R + 0.5) continue;
       if (!ray.intersectBox(u.box, hit)) continue;
       const t = hit.distanceTo(eye);
       if (t < bestT) { bestT = t; best = u; }
     }
-    // a shut door is in the way of what is behind it
-    let door = null, shut = null;
-    for (const d of doors.list) {
-      const open = d.want || d.open > 0.5;
-      if (!ray.intersectBox(open ? d.openBox : d.box, hit)) continue;
-      const t = hit.distanceTo(eye);
-      if (t <= bestT + 0.02 && t <= R) { if (open) { shut = d; door = null; } else { door = d; shut = null; } bestT = t; }
-    }
-    if (best?.door && !best.door.want && best.door.open < 0.5 && !shut) door = best.door;
-    if (door) return target('door' + door.i, () => ({ label: STRINGS.store.openDoor, action: () => doors.open(door), kind: 'door' }));
-    // an open leaf in front of everything else: aim at it to shut it
-    if (shut && bestT < R) return target('shut' + shut.i, () => ({ label: STRINGS.store.closeDoor, action: () => doors.close(shut), kind: 'door' }));
-    for (const st of stacks) {
-      if (!ray.intersectBox(st.box, hit) || hit.distanceTo(eye) >= Math.min(bestT, R)) continue;
-      if (!hasBasket) return target(st, () => ({ label: STRINGS.store.takeBasket, action: () => takeBasket(st), kind: 'basket' }));
-      if (!cart.length && st === from) return target('un', () => ({ label: STRINGS.store.returnBasket, action: dropBasket, kind: 'basket' }));
-    }
     if (!best) return null;
-    return target(best, () => ({ label: STRINGS.store.take(PRODUCT[best.id].nameEn), action: () => take(best), unit: best, kind: 'item' }));
+    if (inHands().length >= STORE.carry) return target('full', () => ({ label: S.handsFull, action: () => api.flash?.(S.handsFull), kind: 'full', unit: null }));
+    const p = PRODUCT[best.id];
+    return target(best, () => ({ label: S.take(p.nameEn, p.priceYen), action: () => take(best), unit: best, kind: 'item' }));
   }
-  function takeBasket(st = stacks[0]) { hasBasket = true; from = st; st.top.visible = false; layout(); api.onSound?.('basket'); }
-  function dropBasket() { hasBasket = false; if (from) from.top.visible = true; layout(); api.onSound?.('basket'); }
 
   /* ------------------------------- frame ------------------------------- */
-  const ease = (t) => t * t * (3 - 2 * t);
-  const pa = new THREE.Vector3(), pb = new THREE.Vector3(), qa = new THREE.Quaternion(), qb = new THREE.Quaternion(), sa = new THREE.Vector3();
-  const endM = new THREE.Matrix4(), local = new THREE.Vector3();
+  const local = new THREE.Vector3();
+  const lookTarget = new THREE.Vector3();
   /** Is `camera` inside the store? */
   api.inside = (camera) => {
     local.copy(camera.position).applyMatrix4(inv.copy(inside.matrixWorld).invert());
     return local.x > -hw && local.x < hw && local.z < 0 && local.z > -LAWSON.depth;
   };
-  api.pick = (camera) => {
-    const t = aim(camera);
-    highlight(t?.unit ?? null);
-    return t;
-  };
-  api.clearAim = () => highlight(null);
+  api.pick = (camera) => { aimed = aim(camera); return aimed; };
+  api.clearAim = () => { aimed = null; };
   api.putBack = putBack;
   api.stats = inside.userData.stockStats;
-  /** A unit's place in world terms (where its sound comes from). */
   api.unitAt = (u) => inside.localToWorld(new THREE.Vector3(u.x, u.y, u.z));
-  /** The walk-in cooler's middle, for its compressor's hum. */
   api.coolerAt = inside.localToWorld(new THREE.Vector3(-2.4, 1, -12.3));
   api.doors = doors;
-  api.onSound = null;          // main.js: (kind, unit?) -> the sound engine
   api.total = total;
-  /** Is a fridge door within reach (the card shows its line then)? */
-  api.nearDoor = () => doors.list.some((d) => d.box.distanceToPoint(local) < STORE.reach);
-  api.returnAll = returnAll;
+  api.nearDoor = () => false;
+  /** The automatic door keeps shut on you while you hold anything unpaid (lawson.js asks). */
+  api.holdDoor = (p) => p.z < -0.15 && held.some((h) => !h.paid && h.where !== 'gone');
+
+  let t = 0;
+  const _e = new THREE.Vector3();
   api.update = (dt, camera, bob = 0) => {
+    t += dt;
     camera.updateMatrixWorld();
     view.matrix.copy(camera.matrixWorld);
     view.matrixWorldNeedsUpdate = true;
-    held.position.copy(IN_VIEW);
-    held.position.y += Math.sin(bob) * 0.006;
-    held.position.x += Math.cos(bob * 0.5) * 0.004;
-
-    // walking out with anything unpaid puts it all back
     const inNow = api.inside(camera);
-    if (wasInside && !inNow && local.z > 0 && (cart.length || hasBasket)) {
-      const had = cart.length;
-      returnAll();
-      if (had) api.flash?.(STRINGS.store.notOut);
+    const dDoor = Math.hypot(local.x - LAWSON.doorX, local.z);
+    if (dDoor < 30) prime();
+
+    /* coming in, going out */
+    if (inNow && !wasInside) {
+      if (phase === 'out') { phase = 'shop'; wallet = STORE.wallet; change = 0; hands.setChange(0); hands.showNote(true); }
+      if (phase === 'eat') { eating.stop(); finishEating(); phase = 'shop'; wallet = STORE.wallet; hands.showNote(true); }
+      hands.raise(true);
+      if (phase === 'shop') { say('irasshaimase'); cashier.bow(0.7, 0.6); }
+      api.onEnter?.();
     }
-    if (inNow && !wasInside) api.onEnter?.();
-    if (!inNow && wasInside) api.onExit?.();
+    if (!inNow && wasInside) {
+      if (returnUnpaid()) api.flash?.(S.notOut);
+      if (phase === 'paid') say('arigatou-mashita', 'v-arigatou-mashita', S.lines.farewell);
+      else if (phase === 'shop') { phase = 'out'; hands.raise(false); }
+      api.onExit?.();
+    }
     wasInside = inNow;
+    // left mid-checkout (a famous-view key): it is all called off
+    if (phase === 'till' && !inNow) abortCheckout();
+
+    // outside with what you paid for, clear of the door: eat
+    if (phase === 'paid' && !inNow && local.z > 1.4) startEating();
+    if (phase === 'eat') { eating.update(dt); if (eating.done) finishEating(); }
+
+    // the door won't let unpaid things out: say why, once per try
+    const atDoor = inNow && dDoor < 1.9 && api.holdDoor(local);
+    if (atDoor && !doorHint) api.flash?.(S.notOut, 3200);
+    doorHint = atDoor;
+
+    /* the checkout's timeline, and the view easing onto the till */
+    if (checkout) {
+      checkout.t += dt;
+      for (const e of checkout.ev) if (!e.done && checkout.t >= e.t) { e.done = true; e.fn(); }
+      const p = api.player;
+      if (p && checkout.from && checkout.t < 0.8) {
+        const k = ease(clamp01(checkout.t / 0.7));
+        _e.copy(TILL.look).applyMatrix4(inside.matrixWorld).sub(camera.position);
+        const yaw = Math.atan2(-_e.x, -_e.z), pitch = Math.atan2(_e.y, Math.hypot(_e.x, _e.z));
+        let dy = yaw - checkout.from.yaw;
+        dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+        p.yaw = checkout.from.yaw + dy * k;
+        p.pitch = checkout.from.pitch + (pitch - checkout.from.pitch) * k;
+      }
+      if (checkout.ev.every((e) => e.done)) checkout = null;
+    }
+    // the left hand's reach to the tray and back
+    if (payReach !== null) {
+      if (payReach >= 0) { payReach = Math.min(1, payReach + dt / 0.35); hands.L.off.set(0.16, 0.07, -0.16).multiplyScalar(easeOut(payReach)); }
+      else { hands.L.off.multiplyScalar(Math.max(0, 1 - dt * 6)); if (hands.L.off.length() < 0.002) { hands.L.off.set(0, 0, 0); payReach = null; } }
+    }
+    if (pendingTakes.length) {
+      for (let k = pendingTakes.length - 1; k >= 0; k--) {
+        const pt = pendingTakes[k];
+        pt.t -= dt;
+        if (pt.t <= 0) { pendingTakes.splice(k, 1); take(pt.u, true); }
+      }
+    }
+
+    /* the cast: hands always (they are hidden when down); the cashier while you are near */
+    hands.update(dt, bob, camera);
+    view.updateMatrixWorld(true);
+    // she exists only near (from the famous views she is unseen behind the glass: nothing drawn)
+    cashier.root.visible = dDoor < 24 && !api.isFamousView();
+    if (dDoor < 24) {
+      lookTarget.copy(camera.position);
+      if (phase !== 'till' && !cashier.lookAt) cashier.lookAt = lookTarget;
+      cashier.update(dt);
+    }
     doors.update(dt, local);
-    // a refused take: the rim turns red and shakes
-    if (refuse > 0) {
-      refuse = Math.max(0, refuse - dt);
-      rimMat.color.set(refuse > 0 ? 0xff6a5a : 0x9fd0ff);
-      rim.matrix.copy(_sh.makeTranslation(Math.sin(refuse * 60) * 0.008 * (refuse / 0.5), 0, 0)).multiply(rimBase);
-      rim.matrixWorldNeedsUpdate = true;
+
+    // the glows, only while you are inside; dimmed when your hands are full
+    const full = inHands().length >= STORE.carry || phase !== 'shop';
+    glowMat.opacity = inNow ? (full ? 0.15 : 0.7 + 0.25 * Math.sin(t * 2.6)) : 0;
+    haloMat.opacity = inNow ? (full ? 0.08 : 0.3 + 0.1 * Math.sin(t * 2.6)) : 0;
+    gemMat.opacity = inNow && !full ? 0.9 : 0;
+    for (const sp of spots) {
+      sp.group.visible = inNow && phase === 'shop';
+      const gem = sp.group.userData.gem;
+      if (gem) { gem.position.y = sp.group.userData.y + Math.sin(t * 1.8 + sp.box.min.x) * 0.02; gem.rotation.y = t * 1.2; }
     }
 
     for (let k = slides.length - 1; k >= 0; k--) {
@@ -327,31 +607,37 @@ export function makeShop(inside, { doors, lit }) {
       placeUnit(s.u, s.u.depth * (1 - e), s.u.count <= 0);
       if (s.t >= 1) { slides.splice(k, 1); refreshSlot(s.u); }
     }
-
     for (let k = flights.length - 1; k >= 0; k--) {
       const f = flights[k];
-      f.t += dt / STORE.flight;
+      f.t += dt / f.dur;
       const e = ease(Math.min(1, f.t));
-      if (f.into) slotWorld(cart.filter((c) => !c.flying).length, f.item.id, endM);
-      else unitWorld(f.item.u, endM);
-      f.from.decompose(pa, qa, sa);
-      endM.decompose(pb, qb, sa);
-      pa.lerp(pb, e);
-      pa.y += Math.sin(Math.PI * e) * 0.12;
-      qa.slerp(qb, e);
-      f.mesh.matrix.compose(pa, qa, sa.set(1, 1, 1));
+      const end = f.to();
+      f.from.decompose(_pa, _qa, _sa);
+      end.decompose(_pb, _qb, _sb);
+      _pa.lerp(_pb, e);
+      _pa.y += Math.sin(Math.PI * e) * f.arc;
+      _qa.slerp(_qb, e);
+      f.mesh.matrix.compose(_pa, _qa, _sa.lerp(_sb, e));
       f.mesh.matrixWorldNeedsUpdate = true;
       if (f.t >= 1) {
-        fx.remove(f.mesh);
+        // it stays where it landed (the counter, the tray) unless `done` takes it on
         flights.splice(k, 1);
-        if (f.into) { f.item.flying = false; layout(); }
-        else { f.item.u.count++; refreshSlot(f.item.u); api.onChange?.(); api.onSound?.('put', f.item.u); }
+        f.mesh.matrix.copy(end);
+        f.done?.();
       }
     }
   };
 
+  /** The famous views are the opening shot: nothing of ours shows there (lawson.js asks). */
+  api.quietView = () => api.isFamousView();
+
   if (import.meta.env?.DEV) {
-    api.debug = { pickable, doors, take, takeBasket, get slides() { return slides; }, get flights() { return flights; } };
+    api.debug = {
+      pickable, spots, take, putBack, startCheckout, productGeometry, TILL,
+      get flights() { return flights; }, get checkout() { return checkout; }, eating,
+      /** Everything as it is when you walk in (dev shots): hands up, the greeting done. */
+      reset() { returnUnpaid(); phase = wasInside ? 'shop' : 'out'; hands.snap(wasInside); },
+    };
   }
   return api;
 }

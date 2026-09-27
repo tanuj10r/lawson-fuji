@@ -203,6 +203,11 @@ export function productGeometry(id) {
       P.push(part(new THREE.BoxGeometry(0.07, 0.16, 0.022), trs(0, 0.08, 0), body, 'front', cell)); break;
     case 'mochi':
       P.push(part(new THREE.BoxGeometry(0.11, 0.045, 0.07), trs(0, 0.0225, 0), body, 'top', cell)); break;
+    case 'wafer':
+      // the wafer-sandwich ice in its wrapper: a flat slab, long side across, crimped at both ends
+      P.push(part(new THREE.BoxGeometry(0.124, 0.068, 0.028), trs(0, 0.036, 0), body, 'front', cell));
+      for (const x of [-0.066, 0.066]) P.push(part(new THREE.BoxGeometry(0.01, 0.072, 0.01), trs(x, 0.036, 0), band));
+      break;
     case 'multipack':
       P.push(part(new THREE.BoxGeometry(0.2, 0.06, 0.14), trs(0, 0.03, 0), body, 'front', cell)); break;
     case 'icebag':
@@ -303,8 +308,10 @@ export function makeStock() {
     units,
     /** The shelf run being filled (planogram.js sets it): recorded on each unit. */
     slot: null,
+    /** The featured spot being filled (Tan's konbini), or null: recorded on each unit. */
+    feature: null,
     add(id, x, y, z, ry = 0, count = 1, rx = 0) {
-      const u = { id, x, y, z, ry, rx, count, slot: this.slot, backs: [] };
+      const u = { id, x, y, z, ry, rx, count, slot: this.slot, backs: [], feature: this.feature ?? null };
       // a unit with no count of its own is drawn behind the last one that has
       // one (the rows receding, the layer piled on top): it belongs to it
       if (count === 0 && front?.id === id) { front.backs.push(u); u.front = front; } else front = u;

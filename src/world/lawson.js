@@ -3,7 +3,7 @@ import { cel, flat } from '../core/toon.js';
 import { hullOutlineTree } from '../core/outline.js';
 import { tactileTex } from '../core/textures.js';
 import { bake, trs, shadowify } from '../core/util.js';
-import { LAWSON, STREET, TOWN, ROADS } from '../config.js';
+import { LAWSON, STREET, TOWN, ROADS, mainRoadGaps } from '../config.js';
 import {
   signBand, sideBand, logoPlate, nobori, tileTex,
   glassShine, spillTex, redNotice, foodPoster, campaignBanner,
@@ -337,12 +337,27 @@ export function buildLawson(parent) {
     }
     // the zebra walk from the door out to the road
     for (let z = S.apron + 0.2; z < S.forecourtZ - 0.3; z += 0.95) line(zebra[0], zebra[1], z, z + 0.55);
-    // road: edge lines and a dashed centre line
-    line(S.roadX0, S.roadX1, S.forecourtZ + 0.3, S.forecourtZ + 0.3 + lw);
-    // the south edge line breaks at each mouth
+    // road: edge lines and a dashed centre line.  The edge lines break at
+    // every side road's mouth, both sides (Tan: they ran across the lanes)
+    const town = mainRoadGaps().sort((a, b) => a[0] - b[0]);
+    let from = S.roadX0;
+    for (const [g0, g1] of town) {
+      if (g0 - 1 > from) line(from, g0 - 1, S.forecourtZ + 0.3, S.forecourtZ + 0.3 + lw);
+      from = Math.max(from, g1 + 1);
+    }
+    if (S.roadX1 > from) line(from, S.roadX1, S.forecourtZ + 0.3, S.forecourtZ + 0.3 + lw);
     for (const [x0, x1] of runs) line(x0 + (x0 > S.roadX0 ? 1 : 0), x1 - (x1 < S.roadX1 ? 1 : 0), S.roadZ - 0.5, S.roadZ - 0.5 + lw);
+    // the centre line stops at the master junction: from the eastbound stop
+    // line before its zebra to the westbound one past the junction (signals
+    // run it; a centre line through a junction is what felt wrong)
+    const W = TOWN.crosswalk.width, lane = ROADS.lane.asphalt / 2;
+    const junctionX = -TOWN.grid.ns.find((r) => r.z0 !== undefined && r.z0 < TOWN.grid.main).x;
+    const noCentre = [TOWN.crosswalk.x - W / 2 - 2.6, junctionX + lane + 2.6];
     const mid = (S.forecourtZ + S.roadZ) / 2;
-    for (let x = S.roadX0; x < S.roadX1; x += 10) line(x, x + 5, mid - lw / 2, mid + lw / 2);
+    for (let x = S.roadX0; x < S.roadX1; x += 10) {
+      const a = Math.max(x, x < noCentre[0] ? x : noCentre[1]), b = Math.min(x + 5, x + 5 > noCentre[0] && x < noCentre[1] ? noCentre[0] : x + 5);
+      if (b - a > 0.8 && !(a >= noCentre[0] && b <= noCentre[1])) line(a, b, mid - lw / 2, mid + lw / 2);
+    }
     // worn: chips and tyre-thinned bands (world-mapped)
     const paint = new THREE.Mesh(bake(parts), cel({ color: PAINT, bands: 3, map: chipTex(), cache: false }));
     worldUV(paint, CHIP_TILE);

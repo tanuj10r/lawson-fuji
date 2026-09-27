@@ -457,6 +457,7 @@ export const SHOT_SPOTS = [
   { name: 'junction-east', scene: 'town', pos: [-10, 0, 15.5], yaw: 1.5708, pitch: -0.08, looks: ['day'], frame: 'world' },   // driving west toward it
   { name: 'junction-north', scene: 'town', pos: [-30.5, 0, -8], yaw: 3.1416, pitch: -0.1, looks: ['day'], frame: 'world' },  // coming down lane x 30
   { name: 'junction-south', scene: 'town', pos: [-30, 0, 34], yaw: 0, pitch: -0.1, looks: ['day'], frame: 'world' },          // up the bridge road
+  { name: 'junction-tan', scene: 'town', pos: [-24.5, 0, 16.2], yaw: 0.42, pitch: -0.28, looks: ['golden'], frame: 'world' },   // Tan's view from the junction (2026-09-28)
   { name: 'junction-walk', scene: 'town', pos: [-20, 0, 21.5], yaw: 1.3, pitch: -0.15, looks: ['day'], frame: 'world' },     // on the north walk
   { name: 'land-track', scene: 'town', pos: [30, 0, 5], yaw: 0, pitch: 0.02, looks: ['day', 'golden'] },   // the bridge road from the master junction
   { name: 'land-gate', scene: 'town', pos: [30, 0, -35.5], yaw: 0, pitch: 0.04, looks: ['day'] },

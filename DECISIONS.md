@@ -1639,3 +1639,9 @@ on; account for cars and walkers. What was wrong, and what it is now:
   within 11 m of its zebras.
 - Walks all stuck 0; audio all pass (four walk lights; at the spawn one at
   a time).
+- **The main road's own paint** (lawson.js, 2026-09-28, Tan: the centre
+  line bothered them): its dashed centre line stops between the master
+  junction's stop lines (eastbound before the zebra, westbound past the
+  junction), and the store-side edge line now breaks at every lane's
+  mouth, as the far-side one does. At the minor T-junctions the centre
+  line carries on (the main road has priority there).

@@ -140,7 +140,7 @@ export function createSound({ volume = 0.5 } = {}) {
       if (Math.hypot(at.x - listener.x, at.z - listener.z) >= range.far) return;   // beyond its range it does not play at all
       ({ k, f } = voiceLevel(v));
     }
-    log.push({ name: file ?? recipe, t: +now().toFixed(3) });
+    if (!o._waited) log.push({ name: file ?? recipe, t: +now().toFixed(3) });   // (a waited replay was logged when asked)
     const g = ac.createGain();
     g.gain.value = k;
     let dest = g;
@@ -159,6 +159,11 @@ export function createSound({ volume = 0.5 } = {}) {
       s.buffer = b; s.playbackRate.value = rate;
       const [a] = loopSpan(file, b);
       s.connect(dest); s.start(t, a);
+    } else if (file && manifest[file] && !recipe && !o._waited) {
+      // not decoded yet: fetch it and play it then (a voice line or a track
+      // must not become a tap the first time it is asked for)
+      g.disconnect();
+      buffer(file).then((ok) => { if (ok) play(file, { at, range, recipe, gain, rate, bus, indoor, o: { ...o, _waited: true } }); });
     } else {
       if (file && manifest[file]) buffer(file);            // next time
       (RECIPES[recipe ?? file] ?? RECIPES['ui-tap'])(dest, t, o);

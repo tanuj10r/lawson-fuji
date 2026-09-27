@@ -8,7 +8,7 @@ import {
   makeBench, makeTapPost, makePlanter, makeAircon, makeMailboxBank, makeBicycle, makeBikeRack, makeWires,
 } from '../props.js';
 import { makeWheelStops } from '../streetprops.js';
-import { makeVehicle, tyreMarks } from '../vehicles.js';
+import { makeVehicle, vehicleSize, tyreMarks } from '../vehicles.js';
 import { buildShrubs } from '../trees.js';
 import { plant } from './green.js';
 import { ROADS } from '../../config.js';
@@ -120,12 +120,17 @@ function coinParking(ctx, net, kit, s, F) {
     reg(ctx, 'prop', stop);
     if (r.chance(0.6)) {
       const c = F.at(u, vBack - 2.5);
-      const car = makeVehicle({ kind: r.pick(['kei', 'kei', 'hatch', 'keivan', 'wagon']), color: r.pick([0xf2eee6, 0xd9665a, 0x9fc0dc, 0xa8d4b4, 0x7f93a4, 0xe9dfc6, 0x3c3c48]) });
+      const kind = r.pick(['kei', 'kei', 'hatch', 'keivan', 'wagon']);
+      const car = makeVehicle({ kind, color: r.pick([0xf2eee6, 0xd9665a, 0x9fc0dc, 0xa8d4b4, 0x7f93a4, 0xe9dfc6, 0x3c3c48]) });
       car.position.set(c.x, 0, c.z);
       car.rotation.y = F.ry + Math.PI / 2;   // nosed in, toward the back (cars are authored nose +x)
       car.userData.detail = true;
       ctx.add(car);
-      ctx.collide(c.x - 1.3, c.z - 1.3, c.x + 1.3, c.z + 1.3, 1.6);
+      // the car's own size, turned (as parkVehicle does): long along the bay
+      const { L, W, H } = vehicleSize(kind);
+      const cs = Math.abs(Math.cos(car.rotation.y)), sn = Math.abs(Math.sin(car.rotation.y));
+      const hw = (cs * L + sn * W) / 2 - 0.06, hd = (sn * L + cs * W) / 2 - 0.06;
+      ctx.collide(c.x - hw, c.z - hd, c.x + hw, c.z + hd, H - 0.15);
       reg(ctx, 'prop', c);
     }
   }
@@ -304,7 +309,9 @@ function park(ctx, net, kit, s, F) {
   kit.standPole(lp.x, lp.z);
   const bp = F.at(-F.w / 2 + 1.6, 0.8);
   signPost(ctx, { x: bp.x, z: bp.z, ry: F.ry, h: 1.8, name: 'sign-park', plates: [{ kind: 'parkName', o: { t: PARK_NAME }, w: 1.1, y: 1.35 }] });
-  ctx.add(makePlanter({ x: F.at(1.8, 0.8).x, y: 0, z: F.at(1.8, 0.8).z, r: 0.3, flower: true, seed: 7811, n: 6 }));
+  const pl = F.at(1.8, 0.8);
+  ctx.add(makePlanter({ x: pl.x, y: 0, z: pl.z, r: 0.3, flower: true, seed: 7811, n: 6 }));
+  ctx.collide(pl.x - 0.35, pl.z - 0.35, pl.x + 0.35, pl.z + 0.35, 0.7);
 }
 
 function swing(p, ry) {

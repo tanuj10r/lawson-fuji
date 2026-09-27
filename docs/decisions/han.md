@@ -40,7 +40,8 @@ land/index.js `buildLand`, one line (+ import) in land/parking.js, the
   junction is 10 m from the glow.
 
 ## The trigger (Tan's change)
-- The song is a sound zone at the glow (near 3 m, far 38 m, level 0.5):
+- The song is a sound zone at the glow (near 3 m, far 38 m, level 0.5;
+  far 20 since the final QA, to keep it out of the famous view):
   it rises out of nothing as you walk up. Stepping into the glow starts the
   show: the zone is muted and the track restarts as a one-shot from the
   top so the drive lines up with it; at its end the zone comes back.

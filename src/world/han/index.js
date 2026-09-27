@@ -212,7 +212,9 @@ export function buildHan(ctx) {
   /* the spot and the song */
   const spotW = ctx.toWorld({ x: HAN_SPOT.x, z: HAN_SPOT.z });
   const zoneLevel = 0.5;
-  const zone = soundBus.zone('han-drift', { x: spotW.x, z: spotW.z, y: 1.2, near: 3, far: 38, level: zoneLevel });
+  // far 20: it rises as you cross toward him, and stays out of the famous view (22.8 m off,
+  // the opening shot's own soundscape) and the store's door (29.7 m) (final QA)
+  const zone = soundBus.zone('han-drift', { x: spotW.x, z: spotW.z, y: 1.2, near: 3, far: 20, level: zoneLevel });
   let trigger = () => {};
   const spot = ctx.experiences?.add({
     id: 'han', name: "Han's RX-7", jp: 'ハン', x: HAN_SPOT.x, z: HAN_SPOT.z, r: HAN_SPOT.r, h: 1.9,

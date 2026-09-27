@@ -247,6 +247,7 @@ export function createSound({ volume = 0.5 } = {}) {
    * place, e.g. the discount store's theme or the shrine's wind chimes.
    * Beyond `far` it does not play at all; between near and far it fades. */
   const zones = [];
+  if (import.meta.env?.DEV) window.__soundZones = zones;   // dev: the final QA's sound audit
   function zoneTick(z) {
     const d = Math.hypot(z.x - listener.x, z.z - listener.z);
     const want = !muted && d < z.far ? z.level * falloff(d, z) * (z.indoor && !state.inside ? 0.35 : 1) : 0;

@@ -92,6 +92,12 @@ export function setupPrayer(ctx, o) {
 
     // the body: face the hall, bow, hands together
     const p = io?.player;
+    // taken away mid-prayer (a famous-view key): let go of the view at once
+    if (p && Math.hypot(p.pos.x - boxW.x, p.pos.z - boxW.z) > 6) {
+      p.suspended = false;
+      run = null;
+      return;
+    }
     if (p && run.saved) {
       const turn = ease(Math.min(1, t / 0.9));
       let d = worldYaw - run.saved.yaw;

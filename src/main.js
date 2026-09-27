@@ -389,10 +389,13 @@ window.addEventListener('keydown', (e) => {
   // Tab never moves the page's focus off the game
   if (e.code === 'Tab') { e.preventDefault(); return; }
   if (e.repeat) return;
+  // seated (ひと休み): any key stands you up and does nothing else (core/player.js)
+  if (player.seat) return;
   // X: put the last thing you took back on its shelf (the konbini)
   if (e.code === 'KeyX' && player.locked && shop?.canPutBack) shop.putBack();
   // M: the full town map (M2f); it holds your walking and looking while open (not while you pay)
-  if (e.code === 'KeyM' && minimap && player.locked && !shop?.busy) {
+  // (not opened while something else holds the player, e.g. the shrine's prayer)
+  if (e.code === 'KeyM' && minimap && player.locked && !shop?.busy && (minimap.fullOpen || !player.suspended)) {
     const open = !minimap.fullOpen;
     minimap.setFull(open, player.pos, player.yaw);
     player.suspended = open;

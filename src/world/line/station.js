@@ -580,11 +580,12 @@ export function buildStation(ctx, { kit, service, sets, onEvent }) {
     smallBuilding(ctx, g, { x0: P.x0 + 0.6, z0: P.z0 + 11.5, x1: P.x0 + 4.4, z1: P.z0 + 15.5, y, h: 3.0, face: 'x+',
       sign: labelTex('交番', '#f4f2ee', '#1f3f7a', 'KOBAN'), wall: 0xd8dce4 });
     {
-      const kx = P.x0 + 5.2, kz = P.z0 + 12.2;
-      const bike = makeBicycle({ x: kx, y, z: kz, ry: 0.1, lean: 0.06, color: 0xf4f4f6 });
+      // parked along the box's front (a bicycle is long along its own x), clear of the wall at P.x0 + 4.4
+      const bx = P.x0 + 5.0, kx = P.x0 + 5.2, kz = P.z0 + 12.2;
+      const bike = makeBicycle({ x: bx, y, z: kz, ry: Math.PI / 2, lean: 0.06, color: 0xf4f4f6 });
       g.add(bike);
-      ctx.collide(kx - 0.35, kz - 0.9, kx + 0.35, kz + 0.9, y + 1.0);
-      reg(ctx, 'prop', kx, kz);
+      ctx.collide(bx - 0.35, kz - 0.9, bx + 0.35, kz + 0.9, y + 1.0);
+      reg(ctx, 'prop', bx, kz);
       const nbd = makeNoticeBoard({ x: kx, y, z: P.z0 + 15.1, ry: Math.PI / 2 });
       g.add(nbd);
       reg(ctx, 'prop', kx, P.z0 + 15.1);
@@ -630,7 +631,7 @@ export function buildStation(ctx, { kit, service, sets, onEvent }) {
   // the experience spots: the station at the gates, the train by the door nearest them
   let greeted = false;
   const stationSpot = ctx.experiences?.add({
-    id: 'station', name: RIDE.say.station, jp: '駅', x: cxE, z: gz - 1.25, y: PH, r: 1.25, h: 2.0,
+    id: 'station', name: RIDE.say.station, jp: '駅', x: cxE, z: gz - 1.9, y: PH, r: 1.0, h: 1.1,   // clear of the gate cabinets (its glow ran under them), the marker under the gate sign (bottom PH + 2.54), not into it
     action: () => {
       master.bow(true);
       say(greeted ? RIDE.say.welcomeBack : RIDE.say.welcome, 4200);

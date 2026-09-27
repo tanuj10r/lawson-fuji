@@ -40,7 +40,7 @@ export const CATALOG = [
     ['onigiri_sekihan', '赤飯おにぎり', 'Red-bean rice ball', 160, 0xd8a0a0, 0x8a2a3a, { filling: 0x8a3040 }],
   ]),
   ...F('chilled', 'sando', 'sandwich', 'plastic', [
-    ['sando_egg', 'たまごサンド', 'Egg sandwich', 280, 0xf7ecd2, 0xf2c23c],
+    ['sando_egg', 'たまごサンド', 'Egg sando', 298, 0xf7ecd2, 0xf2c23c],
     ['ham_sando', 'ハムレタスサンド', 'Ham & lettuce sando', 290, 0xf7ecd2, 0x6fb86a, { filling: 'ham' }],
     ['sando_katsu', 'ロースカツサンド', 'Pork cutlet sando', 380, 0xf7ecd2, 0x8a4a2a],
     ['sando_tuna', 'ツナサンド', 'Tuna sando', 270, 0xf7ecd2, 0x3a78c8],
@@ -48,7 +48,7 @@ export const CATALOG = [
     ['sando_blt', 'BLTサンド', 'BLT sando', 350, 0xf7ecd2, 0xd8342f],
   ]),
   ...F('chilled', 'sando', 'fruitsando', 'plastic', [
-    ['fruit_sando', 'フルーツサンド', 'Fruit sando', 380, 0xfbf6ec, 0xe8456a],
+    ['fruit_sando', 'フルーツサンド', 'Fruit sando', 398, 0xfbf6ec, 0xe8456a],
     ['fruit_sando_ichigo', 'いちごサンド', 'Strawberry sando', 420, 0xfbf6ec, 0xd8284a],
   ]),
   ...F('chilled', 'bento', 'bento', 'plastic', [
@@ -224,7 +224,8 @@ export const CATALOG = [
     ['beer_6pack', '黄金麦 生 6缶', 'Golden malt 6-pack', 1300, 0xd8a830, 0xffffff],
   ], {}, { alcohol: true }),
   ...F('drinks', 'chuhi', 'tallcan', 'can', [
-    ['chuhi_lemon', 'キリッと強レモン 9%', 'Sharp lemon 9%', 170, 0xd8dce4, 0xf2d02a, { strong: true }],
+    // Strong Nine (Tan's experience): a homage to the famous 9% lemon chu-hi, never its design
+    ['strong_nine', 'ストロングナイン レモン', 'Strong Nine lemon', 198, 0xd8dce4, 0xf2d02a, { strong: true, nine: true, abv: '9%' }],
     ['chuhi_grapefruit', 'キリッと強グレフル 9%', 'Sharp grapefruit 9%', 170, 0xf2c8c0, 0xe8456a, { strong: true, fruit: '#f28a7a', abv: '9%' }],
   ], {}, { alcohol: true }),
   ...F('drinks', 'chuhi', 'can', 'can', [
@@ -606,10 +607,13 @@ export const CATALOG = [
   ], {}, { cold: true }),
   ...F('frozen', 'ice', 'icebar', 'plastic', [
     ['ice_soda_bar', 'ソーダバー', 'Soda ice bar', 90, 0x6ac8ec, 0x1e5ab8],
-    ['ice_choco_bar', 'チョコモナカバー', 'Choco monaka bar', 160, 0x5a3020, 0xd8a830],
-    ['ice_milk_bar', 'ミルクバー', 'Milk ice bar', 90, 0xf6f6ee, 0x3a8ad0],
+        ['ice_milk_bar', 'ミルクバー', 'Milk ice bar', 90, 0xf6f6ee, 0x3a8ad0],
     ['ice_azuki_bar', 'あずきバー', 'Red-bean ice bar', 90, 0x8a2a3a, 0xf2ecd8],
     ['ice_grape_bar', 'ぶどうバー', 'Grape ice bar', 90, 0x8a4aa8, 0xf2f2f2],
+  ], {}, { cold: true }),
+  // Choco Wafer Jumbo (Tan's experience): the wafer-sandwich ice in its wrapper, a homage
+  ...F('frozen', 'ice', 'wafer', 'plastic', [
+    ['choco_wafer_jumbo', 'チョコウエハース ジャンボ', 'Choco Wafer Jumbo', 190, 0x4a2a1c, 0xe89a1a],
   ], {}, { cold: true }),
   ...F('frozen', 'ice', 'mochi', 'plastic', [
     ['ice_mochi', 'もちもちアイス', 'Mochi ice pair', 160, 0xf2f2ea, 0xd8342f],
@@ -653,6 +657,17 @@ export const CATALOG = [
     ['smoothie_banana', 'バナナスムージー', 'Banana smoothie cup', 350, 0xf2e070, 0xe8a018],
     ['ice_cup', 'アイスコーヒー用カップ', 'Iced-coffee ice cup', 110, 0xe8f4fa, 0x6a3a22],
   ], {}, { cold: true }),
+];
+
+/* The four things to try (Tan's konbini): each a glowing spot in the store,
+ * the rest of the range scenery.  `ids` what that spot offers (the sando
+ * case offers two, side by side); world/store/planogram.js gives them a
+ * shelf of their own at eye level, and store/shop.js makes them takeable. */
+export const FEATURED = [
+  { key: 'sando', ids: ['sando_egg', 'fruit_sando'], name: 'Sandos', jp: 'サンド' },
+  { key: 'onigiri', ids: ['onigiri_tuna'], name: 'Onigiri', jp: 'おにぎり' },
+  { key: 'chuhi', ids: ['strong_nine'], name: 'Strong Nine', jp: 'ストロングナイン' },
+  { key: 'ice', ids: ['choco_wafer_jumbo'], name: 'Choco Wafer Jumbo', jp: 'チョコウエハース' },
 ];
 
 export const PRODUCT = Object.fromEntries(CATALOG.map((p) => [p.id, p]));

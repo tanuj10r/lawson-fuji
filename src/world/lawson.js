@@ -12,6 +12,8 @@ import { dressLawson, wearLawson } from './lawson-dress.js';
 import { buildInterior, buildDoor } from './store/interior.js';
 import { buildFridgeDoors } from './store/doors.js';
 import { makeShop } from './store/shop.js';
+import { makeExperiences } from './experiences.js';
+import { STRINGS } from '../data/strings.js';
 import { asphaltTex, ASPHALT_TILE } from './kit/tex.js';
 import { chipTex, CHIP_TILE } from './kit/paint.js';
 
@@ -182,8 +184,26 @@ export function buildLawson(parent) {
     // the cooler's and the freezers' glass doors, hung on their hinges (M3c)
     const coolGlass = flat({ color: 0xd8ecf8, transparent: true, opacity: 0.18, depthWrite: false, cache: false });
     const fridge = buildFridgeDoors(inside, inside.userData.doors, { glassMat: coolGlass, lit });
-    // shopping: aiming, taking, the basket (M3c)
-    root.userData.shop = makeShop(inside, { doors: fridge, lit });
+    // the konbini (Tan's experience): the hands, the four glowing things, the cashier, the till
+    const shop = makeShop(inside, { doors: fridge, lit });
+    root.userData.shop = shop;
+    // the automatic door stays shut on anyone carrying something unpaid
+    root.userData.door.hold = (p) => shop.holdDoor(p);
+    /* The konbini's experience spot, at the entrance: the town's glow ring and
+     * marker (experiences.js) in the store's frame, which is the world's.
+     * Kept out of the famous views, which are the opening shot. */
+    const spotObjs = [], spotUpd = [];
+    root.userData.interactables = [];
+    const exp = makeExperiences({
+      add: (o) => { root.add(o); spotObjs.push(o); },
+      interact: (item) => root.userData.interactables.push(item),
+      update: (fn) => spotUpd.push(fn),
+    });
+    shop.spot = exp.add({ id: 'konbini', name: 'The konbini', jp: 'ニッポン', x: L.doorX, z: 2.3, r: 1.2, h: 2.2, action: () => shop.flash?.(STRINGS.store.spot, 4200) });
+    root.userData.spot = { list: exp.list, update(dt, p) {
+      for (const fn of spotUpd) fn(dt, p);
+      if (shop.quietView()) for (const o of spotObjs) if (o.material?.visible !== false) o.visible = false;
+    } };
 
     // posters and the banner hung just inside the glass
     const inner = -0.05;
@@ -414,9 +434,12 @@ export function buildLawson(parent) {
     /** Raised walkable surfaces: the far sidewalk stands on its kerb. */
     platforms,
     /** The door, each frame: `p` the player's position. */
-    update(dt, p) { root.userData.door.update(dt, p); },
-    /** Shopping inside (M3c): aiming, taking, the fridge doors, the basket. */
+    update(dt, p) { root.userData.door.update(dt, p); root.userData.spot.update(dt, p); },
+    /** The konbini inside (Tan's experience): the hands, the featured things, the cashier. */
     get shop() { return root.userData.shop; },
+    /** What the player can aim at outside (the konbini's spot), and the spot for a map. */
+    get interactables() { return root.userData.interactables; },
+    get experiences() { return root.userData.spot; },
     /** The automatic door (its onMove drives its sound, M4). */
     get door() { return root.userData.door; },
     setLook(look) {

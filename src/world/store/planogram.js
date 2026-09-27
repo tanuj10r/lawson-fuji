@@ -1,6 +1,6 @@
 import { makeStock, footprint } from './products.js';
 import { tagAtlas } from './labels.js';
-import { GROUP, PRODUCT } from '../../data/catalog.js';
+import { GROUP, PRODUCT, FEATURED } from '../../data/catalog.js';
 
 /* ------------------------------------------------------------------ *
  * The planogram (M3b; M3b.2 from how real konbini stock; M3d: a real
@@ -50,6 +50,17 @@ export const AISLES = [
 ];
 
 const TAG_W = 0.1, TAG_H = 0.0375, Q = Math.PI / 2, SLOPE = 0.14;
+
+/* Where the four featured things stand (Tan's konbini): a shelf of their own
+ * at a height you reach without stooping, first along their section, so the
+ * glow (store/shop.js) marks one clear block.  They stand nowhere else. */
+const FEATURE_AT = {
+  sando: { zone: 'chilled', section: 'Sandwiches', level: 2, facings: 4 },
+  onigiri: { zone: 'chilled', section: 'Onigiri', level: 2, facings: 5 },
+  chuhi: { zone: 'drinks', bay: 7, level: 3, facings: 5 },
+  ice: { zone: 'icecase', basket: 11 },
+};
+const FEATURED_IDS = new Set(FEATURED.flatMap((f) => f.ids));
 
 export function stockStore(p, slots, group, lit) {
   const stock = makeStock();
@@ -123,14 +134,37 @@ export function stockStore(p, slots, group, lit) {
       }
       t += 0.012;
     }
+    return t;
   }
+  /** A filler that hands out just the featured `ids`, `facings` wide each, once. */
+  const featureFill = (ids, facings) => {
+    let i = 0;
+    return {
+      next(width, maxH, rowsFor) {
+        while (i < ids.length) {
+          const id = ids[i++], fp = footprint(id), fw = fp.w + 0.01;
+          if (fp.h > maxH) continue;
+          const rows = Math.max(1, rowsFor(fp));
+          const n = Math.min(facings, Math.floor(width / fw), Math.floor(CAP / rows));
+          if (n < 1) continue;
+          used.set(id, (used.get(id) ?? 0) + n * rows);
+          return { id, n, rows, fp, fw };
+        }
+        return null;
+      },
+    };
+  };
+  /** Fill the featured block first when this run is its place; returns where the rest starts. */
+  const featureKeyOf = (s, sec) => Object.entries(FEATURE_AT).find(([, f]) => f.zone === s.zone && f.level === s.level
+    && (f.section === undefined || f.section === sec?.en) && (f.bay === undefined || f.bay === s.bay))?.[0];
+  const featureIds = (key) => FEATURED.find((f) => f.key === key).ids;
   // tall things first on a gondola side (they need the top shelf or the
   // bottom), the rest in catalogue order so families stand together
-  const pool = (...groups) => groups.flatMap((g) => GROUP[g] ?? []);
+  const pool = (...groups) => groups.flatMap((g) => GROUP[g] ?? []).filter((id) => !FEATURED_IDS.has(id));
 
   const coolerDoors = DOOR_SIGNS.map(([, , , cat]) => [...pool(cat)].sort((a, b) => footprint(b).h - footprint(a).h));
   const COOLER_GAP = [0.35, 0.31, 0.29, 0.29, 0.29, 0.39];
-  const ice = pool('ice'), iceInCase = ice.slice(0, 12);
+  const ice = pool('ice'), iceInCase = ice.slice(0, 11);        // the twelfth basket is the featured ice's
 
   for (const s of slots) {
     stock.slot = s;
@@ -138,20 +172,39 @@ export function stockStore(p, slots, group, lit) {
       case 'drinks': {
         // one door, one category, big bottles low; a row behind each front unit
         const fill = filler('door' + s.bay, coolerDoors[s.bay], 4, 6);
-        run(s.x0, s.x1, fill, COOLER_GAP[s.level], () => 2, (id, x, fp, r, count) => {
+        const place = (id, x, fp, r, count) => {
           const dz = r * (fp.d + 0.012);
           stock.add(id, x, s.y + dz * Math.tan(SLOPE), s.z - dz, 0, count, SLOPE);
-        }, (id, x) => tag(id, x, s.y - 0.04, s.rail, 0));
+        };
+        const tagAt = (id, x) => tag(id, x, s.y - 0.04, s.rail, 0);
+        let from = s.x0;
+        const key = featureKeyOf(s);
+        if (key) {
+          stock.feature = key;
+          from = run(s.x0, s.x1, featureFill(featureIds(key), FEATURE_AT[key].facings), COOLER_GAP[s.level], () => 2, place, tagAt);
+          stock.feature = null;
+        }
+        run(from, s.x1, fill, COOLER_GAP[s.level], () => 2, place, tagAt);
         break;
       }
       case 'chilled': {
         for (const sec of CHILLED_SECTIONS) {
           const z1 = Math.max(sec.z0, sec.z1), z0 = Math.min(sec.z0, sec.z1);
           const fill = filler('chilled-' + sec.en, pool(...sec.groups), 3);
-          run(z0 + 0.02, z1 - 0.02, fill, 0.26, (fp) => Math.max(1, Math.min(2, Math.floor((s.depth - 0.18) / (fp.d + 0.02)))), (id, z, fp, r, count) => {
+          const rowsFor = (fp) => Math.max(1, Math.min(2, Math.floor((s.depth - 0.18) / (fp.d + 0.02))));
+          const place = (id, z, fp, r, count) => {
             const lean = PRODUCT[id].mesh.shape === 'onigiri' ? -0.22 : 0;   // onigiri lean back on sloped decks
             stock.add(id, s.rail - 0.03 - fp.d / 2 - r * (fp.d + 0.015), s.y, z, Q, count, lean);
-          }, (id, z) => tag(id, s.rail + 0.002, s.y - 0.03, z, Q));
+          };
+          const tagAt = (id, z) => tag(id, s.rail + 0.002, s.y - 0.03, z, Q);
+          let from = z0 + 0.02;
+          const key = featureKeyOf(s, sec);
+          if (key) {
+            stock.feature = key;
+            from = run(from, z1 - 0.02, featureFill(featureIds(key), FEATURE_AT[key].facings), 0.26, rowsFor, place, tagAt);
+            stock.feature = null;
+          }
+          run(from, z1 - 0.02, fill, 0.26, rowsFor, place, tagAt);
         }
         break;
       }
@@ -182,24 +235,28 @@ export function stockStore(p, slots, group, lit) {
       case 'icecase': {
         // a kind per basket, standing in rows (bars and boxes lie flat); a
         // second layer only for what the first could not hold
-        const id = iceInCase[s.basket % iceInCase.length];
+        // the featured ice has a basket of its own, at the front by the till
+        const fkey = Object.entries(FEATURE_AT).find(([, f]) => f.zone === 'icecase' && f.basket === s.basket)?.[0];
+        const id = fkey ? featureIds(fkey)[0] : iceInCase[(s.basket - (s.basket > FEATURE_AT.ice.basket ? 1 : 0)) % iceInCase.length];
+        stock.feature = fkey ?? null;
         const fp = footprint(id);
-        const flat = /icebar|multipack|cone/.test(PRODUCT[id].mesh.shape);
+        const flat = /icebar|multipack|cone|wafer/.test(PRODUCT[id].mesh.shape);
         const w = fp.w + 0.01, l = (flat ? fp.h : fp.d) + 0.01;
         for (let k = 0; k < 2 && left(id) > 0; k++) {
           for (let x = s.x0 + w / 2; x <= s.x1 - w / 2 && left(id) > 0; x += w) {
             for (let z = s.z0 + l / 2; z <= s.z1 - l / 2 && left(id) > 0; z += l) {
               const y = s.y + k * ((flat ? fp.d : fp.h) + 0.004);
-              stock.add(id, x + k * 0.012, y + (flat ? fp.d / 2 : 0), z + (flat ? -fp.h / 2 : 0) + k * 0.01, 0, 1, flat ? -Q : 0);
+              stock.add(id, x + k * 0.012, y + (flat ? fp.d / 2 : 0), z + (flat ? fp.h / 2 : 0) + k * 0.01, 0, 1, flat ? -Q : 0);
               used.set(id, (used.get(id) ?? 0) + 1);
             }
           }
         }
+        stock.feature = null;
         tag(id, s.tagX + s.side * 0.004, s.tagY, (s.z0 + s.z1) / 2, s.side > 0 ? Q : -Q);
         break;
       }
       case 'freezer': {
-        const fill = filler('freezer', [...pool('frozen'), ...ice.slice(12)], 4);
+        const fill = filler('freezer', [...pool('frozen'), ...ice.slice(11)], 4);
         run(s.x0, s.x1, fill, 0.42, () => 2, (id, x, fp, r, count) => stock.add(id, x, s.y, s.z - r * (fp.d + 0.012), 0, count));
         break;
       }

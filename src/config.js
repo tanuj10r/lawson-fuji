@@ -45,12 +45,16 @@ export const DEFAULT_VOLUME = 50;                      // 30% of full scale: the
 /* Shopping in the store (M3c; SPEC 5 and 6.3). */
 export const STORE = {
   reach: 2.0,          // metres: what the crosshair can take
-  carry: 2,            // items you can hold without a basket
+  carry: 2,            // items you can hold: one in each hand (Tan's konbini)
   wallet: 1000,        // yen you start with (Tan: ¥1,000 a visit)
   flight: 0.35,        // seconds, shelf to basket
   slide: 0.25,         // seconds for the next unit to come forward
   door: { open: 1.66, ease: 0.3, away: 2.5 },   // fridge doors: radians, s, m (shut when you walk off)
-  basketShown: 12,     // items drawn in the basket; the count carries on
+  /* Tan's konbini (store/shop.js) */
+  till: { x: 7.32, z: -4.5 },                 // the cashier's spot behind the register (store frame)
+  voice: { near: 6, far: 20 },                // her voice: across the store to the door, not beyond the forecourt
+  tillSound: { near: 3, far: 14 },            // the beep, the drawer, the coins
+  eatGain: { bite: 0.9, munch: 0.7, gulp: 0.8, 'can-open': 0.8, wrapper: 0.6 },
 };
 
 /* Ground plan in front of the store, as z lines (the store glass is z = 0). */

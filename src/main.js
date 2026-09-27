@@ -12,13 +12,13 @@ import { WALK_SIGNALS } from './world/signals.js';
 import { buildTown } from './world/town.js';
 import { tagReflections } from './world/land/mirror.js';
 import { createMinimap } from './ui/minimap.js';
-import { createBasketPanel } from './ui/basketPanel.js';
+import { createHandsHud } from './ui/hands.js';
 import { createControls } from './ui/controls.js';
 import { buildKitTest } from './world/kit-test.js';
 import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
 import { PRODUCT } from './data/catalog.js';
-import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, STORE, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain } from './config.js';
+import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain } from './config.js';
 
 /* ------------------------------------------------------------------ *
  * Lawson Fuji -- entry point.  Rendering is inherited from Sakura Crossing (MIT).
@@ -116,19 +116,18 @@ if (shadowOnly.length) {
 
 const player = new Player(camera, canvas, world);
 
-/* Shopping in the store (M3c): aiming at the shelves, the fridge doors, the
- * basket in view and its panel on Tab. */
+/* The konbini (Tan's experience, store/shop.js): your hands in view, the
+ * four glowing things, the cashier and the till; the card and subtitles. */
 const shop = world.lawson?.shop ?? null;
-const basketPanel = shop ? createBasketPanel() : null;
+const handsHud = shop ? createHandsHud() : null;
 const controls = createControls();
 if (shop) {
   scene.add(shop.view, shop.fx);
-  shop.onChange = () => basketPanel.update(shop.cart, shop.hasBasket);
-}
-function setPanel(open) {
-  if (basketPanel.open !== open) sound.ui();
-  basketPanel.setOpen(open);
-  player.suspended = open;
+  shop.onChange = (s) => handsHud.update(s);
+  shop.onSay = (line) => handsHud.say(line);
+  shop.player = player;
+  // the konbini's spot by the door is aimed at like the town's (its E says what's inside)
+  world.interactables.push(...(world.lawson.interactables ?? []));
 }
 /* The sound setting: one of the five (config VOLUME_STEPS), not a free
  * slider.  What is saved is the setting; volumeGain turns it into gain. */
@@ -143,8 +142,8 @@ try {
 const hud = createHud({ volume: volumeStep });
 if (shop) {
   shop.flash = (text, error = false) => hud.flash(text, error ? 2800 : 2200, error);
-  // walking in with nothing: where the baskets are and what you have (M3d)
-  shop.onEnter = () => { if (!shop.hasBasket && !shop.cart.length) hud.flash(STRINGS.store.welcome(STORE.wallet), 4500); };
+  // walking in with nothing yet: what to do here
+  shop.onEnter = () => { if (!shop.held.length) hud.flash(STRINGS.store.welcome, 4500); };
 }
 /* The sound (M4): one engine for the town and the store, started by the
  * same first click that takes the pointer lock (browsers start no audio
@@ -176,7 +175,6 @@ if (shop) {
   shop.doors.onSound = (door, opening) => sound.fridgeDoor({ x: door.box.getCenter(_v).x, y: 1.2, z: _v.z }, opening);
   shop.onSound = (kind, u) => {
     if (kind === 'take' || kind === 'put') sound.item(PRODUCT[u.id].sound, shop.unitAt(u));
-    else if (kind === 'basket') sound.basket();
     else if (kind === 'refuse') sound.refuse();
   };
 }
@@ -196,7 +194,7 @@ player.onLockChange = (locked) => {
   hud.setLocked(locked);
   // leaving pointer lock (Esc) closes the full map too
   if (!locked && minimap?.fullOpen) { minimap.setFull(false); player.suspended = false; }
-  if (!locked && basketPanel?.open) setPanel(false);
+  handsHud?.setLocked(locked);
 };
 canvas.addEventListener('click', () => {
   sound.start();
@@ -261,6 +259,8 @@ const FUJI_GAMEPLAY = FUJI.gameplaySize
   * Math.tan(THREE.MathUtils.degToRad(PLAYER_VFOV / 2))
   / Math.tan(THREE.MathUtils.degToRad(HERO_DAY.vfov / 2));
 let hero = null;          // the photo camera, while it holds (dev overlay)
+// the famous views are the opening shot: the konbini's spot keeps out of them
+if (shop) shop.isFamousView = () => !!(hero || famousView);
 let lastView = SPAWN.view;
 let heroBlend = 0;        // 1 = photo lens, 0 = gameplay lens
 const heroAt = { x: 0, z: 0, yaw: 0, pitch: 0 };
@@ -385,24 +385,13 @@ window.addEventListener('keydown', (e) => {
     else { sound.start(); player.lock(); }
     return;
   }
-  // Tab: the basket panel (never moves the page's focus)
-  if (e.code === 'Tab') {
-    e.preventDefault();
-    if (!e.repeat && basketPanel && player.locked && !minimap?.fullOpen) setPanel(!basketPanel.open);
-    return;
-  }
-  if (basketPanel?.open) {
-    if (e.code === 'KeyW' || e.code === 'ArrowUp') basketPanel.move(-1);
-    if (e.code === 'KeyS' || e.code === 'ArrowDown') basketPanel.move(1);
-    if (!e.repeat && ['KeyX', 'Delete', 'Backspace'].includes(e.code)) {
-      const item = basketPanel.chosen();
-      if (item) { sound.ui(); shop.putBack(item); }
-    }
-    return;
-  }
+  // Tab never moves the page's focus off the game
+  if (e.code === 'Tab') { e.preventDefault(); return; }
   if (e.repeat) return;
-  // M: the full town map (M2f); it holds your walking and looking while open
-  if (e.code === 'KeyM' && minimap && player.locked) {
+  // X: put the last thing you took back on its shelf (the konbini)
+  if (e.code === 'KeyX' && player.locked && shop?.canPutBack) shop.putBack();
+  // M: the full town map (M2f); it holds your walking and looking while open (not while you pay)
+  if (e.code === 'KeyM' && minimap && player.locked && !shop?.busy) {
     const open = !minimap.fullOpen;
     minimap.setFull(open, player.pos, player.yaw);
     player.suspended = open;
@@ -434,17 +423,14 @@ const K = STRINGS.keys;
 function controlRows(hovered) {
   if (!player.locked || FROZEN) return [];
   if (minimap?.fullOpen) return [['M', K.closeMap]];
-  if (basketPanel?.open) {
-    return [['W / S', K.choose, shop.cart.length > 0], ['X', K.putBack, shop.cart.length > 0], ['Tab', K.close]];
-  }
   // standing on a famous view the shot is the point (the minimap keeps off
   // it too): only how to take the camera back
   if (hero || famousView) return [['WASD', K.leaveView], ['1 2 3', K.views]];
   const rows = [['WASD', K.move], ['Mouse', K.look]];
   if (shop?.inside(camera)) {
-    // in the store: what E does here, and the basket
-    rows.push(['E', K.interact, !!hovered]);
-    rows.push(['Tab', K.basketPanel, shop.hasBasket || shop.cart.length > 0]);
+    // in the store: take and pay, and putting one back
+    rows.push(['E', K.shop, !!hovered]);
+    rows.push(['X', K.putBack, shop.canPutBack]);
   } else {
     rows.push(['Shift', K.run]);
     if (hovered) rows.push(['E', K.interact]);
@@ -502,19 +488,10 @@ function frame(now = 0) {
   // in the store the shelves are aimed at by the shop; outside, the hitboxes
   let hovered = null;
   if (shop) shop.update(dt, camera, player.bob);
-  if (player.locked && !basketPanel?.open) {
+  if (player.locked && !shop?.busy) {
     hovered = shop?.inside(camera) ? shop.pick(camera) : player.pick(world.interactables);
   }
-  if (shop && !(hovered?.unit)) shop.clearAim();
-  // the shopping card: up while you shop in the store, its keys lit when they work
-  if (shop) {
-    const inStore = shop.inside(camera);
-    basketPanel.setContext({
-      show: player.locked && inStore && (shop.hasBasket || shop.cart.length > 0),
-      aim: hovered?.kind ?? null,
-      nearDoor: inStore && shop.nearDoor(),
-    });
-  }
+  if (shop && !hovered) shop.clearAim();
   player.hovered = hovered;
   controls.set(controlRows(hovered));
   // the sound: where you are and what time of day it is; a footstep each stride
@@ -546,7 +523,7 @@ window.__scene = {
   applyLook, enterHero,
 };
 window.__setOutlineRes = setOutlineResolution;
-if (import.meta.env?.DEV) window.__store = { shop, panel: basketPanel, setPanel, price: (id) => PRODUCT[id].priceYen };
+if (import.meta.env?.DEV) window.__store = { shop, hud: handsHud, price: (id) => PRODUCT[id].priceYen };
 
 if (import.meta.env?.DEV) {
   /**

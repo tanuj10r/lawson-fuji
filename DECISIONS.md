@@ -1377,3 +1377,22 @@ is closed. Measured rather than guessed:
   the famous views (0.14% and 0.24%), the train service, the atlas signs,
   and the frame rates above. The rest are rendering-only changes that do
   not touch the stock, the density or the sound.
+
+## Fix: the frame loop scheduled itself twice (2026-09-27)
+- M4.9 moved `requestAnimationFrame(frame)` to the top of `frame` (so the
+  throttle could return early) but left the old call at the bottom. Every
+  fully drawn frame scheduled two more: while playing, the renders per
+  screen refresh kept multiplying. The "230 drawn a second" above was
+  this bug, not a frame rate. Removed the second call. Measured in a real
+  window: 60 drawn a second while playing (the display's rate), 9.3 while
+  paused.
+- The same bug is why the screenshot runs hung for hours: `?shots` never
+  throttles, so the page drowned in renders after the first capture. The
+  full run of 12 frames now takes 8 s.
+- `__shot` also left `shadowMap.autoUpdate` on after each capture (pre-M4.9
+  code); it now stays off, as the game sets it.
+- shots.mjs: dropped `--enable-gpu-rasterization`; added `--quick` (frames
+  and the hero guard only), `--no-density`, `--no-train`, `--scale`, and
+  `--verbose`; a lock so parallel agents take turns; closing Chrome and the
+  dev server when stopped. New spot `land-overview`; `town-overview-east`
+  moved to see the town.

@@ -526,7 +526,6 @@ function frame(now = 0) {
   hud.setCoords(player.pos, player.yaw, player.pitch, dt);
 
   pipeline.render();
-  requestAnimationFrame(frame);
 }
 enterHero(SPAWN.view);
 frame();
@@ -595,7 +594,6 @@ if (import.meta.env?.DEV) {
     pipeline.render();
     window.__frameInfo.mainCalls = renderer.info.render.calls;
     window.__frameInfo.mainTriangles = renderer.info.render.triangles;
-    renderer.shadowMap.autoUpdate = true;
     renderer.info.autoReset = true;
     if (opts.time) {
       // average frame time over `time` frames, GPU work included (readPixels waits for it)

@@ -389,7 +389,9 @@ export const SHOT_SPOTS = [
   { name: 'store-baskets', scene: 'town', pos: [-3.3, 0, -2.1], yaw: 2.45, pitch: -0.55, looks: ['day'], close: true, frame: 'world' },
   { name: 'store-left', scene: 'town', pos: [-5.0, 0, -1.4], yaw: 1.0, pitch: -0.1, looks: ['day'], close: true, frame: 'world' },
   { name: 'town-overview', scene: 'town', pos: [0, 0, 95], yaw: 0, pitch: -0.5, lift: 95, looks: ['golden'], frame: 'world' },
-  { name: 'town-overview-east', scene: 'town', pos: [170, 0, 90], yaw: -1.5708, pitch: -0.55, lift: 80, looks: ['day'] },
+  { name: 'town-overview-east', scene: 'town', pos: [150, 0, 80], yaw: -1.5708, pitch: -0.55, lift: 80, looks: ['day'] },
+  // the land north of the main road (town pass): paddies, the river, the Deer Park gate
+  { name: 'land-overview', scene: 'town', pos: [0, 0, 12], yaw: 3.1416, pitch: -0.5, lift: 60, looks: ['day', 'golden'], frame: 'world' },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },

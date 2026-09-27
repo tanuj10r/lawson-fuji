@@ -12,9 +12,14 @@
  *   npm run shots -- --looks day         only these looks
  *   npm run shots -- --baseline          (re)save the hero baseline
  *   npm run shots -- --no-time           skip the frame-time pass
+ *   npm run shots -- --no-density        skip the density and bare-stretch checks
+ *   npm run shots -- --no-train          skip the train-service check
+ *   npm run shots -- --quick             frames and the hero guard only
+ *   npm run shots -- --size 1280x720 --scale 1   light run (a quarter of the pixels; no guard)
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { SHOT_SPOTS } from '../src/config.js';
@@ -28,10 +33,15 @@ const opt = (k, d) => {
 };
 
 const [W, H] = opt('size', '1920x1080').split('x').map(Number);
+const SCALE = +opt('scale', '2');
+const fullSize = W === 1920 && H === 1080 && SCALE === 2;   // the hero guard's baseline size   // render scale before FXAA; 1 for light work-in-progress runs
 const onlySpots = opt('spots', '').split(',').filter(Boolean);
 const onlyLooks = opt('looks', '').split(',').filter(Boolean);
 const baseline = flag('baseline');
-const timeIt = !flag('no-time');
+const quick = flag('quick');   // frames only: no timing, density or train checks
+const timeIt = !flag('no-time') && !quick;
+const densityIt = !flag('no-density') && !quick;
+const trainIt = !flag('no-train') && !quick;
 const GUARD_LIMIT = 0.5;   // % of hero pixels allowed to change
 
 const d = new Date();
@@ -50,6 +60,23 @@ const writeData = (file, dataUrl) =>
 const readData = (file) =>
   `data:image/png;base64,${fs.readFileSync(file).toString('base64')}`;
 
+/* One run at a time on this machine (parallel agents share it): a lock
+ * directory holding the owner's pid; a lock whose owner is gone is stale. */
+const LOCK = path.join(os.tmpdir(), 'lawson-fuji-shots.lock');
+for (;;) {
+  try { fs.mkdirSync(LOCK); fs.writeFileSync(path.join(LOCK, 'pid'), String(process.pid)); break; } catch {
+    let pid = 0;
+    try { pid = +fs.readFileSync(path.join(LOCK, 'pid'), 'utf8'); } catch {}
+    let alive = false;
+    try { if (pid) { process.kill(pid, 0); alive = true; } } catch {}
+    if (!alive) { fs.rmSync(LOCK, { recursive: true, force: true }); continue; }
+    console.log(`  waiting for another shots run (pid ${pid})`);
+    await new Promise((r) => setTimeout(r, 5000));
+  }
+}
+const unlock = () => { try { if (+fs.readFileSync(path.join(LOCK, 'pid'), 'utf8') === process.pid) fs.rmSync(LOCK, { recursive: true, force: true }); } catch {} };
+process.on('exit', unlock);
+
 const server = await createServer({
   root: ROOT,
   logLevel: 'error',
@@ -60,7 +87,7 @@ const base = server.resolvedUrls.local[0];
 
 /* The system Chrome, so the GPU is the real one (Metal on macOS); the
  * Playwright build is the fallback. */
-const launchArgs = ['--use-angle=metal', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'];
+const launchArgs = ['--use-angle=metal', '--ignore-gpu-blocklist'];   // (GPU rasterization hung toDataURL after the first shot)
 let browser;
 try {
   browser = await chromium.launch({ channel: 'chrome', headless: true, args: launchArgs });
@@ -71,6 +98,13 @@ const page = await browser.newPage({ viewport: { width: W, height: H } });
 // this run starts its own dev server, which compiles cold: on a machine short
 // of memory a page can take well over the default 30 s to load
 page.setDefaultNavigationTimeout(180000);
+// stopped from outside: close Chrome and the dev server, never leave them behind
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(sig, async () => {
+    await Promise.race([Promise.all([browser.close(), server.close()]), new Promise((r) => setTimeout(r, 5000))]).catch(() => {});
+    process.exit(130);
+  });
+}
 page.on('console', (m) => { if (m.type() === 'error') console.log('  [page]', m.text()); });
 page.on('pageerror', (e) => console.log('  [page error]', e.message));
 
@@ -86,6 +120,7 @@ for (const spot of spots) {
     // a page error before the scene is ready ends the run at once
     let onError;
     const crashed = new Promise((_, reject) => { onError = (e) => reject(e); page.on('pageerror', onError); });
+    const tl = Date.now();
     await page.goto(`${base}?shots${scene === 'kit' ? '&kit' : ''}`);
     await Promise.race([page.waitForFunction(() => window.__ready === true, null, { timeout: 120000, polling: 250 }), crashed]);
     page.off('pageerror', onError);
@@ -95,7 +130,7 @@ for (const spot of spots) {
       const e = gl.getExtension('WEBGL_debug_renderer_info');
       return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'unknown';
     });
-    console.log(`scene ${scene}  (${gpu})`);
+    console.log(`scene ${scene}  (${gpu}), ready in ${((Date.now() - tl) / 1000).toFixed(0)} s`);
     // the store's stock (M3d): how many products, never more than CAP of one
     if (scene === 'town') stats._stock = await page.evaluate(() => window.__store?.shop?.stats ?? null);
   }
@@ -104,9 +139,11 @@ for (const spot of spots) {
     const name = spot.looks.length > 1 ? `${spot.name}-${look}` : spot.name;
     const opts = {
       hero: spot.hero, look, pos: spot.pos, yaw: spot.yaw, pitch: spot.pitch, lift: spot.lift, train: spot.train, frame: spot.frame,
-      png: true, scale: 2, returnData: true,
+      png: true, scale: SCALE, returnData: true,
     };
+    const t0 = Date.now();
     const r = await page.evaluate(([n, w, h, o]) => window.__shot(n, w, h, o), [name, W, H, opts]);
+    if (flag('verbose')) console.log(`  (${name} rendered in ${((Date.now() - t0) / 1000).toFixed(1)} s)`);
     const file = path.join(baseline ? baseDir : outDir, `${name}.png`);
     writeData(file, r.data);
     const row = { calls: r.calls, triangles: r.triangles, mainCalls: r.mainCalls, mainTriangles: r.mainTriangles };
@@ -119,7 +156,7 @@ for (const spot of spots) {
       row.internal = t.internal;
     }
 
-    if (spot.guard && !baseline) {
+    if (spot.guard && !baseline && fullSize) {
       const bfile = path.join(baseDir, `${name}.png`);
       if (fs.existsSync(bfile)) {
         const { pct, mask } = await page.evaluate(diffImages, [r.data, readData(bfile)]);
@@ -136,7 +173,7 @@ for (const spot of spots) {
       writeData(path.join(outDir, `${name}-vs-ref.jpg`), pair);
     }
     // the density budget, from every street-level town spot (not heroes or overviews)
-    if (spot.scene === 'town' && !spot.hero && !spot.lift && !spot.close && !baseline) {
+    if (densityIt && spot.scene === 'town' && !spot.hero && !spot.lift && !spot.close && !baseline) {
       const dens = await page.evaluate((sp) => window.__density(sp),
         { x: spot.pos[0], z: spot.pos[2], yaw: spot.yaw, indoor: spot.indoor });
       if (dens?.spot) {
@@ -152,7 +189,7 @@ for (const spot of spots) {
   }
 }
 
-if (!baseline && densityRows.length) {
+if (densityIt && !baseline && densityRows.length) {
   // town-wide bare stretches, once
   await page.goto(`${base}?shots`);
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 120000, polling: 250 });
@@ -160,7 +197,7 @@ if (!baseline && densityRows.length) {
   stats._bare = bare;
 }
 // the train service (M2c): dwell, headway, and the crossing against the trains
-if (!baseline && spots.some((s) => s.scene === 'town')) {
+if (trainIt && !baseline && spots.some((s) => s.scene === 'town')) {
   await page.goto(`${base}?traincheck`);
   await page.waitForFunction(() => window.__traincheck, null, { timeout: 120000, polling: 500 });
   const tc = await page.evaluate(() => window.__traincheck);

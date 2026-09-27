@@ -1,5 +1,5 @@
 import { rngKit } from '../../../core/util.js';
-import { ROADS, TOWN } from '../../../config.js';
+import { ROADS, TOWN, DRIVEWAYS } from '../../../config.js';
 import { LAYER } from '../decals.js';
 import { tactilePad } from '../roads.js';
 import { aBoard, walkPlate } from './boards.js';
@@ -29,7 +29,7 @@ const CRATES = [0xe8483c, 0xf2c23c, 0x3a8ad0, 0x4fae6a, 0xe8e4dc];
 export function dressWalks(ctx, net, kit, lots) {
   const C = kit.clutter;
   const reg = (x, z) => ctx.registry?.push({ kind: 'prop', x, z });
-  const fixed = () => (ctx.registry ?? []).filter((q) => q.kind === 'pole' || q.kind === 'sign');
+  const fixed = () => (ctx.registry ?? []).filter((q) => q.kind === 'pole' || q.kind === 'sign' || q.kind === 'bikes' || q.kind === 'tree');
   let taken = fixed();
   // never in a junction or a lane's mouth: that is where people walk through
   const inJunction = (x, z) => Object.values(net.nodes).some((n) => Math.abs(x - n.x) < n.tx + 1.0 && Math.abs(z - n.z) < n.tz + 1.0);
@@ -81,6 +81,7 @@ export function dressWalks(ctx, net, kit, lots) {
         const p = net.at(e, s, kerb);
         if (net.quiet(p.x, p.z) || !clearOf(p.x, p.z, 1.4)) continue;
         if (hero && p.x > -62 && p.x < 40) continue;
+        if (hero && DRIVEWAYS.north.some(([a, b]) => -p.x > a - DRIVEWAYS.ramp - 1 && -p.x < b + DRIVEWAYS.ramp + 1)) continue;   // a driveway's dropped kerb
         if (net.busStops.some((b) => b.e === e && b.side === side && Math.abs(s - b.at) < 9)) continue;
         if (net.crossings.some((c) => c.e === e && s > c.at - 4 && s < c.at + 3)) continue;   // keep a zebra's mouth clear
         // toward the station the kerb fills with bicycles

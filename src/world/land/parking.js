@@ -1,66 +1,137 @@
 import * as THREE from 'three';
 import { cel, flat } from '../../core/toon.js';
 import { rngKit } from '../../core/util.js';
-import { TOWN } from '../../config.js';
+import { TOWN, DRIVEWAYS } from '../../config.js';
 import { LAND_SIGNS } from '../../data/town.js';
 import { asphaltTex, ASPHALT_TILE } from '../kit/tex.js';
-import { parkVehicle } from '../vehicles.js';
+import { makeDecals, LAYER } from '../kit/decals.js';
+import { parkVehicle, vehicleWheels } from '../vehicles.js';
 import { sheetGeo } from './geo.js';
 import { noticeTex } from './tex.js';
 
 /* ------------------------------------------------------------------ *
  * Across the road from the spawn (Tan's layout): the old photographers'
  * lot is a monthly car park (月極駐車場), and straight past it the river.
- * Two rows of bays with wheel stops, a walkway kept clear down the spawn's
- * axis to the stairs, a few cars, the lot's board.
+ *
+ * Laid out for cars (town quality pass, Tan: "how do cars even enter it
+ * from the main road?"), in the town's frame (the main road is +z):
+ *
+ *   in       from the main road at the west end, over the far walk's
+ *            dropped kerb (config.js DRIVEWAYS.far; lawson.js lowers it),
+ *            arrows turning into the aisle
+ *   aisle    one-way, west to east, 4.9 m between the rows, arrows down it
+ *   out      at the east end onto the bridge road (lane x 30), a stop
+ *            line and 止まれ, a short run back to the master junction
+ *   bays     2.5 x 4.85 m in two rows, wheel stops at the back: cars
+ *            back in, as they do in Japan, fronts to the aisle
+ *   walkway  kept clear down the spawn's axis to the stairs, zebra-striped
+ *            where it crosses the aisle
+ *
+ * The road row's east bay, nearest the main road and the bridge road, is
+ * kept empty: Han's RX-7 stands there (src/world/han/, tonight's build).
  * ------------------------------------------------------------------ */
+
+const AY = 0.03;                                 // the lot's surface
+
+/** The car park's bays (town frame): { x, z, row: 'river'|'road', han }. */
+export function parkingBays() {
+  const [x0, z0, x1, z1] = TOWN.land.parking;
+  const inn = DRIVEWAYS.far.map(([a, b]) => [-b, -a])[0];   // the way in, town x
+  const aisle = [-2.45, 2.45];
+  const rows = [
+    { row: 'river', za: z0 + 0.2, zb: aisle[0], segs: [[x0 + 0.6, -1.9], [1.9, x1 - 0.6]] },
+    { row: 'road', za: aisle[1], zb: z1 - 0.15, segs: [[inn[1] + 0.8, -1.9], [1.9, x1 - 0.6]] },
+  ];
+  const bays = [];
+  for (const R of rows) {
+    for (const [a, b] of R.segs) {
+      const n = Math.floor((b - a) / 2.5);
+      const start = a + (b - a - n * 2.5) / 2;
+      for (let k = 0; k < n; k++) bays.push({ x: start + 2.5 * k + 1.25, z: (R.za + R.zb) / 2, za: R.za, zb: R.zb, row: R.row });
+    }
+  }
+  const road = bays.filter((b) => b.row === 'road');
+  road[road.length - 1].han = true;             // east end, by the main road and the bridge road
+  return { bays, aisle, inn };
+}
 
 export function buildParking(ctx, parts) {
   const [x0, z0, x1, z1] = TOWN.land.parking;
   const r = rngKit(4242);
   const asphalt = cel({ color: 0x8a8ea0, bands: 3, tint: 0x5a5480, map: asphaltTex() });
-  const g = sheetGeo(x0, x1, z0, z1, 0.03, ASPHALT_TILE);
+  const g = sheetGeo(x0, x1, z0, z1, AY, ASPHALT_TILE);
   const lot = new THREE.Mesh(g, asphalt);
   lot.receiveShadow = true;
   ctx.add(lot);
+  const paint = makeDecals();
+  const { bays, aisle, inn } = parkingBays();
 
-  // bays 2.5 m wide: one row backing onto the river walk, one onto the road
-  const rows = [{ za: z0 + 0.4, zb: z0 + 5.4, stopZ: z0 + 1.0 }, { za: z1 - 5.2, zb: z1 - 0.2, stopZ: z1 - 0.8 }];
-  const walk = (x) => Math.abs(x) < 1.9;          // the way to the stairs behind the spawn
-  const bays = [];
-  for (const row of rows) {
-    for (let x = x0 + 1.2; x + 2.5 <= x1 - 0.8; x += 2.5) {
-      if (walk(x) || walk(x + 2.5) || (x < 0 && x + 2.5 > 0)) continue;
-      parts.box('white', x - 0.06, x + 0.06, 0.03, 0.045, row.za, row.zb);
-      parts.box('white', x + 2.44, x + 2.56, 0.03, 0.045, row.za, row.zb);
-      parts.box('granite', x + 0.45, x + 2.05, 0.03, 0.15, row.stopZ - 0.08, row.stopZ + 0.08);   // the wheel stop
-      bays.push({ x: x + 1.25, z: (row.za + row.zb) / 2, back: row === rows[0] ? -1 : 1 });
+  /* ---- the bays: a line each side, a wheel stop at the back ---- */
+  const lines = new Set();
+  for (const b of bays) {
+    for (const x of [b.x - 1.25, b.x + 1.25]) {
+      const k = `${b.row}${x.toFixed(2)}`;
+      if (lines.has(k)) continue;
+      lines.add(k);
+      parts.box('white', x - 0.06, x + 0.06, AY, AY + 0.015, b.za, b.zb);
     }
+    b.stopZ = b.row === 'river' ? b.za + 0.65 : b.zb - 0.65;
+    parts.box('granite', b.x - 0.8, b.x + 0.8, AY, AY + 0.12, b.stopZ - 0.08, b.stopZ + 0.08);
+    ctx.collide(b.x - 0.8, b.stopZ - 0.08, b.x + 0.8, b.stopZ + 0.08, AY + 0.12);
   }
-  // the walkway: two white lines down the spawn's axis
-  for (const x of [-1.6, 1.6]) parts.box('white', x - 0.06, x + 0.06, 0.03, 0.045, z0, z1);
 
-  // a few cars, nosed in, in the colours of a country town
-  const kinds = ['kei', 'kei', 'keivan', 'kei', 'wagon', 'sedan', 'kei', 'minivan'];
-  const cols = [0xf2eee6, 0xd9665a, 0x9fc0dc, 0xa8d4b4, 0x3a3e48, 0xe8e2d4, 0xc8b89a, 0xf2eee6];
+  /* ---- the walkway down the spawn's axis, and its zebra over the aisle ---- */
+  for (const x of [-1.6, 1.6]) parts.box('white', x - 0.06, x + 0.06, AY, AY + 0.015, z0, z1);
+  for (let x = -1.2; x <= 1.21; x += 0.8) paint.add('white', x, 0, 0.42, aisle[1] - aisle[0] - 0.3, { x: 0, z: 1 }, AY, LAYER.paint);
+
+  /* ---- the way in, the one-way aisle, the way out ---- */
+  const E = { x: 1, z: 0 }, S = { x: 0, z: -1 };
+  const inX = (inn[0] + inn[1]) / 2;
+  paint.add('arrow', inX, z1 - 2.2, 1.0, 2.4, S, AY, LAYER.symbol);            // in off the road
+  for (const x of [inX + 4.6, -12, 9, 21]) paint.add('arrow', x, 0, 0.9, 2.4, E, AY, LAYER.symbol);   // down the aisle
+  // out: a stop line across the aisle's mouth, 止まれ before it
+  paint.add('white', x1 - 0.5, 0, aisle[1] - aisle[0], 0.3, E, AY, LAYER.paint);
+  paint.add('tomare', x1 - 2.6, 0, 2.2, 1.8, E, AY, LAYER.symbol);
+  const decals = paint.build('parking-paint');
+  ctx.add(decals);
+
+  /* ---- a few cars, backed in, in the colours of a country town ---- */
+  const kinds = ['kei', 'kei', 'keivan', 'kei', 'wagon', 'sedan', 'kei', 'minivan', 'kei'];
+  const cols = [0xf2eee6, 0xd9665a, 0x9fc0dc, 0xa8d4b4, 0x3a3e48, 0xe8e2d4, 0xc8b89a, 0xf2eee6, 0x7f93a4];
+  const free = bays.filter((b) => !b.han);
   const taken = new Set();
   for (let i = 0; i < kinds.length; i++) {
     let b;
-    for (let k = 0; k < 20; k++) { b = bays[r.int(0, bays.length - 1)]; if (!taken.has(b)) break; }
+    for (let k = 0; k < 20; k++) { b = free[r.int(0, free.length - 1)]; if (!taken.has(b)) break; }
     if (taken.has(b)) continue;
     taken.add(b);
-    parkVehicle(ctx, { kind: kinds[i], x: b.x, z: b.z, y: 0.03, ry: b.back > 0 ? 0 : Math.PI, color: cols[i] });
+    const w = vehicleWheels(kinds[i]);
+    // rear tyre against the stop's aisle-side face; nose to the aisle
+    const river = b.row === 'river';
+    const rearAxle = river ? b.stopZ + 0.08 + w.R : b.stopZ - 0.08 - w.R;
+    const cz = river ? rearAxle - w.rear : rearAxle + w.rear;
+    parkVehicle(ctx, { kind: kinds[i], x: b.x + r.range(-0.08, 0.08), z: cz, y: AY, ry: river ? -Math.PI / 2 : Math.PI / 2, skew: r.range(-0.03, 0.03), color: cols[i] });
   }
 
-  // the lot's board, on a post at the road edge, by the bridge road
-  {
-    const px = x1 - 1.2, pz = z1 - 0.3;
-    parts.box('post', px - 0.05, px + 0.05, 0, 1.9, pz - 0.05, pz + 0.05);
-    const board = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.55), flat({ map: noticeTex('parking', LAND_SIGNS.parking, { w: 256, h: 128, red: { line: 1, color: '#2f7a3a' } }) }));
-    board.position.set(px, 1.6, pz + 0.06);
-    board.userData.detail = true;
-    ctx.add(board);
-    ctx.collide(px - 0.12, pz - 0.12, px + 0.12, pz + 0.12, 1.9);
-  }
-
+  /* ---- boards: the lot's name and 入口 at the way in, 出口 at the way out ---- */
+  const post = (px, pz, ry, boards) => {
+    parts.box('post', px - 0.05, px + 0.05, 0, 2.0, pz - 0.05, pz + 0.05);
+    for (const { key, lines: ln, w, h, y, red } of boards) {
+      const tw = w / h > 1.5 ? 256 : 128, th = Math.round(tw * h / w);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), flat({ map: noticeTex(key, ln, { w: tw, h: th, red }) }));
+      m.position.set(px + Math.sin(ry) * 0.06, y, pz + Math.cos(ry) * 0.06);
+      m.rotation.y = ry;
+      m.userData.detail = true;
+      ctx.add(m);
+    }
+    ctx.collide(px - 0.12, pz - 0.12, px + 0.12, pz + 0.12, 2.0);
+  };
+  // by the way in, on the strip between the driveway and the first bay,
+  // read from the road
+  post(inn[1] + 0.4, z1 - 0.35, 0, [
+    { key: 'parking', lines: LAND_SIGNS.parking, w: 1.1, h: 0.55, y: 1.65, red: { line: 1, color: '#2f7a3a' } },
+    { key: 'parkingIn', lines: [LAND_SIGNS.parkingIn], w: 0.5, h: 0.25, y: 1.1 },
+  ]);
+  // by the way out, at the river row's east end, read coming down the aisle
+  post(x1 - 0.3, aisle[0] - 0.35, -Math.PI / 2, [{ key: 'parkingOut', lines: [LAND_SIGNS.parkingOut], w: 0.5, h: 0.25, y: 1.1 }]);
 }

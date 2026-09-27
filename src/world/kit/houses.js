@@ -345,21 +345,38 @@ function dressFront(ctx, lot, F, { r, yard, bw, bd, shift, doorU, carport, lane,
     add(r.chance(0.5)
       ? makePotShelf({ x: p.x, y: 0, z: p.z, ry, w: 0.9, seed: lot.seed })
       : makePlanter({ x: p.x, y: 0, z: p.z, r: 0.22, flower: true, seed: lot.seed + 3, n: 6 }), p, 'prop', 0.35, 0.9);
-    // a bicycle by the gate
+    /* a bicycle by the gate: parked along the frontage (town quality pass,
+     * Tan: they stood across it, half into the house wall), in the strip
+     * between the boundary and the house, on the side away from the pots.
+     * The draws are the old ones, so nothing else on the street moves. */
+    let bikeSide = 0;
     if (r.chance(0.6)) {
-      const q = inYard(doorAt + (pu > doorAt ? -1.3 : 1.3), yard * 0.55);
-      const bike = r.chance(0.2)
-        ? makeKidBike({ x: q.x, y: 0, z: q.z, ry: ry + Math.PI / 2, color: r.pick([0xe86a5a, 0x5aa0e0, 0xf2c23c]) })
-        : makeBicycle({ x: q.x, y: 0, z: q.z, ry: ry + Math.PI / 2 + r.range(-0.2, 0.2), lean: 0.07, color: r.pick([0x3f6f9c, 0xd8a03c, 0x9c5a4a, 0x4f8f6a, 0xe8e2d4, 0x8f6fb5]) });
-      bike.position.set(q.x, 0, q.z);
-      add(bike, q, 'prop', 0.4, 1.0);
+      const side = pu > doorAt ? -1 : 1;
+      const kid = r.chance(0.2);
+      const half = kid ? 0.6 : 0.92;                       // half its length along the frontage
+      const u = Math.max(-w / 2 + 0.2 + half, Math.min(w / 2 - 0.2 - half, doorAt + side * (gateHalf + 0.25 + half)));
+      const clear = Math.abs(u - doorAt) >= gateHalf + half + 0.1;   // never across the gate
+      const v = Math.max(0.62, Math.min(yard - 0.34, (0.3 + yard) / 2));
+      const flip = side < 0 ? Math.PI : 0;                  // the front wheel toward the gate
+      const q = inYard(u, v);
+      const bike = kid
+        ? makeKidBike({ x: q.x, y: 0, z: q.z, ry: ry + flip, color: r.pick([0xe86a5a, 0x5aa0e0, 0xf2c23c]) })
+        : makeBicycle({ x: q.x, y: 0, z: q.z, ry: ry + flip + r.range(-0.2, 0.2) * 0.15, lean: 0.07, color: r.pick([0x3f6f9c, 0xd8a03c, 0x9c5a4a, 0x4f8f6a, 0xe8e2d4, 0x8f6fb5]) });
+      if (yard - v >= 0.3 && clear) {
+        bike.position.set(q.x, 0, q.z);
+        add(bike, q, 'prop', 0, 1.0);
+        const a = F.at(u - half, v - 0.3), b = F.at(u + half, v + 0.3);
+        ctx.collide(Math.min(a.x, b.x), Math.min(a.z, b.z), Math.max(a.x, b.x), Math.max(a.z, b.z), 1.0);
+        bikeSide = side;
+      }
     }
     if (r.chance(0.35)) {
       const q = inYard(pu + (pu > doorAt ? 0.9 : -0.9), yard - 0.4);
       add(r.chance(0.5) ? makeUmbrellaStand({ x: q.x, y: 0, z: q.z, ry, seed: lot.seed })
         : makeBucket({ x: q.x, y: 0, z: q.z, ry, color: 0x5aa0c8 }), q, 'prop', 0.2, 0.6);
     }
-    if (r.chance(0.25)) {
+    // the delivery box by the door, unless the bicycle stands on that side
+    if (r.chance(0.25) && bikeSide <= 0) {
       const q = inYard(doorAt + 0.8, yard - 0.35);
       add(makeDeliveryBox({ x: q.x, y: 0, z: q.z, ry }), q, 'prop', 0.3, 0.7);
     }

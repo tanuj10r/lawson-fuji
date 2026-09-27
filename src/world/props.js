@@ -484,6 +484,7 @@ export function makeBicycle(o = {}) {
   }
 
   inner.rotation.x = o.lean ?? 0;
+  g.name = 'bicycle';
   g.position.set(o.x, o.y ?? 0, o.z);
   g.rotation.y = o.ry ?? 0;
   return g;
@@ -935,6 +936,7 @@ export function makeBikeRack(o = {}) {
     inst.receiveShadow = true;
     g.add(inst);
   }
+  g.name = 'bike-rack';
   g.position.set(o.x, o.y ?? 0, o.z);
   return g;
 }

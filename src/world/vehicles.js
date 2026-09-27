@@ -222,6 +222,14 @@ export const SPEC = {
   },
 };
 
+/** Where a kind's rear axle sits behind its centre (m, along its length)
+ * and its wheel radius: for backing it up to a wheel stop. */
+export function vehicleWheels(kind) {
+  const s = SPEC[kind];
+  if (!s) return { rear: -1.1, front: 1.0, R: 0.25 };        // the kei truck
+  return { rear: s.axle[1], front: s.axle[0], R: s.R };
+}
+
 /** Overall footprint of a kind, for sizing a collider. */
 export function vehicleSize(kind) {
   const s = SPEC[kind];
@@ -631,6 +639,7 @@ export function makeVehicle(o = {}) {
  */
 export function parkVehicle(ctx, o) {
   const g = makeVehicle(o);
+  g.name = `vehicle-${o.kind ?? 'kei'}`;
   ctx.add(g);
   const { L, W, H } = vehicleSize(o.kind);
   const ry = (o.ry ?? 0) + (o.skew ?? 0);

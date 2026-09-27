@@ -217,9 +217,24 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
     return p;
   };
   const slots = [-w / 2 + 0.6, w / 2 - 0.6, -w / 2 + 1.6, w / 2 - 1.6, -w / 2 + 2.6];
+  /* (town quality pass) the bicycle stands along the shop front, at the end
+   * away from the door (Tan: they stood across the walk, half in the shop),
+   * and nothing else is put down where it stands.  The door's u: makeShop's
+   * local x, turned by its face, against the frame's own along (a custom
+   * frame, the station's cafe, runs u the other way). */
+  const localX = { 'z+': [1, 0], 'z-': [-1, 0], 'x+': [0, -1], 'x-': [0, 1] }[F.faceKey];
+  const f0 = F.at(0, 0), f1 = F.at(1, 0);
+  const doorU = look.doorX * Math.sign(localX[0] * (f1.x - f0.x) + localX[1] * (f1.z - f0.z) || 1);
+  const bikeAt = (i) => {
+    const s = doorU !== 0 ? -Math.sign(doorU) : Math.sign(slots[i % slots.length]);
+    return s * (w / 2 - 0.95);
+  };
+  const bikeI = T.outside.indexOf('bikes');
+  const bikeU = bikeI >= 0 ? bikeAt(bikeI) : null;
   T.outside.forEach((item, i) => {
     const u = slots[i % slots.length] + r.range(-0.15, 0.15);
     const seed = lot.seed + i * 13;
+    if (item !== 'bikes' && bikeU !== null && Math.abs(u - bikeU) < 1.3) return;
     switch (item) {
       case 'menu': put(makeMenuBoard({ x: 0, y: 0, z: 0, ry }), u, 0.3, 1.0); break;
       case 'flag': put(makeShopFlag({ x: 0, y: 0, z: 0, ry, variant: seed % 4 }), u, 0.15, 1.9); break;
@@ -243,11 +258,15 @@ export function buildShop(ctx, net, kit, lot, F, trade, o = {}) {
         break;
       }
       case 'bikes': {
-        const p = F.at(u, vOut);
-        const bike = makeBicycle({ x: p.x, y: yOut, z: p.z, ry: ry + Math.PI / 2 + r.range(-0.2, 0.2), lean: 0.07, color: r.pick([0x3f6f9c, 0xd8a03c, 0xe8e2d4]) });
+        // along the front, 0.35 m off it: the walk keeps its width
+        const v = walk ? -0.38 : 0.45;
+        const p = F.at(bikeU, v);
+        const flip = bikeU > 0 ? 0 : Math.PI;   // the front wheel toward the shop's end
+        const bike = makeBicycle({ x: p.x, y: yOut, z: p.z, ry: ry + flip + r.range(-0.2, 0.2) * 0.15, lean: 0.07, color: r.pick([0x3f6f9c, 0xd8a03c, 0xe8e2d4]) });
         bike.userData.detail = true;
         ctx.add(bike);
-        ctx.collide(p.x - 0.3, p.z - 0.3, p.x + 0.3, p.z + 0.3, 1.0);
+        const a = F.at(bikeU - 0.92, v - 0.3), b = F.at(bikeU + 0.92, v + 0.3);
+        ctx.collide(Math.min(a.x, b.x), Math.min(a.z, b.z), Math.max(a.x, b.x), Math.max(a.z, b.z), yOut + 1.0);
         reg('prop', p);
         break;
       }

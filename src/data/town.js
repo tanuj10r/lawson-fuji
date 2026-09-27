@@ -111,6 +111,7 @@ export const LAND_SIGNS = {
   paddy: ['田んぼに', '入らないでください'],   // on the farm track, by the flooded plots
   pump: ['揚水機場'],                           // the pump shed's plate
   parking: ['月極駐車場', '空きあり'],          // the lot across the road from the spawn
+  parkingIn: '入口', parkingOut: '出口',        // its way in off the main road, its way out to the bridge road
 };
 /** The pond beyond the river (Tan's bench by the water in Nara, made our
  * own): its name stone, and the tea house's curtain. */

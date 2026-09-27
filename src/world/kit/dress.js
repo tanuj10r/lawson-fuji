@@ -1,7 +1,7 @@
 import { rngKit } from '../../core/util.js';
 import { makeGomiHouse } from '../streetprops.js';
 import {
-  makePlanter, makeBench, makePostBox, makeCat, makeBikeRack, makeVendBin, makeCrates,
+  makePlanter, makeBench, makePostBox, makeCat, makeVendBin, makeCrates,
 } from '../props.js';
 import { addVending } from '../vending.js';
 import { buildShrubs } from '../trees.js';
@@ -138,14 +138,30 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
       ctx.collide(cx - 0.3, cz - 0.3, cx + 0.3, cz + 0.3, y + 1.4);
       reg('prop', { x: cx, z: cz });
     }
-    if (busy) {
-      const bx = n.x - Math.sign(cx - n.x) * (n.tx + 0.6), bz = cz;
-      if (!net.quiet(bx, bz)) {
-        const rack = makeBikeRack({ x: bx, y, z: bz, ry: 0, n: 3, seed: Math.round(bx * 3 + bz) });
-        rack.userData.detail = true;
-        ctx.add(rack);
-        ctx.collide(bx - 1.3, bz - 0.9, bx + 1.3, bz + 0.9, y + 1.0);
-        reg('prop', { x: bx, z: bz });
+    /* (town quality pass) the corner's bicycles: they stood in a rack across
+     * the corner, in the corner shop's wall.  Now three parked along the
+     * kerb of the busy street just past the corner, the walk left clear. */
+    if (busy && kit.clutter) {
+      const sx = -Math.sign(cx - n.x), sz = Math.sign(cz - n.z);
+      const e = [n.dirs[sz > 0 ? '+z' : '-z'], n.dirs[sz > 0 ? '+x' : '-x']].find((q) => q && q.spec.walk > 0 && q.axis === 'z');
+      if (e) {
+        const side = sx;
+        const off = side * (e.a + 0.5);
+        const s0 = n.z + sz * (n.tz + 1.6);
+        const ry = Math.PI / 2 + (sz > 0 ? 0 : Math.PI);
+        const pts = [0, 1, 2].map((k) => net.at(e, s0 + sz * k * 0.95, off));
+        const poles = (ctx.registry ?? []).filter((q) => q.kind === 'pole' || q.kind === 'sign');
+        // clear of anything already standing there (a board, a bench, a pole's box)
+        const free = (p) => {
+          const w = ctx.toWorld(p);
+          return !ctx.colliders.some((c) => (c.top ?? 9) > y + 0.3 && w.x + 0.3 > c.x0 && w.x - 0.3 < c.x1 && w.z + 0.95 > c.z0 && w.z - 0.95 < c.z1);
+        };
+        if (pts.every((p) => !net.quiet(p.x, p.z) && free(p) && !poles.some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 1.0))) {
+          pts.forEach((p, k) => kit.clutter.put('bike', p.x, y, p.z, ry + (k - 1) * 0.05, { roll: 0.07 * (k % 2 ? 1 : -1), color: [0x3f6f9c, 0xd8a03c, 0xe8e2d4, 0x9c5a4a][(k + Math.round(n.z)) % 4] }));
+          const a = pts[0], b = pts[2];
+          ctx.collide(Math.min(a.x, b.x) - 0.3, Math.min(a.z, b.z) - 0.95, Math.max(a.x, b.x) + 0.3, Math.max(a.z, b.z) + 0.95, y + 1.0);
+          for (const p of pts) reg('bikes', p);          // the walks' clutter keeps off them (street/walks.js)
+        }
       }
     }
   }

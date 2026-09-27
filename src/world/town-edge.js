@@ -215,8 +215,13 @@ export function buildOldTown(ctx) {
       const xa = B.x0 + 2 + ((B.x1 - B.x0 - 4) * k) / 3, xb = B.x0 + 2 + ((B.x1 - B.x0 - 4) * (k + 1)) / 3;
       row(xa, B.z0 - 3, xb, B.z0 - 3, 10, 3000 + k * 40);
     }
-    row(B.x0 - 3, B.z0, B.x0 - 3, 4, 11, 3200);                // west, down to the main road
-    row(B.x1 + 3, B.z0, B.x1 + 3, 4, 11, 3300);                // east
+    // west and east, down to the main road: open where the levee and the
+    // river run out of town (town pass), so the river doesn't meet a fence
+    const L = TOWN.land, gap = [L.farBank.z0, L.levee.z1];
+    row(B.x0 - 3, B.z0, B.x0 - 3, gap[0], 11, 3200);
+    row(B.x0 - 3, gap[1], B.x0 - 3, 4, 11, 3210);
+    row(B.x1 + 3, B.z0, B.x1 + 3, gap[0], 11, 3300);
+    row(B.x1 + 3, gap[1], B.x1 + 3, 4, 11, 3310);
 
     const fence = (x0, z0, x1, z1) => {
       const axis = x0 === x1 ? 'z' : 'x';
@@ -224,7 +229,9 @@ export function buildOldTown(ctx) {
       ctx.add(makeTimberFence({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, y: 0, len, axis, h: 1.2 }));
     };
     fence(B.x0, B.z0, B.x1, B.z0);
-    fence(B.x0, B.z0, B.x0, 8.0);
-    fence(B.x1, B.z0, B.x1, 8.0);
+    for (const x of [B.x0, B.x1]) {
+      fence(x, B.z0, x, gap[0]);
+      fence(x, gap[1], x, 8.0);
+    }
   }
 }

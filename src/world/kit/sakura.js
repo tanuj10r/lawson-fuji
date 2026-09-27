@@ -93,9 +93,9 @@ export function buildTownSakura(ctx, spots, { decals, classic = !decals } = {}) 
   for (let i = 0; i < spots.length; i++) emitters.push(seen[i] ? kept.emitters[ik++] : trees.emitters[ig++]);
   let shower = null;
   if (trees) {
-    // the river's surface: land/index.js lays its water sheet 0.03 up
+    // the river's surface: land/ lays its water at TOWN.land.river.water
     const R = TOWN.land?.river;
-    const river = R && { z0: R.z0, z1: R.z1, y: R.surface ?? 0.03 };
+    const river = R && { z0: R.z0, z1: R.z1, y: (R.water ?? R.surface ?? 0.03) + 0.01 };   // just on the water (config TOWN.land.river.water)
     buildFallen(ctx, trees.fallen, { decals, river });
     shower = buildShower(ctx, trees.emitters);
   }

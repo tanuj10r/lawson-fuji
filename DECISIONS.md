@@ -1490,3 +1490,29 @@ The builder's calls are in docs/decisions/green.md. Mine:
   shared image once, and the builder added no textures. Town park: +3
   calls, 2.06 M main-pass triangles.
 - Walks all stuck 0; guard 0.258 / 0.353 / 0.148%; stock pass.
+
+## Town pass, wave 2b: river & paddies (2026-09-27)
+The builder's calls are in docs/decisions/land.md (the levee widened to a
+6 m crest, the river z -49 to -65, 21 sakura on the levee and at the
+gate, painted hill rings, the bridge 富士見橋). Mine, at merge:
+- **The edge fences crossed the river.** The east and west boundary
+  fences and tree rows now open between the far bank and the levee; the
+  river runs out to the hills.
+- **Night before the land.** town.js makes the night (kit/night.js)
+  before buildLand, so the gate's lantern lights the gravel after dark;
+  buildCore reuses it.
+- **River petals under the water.** The sakura builder floated them at
+  `river.surface ?? 0.03`; the land builder named it `river.water` (0.06).
+  They now float just on it.
+- **Load time.** The merged build took 9.5 s to be ready (about 4 s
+  before): the fallen petals raycast every mesh under a crown, and the
+  land's sheets span the whole land, so each levee cherry's rays tested
+  thousands of triangles. Land surfaces over 60 m across are tagged
+  `ground` and skipped: their height comes from groundAt (the platforms).
+  Petals 5.0 -> 0.8 s; ready 4.8-5.4 s.
+- **Cost** (1440p): famous view 7.43 ms, 779 calls, 3.17 M triangles; the
+  new view back from the levee 7.57 ms; along the river 4-5 ms. Heap 378
+  MB; textures (estimate) 377 MB. Download 3.44 MB (fonts 474 KB).
+- Not done, noted: the north fence's plinth reads as a long low wall
+  behind the far paddies; the land is built once (no load-by-distance).
+- Walks all stuck 0; guard 0.258 / 0.353 / 0.148%; stock pass.

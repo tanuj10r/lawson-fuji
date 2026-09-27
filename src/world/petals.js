@@ -318,6 +318,7 @@ export function buildFallen(ctx, trees, { decals, river } = {}) {
   const rel = new THREE.Matrix4();
   root.traverse((o) => {
     if (!o.isMesh || o.isInstancedMesh || !o.visible || o.userData.shadowOnly || o.userData.noOutline) return;
+    if (o.userData.ground) return;          // big ground sheets: groundAt has their height (land/index.js)
     const m = o.material;
     if (Array.isArray(m) || m.transparent || m.depthWrite === false || m.alphaTest > 0) return;
     if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();

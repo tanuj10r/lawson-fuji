@@ -66,5 +66,16 @@ export function buildLand(ctx) {
     cast: ['bridge', 'bridgeDark', 'rail', 'white', 'post', 'wood', 'gateWood', 'door', 'roof', 'roofDark', 'shedWall', 'shedRoof', 'cloth', 'straw', 'stone', 'steel', 'steelBlue'],
   });
   scatter.build(group);
+  /* The sprawling surfaces (paddy sheets, banks, the track: each one mesh
+   * across the whole land) are ground, whose height ctx.groundAt already
+   * knows from the platforms: fallen petals don't raycast them (petals.js),
+   * which cost seconds of load for every levee cherry. */
+  const size = new THREE.Vector3();
+  group.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    o.geometry.boundingBox.getSize(size);
+    if (Math.max(size.x, size.z) > 60) o.userData.ground = true;
+  });
   buildHills(lctx);
 }

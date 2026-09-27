@@ -105,6 +105,8 @@ export function buildGate(ctx, parts) {
     parts.box('gateWood', lx - 0.06, lx + 0.06, 0, 1.2, lz - 0.06, lz + 0.06);
     parts.box('gateWood', lx - 0.24, lx + 0.24, 1.18, 1.24, lz - 0.24, lz + 0.24);
     parts.box('paper', lx - 0.19, lx + 0.19, 1.24, 1.74, lz - 0.19, lz + 0.19);
+    // and its glow on the gravel after dark (town.js makes the night before the land)
+    ctx.night?.pool(lx, lz, 3.2, { strength: 0.9 });
     for (const [dx, dz] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
       parts.box('gateWood', lx + dx * 0.2 - 0.025, lx + dx * 0.2 + 0.025, 1.22, 1.78, lz + dz * 0.2 - 0.025, lz + dz * 0.2 + 0.025);
     }

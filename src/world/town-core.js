@@ -97,7 +97,7 @@ function streetTrees(ctx, kit) {
   for (const [x0, x1] of runs) {
     for (let x = x0; x <= x1; x += 13) {
       if (mouths.some((m) => Math.abs(m - x) < 5)) continue;
-      if (x > 40 && x < 60 && Math.abs(x - 50) < 8) continue;          // the bus stop
+      if (Math.abs(x - 62) < 8) continue;                                // the bus stop
       if (poles.some((p) => Math.hypot(p.x - x, p.z - z) < 3)) continue;
       plant(ctx, 'zelkova', { x, z, y: ROADS.kerbH, scale: r.range(0.85, 1.05), seed: 4000 + x });
       kit.decals.add('grate', x, z, 1.1, 1.1, { x: 0, z: -1 }, ROADS.kerbH, LAYER.lid);

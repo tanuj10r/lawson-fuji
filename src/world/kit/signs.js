@@ -90,6 +90,7 @@ export function placeSigns(ctx, net, features) {
   /* ---- 止まれ and mirrors ---- */
   for (const st of features.stops) {
     const { e, dir, s, side, node } = st;
+    if (st.signalised) continue;             // a signalled junction: no 止まれ, no mirror
     const f = net.along(e, dir);
     const p = roadside(e, s - dir * 0.6, side);
     add(signPost(ctx, { ...p, ry: faceFor(f), h: 2.6, plates: [{ kind: 'tomare', w: 0.8 }], name: 'sign-tomare' }));

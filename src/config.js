@@ -239,7 +239,7 @@ export const TOWN = {
       { x: -50, cls: 'shopping', z1: 126 },       // the spine, to the plaza
       { x: -25, cls: 'lane', z0: 28, z1: 144 },  // starts behind the Lawson's forecourt
       { x: 0, cls: 'lane', z0: 45, z1: 144 },
-      { x: 30, cls: 'lane', z1: 144 },
+      { x: 30, cls: 'lane', z0: -11, z1: 144 },    // through the master junction and on as the bridge road, to the bridge (TOWN.land.bridge.z1)
     ],
     // (the town pass took the two east lanes, x 62 and 92: paddies now)
     ew: [
@@ -453,6 +453,11 @@ export const SHOT_SPOTS = [
   { name: 'paddy-lane', scene: 'town', pos: [49, 0, 45], yaw: -1.5708, pitch: -0.04, looks: ['day', 'golden'] },   // the paddies from lane z 45's end
   { name: 'paddy-overview', scene: 'town', pos: [40, 0, 68], yaw: -1.5708, pitch: -0.6, lift: 28, looks: ['day'] },
   { name: 'close-paddy', scene: 'town', pos: [53.5, 0, 72], yaw: -1.9, pitch: -0.3, looks: ['day'] },
+  { name: 'junction-top', scene: 'town', pos: [-30, 0, 13], yaw: 0, pitch: -1.5, lift: 38, looks: ['day'], frame: 'world' },
+  { name: 'junction-east', scene: 'town', pos: [-10, 0, 15.5], yaw: 1.5708, pitch: -0.08, looks: ['day'], frame: 'world' },   // driving west toward it
+  { name: 'junction-north', scene: 'town', pos: [-30.5, 0, -8], yaw: 3.1416, pitch: -0.1, looks: ['day'], frame: 'world' },  // coming down lane x 30
+  { name: 'junction-south', scene: 'town', pos: [-30, 0, 34], yaw: 0, pitch: -0.1, looks: ['day'], frame: 'world' },          // up the bridge road
+  { name: 'junction-walk', scene: 'town', pos: [-20, 0, 21.5], yaw: 1.3, pitch: -0.15, looks: ['day'], frame: 'world' },     // on the north walk
   { name: 'land-track', scene: 'town', pos: [30, 0, 5], yaw: 0, pitch: 0.02, looks: ['day', 'golden'] },   // the bridge road from the master junction
   { name: 'land-gate', scene: 'town', pos: [30, 0, -35.5], yaw: 0, pitch: 0.04, looks: ['day'] },
   { name: 'land-overview', scene: 'town', pos: [26, 0, 6], yaw: 3.1416, pitch: -0.82, lift: 95, looks: ['day', 'golden'], frame: 'world' },
@@ -531,7 +536,7 @@ export function placeAt(p) {
 export function mainRoadGaps() {
   // on the north walk, in world x: the town is built turned, so its x runs west
   return TOWN.grid.ns
-    .filter((r) => r.z0 === undefined)
+    .filter((r) => r.z0 === undefined || r.z0 < TOWN.grid.main)   // lanes that meet the road, or cross it
     .map((r) => [-r.x - ROADS[r.cls].asphalt / 2, -r.x + ROADS[r.cls].asphalt / 2]);
 }
 

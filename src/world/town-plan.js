@@ -20,7 +20,8 @@ const key = (x, z) => `${x},${z}`;
  * that frame the famous views stay the ones they were. */
 const LEGACY = (G) => ({
   ...G,
-  ns: [...G.ns, { x: 62, cls: 'lane', z1: 144 }, { x: 92, cls: 'lane', z1: 144 }],
+  // (lane x 30 began at the main road then; Tan's bridge road carries it on now)
+  ns: [...G.ns.map((r) => (r.x === 30 ? { ...r, z0: undefined } : r)), { x: 62, cls: 'lane', z1: 144 }, { x: 92, cls: 'lane', z1: 144 }],
   ew: G.ew.map((r) => ({ ...r, x1: 92 })),
 });
 
@@ -99,9 +100,13 @@ export function planNetwork() {
       // heard at one corner.  Its walk light alternates with the main road's
       // (offset 19 s puts it inside the main road's car green), as at a real
       // junction, so the two take turns
-      { edge: edgeAt('z', 30, 23.5), at: 23.5, offset: 19 },
+      { edge: edgeAt('z', 30, 23.5), at: 23.5, offset: 19, signalised: true },
+      // and the main road's zebra itself, painted by the kit like every other
+      // crossing (stop lines, diamonds, tactile pads); its signals and walk
+      // lights are signals.js's (town-edge.js), so no kit walk light here
+      { edge: edgeAt('x', G.main, -TOWN.crosswalk.x), at: -TOWN.crosswalk.x, signalised: true, signal: false },
     ],
-    busStops: [{ edge: edgeAt('x', G.main, 50), at: 50, side: 1 }],
+    busStops: [{ edge: edgeAt('x', G.main, 62), at: 62, side: 1 }],   // clear of the master junction's zebra
     quiet: TOWN.quiet,
     lowPoles: TOWN.lowPoles,
   };

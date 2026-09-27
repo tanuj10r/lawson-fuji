@@ -344,7 +344,8 @@ function sluice(parts, x, z, across) {
 export function buildTrack(ctx, parts) {
   const L = TOWN.land, T = L.track, B = L.bridge;
   const tx0 = T.x - T.w / 2, tx1 = T.x + T.w / 2;
-  for (const [z0, z1] of [[B.z1, T.z1], [T.z0, B.z0]]) {
+  // (the town side, from the junction to the bridge, is lane x 30's own road: the kit's)
+  for (const [z0, z1] of [[T.z0, B.z0]]) {
     const g = sheetGeo(tx0, tx1, z0, z1, T.top, 1, { rot: false, uTile: 1 });
     // u across the width, v along z
     const uv = g.attributes.uv;

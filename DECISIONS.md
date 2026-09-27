@@ -1612,3 +1612,30 @@ Tan drew the town's scope on the map and asked for it first:
   ms; paddies from the lane end 10.9 ms; junction 10.4 ms. Heap about 410-
   430 MB; download 3.48 MB. Guard 0.258 / 0.353 / 0.148% (as before);
   six walks stuck 0; audio all pass.
+
+## The master junction, designed for traffic (2026-09-28)
+Tan: cluttered, roads of different kinds, ground patterns that don't carry
+on; account for cars and walkers. What was wrong, and what it is now:
+- **Three road styles met there:** the main road, lane x 30 north, and the
+  land's own asphalt "bridge road" with grass verges south. Lane x 30 now
+  runs on through the junction as the bridge road (z0 -11), one kit lane
+  with one asphalt, edge lines, kerbed walks, its own stop line at the
+  main road. The legacy seed grid keeps lane x 30's old start, so no house
+  re-rolled (guard 0.269 / 0.365 / 0.158%).
+- **The far pavement ran across the bridge road's mouth**, raised: a car
+  couldn't turn in. lawson.js now breaks it (and its tactile strip) for any
+  lane that crosses the main road.
+- **The main road's zebra was signals.js's**, so the kit didn't know it:
+  no stop lines, a "40" and the bus box painted beside it. It is a kit
+  crossing now (stop lines, diamonds, tactile pads, like every crossing),
+  flagged `signalised`; signals.js keeps its signal posts and walk light
+  (`zebra: false`; the kit adds no second walk light). A stop line that
+  would fall inside the junction moves to its near side, so westbound
+  traffic stops before the junction. Speed numerals keep 10 m clear of
+  zebras; the bus stop moved 12 m east.
+- **A signalled junction** (nodes within 12 m of a signalised zebra): no
+  止まれ signs or words, no convex mirror, no second stop bar where the
+  zebra's own stop line serves, no utility poles within 8 m, no lane trees
+  within 11 m of its zebras.
+- Walks all stuck 0; audio all pass (four walk lights; at the spawn one at
+  a time).

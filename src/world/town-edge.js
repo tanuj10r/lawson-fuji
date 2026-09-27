@@ -112,7 +112,8 @@ export function buildFrame(ctx) {
 
   /* ========================= crosswalk and signals ========================= */
   // the main road runs east-west, so this crossing is walked north-south: the cuckoo
-  buildSignals(ctx, { x: TOWN.crosswalk.x, zNear: S.forecourtZ, zFar: S.roadZ, width: TOWN.crosswalk.width, sound: 'kakko' });
+  // the zebra itself is the road kit's (town-plan.js crossings), painted like every other
+  buildSignals(ctx, { x: TOWN.crosswalk.x, zNear: S.forecourtZ, zFar: S.roadZ, width: TOWN.crosswalk.width, sound: 'kakko', zebra: false });
 
   /* =============================== the Lawson =============================== */
   const hw = LAWSON.width / 2;

@@ -102,6 +102,14 @@ export function buildPoles(ctx, net, decals, clutter = null) {
       ...(e.cls === 'hero' ? [TOWN.crosswalk.x, TOWN.crosswalk.x2].filter((x) => x !== undefined)
         .map((x) => [-x - TOWN.crosswalk.width / 2 - 1.5, -x + TOWN.crosswalk.width / 2 + 1.5]) : []),
     ];
+    // and none within 8 m of a signalled junction's centre (its corners are the signals')
+    const sigAt = net.crossings.filter((c) => c.signalised).map((c) => net.at(c.e, c.at, 0));
+    for (const n of [e.lo, e.hi]) {
+      if (sigAt.some((p) => Math.hypot(p.x - n.x, p.z - n.z) < 12)) {
+        const at = e.axis === 'x' ? n.x : n.z;
+        busy.push([at - 8, at + 8]);
+      }
+    }
     const clear = (s) => !busy.some(([a, b]) => s > a && s < b);
 
     const spots = [];

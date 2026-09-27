@@ -153,7 +153,10 @@ export function dressStreets(ctx, net, kit, lots, specials = []) {
   // the walks' own clutter: bicycles, boards, crates, capsule toys (town quality pass)
   if (kit.clutter) dressWalks(ctx, net, kit, lots);
 
-  ctx.sakura.push(...trees);           // built with the town's other sakura in one batch
+  // a signalled junction's corners stay open, so drivers and walkers see each other
+  const sigAt = net.crossings.filter((c) => c.signalised).map((c) => net.at(c.e, c.at, 0));
+  const clearOfSignals = (t) => !sigAt.some((p) => Math.hypot(p.x - t.x, p.z - t.z) < 11);
+  ctx.sakura.push(...trees.filter(clearOfSignals));   // built with the town's other sakura in one batch
   if (ctx.hedges?.length) buildShrubs(ctx, ctx.hedges);
 
   /* cats, sat at a front gate */

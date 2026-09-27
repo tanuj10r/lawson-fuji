@@ -28,6 +28,10 @@ const headingOn = (e, side) => (e.axis === 'x' ? -side : side);
 
 export function paintMarkings(net, decals) {
   const features = { stops: [], crossings: [], starts: [], busStops: [], edges: [] };
+  // the master junction (Tan): nodes within 12 m of a signalised zebra are run
+  // by signals, so no 止まれ, no second stop bar, no numerals in the way
+  const sigAt = net.crossings.filter((c) => c.signalised).map((c) => net.at(c.e, c.at, 0));
+  const signalised = (n) => sigAt.some((p) => Math.hypot(p.x - n.x, p.z - n.z) < 12);
 
   /** A painted strip from s0 to s1 at `off`, cut in pieces so wear keeps its scale. */
   const strip = (e, cell, s0, s1, off, width, piece = 6, layer = LAYER.paint) => {
@@ -114,7 +118,10 @@ export function paintMarkings(net, decals) {
     const speedCell = spec.speed >= 40 ? 'n40' : 'n30';
     for (const dir of [1, -1]) {
       if (e.len < 30) break;
-      const sIn = dir > 0 ? s0 + 12 : s1 - 12;
+      let sIn = dir > 0 ? s0 + 12 : s1 - 12;
+      // not on top of a zebra's approach: past it, where the road is clear
+      if (net.crossings.some((c) => c.e === e && Math.abs(c.at - sIn) < 10)) sIn += dir * 14;
+      if (sIn < s0 + 4 || sIn > s1 - 4) continue;
       const side = e.axis === 'x' ? -dir : dir;          // the half this traffic uses
       const off = e.cls === 'lane' ? 0 : side * (e.cls === 'main' || e.cls === 'hero' ? spec.carriage / 4 : e.a / 2);
       const across = e.cls === 'lane' ? 1.5 : 1.6;
@@ -142,17 +149,20 @@ export function paintMarkings(net, decals) {
       // no lettering where a zebra already fills the approach
       const sWord = sStop - dir * 3.2;
       const zebraThere = net.crossings.some((c) => c.e === e && Math.abs(c.at - sWord) < 4);
+      const sig = signalised(n);
+      // a zebra right at the mouth brings its own stop line: no second bar
+      if (net.crossings.some((c) => c.e === e && Math.abs(c.at - sStop) < 7)) { features.stops.push({ node: n, e, dir, s: sStop, side, signalised: sig }); continue; }
       if (e.cls === 'lane') {
         const p = net.at(e, sStop, 0);
         decals.add('white', p.x, p.z, inner * 2, 0.45, net.along(e, dir), AY);
-        if (!zebraThere) word(e, 'tomare', sWord, 0, Math.min(2.8, inner * 1.5), 2.6, dir);
+        if (!zebraThere && !sig) word(e, 'tomare', sWord, 0, Math.min(2.8, inner * 1.5), 2.6, dir);
       } else {
         const half = e.cls === 'main' ? e.spec.carriage / 2 : inner;
         const p = net.at(e, sStop, side * half / 2);
         decals.add('white', p.x, p.z, half, 0.45, net.along(e, dir), AY);
-        if (!zebraThere) word(e, 'tomare', sWord, side * half / 2, Math.min(2.8, half * 0.9), 2.6, dir);
+        if (!zebraThere && !sig) word(e, 'tomare', sWord, side * half / 2, Math.min(2.8, half * 0.9), 2.6, dir);
       }
-      features.stops.push({ node: n, e, dir, s: sStop, side });
+      features.stops.push({ node: n, e, dir, s: sStop, side, signalised: sig });
     }
   }
 
@@ -171,7 +181,11 @@ export function paintMarkings(net, decals) {
       const laneOff = side * (e.cls === 'main' ? e.spec.carriage / 4 : e.a / 2);
       const half = e.cls === 'main' ? e.spec.carriage / 2 : reach;
       // stop line before the zebra, then ◇ further back
-      const sl = c.at - dir * (L / 2 + 2);
+      let sl = c.at - dir * (L / 2 + 2);
+      // a stop line that would fall in a junction moves to the junction's
+      // near side: traffic stops before the junction, not inside it
+      const jn = [e.lo, e.hi].find((n) => n.degree >= 3 && Math.abs((e.axis === 'x' ? n.x : n.z) - sl) < (e.axis === 'x' ? n.tx : n.tz) + 0.5);
+      if (jn) sl = (e.axis === 'x' ? jn.x : jn.z) - dir * ((e.axis === 'x' ? jn.tx : jn.tz) + 1.2);
       const p = net.at(e, sl, side * half / 2);
       decals.add('white', p.x, p.z, half, 0.4, net.along(e, dir), AY);
       for (const d of MARKINGS.diamondAhead) {
@@ -184,7 +198,7 @@ export function paintMarkings(net, decals) {
         tactilePad(decals, q.x, q.z, net.along(e, 1));
       }
     }
-    features.crossings.push({ e, s: c.at, L, offset: c.offset });
+    features.crossings.push({ e, s: c.at, L, offset: c.offset, signal: c.signal, signalised: c.signalised });
   }
 
   /* ---- bus stops ---- */

@@ -32,6 +32,7 @@ export function buildKit(ctx, def) {
     // are, so the town is quiet between greens instead of one always calling
     // a crossing over an east-west road is walked north-south: the cuckoo.
     // Over a north-south road (the shopping spine) it is the chick.
+    if (c.signal === false) return;          // its walk lights are signals.js's (the main road's zebra)
     buildWalkSignal(ctx, { ends, offset: c.offset ?? 6 + i * 3, sound: c.e.axis === 'x' ? 'kakko' : 'piyo' });
   });
   let done = false;

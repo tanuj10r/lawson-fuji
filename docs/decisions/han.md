@@ -70,3 +70,62 @@ land/index.js `buildLand`, one line (+ import) in land/parking.js, the
   over a grey-olive crew-neck, a chain, khaki cargos, dark trainers.
 - Parts are batched per joint and kind (skin / everything else), colours
   per vertex: 15 draws. The face is a textured patch over the head.
+
+## The real-car pass (2026-09-28, evening; Tan: "real, realistic, not
+## anime"; "Han looks pathetic"; music only with the engagement)
+- **The car leaves the cel ramp.** Tan asked for the real car, so this one
+  object is physically shaded: MeshPhysical paint (orange under a
+  clearcoat, roughness 0.42), gunmetal roof and pillars as on the film
+  car, tinted reflective glass over a real interior (buckets, dash,
+  wheel), chrome five-split-spoke deep-dish rims, rubber, black trim,
+  glossy tail lenses. Everything else in the game stays MeshToon; the
+  screen-space ink still draws the car's silhouette, so it sits in the
+  frame. No src/core change, no bloom.
+- **Reflections need an environment.** There is none in the scene, so
+  rx7.js draws a 64 px cube map in code (graded sky, a sun patch, a
+  horizon row of pale and dark blocks, sunlit asphalt); three PMREMs it
+  once at load (~1 MB, half float). Its intensity follows the scene's
+  sun (found once in ctx.scene: the shadow-casting directional), so blue
+  hour doesn't mirror a day sky: k = sun.intensity / 2.2, clamped 0.22-1.1.
+- **Shape:** broader squared nose, a trapezoid mouth with grille bars,
+  headlamps wrapping over the nose edge, two big round tail lamps a side
+  in oval wells (my reading of the Fortune's tail; unsure whether the
+  real kit has two or three: log it for Tan), the wing's stanchions taller
+  and swept, a slight dihedral, 19" wheels (tyre R 0.33, rim 0.262).
+- **Cost:** +6 draws where the car is seen (roof, rims split from tyres,
+  headlamp and plate as lit materials, grille), ~+25k triangles; paint map
+  unchanged (1024x460); + the env cube and its PMREM (~1.1 MB); +4.9 KB
+  gzipped source. Frame time at the han spots measured 8.4-10.9 ms after
+  vs 10.2-14.2 ms before, but hero-1 (untouched) moved 13.8 -> 9.4 ms in
+  the same pair of runs, so that is load noise, not a gain: call it even,
+  slightly heavier per pixel on the car (physical BRDF + clearcoat).
+- **Han, from the still.** Rebuilt to real proportions (1.78 m, head
+  0.157 wide, shoulders 0.4): the lean is the still's diagonal, hips on
+  the quarter panel just ahead of the rear wheel (LEAN moved 5 cm in and
+  5 cm back), legs out 29 degrees and crossed at the ankle (left over
+  right, toes out), pelvis and spine tilted back so the small of his back
+  rests on the deck, head forward and a little to his right, arms folded
+  low at the belt with the hands tucked (wrist bend worked out in the
+  elbow's YXZ frame: toward the body is local -x for the left arm, +x for
+  the right). Cloth is displaced tubes: ridges in the jacket and cargos,
+  the hems bunched over the shoes, cargo pockets with flaps, a stand
+  collar, the jacket open a hand's width over the grey-green top, the
+  chain and pendant. Head sculpted (long, cheekbones, jaw to the chin,
+  forehead sloping back), a nose mesh, the face map redrawn bolder so it
+  reads at 1.5 m; hair is a scalp shell with a broken hairline plus ~60
+  tapered strands from a centre part (fringe over the forehead corners,
+  sides over the ears, back to the collar). Skin darkened (0xc48e68): at
+  sun 2.2 the old tone clipped to paper. Cloth on the 4-band ramp so folds
+  show. ~20 draws (was 15), ~+9k triangles.
+- **Music only with the show.** The approach zone is gone: nothing plays
+  until the player steps into the glow, then han-drift starts from the
+  top with the nod as a placed one-shot (near 6, far 24: the famous view
+  is 22.8 m off). It ends with the show; walking off fades it by distance
+  for its first 8 s (the engine's placed voices follow the listener that
+  long), after which it holds its level until the track ends at 17.7 s. A
+  true fade on leaving would need a stoppable one-shot in core/sound.js,
+  which isn't mine. E still starts it (the spot keeps its prompt); the
+  play check now also steps in without E and checks nothing was audible
+  on the walk up.
+- New shot spot `han-getin` (t = 2.0 s: door open, Han getting in) to
+  check the door and the seat pose.

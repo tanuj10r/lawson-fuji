@@ -129,7 +129,7 @@ try {
   await step('00-list', () => ({
     spots: [...window.__scene.world.experiences.list, ...window.__scene.world.lawson.experiences.list].map((e) => `${e.id}(${e.x.toFixed(1)},${e.z.toFixed(1)})`),
     zones: (window.__soundZones ?? []).map((z) => `${z.name}(${z.x.toFixed(1)},${z.z.toFixed(1)}) near ${z.near} far ${z.far} lvl ${z.level}`),
-  }), (r) => r.spots.length >= 7 && r.zones.length >= 5);
+  }), (r) => r.spots.length >= 7 && r.zones.length >= 4);   // (Han's track is no zone: it plays with his show only)
 
   /* ---- sound: where do two zones' tracks play at once? ---- */
   await step('01-sound-overlap', () => {
@@ -213,8 +213,16 @@ try {
     const mid = await window.__frame();
     await window.__wait(12500);
     const st3 = window.__han.state();
-    return { st0, st1, st2, st3, audible, toasts: window.__toasts.slice(), mid };
-  }, (r) => r.st1.run && Math.hypot(r.st2.x - r.st0.x, r.st2.z - r.st0.z) > 3 && Math.hypot(r.st3.x - r.st0.x, r.st3.z - r.st0.z) < 0.3 && !r.st3.run);
+    // stepping into the glow starts it too, no E (the track starts with it; nothing played on the walk up)
+    const { player } = window.__scene;
+    const audibleBefore = window.__audible();
+    player.pos.set(s.x, player.pos.y, s.z);
+    await window.__wait(600);
+    const st4 = window.__han.state();
+    window.__han.stop();
+    return { st0, st1, st2, st3, st4, audible, audibleBefore, toasts: window.__toasts.slice(), mid };
+  }, (r) => r.st1.run && Math.hypot(r.st2.x - r.st0.x, r.st2.z - r.st0.z) > 3 && Math.hypot(r.st3.x - r.st0.x, r.st3.z - r.st0.z) < 0.3 && !r.st3.run
+    && r.st4.run && !r.audibleBefore.includes('han-drift'));
 
   // the shrine: E, a bow and a prayer, then the view is handed back
   await step('22-shrine', async () => {

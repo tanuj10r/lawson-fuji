@@ -630,7 +630,7 @@ export function buildStation(ctx, { kit, service, sets }) {
    * you step in, heard only on that stretch of platform.  No E, no text. */
   const doorsX = sets[0].carX.flatMap((c) => DOORS.map((d) => TOWN.station.stopX + c.x + d));
   const doorX = doorsX.reduce((a, b) => (Math.abs(b - cxE) < Math.abs(a - cxE) ? b : a));
-  const listen = { x: doorX, z: P1.edge - 1.25, r: 1.1 };
+  const listen = { x: doorX, z: P1.edge - 1.6, r: 1.1 };           // its light column clear of the train's side
   const listenW = ctx.toWorld(listen);
   const trainSpot = ctx.experiences?.add({
     id: 'train', name: RIDE.say.listen, jp: '電車', x: listen.x, z: listen.z, y: PH, r: listen.r, h: 2.0, interact: false,

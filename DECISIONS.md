@@ -1705,3 +1705,8 @@ where below the bar, merged; builders' own calls in docs/decisions/*.md.
 - The guard: `node scripts/_han-route.mjs` samples the drive at 120 Hz and fails if any corner of the car (its body as drawn, drift included) leaves the car park, its mouth, the bridge road, the main road or the forecourt, or touches a parked car, or if it doesn't end in the bay. Run it after any change to the route or the town's layout there.
 - The smoke is soft translucent puffs (one Points draw) instead of solid white balls.
 - A player standing in the glow is clear of the car (1.25 m at the closest); one standing in its path makes it wait, as before.
+
+## After the rename merge (2026-09-28)
+- The line's next station was 河口湖 / Kawaguchiko, a real town a letter away from our own name: it is 富士山 / Fujisan now (train destinations, the fare map, the bus's stops); the onsen ad reads 西湖 温泉.
+- The train's listening spot moved 0.35 m back from the platform edge: its light column had cut into the train's side.
+- The station entrance board, the map title and the signs read Fujikawaguchikko / 富士川口湖; 富士見 stays where it names the view (Fujimi Line, 富士見通り, 富士見稲荷神社), not the town.

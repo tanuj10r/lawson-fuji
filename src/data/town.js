@@ -11,7 +11,7 @@ export const TOWN_NAME = { jp: '富士川口湖町', en: 'Fujikawaguchikko' };
 export const STATION = { jp: '富士川口湖', en: 'FUJIKAWAGUCHIKKO', romaji: 'Fujikawaguchikko' };
 
 /** Destination board on the front of the train. */
-export const TRAIN_DEST = { kind: '各停', jp: '河口湖' };
+export const TRAIN_DEST = { kind: '各停', jp: '富士山' };
 
 /** Paper lanterns strung down the shopping street. */
 export const LANTERN_TEXT = ['富士見', '商店街', '桜まつり', '祭', '奉納'];
@@ -59,8 +59,8 @@ export const POLE_ADS = [
 
 /** Blue direction boards: [left, ahead, right] and the route line. */
 export const DIRECTIONS = [
-  { to: ['駅', '河口湖', '富士吉田'], route: '富士見通り' },
-  { to: ['富士吉田', '駅', '河口湖'], route: '富士見通り' },
+  { to: ['駅', '富士山', '富士吉田'], route: '富士見通り' },
+  { to: ['富士吉田', '駅', '富士山'], route: '富士見通り' },
 ];
 
 /** The bus stop in the town. */
@@ -83,10 +83,10 @@ export const LINE = {
     { jp: '富士川口湖', en: 'FUJIKAWAGUCHIKKO', fare: 0 },
     { jp: 'こもれび野', en: 'KOMOREBINO', fare: 160 },
     { jp: '富士山麓', en: 'FUJISANROKU', fare: 230 },
-    { jp: '河口湖', en: 'KAWAGUCHIKO', fare: 310 },
+    { jp: '富士山', en: 'FUJISAN', fare: 310 },
   ],
-  /** by direction of travel: +x (track 1) runs east to 河口湖 */
-  dest: { east: { kind: '各停', jp: '河口湖', en: 'Kawaguchiko' }, west: { kind: '各停', jp: '大月', en: 'Otsuki' } },
+  /** by direction of travel: +x (track 1) runs east to 富士山 (not 河口湖: too close to the town's own name) */
+  dest: { east: { kind: '各停', jp: '富士山', en: 'Fujisan' }, west: { kind: '各停', jp: '大月', en: 'Otsuki' } },
 };
 export const TAXI = '富士見交通';
 
@@ -192,13 +192,13 @@ export const DONPEN = {
 
 /* ---- the station and the train (experiences build, 2026-09-28) ----
  * Track 1's trains run through to Shibuya (a fun liberty: the in-train
- * announcement says so); track 2's run up the line to 河口湖.  The world's
+ * announcement says so); track 2's run up the line to 富士山.  The world's
  * lettering is Japanese; `say` names the experience spots (English). */
 export const RIDE = {
   line: '富士見線', lineEn: 'Fujimi Line', color: '#2f8a55', pink: '#f08aa8',
   dest: {
     east: { kind: '快速', kindEn: 'Rapid', jp: '渋谷', en: 'Shibuya', via: '大月・新宿方面' },
-    west: { kind: '各停', kindEn: 'Local', jp: '河口湖', en: 'Kawaguchiko', via: '富士山麓方面' },
+    west: { kind: '各停', kindEn: 'Local', jp: '富士山', en: 'Fujisan', via: '富士山麓方面' },
   },
   /** the fare map, west to east as drawn: the through service beyond 大月 */
   through: [{ jp: '渋谷', en: 'SHIBUYA', fare: 1980 }, { jp: '新宿', en: 'SHINJUKU', fare: 1850 }],
@@ -229,7 +229,7 @@ export const CAR_ADS = [
   { t: '富士山麓 ハイキング', s: '富士見線で いこう', bg: '#d8ecf6', fg: '#1f4f7a' },
   { t: 'さくらおにぎり', s: 'ニッポン 新発売', bg: '#fde8ef', fg: '#b6413a' },
   { t: '鹿公園', s: '近日公開', bg: '#efe3c8', fg: '#6a3a20' },
-  { t: '河口湖 温泉', s: '日帰り 900円', bg: '#e6f1e2', fg: '#2f5a2a' },
+  { t: '西湖 温泉', s: '日帰り 900円', bg: '#e6f1e2', fg: '#2f5a2a' },
   { t: 'えいご はじめよう', s: 'ふじみ英会話', bg: '#fff6d8', fg: '#c0561a' },
   { t: '優先席付近では', s: 'マナーモードに', bg: '#f2f2f2', fg: '#1f3f7a' },
   { t: '桜まつり', s: '4月上旬 富士川口湖駅前', bg: '#f7d8e2', fg: '#8a2f4a' },

@@ -640,7 +640,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     G.hop = 0; G.roll = 0;
     if (G.hopT >= 0) { G.hopT += dt; const u = G.hopT / 0.5; G.hop = 0.2 * Math.sin(Math.PI * Math.min(1, u)); if (u >= 1) G.hopT = -1; }
     if (G.shakeT >= 0) { G.shakeT += dt; const u = G.shakeT / 0.7; G.roll = 0.16 * Math.sin(G.shakeT * 70) * (1 - u); G.tilt += 0.3 * Math.sin(G.shakeT * 70 + 1) * (1 - u); if (u >= 1) G.shakeT = -1; }
-    G.y = ground(G.x, G.z) + G.amp * 0.032 * (0.5 + 0.5 * Math.sin(2 * G.ph + 1)) + G.hop;
+    G.y = ground(G.x, G.z) + G.amp * 0.042 * (0.5 + 0.5 * Math.sin(2 * G.ph + 1)) + G.hop;
     place();
   }
 

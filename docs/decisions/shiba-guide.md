@@ -72,3 +72,13 @@ main.js `__shot` stages the dog for a spot's `guide:` pose; shots.mjs passes it.
   ring. The goal fields are now grown ahead of need (every engagement's,
   the nap's, 2.5 ms a frame while nothing is wanted; ~10 MB of Float32
   for the town), so a new goal never leaves it standing blank.
+- **Third pass: the view from behind and above** (following it at eye
+  height, 3-6 m, is what a player mostly sees). The tail curl sits back
+  over the base of the spine and a little smaller, so the back line, the
+  saddle and the shoulders show; the whole body is carried 2.5 cm higher
+  (a post-build lift above the knee: longer legs, a longer level back);
+  the head is carried higher and forward at a trot with the neck
+  stretching from its root; ears a touch taller and more upright with
+  deeper red edges and backs; the bob 4 cm at two beats a stride. The
+  respawn (H: enterHero, a jump onto the view) was already the jump rule:
+  the dog is home, out of the frame, the same frame; _guide.mjs checks it.

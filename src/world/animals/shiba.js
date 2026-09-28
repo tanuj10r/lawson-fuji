@@ -24,7 +24,8 @@ import { painted } from './shade.js';
 
 export const RED = 0xd08a4a, RED_D = 0xbd7439, CREAM = 0xf7eedc, BLACK = 0x110d0b, BROW = 0xe9c9a4, PINK = 0xe27f8e;
 /** The shoulders (the sit tilts the body about them), the neck's root, the tongue's root. */
-const SH = [0, 0.30, 0.12], NK = [0, 0.32, 0.17], TR = [0, 0.398, 0.35];
+const LIFT = 0.025;                     // the body carried this much higher (legs longer, the back line level and clear of the tail)
+const SH = [0, 0.30 + LIFT, 0.12], NK = [0, 0.32 + LIFT, 0.17], TR = [0, 0.398 + LIFT, 0.35];
 export const SIT_ANGLE = 0.6, LIE_DROP = 0.13;
 /** Its ground shadow, across and along (m), standing. */
 export const SHADOW = [0.21, 0.37];
@@ -37,13 +38,13 @@ export function shibaGeometry() {
   /* the body: a plush barrel, the chest round and deep just behind the
    * forelegs, a full back, a broad rump; a thick double coat */
   b.add(loft([
-    { p: [0, 0.29, -0.235], rx: 0.04, ry: 0.045 },
-    { p: [0, 0.285, -0.205], rx: 0.09, ry: 0.105 },
+    { p: [0, 0.29, -0.26], rx: 0.04, ry: 0.045 },
+    { p: [0, 0.287, -0.225], rx: 0.09, ry: 0.105 },
     { p: [0, 0.28, -0.11], rx: 0.1, ry: 0.12 },
     { p: [0, 0.278, 0.0], rx: 0.098, ry: 0.122 },
     { p: [0, 0.28, 0.1], rx: 0.1, ry: 0.13 },
-    { p: [0, 0.295, 0.175], rx: 0.088, ry: 0.112 },
-    { p: [0, 0.315, 0.225], rx: 0.04, ry: 0.045 },
+    { p: [0, 0.293, 0.18], rx: 0.088, ry: 0.112 },
+    { p: [0, 0.31, 0.235], rx: 0.04, ry: 0.045 },
   ], 28, [0, 1, 0], 4), {
     color: (p, n) => {
       if (front(n, p, 0.085) && p.y < 0.34) return CREAM;                       // the chest
@@ -54,7 +55,7 @@ export function shibaGeometry() {
   });
   // the "pants" on the haunches and the shoulders' fluff
   for (const s of [-1, 1]) {
-    b.add(blob(0.062, 0.085, 0.1, 18, 12), { matrix: at(s * 0.078, 0.235, -0.135, 0.15, 0, s * 0.12), color: (p, n) => (under(n, -0.45) || n.x * s < -0.6 ? CREAM : RED) });
+    b.add(blob(0.062, 0.085, 0.1, 18, 12), { matrix: at(s * 0.078, 0.235, -0.15, 0.15, 0, s * 0.12), color: (p, n) => (under(n, -0.45) || n.x * s < -0.6 ? CREAM : RED) });
     b.add(blob(0.05, 0.07, 0.065, 14, 10), { matrix: at(s * 0.075, 0.26, 0.115), color: (p, n) => (front(n, p, 0.2) && n.x * s < 0.35 ? CREAM : RED) });
   }
   // the ruff round the neck: a thick cream collar at the throat and chest
@@ -114,24 +115,25 @@ export function shibaGeometry() {
   }
   // ears (parts 7, 8): small thick triangles, set wide, tipped a little forward, cream inside
   for (const s of [-1, 1]) {
-    const e = new THREE.ConeGeometry(0.034, 0.066, 4, 1);
+    const e = new THREE.ConeGeometry(0.037, 0.078, 4, 2);
     e.rotateY(Math.PI / 4);
     e.scale(1.0, 1, 0.55);
     const base = [hc[0] + s * 0.05, hc[1] + 0.04, hc[2] - 0.006];
-    b.add(e, { part: s < 0 ? 7 : 8, pivot: base, matrix: at(hc[0] + s * 0.05, hc[1] + 0.07, hc[2] - 0.008, 0.28, 0, -s * 0.26), color: (p, n, l) => (l.z > 0.004 && l.y < 0.018 && Math.abs(l.x) < 0.02 ? 0xf1d8c4 : RED) });
+    // cream inside; the back and the edges a deeper red, so they read from behind
+    b.add(e, { part: s < 0 ? 7 : 8, pivot: base, matrix: at(hc[0] + s * 0.05, hc[1] + 0.076, hc[2] - 0.008, 0.16, 0, -s * 0.2), color: (p, n, l) => (l.z > 0.004 && l.y < 0.022 && Math.abs(l.x) < 0.022 ? 0xf1d8c4 : Math.abs(l.x) > 0.024 || l.y > 0.03 || l.z < -0.012 ? 0xa8602c : RED) });
   }
 
   /* ---- the tail (part 2): thick and fluffy, a tight curl over the back, cream inside ---- */
-  const tb = [0, 0.33, -0.2];
+  const tb = [0, 0.33, -0.225];
   b.add(loft([
-    { p: [0, 0.3, -0.215], rx: 0.05, ry: 0.05 },
-    { p: [0, 0.37, -0.245], rx: 0.06, ry: 0.06 },
-    { p: [0.005, 0.45, -0.215], rx: 0.062, ry: 0.062 },
-    { p: [0.03, 0.47, -0.135], rx: 0.058, ry: 0.058 },
-    { p: [0.07, 0.43, -0.09], rx: 0.05, ry: 0.05 },
-    { p: [0.09, 0.38, -0.1], rx: 0.036, ry: 0.036 },
-    { p: [0.095, 0.36, -0.115], rx: 0.0, ry: 0.0 },
-  ], 16, [1, 0, 0], 3), { part: 2, pivot: tb, color: (p, n) => (n.y > 0.2 || p.x > 0.055 ? RED : CREAM) });
+    { p: [0, 0.3, -0.24], rx: 0.046, ry: 0.046 },
+    { p: [0, 0.365, -0.275], rx: 0.055, ry: 0.055 },
+    { p: [0.005, 0.44, -0.25], rx: 0.056, ry: 0.056 },
+    { p: [0.028, 0.455, -0.18], rx: 0.052, ry: 0.052 },
+    { p: [0.065, 0.42, -0.14], rx: 0.045, ry: 0.045 },
+    { p: [0.085, 0.375, -0.15], rx: 0.032, ry: 0.032 },
+    { p: [0.09, 0.355, -0.165], rx: 0.0, ry: 0.0 },
+  ], 16, [1, 0, 0], 3), { part: 2, pivot: tb, color: (p, n) => (n.y > 0.2 || p.x > 0.05 ? RED : CREAM) });
 
   /* ---- legs: short and sturdy, cream socks; one loft through the joints for
    * each pose (standing, sitting, lying), the same sections, so a morph
@@ -168,7 +170,12 @@ export function shibaGeometry() {
       [[s * 0.068, 0.15, -0.15], [s * 0.098, 0.08, -0.05], [s * 0.093, 0.035, -0.19], [s * 0.09, 0.03, -0.06]],
     ], [[s * 0.07, 0.026, -0.15], [s * 0.082, 0.024, 0.012], [s * 0.09, 0.024, -0.04]]);
   }
-  return b.build();
+  const g = b.build();
+  const P = g.attributes.position, J = g.attributes.aJoint;
+  const up = (y) => y + LIFT * THREE.MathUtils.smoothstep(y, 0.1, 0.2);
+  for (let i = 0; i < P.count; i++) { P.setY(i, up(P.getY(i))); J.setY(i, up(J.getY(i))); }
+  g.computeBoundingSphere(); g.computeBoundingBox();
+  return g;
 }
 
 const v3 = (a) => `vec3(${a.map((x) => x.toFixed(3)).join(', ')})`;
@@ -206,7 +213,9 @@ void rig(inout vec3 p, inout vec3 n) {
     if (id == 1.0 || id > 6.5) {
       vec3 nk = rotX(NK - SH, sitA) + SH + drop;
       vec3 rest = vec3(0.0, -0.06, 0.02) * lie;
-      float hx = nod - sitA * 0.8 + lie * 0.9;
+      float hx = nod - sitA * 0.8 + lie * 0.9 - 0.12 * amp;
+      // at a trot the head is carried a little higher and forward, the neck stretching from its root
+      q += vec3(0.0, 0.03, 0.035) * amp * smoothstep(0.0, 0.12, q.y - NK.y);
       q = nk + rotY(rotX(rotZ(q - nk, tilt), hx), look) + rest;
       n = rotY(rotX(rotZ(n, tilt), hx), look);
       if (id > 6.5 && id < 8.5) {

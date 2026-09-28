@@ -542,7 +542,9 @@ export const SHOT_SPOTS = [
   { name: 'han-side', scene: 'town', pos: [17.6, 0, 4.7], yaw: -1.5708, pitch: -0.06, looks: ['day'] },                // the profile at 5 m
   { name: 'han-front34', scene: 'town', pos: [19.4, 0, 9.0], yaw: -0.72, pitch: -0.1, looks: ['day'] },                 // front three-quarter at 5.5 m
   { name: 'han-rear', scene: 'town', pos: [20.0, 0, -1.0], yaw: -2.66, pitch: -0.08, looks: ['day'] },                  // its tail, from the aisle
-  { name: 'han-drift-mid', scene: 'town', pos: [20.5, 0, 4.2], yaw: -2.35, pitch: -0.08, looks: ['day'], train: 'han:10.05' },   // mid-slide in the master junction, from the spot
+  { name: 'han-drift-mid', scene: 'town', pos: [20.5, 0, 4.2], yaw: -2.35, pitch: -0.08, looks: ['day'], train: 'han:11.44' },   // mid-slide in the master junction, from the spot
+  { name: 'han-out', scene: 'town', pos: [20.5, 0, 4.2], yaw: -1.26, pitch: -0.05, looks: ['day'], train: 'han:6.46' },         // out of the car park's mouth onto the bridge road
+  { name: 'han-flick', scene: 'town', pos: [20.5, 0, 4.2], yaw: 2.23, pitch: -0.02, looks: ['day'], train: 'han:9.32' },        // the handbrake 180 on NIPPON's forecourt
   { name: 'han-getin', scene: 'town', pos: [20.2, 0, 6.2], yaw: -1.0, pitch: -0.1, looks: ['day'], train: 'han:2.0' },              // the door open, Han getting in
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },

@@ -4,6 +4,7 @@ import { soundBus } from '../../core/soundBus.js';
 import { TOWN } from '../../config.js';
 import { makeRX7, RX7 } from './rx7.js';
 import { makeHan, POSES, blendPose } from './han.js';
+import { buildDrive, driveAt, T_DRIVE } from './drive.js';
 
 /* ------------------------------------------------------------------ *
  * Han and the RX-7 (Tan's experience 2, docs/EXPERIENCES.md).
@@ -36,115 +37,55 @@ export const HAN_SPOT = { x: HAN_BAY.x - 2.45, z: 4.2, r: 0.85 };
 
 const SONG = 17.74;            // han-drift's length
 const T_IN = 2.8;              // Han is in and the door shut: the drive starts
-const T_DRIVE = 12.6;          // the drive, out and back to the bay
 const T_END = T_IN + T_DRIVE + 2.3;
 const NEAR = 60;               // beyond this nothing updates (the drive aside)
 
-/* ------------------------------ the drive ------------------------------ */
-/* A turtle path in the town frame: straights and arcs, forward or in
- * reverse, each with a speed at its start and end (so its time follows),
- * and a drift angle for the two slides.  Heading th: forward = (cos, sin). */
-function buildDrive() {
-  const segs = [];
-  let x = HAN_BAY.x, z = HAN_BAY.z, th = Math.PI / 2;
-  const add = (o) => {
-    const { len = 0, R = 0, turn = 0, rev = false, v0 = 0, v1 = 0, hold = 0, drift = 0 } = o;
-    const pts = [{ s: 0, x, z, th }];
-    const n = Math.max(1, Math.ceil(len / 0.02));
-    const ds = len / n;
-    for (let i = 1; i <= n && len > 0; i++) {
-      const dir = rev ? -1 : 1;
-      if (R) {
-        const dth = turn * ds / R;
-        const mid = th + dth / 2;
-        x += dir * Math.cos(mid) * ds; z += dir * Math.sin(mid) * ds;
-        th += dth;
-      } else {
-        x += dir * Math.cos(th) * ds; z += dir * Math.sin(th) * ds;
-      }
-      pts.push({ s: i * ds, x, z, th });
-    }
-    const T = hold || (2 * len) / Math.max(0.01, v0 + v1);
-    segs.push({ len, R, turn, rev, v0, v1, T, drift, pts });
-  };
-  add({ len: 1.5, v0: 0, v1: 3 });                                  // out of the bay
-  add({ len: 4.8 * Math.PI / 2, R: 4.8, turn: -1, v0: 3, v1: 6 });  // onto the main road, east
-  add({ len: 28, v0: 6, v1: 18 });                                   // flat out
-  add({ len: 6.25, v0: 18, v1: 11 });                                // brake
-  add({ len: 2.6 * Math.PI, R: 2.6, turn: 1, v0: 11, v1: 7, drift: 0.62 });   // flick it round
-  add({ len: 25.25, v0: 7, v1: 17 });                                // back west
-  add({ len: 7, v0: 17, v1: 11 });
-  add({ len: 2.6 * Math.PI, R: 2.6, turn: 1, v0: 11, v1: 5, drift: 0.7 });    // round through the master junction
-  add({ len: 0.8, v0: 5, v1: 0 });
-  add({ hold: 0.35 });                                               // into reverse
-  add({ len: 2.8, rev: true, v0: 0, v1: 3 });
-  add({ len: 4.8 * Math.PI / 2, R: 4.8, turn: 1, rev: true, v0: 3, v1: 2.5 });   // back into the bay
-  add({ len: 1.5, rev: true, v0: 2.5, v1: 0 });
-  // fit it to the music: every segment's time scaled alike
-  const total = segs.reduce((a, s) => a + s.T, 0);
-  let t = 0, dist = 0;
-  for (const s of segs) { s.T *= T_DRIVE / total; s.t0 = t; t += s.T; s.d0 = dist; dist += s.len; }
-  return { segs, total: T_DRIVE, dist };
-}
-
-/** Where the car is at drive time t: position, heading, drift, distance run. */
-function driveAt(D, t, out = {}) {
-  t = THREE.MathUtils.clamp(t, 0, D.total);
-  let seg = D.segs[D.segs.length - 1];
-  for (const s of D.segs) if (t <= s.t0 + s.T) { seg = s; break; }
-  const u = seg.T > 0 ? (t - seg.t0) / seg.T : 1;
-  // distance along the segment with speed going linearly v0 -> v1
-  const k = seg.v0 + seg.v1 > 0 ? (seg.v0 * u + (seg.v1 - seg.v0) * u * u / 2) / ((seg.v0 + seg.v1) / 2) : 0;
-  const sd = seg.len * k;
-  const pts = seg.pts;
-  const f = pts.length > 1 ? Math.min(pts.length - 1.001, (sd / Math.max(seg.len, 1e-6)) * (pts.length - 1)) : 0;
-  const i = Math.floor(f), a = pts[i], b = pts[Math.min(i + 1, pts.length - 1)], w = f - i;
-  out.x = a.x + (b.x - a.x) * w;
-  out.z = a.z + (b.z - a.z) * w;
-  out.th = a.th + (b.th - a.th) * w;
-  out.dist = seg.d0 + sd;
-  out.speed = seg.v0 + (seg.v1 - seg.v0) * u;
-  out.rev = seg.rev;
-  // the slides: tail out through each drifting arc, eased in and caught after
-  let drift = 0;
-  for (const s of D.segs) {
-    if (!s.drift) continue;
-    const mid = s.t0 + s.T / 2, half = s.T / 2 + 0.45;
-    const q = (t - mid) / half;
-    if (Math.abs(q) < 1) drift += s.turn * s.drift * Math.cos(q * Math.PI / 2) ** 1.5 * (q > 0 ? 1 - 0.3 * q : 1);
-  }
-  out.drift = drift;
-  out.steer = seg.R ? THREE.MathUtils.clamp(seg.turn * Math.atan(2.43 / seg.R) * (seg.rev ? -1 : 1), -0.6, 0.6) : 0;
-  if (drift) out.steer = THREE.MathUtils.clamp(out.steer - drift * 1.1, -0.6, 0.6);   // counter-steer
-  out.sliding = Math.abs(drift) > 0.18;
-  out.launch = seg === D.segs[2] && u < 0.25;
-  return out;
-}
-
 /* ------------------------------- smoke ------------------------------- */
 function makeSmoke(ctx) {
+  /* Tyre smoke (Tan: real, not cartoon): soft translucent puffs, one
+   * Points draw, each puff swelling from the tyre and thinning to nothing.
+   * A PointsMaterial with a per-puff size and opacity. */
   const MAX = 64;
-  const geo = new THREE.IcosahedronGeometry(0.5, 1);
-  const mat = cel({ color: 0xeeeae6, bands: 'soft', tint: 0xb4a8c8, flat: false });
-  const mesh = new THREE.InstancedMesh(geo, mat, MAX);
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(MAX * 3), size = new Float32Array(MAX), alpha = new Float32Array(MAX);
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
+  geo.setAttribute('aAlpha', new THREE.BufferAttribute(alpha, 1));
+  geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e5);
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, 'rgba(255,255,255,0.9)'); r.addColorStop(0.45, 'rgba(255,255,255,0.45)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(c);
+  const mat = new THREE.PointsMaterial({ color: 0xdedbd8, map: tex, size: 1, sizeAttenuation: true, transparent: true, depthWrite: false });
+  mat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute float aSize;\nattribute float aAlpha;\nvarying float vAlpha;')
+      .replace('gl_PointSize = size;', 'gl_PointSize = size * aSize;\n  vAlpha = aAlpha;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vAlpha;')
+      .replace('#include <premultiplied_alpha_fragment>', 'gl_FragColor.a *= vAlpha;\n#include <premultiplied_alpha_fragment>');
+  };
+  mat.customProgramCacheKey = () => 'han-smoke';
+  const mesh = new THREE.Points(geo, mat);
   mesh.name = 'han-smoke';
   mesh.userData.dynamic = true;
   mesh.userData.noOutline = true;
   mesh.frustumCulled = false;
-  mesh.count = 0;
   mesh.visible = false;
   ctx.add(mesh);
   const P = [];
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3();
-  const LIFE = 1.7;
+  const LIFE = 2.2;
   let seed = 1;
   const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   return {
     mesh,
-    reset() { P.length = 0; mesh.count = 0; seed = 1; },
+    reset() { P.length = 0; geo.setDrawRange(0, 0); seed = 1; },
     emit(x, y, z, vx, vz) {
       if (P.length >= MAX) P.shift();
-      P.push({ x, y, z, vx: vx * 0.25 + (rnd() - 0.5) * 1.2, vy: 0.5 + rnd() * 0.5, vz: vz * 0.25 + (rnd() - 0.5) * 1.2, age: 0, s: 0.55 + rnd() * 0.5, r: rnd() * 6 });
+      P.push({ x, y, z, vx: vx * 0.25 + (rnd() - 0.5) * 1.2, vy: 0.35 + rnd() * 0.4, vz: vz * 0.25 + (rnd() - 0.5) * 1.2, age: 0, s: 0.9 + rnd() * 0.6 });
     },
     update(dt) {
       for (let i = P.length - 1; i >= 0; i--) {
@@ -156,16 +97,15 @@ function makeSmoke(ctx) {
       }
       for (let i = 0; i < P.length; i++) {
         const p = P[i], u = p.age / LIFE;
-        // cartoon puffs: pop up, swell, then shrink away
-        const s = p.s * (u < 0.15 ? u / 0.15 : 1) * (0.7 + 1.3 * u) * (1 - u ** 3);
-        v.set(p.x, p.y, p.z); sc.set(s, s * 0.85, s);
-        q.setFromAxisAngle(THREE.Object3D.DEFAULT_UP, p.r + u);
-        m4.compose(v, q, sc);
-        mesh.setMatrixAt(i, m4);
+        pos[i * 3] = p.x; pos[i * 3 + 1] = p.y; pos[i * 3 + 2] = p.z;
+        size[i] = p.s * (0.8 + 2.8 * Math.sqrt(u));                         // swelling as it drifts
+        alpha[i] = 0.62 * Math.min(1, u / 0.12) * (1 - u) ** 1.6;             // in quickly, thinning away
       }
-      mesh.count = P.length;
+      geo.attributes.position.needsUpdate = true;
+      geo.attributes.aSize.needsUpdate = true;
+      geo.attributes.aAlpha.needsUpdate = true;
+      geo.setDrawRange(0, P.length);
       mesh.visible = P.length > 0 && mesh.userData.on !== false;   // no puffs, no draw
-      mesh.instanceMatrix.needsUpdate = true;
     },
   };
 }
@@ -173,7 +113,7 @@ function makeSmoke(ctx) {
 /* ------------------------------- building ------------------------------- */
 
 export function buildHan(ctx) {
-  const D = buildDrive();
+  const D = buildDrive(HAN_BAY);
   const car = makeRX7();
   const cg = car.group;
   cg.userData.dynamic = true;             // it moves: not merged into the town's static cells

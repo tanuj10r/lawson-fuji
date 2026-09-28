@@ -202,6 +202,8 @@ try {
   await step('21-han', async () => {
     const s = window.__spotOf('han');
     window.__standBy(s.x, s.z, 2.0, 0.9);
+    // then into the glow, where a player stands to start it (off to the side the car backs out through the aisle, and waits for you)
+    window.__scene.player.pos.set(s.x, window.__scene.player.pos.y, s.z);
     await window.__wait(400);
     const st0 = window.__han.state();
     window.__press('KeyE');
@@ -215,6 +217,8 @@ try {
     const st3 = window.__han.state();
     // stepping into the glow starts it too, no E (the track starts with it; nothing played on the walk up)
     const { player } = window.__scene;
+    player.pos.set(s.x - 3, player.pos.y, s.z);            // off the glow, then back on: it starts again
+    await window.__wait(400);
     const audibleBefore = window.__audible();
     player.pos.set(s.x, player.pos.y, s.z);
     await window.__wait(600);

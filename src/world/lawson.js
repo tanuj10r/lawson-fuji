@@ -203,7 +203,7 @@ export function buildLawson(parent) {
     shop.spot = exp.add({ id: 'konbini', name: 'Nippon Mart', jp: 'ニッポン', x: SPOT.x, z: SPOT.z, r: SPOT.r, h: 2.2 });
     // the famous view itself (Tan): where the photo was taken; stepping on it frames the shot (main.js)
     const hv = HERO_VIEWS.morning.play.pos;
-    exp.add({ id: 'view', name: 'The Nippon Fuji view', jp: 'ニッポン富士', x: hv[0], z: hv[2], r: 1.0, h: 1.6 });
+    exp.add({ id: 'view', name: 'Nippon Mart viewpoint', jp: '富士山ビュー', x: hv[0], z: hv[2], r: 1.0, h: 1.6 });
     root.userData.spot = { list: exp.list, update(dt, p) {
       for (const fn of spotUpd) fn(dt, p);
       if (shop.quietView()) for (const o of spotObjs) if (o.material?.visible !== false) o.visible = false;

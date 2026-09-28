@@ -158,7 +158,7 @@ const ctl = await page.evaluate(async () => {
 });
 check('the keys shown follow the place',
   ctl.town.includes('M') && ctl.town.includes('Shift') && !ctl.town.includes('Tab')
-  && ctl.store.includes('E') && !ctl.store.includes('Tab')
+  && !ctl.store.includes('X') && !ctl.store.includes('Tab')   // no roaming the store now (the konbini is a scene): no take/put-back keys there
   && ctl.famousView.join() === '↑,↓,←,→,1,2,3', ctl);   // (the basket panel went with the konbini rework: its keys are the store's)
 
 check('no 404s', missing.length === 0, missing);

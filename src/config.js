@@ -104,13 +104,13 @@ export const STREET = {
  *          the view reads as the photo and walking off never zooms.
  *
  * The rest is the exact camera of the reference photo, used only under the
- * dev R overlay, reconstructed from the store's size in it:
+ * dev reference overlay (Backquote), reconstructed from the store's size in it:
  *   vfov   vertical field of view, degrees
  *   shift  lens shift [x, y] in units of half the frame height.  The photos
  *          keep verticals straight with the horizon well below centre, so the
  *          camera stays level and the lens shifts instead of tilting.
  * The composition then holds at any window aspect: the frame is matched on
- * its height, and the R overlay fits the reference by height too. */
+ * its height, and the reference overlay fits the reference by height too. */
 export const HERO_VIEWS = {
   morning: {
     key: 'Digit1',

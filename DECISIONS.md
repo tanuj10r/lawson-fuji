@@ -1710,3 +1710,7 @@ where below the bar, merged; builders' own calls in docs/decisions/*.md.
 - The line's next station was 河口湖 / Kawaguchiko, a real town a letter away from our own name: it is 富士山 / Fujisan now (train destinations, the fare map, the bus's stops); the onsen ad reads 西湖 温泉.
 - The train's listening spot moved 0.35 m back from the platform edge: its light column had cut into the train's side.
 - The station entrance board, the map title and the signs read Fujikawaguchikko / 富士川口湖; 富士見 stays where it names the view (Fujimi Line, 富士見通り, 富士見稲荷神社), not the town.
+
+## H: back to the Nippon view; the counter laid out (2026-09-28)
+- H puts the player back on the Nippon Fuji view from anywhere, at the time of day they're in (Tan: "I'm finding it difficult to get back to the Nippon store" since 1 2 3 only change the light). Not during the konbini's scene, the map or the glide onto the view; it ends Han's watch and a seat like any move. _play step 29-home.
+- The counter: the second self-checkout sat inside the bun steamer and the first's bagging shelf ran into the oden pot; the second now stands at z -3.62 (its reader and printer on its far side, no shelf of its own), the oden pot moved to -5.62..-5.12, its cups on the lid.

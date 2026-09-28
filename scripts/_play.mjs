@@ -366,6 +366,16 @@ try {
   });
 
   /* ---- the minimap: a diamond or a speaker where each spot is ---- */
+  // H: back to the Nippon view from anywhere (Tan: a respawn), the time of day kept
+  await step('29-home', async () => {
+    const { player } = window.__scene;
+    player.pos.set(-60, player.pos.y, -40);
+    await window.__wait(300);
+    window.__press('KeyH');
+    await window.__wait(400);
+    return { at: [+player.pos.x.toFixed(2), +player.pos.z.toFixed(2)], yaw: +player.yaw.toFixed(2) };
+  }, (r) => Math.hypot(r.at[0] - 0, r.at[1] - 16.5) < 0.1 && Math.abs(r.yaw) < 0.01);
+
   await step('30-minimap', async () => {
     const { player, world } = window.__scene;
     const list = world.experiences.list;

@@ -333,22 +333,24 @@ export function buildInterior(group, { lit, colliders }) {
      * draws the screen), the scanner's glass in front of it with its red
      * line, the IC reader's lit pad to the right, the receipt slot, and the
      * bagging shelf to the left */
-    for (const z of [-3.3, -4.5]) {
+    // the second stands clear of the bun steamer (it starts at z -3.3), its
+    // reader and printer on its far side, no bagging shelf (it shares the first's)
+    for (const [z, s] of [[-3.62, -1], [-4.5, 1]]) {
       p.box(xf + 0.18, xf + 0.55, 0.97, 1.12, z - 0.28, z + 0.28, 0xe9ecf0);            // the cabinet
       p.box(xf + 0.24, xf + 0.32, 1.12, 1.52, z - 0.19, z + 0.19, 0xdfe3e8);            // the screen's back
-      p.box(xf + 0.03, xf + 0.17, 0.97, 0.985, z - 0.14, z + 0.1, 0x1a1d24);            // the scanner glass
-      p.box(xf + 0.095, xf + 0.105, 0.985, 0.987, z - 0.12, z + 0.08, 0xd83a3a);         // its red line
-      p.box(xf + 0.06, xf + 0.2, 0.97, 1.04, z + 0.22, z + 0.38, 0x2a2e36);             // the IC reader
-      p.box(xf + 0.08, xf + 0.18, 1.04, 1.046, z + 0.24, z + 0.36, 0x6ac4f0);            // its lit pad
-      p.box(xf + 0.33, xf + 0.5, 1.12, 1.2, z + 0.1, z + 0.26, 0xdfe3e8);               // the receipt printer
-      p.box(xf + 0.329, xf + 0.331, 1.15, 1.16, z + 0.12, z + 0.24, 0x2a2e36);           // its slot
-      p.box(xf + 0.03, xf + 0.45, 0.97, 0.99, z - 0.64, z - 0.32, 0xcfd4da);            // the bagging shelf
+      p.box(xf + 0.03, xf + 0.17, 0.97, 0.985, z - 0.12, z + 0.12, 0x1a1d24);           // the scanner glass
+      p.box(xf + 0.095, xf + 0.105, 0.985, 0.987, z - 0.1, z + 0.1, 0xd83a3a);          // its red line
+      p.box(xf + 0.06, xf + 0.2, 0.97, 1.04, z + s * 0.22, z + s * 0.38, 0x2a2e36);     // the IC reader
+      p.box(xf + 0.08, xf + 0.18, 1.04, 1.046, z + s * 0.24, z + s * 0.36, 0x6ac4f0);    // its lit pad
+      p.box(xf + 0.33, xf + 0.5, 1.12, 1.2, z + s * 0.1, z + s * 0.26, 0xdfe3e8);       // the receipt printer
+      p.box(xf + 0.329, xf + 0.331, 1.15, 1.16, z + s * 0.12, z + s * 0.24, 0x2a2e36);   // its slot
+      if (s > 0) p.box(xf + 0.03, xf + 0.45, 0.97, 0.99, z - 0.6, z - 0.36, 0xcfd4da);  // the bagging shelf, clear of the oden
       p.quad(stripSign('セルフレジ', 'Self checkout', '#1f5fae'), xf + 0.02, 2.0, z, 0.62, 0.17, { ry: -Math.PI / 2 });
     }
     // oden and the coffee machine at the back end
-    p.box(xf + 0.1, xb - 0.1, 0.97, 1.2, -5.5, -5.0, C.steel);
-    for (let i = 0; i < 4; i++) p.box(xf + 0.12 + (i % 2) * 0.27, xf + 0.36 + (i % 2) * 0.27, 1.2, 1.21, -5.45 + Math.floor(i / 2) * 0.22, -5.27 + Math.floor(i / 2) * 0.22, 0xe8c888);
-    p.quad(counterLabel('oden'), xf + 0.08, 1.32, -5.25, 0.4, 0.15, { ry: -Math.PI / 2 });
+    p.box(xf + 0.1, xb - 0.1, 0.97, 1.2, -5.62, -5.12, C.steel);                        // clear of the bagging shelf (to -5.1) and the cups (from -5.65)
+    for (let i = 0; i < 4; i++) p.box(xf + 0.12 + (i % 2) * 0.27, xf + 0.36 + (i % 2) * 0.27, 1.2, 1.21, -5.57 + Math.floor(i / 2) * 0.22, -5.39 + Math.floor(i / 2) * 0.22, 0xe8c888);
+    p.quad(counterLabel('oden'), xf + 0.08, 1.32, -5.37, 0.4, 0.15, { ry: -Math.PI / 2 });
     p.quad(counterLabel('counter'), xf - 0.01, 0.75, -3.9, 0.9, 0.34, { ry: -Math.PI / 2 });
     p.quad(counterLabel('coffee'), xf + 0.08, 1.9, za + 0.35, 0.5, 0.19, { ry: -Math.PI / 2 });
     // the counter's front: a panel line and a darker plinth
@@ -356,7 +358,7 @@ export function buildInterior(group, { lit, colliders }) {
     p.box(xf - 0.012, xf, 0.5, 0.52, za, zb, 0xc2a880);
     p.box(xf + 0.1, xb - 0.05, 0.97, 1.75, za + 0.1, za + 0.6, 0x3a3e4a);            // the coffee machine
     p.box(xf + 0.08, xf + 0.1, 1.2, 1.6, za + 0.15, za + 0.55, 0xc88a4a);
-    p.box(xf + 0.12, xb - 0.1, 0.97, 1.3, za + 0.7, za + 0.95, 0xf2f2f2);              // cups and lids
+    p.box(xf + 0.12, xb - 0.1, 0.97, 1.3, za + 0.7, za + 0.93, 0xf2f2f2);              // cups and lids
     block(xf - 0.04, X1, za - 0.3, zb + 0.04, 1.2);
     // behind: the back counter, microwaves, the cigarette wall, the staff door
     p.box(X1 - 0.6, X1, FLOOR, 0.9, -6.6, -1.6, C.counterBack);
@@ -365,7 +367,7 @@ export function buildInterior(group, { lit, colliders }) {
     p.quad(cigaretteTex(), X1 - 0.305, 2.05, -4.05, 4.2, 1.26, { ry: -Math.PI / 2 });
     p.box(X1 - 0.04, X1, FLOOR, 2.05, -7.9, -7.0, 0xc8ccd4);
     p.quad(doorSign('staff'), X1 - 0.05, 2.3, -7.45, 0.8, 0.4, { ry: -Math.PI / 2 });
-    slots.push({ zone: 'hot', id: 'oden', x: xf + 0.25, y: 0.97, z0: -4.95, z1: -4.75 });
+    slots.push({ zone: 'hot', id: 'oden', x: xf + 0.25, y: 1.21, z0: -5.55, z1: -5.2 });      // the cups on the oden pot's lid, clear of the self-checkout
     slots.push({ zone: 'coffee', x: xf + 0.3, y: 0.97, z0: za + 0.72, z1: za + 0.93 });
   }
 

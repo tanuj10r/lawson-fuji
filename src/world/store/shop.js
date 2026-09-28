@@ -39,7 +39,7 @@ const TILL = {
   screen: new THREE.Vector3(6.2, 1.34, REG_Z),                   // its touchscreen, tilted to you
   scan: new THREE.Vector3(6.2, 1.0, REG_Z - 0.02),               // on the scanner's glass
   reader: new THREE.Vector3(6.2, 1.05, REG_Z + 0.3),             // the IC reader's pad
-  bag: new THREE.Vector3(6.25, 0.975, REG_Z - 0.46),             // the bagging shelf, left of it
+  bag: new THREE.Vector3(6.25, 0.99, REG_Z - 0.48),             // the bagging shelf, left of it
   stand: new THREE.Vector3(5.45, 0, REG_Z),
   look: new THREE.Vector3(6.2, 1.3, REG_Z),
 };
@@ -144,7 +144,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     return { mesh, show };
   };
   const screen = makeScreen(REG_Z);
-  makeScreen(REG_Z < -3.9 ? REG_Z + 1.2 : REG_Z - 1.2);   // the other self-checkout, waiting
+  makeScreen(REG_Z < -3.9 ? REG_Z + 0.88 : REG_Z - 0.88);  // the other self-checkout, waiting (clear of the bun steamer: interior.js)
   // the card, drawn on top like what you hold; in your right hand only to pay
   const cardMat = onTopClamped(new THREE.MeshBasicMaterial({ map: cardTexture() }));
   lit.push(cardMat);

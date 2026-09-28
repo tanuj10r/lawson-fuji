@@ -502,6 +502,12 @@ window.addEventListener('keydown', (e) => {
   if (shop?.visiting && !/^Digit[1-3]$/.test(e.code) && e.code !== 'KeyN') return;
   // M: the full town map (M2f); it holds your walking and looking while open (not while you pay)
   // (not opened while something else holds the player, e.g. the konbini's scene)
+  // H: back to the Nippon Fuji view, from anywhere, at the time of day you're in (Tan: a respawn)
+  if (e.code === 'KeyH' && player.locked && !shop?.visiting && !gliding && !minimap?.fullOpen && !hero) {
+    player.suspended = false;
+    enterHero(lastView);
+    return;
+  }
   if (e.code === 'KeyM' && minimap && player.locked && !shop?.busy && (minimap.fullOpen || !player.suspended)) {
     const open = !minimap.fullOpen;
     minimap.setFull(open, player.pos, player.yaw);
@@ -541,7 +547,7 @@ function controlRows(hovered) {
   if (handsHud?.open) rows.push([`1–${shop.menu.length}`, K.choose]);
   rows.push(['Shift', K.run]);
   if (hovered) rows.push(['E', K.interact]);
-  rows.push(['M', K.map], ['1 2 3', K.views]);
+  rows.push(['M', K.map], ['H', K.home], ['1 2 3', K.views]);
   rows.push(['N', K.sound], ['Space', K.pause]);
   return rows;
 }

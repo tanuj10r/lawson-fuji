@@ -11,7 +11,7 @@ Sep 23, 2026 · @Tanuj
 
 ## 1. Overview
 
-Lawson (ローソン) is a cozy, first-person 3D browser game set in a compact Japanese town at the foot of Mt. Fuji. The player wanders the town, walks into the famous Lawson with Fuji rising behind it, shops, pays, microwaves a bento, and walks back out into the evening. It is a nostalgia piece: the goal is for someone who has been to Japan to feel it within 10 seconds, mostly through visuals, sound, and light.
+Lawson (ローソン) is a cozy, first-person 3D browser game set in a compact Japanese town at the foot of Mt. Fuji: Fujikawaguchikko (富士川口湖町, Tan 2026-09-28; its station is 富士川口湖駅). The player wanders the town, walks into the famous Lawson with Fuji rising behind it, shops, pays, microwaves a bento, and walks back out into the evening. It is a nostalgia piece: the goal is for someone who has been to Japan to feel it within 10 seconds, mostly through visuals, sound, and light.
 
 **Goals**
 

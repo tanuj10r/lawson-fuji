@@ -6,8 +6,8 @@
 // locked, stood near each experience's spot facing it, and E is pressed
 // through the game's own key handler.  Checks: runtime errors, the prompt
 // and every toast in English, each experience doing its thing, the sound
-// zones (which play where, and where two tracks overlap), the minimap's
-// diamonds on both maps.  Frames of each go to outdir.
+// zones (which play where, and where two tracks overlap), the sound
+// experiences (no E, no highlight), the minimap's diamonds and speakers.  Frames of each go to outdir.
 //
 // Starts its own dev server and Chrome (queued on the shots lock) and closes
 // both however it ends.
@@ -127,9 +127,10 @@ try {
   });
   // the key handler for E sits on the document in core/player.js; check it's there
   await step('00-list', () => ({
-    spots: [...window.__scene.world.experiences.list, ...window.__scene.world.lawson.experiences.list].map((e) => `${e.id}(${e.x.toFixed(1)},${e.z.toFixed(1)})`),
+    spots: [...window.__scene.world.experiences.list, ...window.__scene.world.lawson.experiences.list].map((e) => `${e.kind}:${e.id}(${e.x.toFixed(1)},${e.z.toFixed(1)})`),
     zones: (window.__soundZones ?? []).map((z) => `${z.name}(${z.x.toFixed(1)},${z.z.toFixed(1)}) near ${z.near} far ${z.far} lvl ${z.level}`),
-  }), (r) => r.spots.length >= 7 && r.zones.length >= 4);   // (Han's track is no zone: it plays with his show only)
+  }), (r) => ['engage:konbini', 'engage:view', 'engage:han', 'engage:train', 'engage:slowlife', 'sound:shrine', 'sound:donki', 'sound:station', 'sound:crossing', 'sound:walk0']
+    .every((k) => r.spots.some((x) => x.startsWith(k + '('))) && r.spots.length >= 13 && r.zones.length >= 4);   // (Han's track is no zone: it plays with his show only)
 
   /* ---- sound: where do two zones' tracks play at once? ---- */
   await step('01-sound-overlap', () => {
@@ -172,12 +173,31 @@ try {
     return { stood, prompt, hovered, audible: window.__audible() };
   }, { id, opts });
 
-  for (const id of ['han', 'shrine', 'station', 'train', 'donki', 'slowlife']) {
+  for (const id of ['han', 'slowlife']) {
     const r = await visit(id, id === 'han' ? { d: 1.9 } : {});
     const ok = r && !r.error && /^E  ·  /.test(r.prompt) && english(r.prompt);
     if (!ok) bad++;
     console.log(ok ? 'pass' : 'FAIL', `10-prompt-${id}`, JSON.stringify(r));
   }
+  // the sound experiences (Tan, 2026-09-28): heard as you pass; no E, no highlight in town
+  await step('11-sounds', async () => {
+    const { world, scene } = window.__scene;
+    const list = [...world.experiences.list, ...world.lawson.experiences.list];
+    const sounds = list.filter((e) => e.kind === 'sound');
+    const rings = [];
+    scene.traverse((o) => { if (o.name === 'exp-highlight' && o.geometry?.type === 'PlaneGeometry') rings.push(o); });
+    const ringAt = rings.map((o) => o.getWorldPosition(new window.__scene.THREE.Vector3()));
+    const near = (e, r) => ringAt.filter((p) => Math.hypot(p.x - e.x, p.z - e.z) < r).length;
+    const out = {};
+    for (const e of sounds) {
+      window.__standBy(e.x, e.z, 2.5, 0.9);
+      await window.__wait(350);
+      out[e.id] = { prompt: window.__prompt(), audible: window.__audible(), rings: near(e, 2) };   // (the train's spot stands 4 m from the station's middle)
+    }
+    return { rings: rings.length / 2, engage: list.filter((e) => e.kind === 'engage').length, out };
+  }, (r) => r.rings === r.engage && Object.values(r.out).every((o) => o.prompt === '' && o.rings === 0)
+    && r.out.shrine.audible.some((a) => a.startsWith('shrine-chimes')) && r.out.donki.audible.some((a) => a.startsWith('donki-theme'))
+    && r.out.station.audible.some((a) => a.startsWith('station-ambience')));
 
   // the konbini: walk onto its spot, the choice shows; a number starts the scene (no roaming, no skipping)
   await step('20-konbini', async () => {
@@ -228,78 +248,45 @@ try {
   }, (r) => r.st1.run && Math.hypot(r.st2.x - r.st0.x, r.st2.z - r.st0.z) > 3 && Math.hypot(r.st3.x - r.st0.x, r.st3.z - r.st0.z) < 0.3 && !r.st3.run
     && r.st4.run && !r.audibleBefore.includes('han-drift'));
 
-  // the shrine: E, a bow and a prayer, then the view is handed back
-  await step('22-shrine', async () => {
-    const { player } = window.__scene;
-    const s = window.__spotOf('shrine');
-    window.__standBy(s.x, s.z, 2.0, 0.9);
-    await window.__wait(400);
-    const before = { yaw: player.yaw, pitch: player.pitch };
-    window.__press('KeyE');
-    await window.__wait(1200);
-    const during = { suspended: player.suspended, pitch: +player.pitch.toFixed(2) };
-    const frame = await window.__frame();
-    await window.__wait(14000);
-    const after = { suspended: player.suspended, pitch: +player.pitch.toFixed(2) };
-    return { before, during, after, toasts: window.__toasts.slice(), frame };
-  }, (r) => r.during.suspended && !r.after.suspended && r.toasts.every(english));
-
-  // the station: the master bows; no subtitle (quality pass, Tan: text only where required)
+  // the station: heard, full in the concourse, mild over the plaza, nothing beyond; nobody there
   await step('23-station', async () => {
-    const s = window.__spotOf('station');
-    const { world } = window.__scene;
-    const master = (world.line.local ?? world.line).station.master;
-    window.__standBy(s.x, s.z, 2.0, 0.9);
+    const { world, scene } = window.__scene;
+    const z = window.__soundZones.find((q) => q.name === 'station-ambience');
+    const fall = (d, a) => (d <= a.near ? 1 : d >= a.far ? 0 : ((t) => t * t * (3 - 2 * t))(1 - (d - a.near) / (a.far - a.near)));
+    const level = (x, zz) => { const d = Math.hypot(z.x - x, z.z - zz); return +(z.level * (z.core ? Math.max((z.edge ?? 1) * fall(d, z), fall(d, z.core)) : fall(d, z))).toFixed(3); };
+    const plaza = window.__mapArt.places.find((p) => p.id === 'plaza').w;
+    const spot = window.__spotOf('station');
+    window.__standBy(plaza.x, plaza.z, 0.5, 1.2);
     await window.__wait(400);
-    const n0 = window.__toasts.length;
-    window.__press('KeyE');
-    await window.__wait(300);
-    const busy = master.busy;
-    await window.__wait(500);
-    return { busy, newToasts: window.__toasts.slice(n0), frame: await window.__frame() };
-  }, (r) => r.busy === 'bow' && r.newToasts.length === 0);
+    const audiblePlaza = window.__audible();
+    let people = 0;
+    scene.traverse((o) => { if (/master/i.test(o.name)) people++; });
+    return { concourse: level(spot.x, spot.z), plaza: level(plaza.x, plaza.z), far: z.far, audiblePlaza, people, frame: await window.__frame() };
+  }, (r) => r.concourse >= 0.4 && r.plaza > 0.05 && r.plaza < r.concourse * 0.5 && r.audiblePlaza.some((a) => a.startsWith('station-ambience')) && r.people === 0);
 
-  // the train: no train -> the note; a train in -> aboard; the chime -> put back on the platform
+  // the train: nobody boards; stepping into the spot by its door plays the next-stop announcement there, no text
   await step('24-train', async () => {
-    const { player, world } = window.__scene;
+    const { player, world, sound } = window.__scene;
     const s = window.__spotOf('train');
-    const L = world.line;
-    const svc = L.service ?? L.local?.service;
-    svc.stage('idle');
-    window.__standBy(s.x, s.z, 2.0, 0.9);
-    await window.__wait(400);
-    window.__press('KeyE');
-    await window.__wait(300);
-    const noTrain = window.__toasts.slice();
+    const svc = world.line.local.service;
     svc.stage('platform');
     await window.__wait(1500);
-    window.__standBy(s.x, s.z, 2.0, 0.9);
-    await window.__wait(400);
-    const prompt = window.__prompt();
+    window.__standBy(s.x, s.z, 3.0, 0.9);
+    await window.__wait(600);
+    const n0 = sound.debug.log.length;
     window.__toasts.length = 0;
-    window.__press('KeyE');
-    await window.__wait(1500);
-    const aboard = { x: +player.pos.x.toFixed(2), z: +player.pos.z.toFixed(2) };
+    const prompt = window.__prompt();
+    player.pos.set(s.x, world.heightAt(s.x, s.z), s.z);
+    await window.__wait(700);
+    const played = sound.debug.log.slice(n0).map((l) => l.name).filter((n) => n === 'train-nextstop').length;
     const frame = await window.__frame();
-    // wait for the chime and the step-off
-    let t = 0;
+    // try to walk through a door into the car: the platform edge holds
     const r0 = svc.runs[0];
-    while (t < 40000 && r0.phase === 'dwell') { await window.__wait(500); t += 500; }
-    await window.__wait(3000);
-    const after = { x: +player.pos.x.toFixed(2), z: +player.pos.z.toFixed(2), phase: r0.phase };
-    return { noTrain, prompt, aboard, after, toasts: window.__toasts.slice(), waited: t };
-  }, (r) => r.noTrain.length && /Board the train/.test(r.prompt) && (Math.abs(r.aboard.z - r.after.z) > 1) && r.toasts.every(english));
-
-  // the megastore: E, Pen-chan dances and the confetti falls
-  await step('25-donki', async () => {
-    const s = window.__spotOf('donki');
-    window.__standBy(s.x, s.z, 2.4, 1.2);
-    await window.__wait(400);
-    window.__press('KeyE');
-    await window.__wait(1200);
-    const frame = await window.__frame();
-    return { toasts: window.__toasts.slice(), audible: window.__audible(), frame };
-  });
+    const doorZ = r0.z;
+    for (let i = 0; i < 40; i++) { player.vel.set(0, 0, Math.sign(doorZ - player.pos.z) * 3); await window.__wait(50); }
+    const reached = +Math.abs(player.pos.z - s.z).toFixed(2);
+    return { prompt, played, toasts: window.__toasts.slice(), reached, phase: r0.phase, frame };
+  }, (r) => r.prompt === '' && r.played >= 1 && r.toasts.length === 0 && r.reached < 1.6);
 
   // slow life: sit, the flute comes up; any key stands you up
   await step('26-slowlife', async () => {
@@ -330,21 +317,6 @@ try {
     await window.__wait(1800);
     return { seat: !!player.seat, at: [+player.pos.x.toFixed(1), +player.pos.z.toFixed(1)], d: +Math.hypot(player.pos.x - s.x, player.pos.z - s.z).toFixed(1) };
   }, (r) => !r.seat && r.d < 4);
-  // a famous-view key mid-prayer: the prayer lets go of the view
-  await step('41-prayer-then-view', async () => {
-    const { player } = window.__scene;
-    const s = window.__spotOf('shrine');
-    window.__standBy(s.x, s.z, 2.0, 0.9);
-    await window.__wait(300);
-    window.__press('KeyE');
-    await window.__wait(1500);
-    window.__press('KeyM');                       // no map while the prayer holds you
-    await window.__wait(200);
-    const mapOpen = !document.querySelector('.fullmap').classList.contains('hidden');
-    window.__press('Digit1');
-    await window.__wait(1500);
-    return { mapOpen, suspended: player.suspended, yaw: +player.yaw.toFixed(2), pitch: +player.pitch.toFixed(2), at: [+player.pos.x.toFixed(1), +player.pos.z.toFixed(1)] };
-  }, (r) => !r.mapOpen && r.at[0] === -13);          // 1 2 3 change the light only: you stay where you are
   // Han's show, then straight into the store: nothing of his keeps going
   await step('42-han-then-store', async () => {
     const { sound } = window.__scene;
@@ -362,11 +334,11 @@ try {
 
   // the Osaka posters are framed by shots.mjs (poster-station, poster-gate)
 
-  // every spot's glow and marker from 4.5 m: nothing under things, in walls or overlapping
+  // every engagement's glow and marker from 4.5 m: nothing under things, in walls or overlapping
   await step('28-rings', async () => {
     const { world } = window.__scene;
     const out = {};
-    for (const e of [...world.experiences.list, ...world.lawson.experiences.list]) {
+    for (const e of [...world.experiences.list, ...world.lawson.experiences.list].filter((q) => q.kind === 'engage')) {
       window.__standBy(e.x, e.z, 4.5, 0.6);
       await window.__wait(250);
       out[e.id] = await window.__frame();
@@ -374,7 +346,7 @@ try {
     return out;
   });
 
-  /* ---- the minimap: diamonds where the spots are ---- */
+  /* ---- the minimap: a diamond or a speaker where each spot is ---- */
   await step('30-minimap', async () => {
     const { player, world } = window.__scene;
     const list = world.experiences.list;
@@ -388,9 +360,12 @@ try {
       const S = corner.width, R = S / 2, dpr = S / 196, k = (R - 10 * dpr) / 60;
       const px = R + (e.x - player.pos.x) * k, py = R + (e.z - player.pos.z) * k;
       const d = corner.getContext('2d').getImageData(Math.round(px) - 16, Math.round(py) - 16, 33, 33).data;   // on the spot, or a badge on its icon
-      let yellow = 0;
-      for (let i = 0; i < d.length; i += 4) if (d[i] > 230 && d[i + 1] > 190 && d[i + 2] < 150) yellow++;
-      res[e.id] = yellow;
+      let yellow = 0, violet = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i] > 230 && d[i + 1] > 190 && d[i + 2] < 150) yellow++;
+        if (Math.abs(d[i] - 0x5a) < 14 && Math.abs(d[i + 1] - 0x4a) < 14 && Math.abs(d[i + 2] - 0x86) < 14) violet++;
+      }
+      res[e.id] = e.kind === 'sound' ? violet : yellow;
     }
     // and the full map (M)
     window.__press('KeyM');

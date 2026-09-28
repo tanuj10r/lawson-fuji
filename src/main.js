@@ -463,7 +463,7 @@ window.addEventListener('keydown', (e) => {
   // nothing else while the konbini's scene plays (the time of day still changes)
   if (shop?.visiting && !/^Digit[1-3]$/.test(e.code) && e.code !== 'KeyN') return;
   // M: the full town map (M2f); it holds your walking and looking while open (not while you pay)
-  // (not opened while something else holds the player, e.g. the shrine's prayer)
+  // (not opened while something else holds the player, e.g. the konbini's scene)
   if (e.code === 'KeyM' && minimap && player.locked && !shop?.busy && (minimap.fullOpen || !player.suspended)) {
     const open = !minimap.fullOpen;
     minimap.setFull(open, player.pos, player.yaw);

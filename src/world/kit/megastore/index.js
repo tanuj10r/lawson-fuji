@@ -23,7 +23,8 @@ import { makePenguin } from './mascot.js';
  *                a few wagons spill onto the walk (1.6 m of it stays clear)
  *   night        the signs and the inside are unlit paint, so they glow;
  *                bright pools on the walk: the brightest place on the street
- *   E            ペンちゃん dances, price cards flutter down, the theme swells
+ *   the theme    heard as you pass (a sound experience: no highlight, no E;
+ *                Tan, 2026-09-28)
  *
  * Built in a local frame round the frontage's centre: x runs across the
  * front as you face it from the street, z out toward the street (the
@@ -38,9 +39,8 @@ const H1 = 4.4;          // the ground floor's ceiling
 const H = 12.2;          // the roof
 const FLOOR = 0.17;      // the entrance floor, flush with the walk
 /* The theme (Tan's 14 s recording of a discount palace's song, looped): heard
- * from `far` in, full from `near`; E swells it to `burstLevel` for `swell` s.
- * The mascot moves only within `animate` m. */
-const S = { near: 6, far: 24, level: 0.6, burstLevel: 1.0, swell: 4.5, animate: 60 };
+ * from `far` in, full from `near`.  The mascot moves only within `animate` m. */
+const S = { near: 6, far: 24, level: 0.6, animate: 60 };
 
 let M = null;
 function mats() {
@@ -405,7 +405,7 @@ export function buildMegastore(ctx, net, kit, s, F) {
     }
   }
 
-  /* ------------------------------------------------ the mascot, the flutter, E */
+  /* ------------------------------------------------ the mascot, and the theme as you pass */
   const pen = makePenguin();
   const PX = -W2 + PEN_AT * 2 * W2, PZ = 0.35, PY = H1 + 0.05;   // in the band's gap
   pen.group.position.set(PX, PY, PZ);
@@ -414,100 +414,24 @@ export function buildMegastore(ctx, net, kit, s, F) {
   g.add(pen.group);
   ctx.night?.glowing(pen.mat, 0x5560a0, 0.9);   // floodlit from the canopy
 
-  const confetti = makeConfetti();
-  confetti.mesh.position.x = PX;
-  g.add(confetti.mesh);
-
   const at = ctx.toWorld(T(PX, -0.6));
-  const theme = soundBus.zone('donki-theme', { x: at.x, z: at.z, y: 3, near: S.near, far: S.far, level: S.level });
+  soundBus.zone('donki-theme', { x: at.x, z: at.z, y: 3, near: S.near, far: S.far, level: S.level });
+  // a sound experience (Tan, 2026-09-28): a speaker on the map, no highlight in town
+  ctx.experiences?.add({ kind: 'sound', id: 'donki', name: DONPEN.en, jp: DONPEN.name, ...T(PX, -0.6) });
   const penWorld = ctx.toWorld(T(PX, PZ));
-  let t = 0, burst = -1, lastLevel = S.level;
-  const spot = ctx.experiences?.add({
-    id: 'donki', name: DONPEN.en, jp: DONPEN.name, label: DONPEN.label,
-    ...T(PX, -1.7), r: 1.3, h: 2.2, y: FLOOR,
-    action: () => {
-      if (burst >= 0 && burst < 2) return;
-      burst = 0;
-      confetti.start();
-      spot?.done();
-    },
-  });
+  let t = 0;
 
   ctx.update((dt, cam) => {
     if (!cam) return;
     const d = Math.hypot(cam.x - penWorld.x, cam.z - penWorld.z);
-    if (d > S.animate && burst < 0) return;          // nothing moves unseen
+    if (d > S.animate) return;                       // nothing moves unseen
     t += dt;
-    let env = 0;
-    if (burst >= 0) {
-      burst += dt;
-      const b = burst;
-      env = b < 0.3 ? b / 0.3 : b < S.swell ? 1 : Math.max(0, 1 - (b - S.swell) / 2.5);
-      if (b > S.swell + 2.5) { burst = -1; env = 0; }
-    }
-    // idle: a slow rock and a lazy wave; the burst: a hopping, swaying dance
+    // a slow rock and a lazy wave
     const G = pen.group;
-    G.rotation.z = 0.05 * Math.sin(t * 1.3) * (1 - env) + 0.2 * Math.sin(t * 6.5) * env;
-    G.rotation.y = 0.12 * Math.sin(t * 3.2) * env;
-    G.position.y = PY + 0.02 * Math.sin(t * 2.6) * (1 - env) + 0.28 * Math.abs(Math.sin(t * 5.5)) * env;
-    pen.flipper.rotation.z = -1.05 + 0.22 * Math.sin(t * 2.2) * (1 - env) + 0.65 * Math.sin(t * 11) * env;
-    confetti.update(dt);
-    const level = S.level + (S.burstLevel - S.level) * env;
-    if (Math.abs(level - lastLevel) > 0.005) { theme.set({ level }); lastLevel = level; }
+    G.rotation.z = 0.05 * Math.sin(t * 1.3);
+    G.position.y = PY + 0.02 * Math.sin(t * 2.6);
+    pen.flipper.rotation.z = -1.05 + 0.22 * Math.sin(t * 2.2);
   });
 
   return { group: g, penguin: pen };
-}
-
-/* Price cards fluttering down from the canopy: one instanced mesh, shown
- * only while they fall. */
-function makeConfetti() {
-  const N = 56;
-  const geo = new THREE.PlaneGeometry(0.16, 0.12);
-  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-  const mesh = new THREE.InstancedMesh(geo, mat, N);
-  mesh.userData.dynamic = true;
-  mesh.userData.noOutline = true;
-  mesh.frustumCulled = false;
-  mesh.visible = false;
-  const cols = [0xfff23a, 0xfff23a, 0xff9ac8, 0xe0141c, 0xffffff, 0xffa64a, 0x5ad0f0];
-  const r = rngKit(777);
-  const c = new THREE.Color();
-  for (let i = 0; i < N; i++) mesh.setColorAt(i, c.set(cols[i % cols.length]));
-  const P = Array.from({ length: N }, () => ({ p: new THREE.Vector3(), v: new THREE.Vector3(), a: new THREE.Euler(), w: new THREE.Vector3(), ph: 0 }));
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1);
-  let life = -1;
-  return {
-    mesh,
-    start() {
-      life = 0;
-      mesh.visible = true;
-      for (const k of P) {
-        k.p.set(r.range(-2.2, 2.2), r.range(5.2, 7.2), r.range(0.4, 1.3));
-        k.v.set(r.range(-1.6, 1.6), r.range(0.8, 2.6), r.range(0.6, 2.2));
-        k.a.set(r.next() * 6, r.next() * 6, r.next() * 6);
-        k.w.set(r.range(-5, 5), r.range(-5, 5), r.range(-5, 5));
-        k.ph = r.next() * 6;
-      }
-    },
-    update(dt) {
-      if (life < 0) return;
-      life += dt;
-      if (life > 6) { life = -1; mesh.visible = false; return; }
-      P.forEach((k, i) => {
-        if (k.p.y > 0.2) {
-          // paper: gravity against heavy drag, and a side-to-side flutter
-          k.v.y -= 3.2 * dt;
-          k.v.multiplyScalar(Math.exp(-2.4 * dt));
-          k.p.addScaledVector(k.v, dt);
-          k.p.x += Math.sin(life * 5 + k.ph) * 0.6 * dt;
-          k.a.x += k.w.x * dt; k.a.y += k.w.y * dt; k.a.z += k.w.z * dt;
-        }
-        q.setFromEuler(k.a);
-        m4.compose(k.p, q, one);
-        mesh.setMatrixAt(i, m4);
-      });
-      mesh.instanceMatrix.needsUpdate = true;
-    },
-  };
 }

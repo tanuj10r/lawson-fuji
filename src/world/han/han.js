@@ -26,8 +26,8 @@ import { cel } from '../../core/toon.js';
  * ------------------------------------------------------------------ */
 
 const C = {
-  skin: 0xcfa78c,
-  skinShade: 0xb58e72,
+  skin: 0xcda995,
+  skinShade: 0xb2917a,
   hair: 0x1c1517,
   jacket: 0x333b4c,      // washed charcoal-navy denim (the cloth map darkens it a little)
   jacketDark: 0x272d3c,  // its seams, the collar's underside, the cuffs
@@ -358,8 +358,8 @@ function faceMap() {
   };
 
   // skin
-  g.fillStyle = '#cfa68b'; g.fillRect(0, 0, W, H);
-  const mottle = [0xdbb498, 0xc2977a, 0xd4a48c, 0xc7a08a, 0xd8ad90];
+  g.fillStyle = '#cda994'; g.fillRect(0, 0, W, H);
+  const mottle = [0xdab69f, 0xc09a82, 0xd3a893, 0xc7a48f, 0xd6b098];
   for (let i = 0; i < 1400; i++) {
     const r = 3 + rnd() * 12;
     g.fillStyle = rgba(mottle[i % mottle.length], 0.05 + rnd() * 0.04);
@@ -368,7 +368,7 @@ function faceMap() {
   // zones: the forehead lighter, the cheeks and the nose warm, under the eyes a little bruised, the beard cool
   soft(0, 0.075, 0.07, 0.03, 0xe0bc9e, 0.28);
   for (const s of [-1, 1]) {
-    soft(s * 0.05, -0.02, 0.03, 0.024, 0xd28e74, 0.16);
+    soft(s * 0.05, -0.02, 0.03, 0.024, 0xd28e74, 0.11);
     soft(s * 0.031, -0.006, 0.017, 0.007, 0x9e6e66, 0.34);
     soft(s * 0.079, 0.0, 0.012, 0.03, 0xd28e74, 0.15);       // the ears' side
   }
@@ -507,8 +507,8 @@ function ramp(stops) {
 /** The eye opening: the lid margins over the eyeball, s -1 (inner corner) .. 1 (outer), as
  * elevation angles on the eyeball (rad).  Narrow: the upper lid heavy and low, the outer corner a touch higher. */
 const AZ_HALF = 1.32;   // the corners' azimuth on the eyeball
-const lidUp = (s) => 0.235 * (1 - s * s) ** 0.5 + 0.05 * (1 - s * s) * (0.4 - s) + 0.06 * s;
-const lidLo = (s) => -0.095 * (1 - s * s) ** 0.6 + 0.05 * s;   // the lower lid pushed up by the smiling cheek
+const lidUp = (s) => 0.2 * (1 - s * s) ** 0.5 + 0.04 * (1 - s * s) * (0.4 - s) + 0.1 * s;   // the outer corner up
+const lidLo = (s) => -0.07 * (1 - s * s) ** 0.6 + 0.08 * s;   // the lower lid pushed up by the smiling cheek, rising to the outer corner
 
 /** Eyeballs, lids and the catch lights, in the head's frame.  Returns { parts: [{geo, color|colored}], lights: [geo] }. */
 function eyeParts() {
@@ -559,7 +559,7 @@ function eyeParts() {
           const e0 = upper ? lidUp(sgn) : lidLo(sgn);
           const span = (upper ? 0.62 : -0.62) * (0.55 + 0.45 * (1 - sgn * sgn));   // both reach the socket floor
           const el = e0 + span * v;
-          const r = EYE_R + 0.0012 + (upper ? 0.0038 : 0.0009) * Math.sin(Math.PI * v) ** 0.9 * (0.5 + 0.5 * (1 - sgn * sgn));
+          const r = EYE_R + 0.0012 + (upper ? 0.0026 : 0.0011) * Math.sin(Math.PI * v) ** 0.9 * (0.5 + 0.5 * (1 - sgn * sgn));
           pos.push(r * Math.sin(az) * Math.cos(el), r * Math.sin(el), r * Math.cos(az) * Math.cos(el));
           cc.copy(skin).lerp(deep, upper ? 0.35 * sm(v, 0.5, 1) : 0.9 - 0.4 * sm(v, 0.4, 1));   // the lower lid in the eye's shadow
           cc.lerp(lash, upper ? 1 - sm(v, 0.06, 0.34) : 0.85 * (1 - sm(v, 0.0, 0.35)));
@@ -599,12 +599,12 @@ function eyeParts() {
 /** An ear, in the head's frame: the shell, the helix's rim, the lobe; most of it under the hair. */
 function earParts(s) {
   const parts = [];
-  const x = HEAD.rx * 0.985, y = -0.003, z = -0.015;
+  const x = HEAD.rx * 0.94, y = -0.003, z = -0.02;   // tucked in and back: the side hair covers them
   const shell = new THREE.SphereGeometry(0.016, 12, 9);
-  shell.scale(0.3, 1.75, 1.0); shell.rotateZ(-s * 0.12); shell.translate(s * (x + 0.002), y, z);
+  shell.scale(0.3, 1.75, 1.0); shell.rotateZ(-s * 0.06); shell.translate(s * (x + 0.002), y, z);
   {
     const p = shell.getAttribute('position'), col = new Float32Array(p.count * 3);
-    const a = new THREE.Color(C.skinShade), b = new THREE.Color(0x8e6650), cc = new THREE.Color();
+    const a = new THREE.Color(0x9e7f6a), b = new THREE.Color(0x7e5c48), cc = new THREE.Color();
     for (let i = 0; i < p.count; i++) {
       const ox = (p.getX(i) - s * (x + 0.002)) * s;   // outward
       cc.copy(a).lerp(b, 0.75 * (1 - sm(ox, -0.001, 0.004)));   // the concha, in shadow
@@ -614,11 +614,11 @@ function earParts(s) {
   }
   parts.push({ geo: shell, colored: true });
   const rim = new THREE.TorusGeometry(0.0125, 0.0038, 6, 18, Math.PI * 1.25);
-  rim.rotateZ(Math.PI * 0.62); rim.scale(1, 1.55, 1); rim.rotateY(s * Math.PI / 2); rim.translate(s * (x + 0.006), y + 0.006, z);
-  parts.push({ geo: rim, color: 0xc29a7e });
+  rim.rotateZ(Math.PI * 0.62); rim.scale(1, 1.55, 1); rim.rotateY(s * Math.PI / 2); rim.translate(s * (x + 0.003), y + 0.006, z);
+  parts.push({ geo: rim, color: 0xa8866e });
   const lobe = new THREE.SphereGeometry(0.0065, 10, 8);
-  lobe.scale(0.7, 1, 1); lobe.translate(s * (x + 0.005), y - 0.025, z + 0.002);
-  parts.push({ geo: lobe, color: C.skinShade });
+  lobe.scale(0.7, 1, 1); lobe.translate(s * (x + 0.003), y - 0.025, z + 0.002);
+  parts.push({ geo: lobe, color: 0x9e7f6a });
   return parts;
 }
 
@@ -798,8 +798,11 @@ function hairParts() {
       const a0 = s * (0.95 + i * 0.35 + J(0, 0.08));
       lock({ az0: a0, az1: a0 + s * J(0.7, 1.0), th0: J(0.3, 0.4), th1: 1.34, len: J(0.07, 0.13), w: J(0.016, 0.02), flare: J(0.028, 0.044), out: 0.015, drift: [0, J(-0.01, -0.002)], tone: pick(T.top, T.warm, T.sheen) });
     }
-    lock({ az0: s * 1.5, az1: s * 1.75, th0: 0.5, th1: 1.4, len: 0.13, w: 0.022, flare: 0.012, out: 0.012, drift: [0, 0.004], tone: T.mid });     // over the ear itself
-    lock({ az0: s * 1.7, az1: s * 2.0, th0: 0.55, th1: 1.4, len: 0.14, w: 0.022, flare: 0.016, out: 0.012, drift: [0, 0.0], tone: T.deep });
+    // over the ear itself: an inner curtain hugging the skull below the ear line, two heavier locks hung forward over it
+    lock({ az0: s * 1.45, az1: s * 1.85, th0: 0.6, th1: 1.5, len: 0.1, w: 0.03, flare: 0.006, out: 0.002, drift: [0, 0.004], tone: T.deep });
+    lock({ az0: s * 1.7, az1: s * 2.05, th0: 0.6, th1: 1.5, len: 0.1, w: 0.03, flare: 0.006, out: 0.002, drift: [0, 0.002], tone: T.deep });
+    lock({ az0: s * 1.4, az1: s * 1.7, th0: 0.5, th1: 1.4, len: 0.13, w: 0.024, flare: 0.012, out: 0.01, drift: [0, 0.008], tone: T.mid });
+    lock({ az0: s * 1.65, az1: s * 1.95, th0: 0.55, th1: 1.4, len: 0.14, w: 0.024, flare: 0.016, out: 0.01, drift: [0, 0.004], tone: T.top });
     /* the back, to the collar, layered and flicked */
     for (let i = 0; i < 6; i++) {
       const a0 = s * (2.25 + i * 0.16 + J(0, 0.05));
@@ -993,7 +996,7 @@ export function makeHan() {
   {
     // the neck, drawn with the head (it turns with it)
     const nk = tube([{ y: 0.03, rx: 0.052, rz: 0.05 }, { y: -0.06, rx: 0.056, rz: 0.056, z: -0.004 }, { y: -0.13, rx: 0.07, rz: 0.062, z: -0.01 }], 16, { capBottom: true });
-    mesh(head, nk, 0xc0987c, 'face');
+    mesh(head, nk, 0xbf9d86, 'face');
     // the head, with the face map
     const hg = headGeometry();
     hg.translate(0, HEAD_Y, 0);

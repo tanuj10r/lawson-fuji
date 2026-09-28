@@ -252,3 +252,11 @@ land/index.js `buildLand`, one line (+ import) in land/parking.js, the
   edge inked); the face is a likeness in the game's style, not the
   actor; the smile is fixed (no expression change); the collar points
   are soft where a real one is crisp.
+- **Review fixes (2026-09-29):** the ears poked through the side hair as
+  orange knobs: tucked 4 mm in and 5 mm back, all three parts in the shade
+  tone, and two wide inner curtains hugging the skull below the ear line
+  plus two heavier locks hung forward over them; the eyes read sleepy:
+  aperture narrowed (upper 0.2, lower -0.07 rad at the centre), both lids
+  rising to the outer corner (+0.1 / +0.08), the upper lid's hood thinner
+  (2.6 mm, was 3.8), catch light kept; the skin a touch less saturated
+  (#cda994, mottle and cheek warmth eased). Triangles +~0.4k, draws same.

@@ -39,6 +39,7 @@ import { buildHan } from '../han/index.js';
 export function buildLand(ctx) {
   const group = new THREE.Group();
   group.name = 'land';
+  group.userData.ownsSinks = true;   // the land sinks the ground and floors it itself (sinkcut.js leaves its floors alone)
   ctx.add(group);
   const add = (o) => { group.add(o); return o; };
   ctx.green ??= {};              // the pond's pines join the town's batch (kit/green.js)

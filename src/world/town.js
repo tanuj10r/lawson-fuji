@@ -3,6 +3,7 @@ import { cel, setWearTexture } from '../core/toon.js';
 import { wearAtlas } from './kit/paint.js';
 import { WORLD, TOWN, LAWSON } from '../config.js';
 import { makeCtx } from './ctx.js';
+import { cutSinks } from './sinkcut.js';
 import { buildLawson } from './lawson.js';
 import { dressLawsonGround } from './lawson-dress.js';
 import { buildFuji } from './fuji.js';
@@ -113,7 +114,11 @@ export function buildTown(scene) {
   for (const m of petals.meshes) m.userData.dynamic = true;
 
   /* --- ground: one plane, open over any sunken ground (ctx.sink: the
-   * river's channel, town pass), so it is built after everything else --- */
+   * river's channel, town pass), so it is built after everything else.
+   * Every other flat piece of street-level ground (the Lawson's lot, walks)
+   * is cut back to the sinks' edges too, or it caps the channel from above
+   * (sinkcut.js; quality pass). --- */
+  cutSinks(root, ctx.sinks);
   const groundMat = cel({ color: WORLD.groundColor, bands: 3, tint: 0x7a7396, cache: false });
   groundMat.userData.live = true;
   {

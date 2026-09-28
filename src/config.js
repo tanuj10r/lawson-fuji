@@ -491,6 +491,13 @@ export const SHOT_SPOTS = [
   { name: 'land-overview', scene: 'town', pos: [26, 0, 6], yaw: 3.1416, pitch: -0.82, lift: 95, looks: ['day', 'golden'], frame: 'world' },
   // wave 2c: Tan's river you walk down to, and the pond 鏡池
   { name: 'land-spawn-back', scene: 'town', pos: [0, 0, 16.5], yaw: 3.1416, pitch: -0.02, looks: ['day', 'golden'], frame: 'world' },
+  // quality pass: Tan's walk from the spawn, turned round, down the stairs to the river (2026-09-28)
+  { name: 'qp-walk-1', scene: 'town', pos: [0, 0, 22], yaw: 3.1416, pitch: -0.06, looks: ['day'], frame: 'world' },
+  { name: 'qp-walk-2', scene: 'town', pos: [0, 0, 31], yaw: 3.1416, pitch: -0.1, looks: ['day', 'golden'], frame: 'world' },
+  { name: 'qp-walk-3', scene: 'town', pos: [0, 0, 37.5], yaw: 3.1416, pitch: -0.22, looks: ['day'], frame: 'world' },
+  { name: 'qp-walk-4', scene: 'town', pos: [0.9, 0, 40.2], yaw: 3.1416, pitch: -0.3, looks: ['day', 'golden'], frame: 'world' },
+  { name: 'qp-walk-5', scene: 'town', pos: [0, 0, 42.4], yaw: 3.1416, pitch: -0.12, looks: ['day'], frame: 'world' },
+  { name: 'qp-walk-6', scene: 'town', pos: [0.5, 0, 42.4], yaw: 2.2, pitch: -0.08, looks: ['day'], frame: 'world' },
   { name: 'land-rail', scene: 'town', pos: [4, 0, -9.3], yaw: 0.15, pitch: -0.32, looks: ['day'] },
   { name: 'close-land-stairs', scene: 'town', pos: [0.4, 0, -9.2], yaw: 0, pitch: -0.42, looks: ['day'] },
   { name: 'close-land-stones', scene: 'town', pos: [0.3, 0, -13.8], yaw: -0.08, pitch: -0.22, looks: ['day'] },

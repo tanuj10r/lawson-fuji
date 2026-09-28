@@ -53,7 +53,7 @@ export function shibaGeometry() {
     { p: [0, 0.16, 0.07], rx: 0.086, ry: 0.085 },
     { p: [0, 0.172, 0.112], rx: 0.07, ry: 0.07 },
     { p: [0, 0.19, 0.15], rx: 0, ry: 0 },
-  ], 32), 44, [0, 1, 0]), {
+  ], 28), 36, [0, 1, 0]), {
     color: (p, n) => {
       if (front(n, p, 0.075) && p.y < 0.215) return CREAM;                      // the chest
       if (under(n, -0.25)) return CREAM;                                        // the belly
@@ -63,12 +63,12 @@ export function shibaGeometry() {
   });
   // the "pants" on the haunches, the shoulders' fluff, the chest's tuft
   for (const s of [-1, 1]) {
-    b.add(blob(0.05, 0.062, 0.07, 20, 14), { matrix: at(s * 0.06, 0.13, -0.092, 0.12, 0, s * 0.1), color: (p, n) => (under(n, -0.4) || n.x * s < -0.65 ? CREAM : RED) });
-    b.add(blob(0.04, 0.05, 0.046, 18, 12), { matrix: at(s * 0.056, 0.15, 0.072), color: (p, n) => (front(n, p, 0.2) && n.x * s < 0.3 ? CREAM : RED) });
+    b.add(blob(0.05, 0.062, 0.07, 14, 10), { matrix: at(s * 0.06, 0.13, -0.092, 0.12, 0, s * 0.1), color: (p, n) => (under(n, -0.4) || n.x * s < -0.65 ? CREAM : RED) });
+    b.add(blob(0.04, 0.05, 0.046, 14, 10), { matrix: at(s * 0.056, 0.15, 0.072), color: (p, n) => (front(n, p, 0.2) && n.x * s < 0.3 ? CREAM : RED) });
   }
-  b.add(blob(0.05, 0.042, 0.038, 18, 12), { matrix: at(0, 0.128, 0.125, -0.3, 0, 0), color: CREAM });
+  b.add(blob(0.05, 0.042, 0.038, 14, 10), { matrix: at(0, 0.128, 0.125, -0.3, 0, 0), color: CREAM });
   // the ruff round the neck: a thick soft collar, cream at the throat and chest
-  b.add(blob(0.088, 0.078, 0.07, 28, 18), { matrix: at(0, 0.205, 0.105, -0.5, 0, 0), color: (p, n) => (front(n, p, 0.07) || under(n, -0.35) ? CREAM : RED) });
+  b.add(blob(0.088, 0.078, 0.07, 22, 14), { matrix: at(0, 0.205, 0.105, -0.5, 0, 0), color: (p, n) => (front(n, p, 0.07) || under(n, -0.35) ? CREAM : RED) });
 
   /* ---- head and neck (part 1), turning about the neck's root ---- */
   const head = { part: 1, pivot: NK };
@@ -77,10 +77,10 @@ export function shibaGeometry() {
     { p: [0, 0.235, 0.13], rx: 0.062, ry: 0.06 },
     { p: [0, 0.26, 0.15], rx: 0.05, ry: 0.05 },
     { p: [0, 0.272, 0.16], rx: 0.0, ry: 0.0 },
-  ], 12), 24, [0, 0, 1]), { ...head, color: (p, n) => (front(n, p, 0.05) || under(n, -0.45) ? CREAM : RED) });
+  ], 8), 20, [0, 0, 1]), { ...head, color: (p, n) => (front(n, p, 0.05) || under(n, -0.45) ? CREAM : RED) });
   const hc = [0, 0.275, 0.165];
   // the skull: a big round dome, broad across the cheeks, a little flat in front
-  const skull = blob(0.083, 0.077, 0.075, 36, 26);
+  const skull = blob(0.083, 0.077, 0.075, 30, 20);
   {
     const P = skull.attributes.position;
     for (let i = 0; i < P.count; i++) {
@@ -100,8 +100,8 @@ export function shibaGeometry() {
   b.add(skull, { ...head, matrix: at(hc[0], hc[1], hc[2]), color: face });
   // the very full round cream cheeks, and a soft tuft under each
   for (const s of [-1, 1]) {
-    b.add(blob(0.046, 0.041, 0.043, 22, 16), { ...head, matrix: at(hc[0] + s * 0.054, hc[1] - 0.03, hc[2] + 0.014), color: CREAM });
-    b.add(blob(0.03, 0.022, 0.03, 14, 10), { ...head, matrix: at(hc[0] + s * 0.07, hc[1] - 0.05, hc[2] + 0.002, 0, 0, -s * 0.5), color: CREAM });
+    b.add(blob(0.046, 0.041, 0.043, 18, 13), { ...head, matrix: at(hc[0] + s * 0.054, hc[1] - 0.03, hc[2] + 0.014), color: CREAM });
+    b.add(blob(0.03, 0.022, 0.03, 10, 8), { ...head, matrix: at(hc[0] + s * 0.07, hc[1] - 0.05, hc[2] + 0.002, 0, 0, -s * 0.5), color: CREAM });
   }
   // the muzzle: a short button, a small black nose at its tip
   b.add(loft(smooth([
@@ -110,7 +110,7 @@ export function shibaGeometry() {
     { p: [0, hc[1] - 0.018, hc[2] + 0.076], rx: 0.024, ry: 0.021 },
     { p: [0, hc[1] - 0.017, hc[2] + 0.088], rx: 0.016, ry: 0.014 },
     { p: [0, hc[1] - 0.016, hc[2] + 0.094], rx: 0.0, ry: 0.0 },
-  ], 14), 24, [0, 1, 0]), { ...head, color: face });
+  ], 10), 20, [0, 1, 0]), { ...head, color: face });
   b.add(blob(0.015, 0.011, 0.011, 16, 10), { ...head, matrix: at(0, hc[1] - 0.008, hc[2] + 0.093), color: BLACK });
   b.add(blob(0.004, 0.003, 0.003, 6, 4), { ...head, matrix: at(-0.004, hc[1] - 0.003, hc[2] + 0.102), color: 0x8a8a90 });   // a wet glint on the nose
   // the mouth's line, back along the muzzle's side: the shiba smile
@@ -121,7 +121,7 @@ export function shibaGeometry() {
   // eyes: big, round, dark and glossy, set wide on the dome; two catch-lights each; a soft brow dot above
   for (const s of [-1, 1]) {
     const ex = hc[0] + s * 0.035, ey = hc[1] + 0.01, ez = hc[2] + 0.059;
-    b.add(blob(0.0175, 0.019, 0.008, 18, 14), { ...head, matrix: at(ex, ey, ez, -0.05, s * 0.42, s * 0.12), color: (p, n, l) => (l.y < -0.004 && l.y > -0.014 && Math.abs(l.x) < 0.012 ? 0x2a1a12 : BLACK) });
+    b.add(blob(0.0175, 0.019, 0.008, 14, 10), { ...head, matrix: at(ex, ey, ez, -0.05, s * 0.42, s * 0.12), color: (p, n, l) => (l.y < -0.004 && l.y > -0.014 && Math.abs(l.x) < 0.012 ? 0x2a1a12 : BLACK) });
     b.add(blob(0.0052, 0.0055, 0.003, 10, 8), { ...head, matrix: at(ex - s * 0.005, ey + 0.0075, ez + 0.0075, 0, s * 0.42, 0), color: 0xffffff });
     b.add(blob(0.0026, 0.0026, 0.002, 8, 6), { ...head, matrix: at(ex + s * 0.0065, ey - 0.006, ez + 0.0075, 0, s * 0.42, 0), color: 0xffffff });
     b.add(blob(0.011, 0.0065, 0.005, 12, 8), { ...head, matrix: at(hc[0] + s * 0.031, hc[1] + 0.041, hc[2] + 0.052, 0.4, s * 0.35, 0), color: BROW });
@@ -150,13 +150,13 @@ export function shibaGeometry() {
     { p: [0.058, 0.272, -0.078], rx: 0.028, ry: 0.028 },
     { p: [0.07, 0.242, -0.088], rx: 0.018, ry: 0.018 },
     { p: [0.072, 0.228, -0.1], rx: 0.0, ry: 0.0 },
-  ], 22), 18, [1, 0, 0]), { part: 2, pivot: tb, color: (p) => (Math.hypot(p.x - 0.036, p.y - 0.256, p.z + 0.118) < 0.04 || p.y < 0.215 ? CREAM : RED) });   // cream inside the curl and beneath
+  ], 18), 14, [1, 0, 0]), { part: 2, pivot: tb, color: (p) => (Math.hypot(p.x - 0.036, p.y - 0.256, p.z + 0.118) < 0.04 || p.y < 0.215 ? CREAM : RED) });   // cream inside the curl and beneath
 
   /* ---- legs: short and sturdy, cream socks, big round paws; one loft through
    * the joints for each pose (standing, sitting, lying), the same sections,
    * so a morph between them is a clean fold ---- */
   const leg = (part, pivot, radii, poses, paws) => {
-    const mk = (pts) => loft(smooth(pts.map((q, i) => ({ p: q, rx: radii[i], ry: radii[i] })), 12), 16, [1, 0, 0]);
+    const mk = (pts) => loft(smooth(pts.map((q, i) => ({ p: q, rx: radii[i], ry: radii[i] })), 10), 12, [1, 0, 0]);
     const g0 = mk(poses[0]), g1 = mk(poses[1]), g2 = mk(poses[2]);
     const P0 = g0.attributes.position, P1 = g1.attributes.position, P2 = g2.attributes.position;
     let v1 = 0, v2 = 0, ci = 0;
@@ -170,7 +170,7 @@ export function shibaGeometry() {
       morph2: () => { const d = [P2.getX(v2) - P1.getX(v2), P2.getY(v2) - P1.getY(v2), P2.getZ(v2) - P1.getZ(v2)]; v2++; return d; },
     });
     const paw = (a, c) => [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-    b.add(blob(0.031, 0.022, 0.036, 16, 10), { part, pivot, matrix: at(...paws[0]), morph: () => paw(paws[0], paws[1]), morph2: () => paw(paws[1], paws[2]), color: CREAM });
+    b.add(blob(0.031, 0.022, 0.036, 12, 8), { part, pivot, matrix: at(...paws[0]), morph: () => paw(paws[0], paws[1]), morph2: () => paw(paws[1], paws[2]), color: CREAM });
   };
   for (const s of [-1, 1]) {
     // forelegs: straight and sturdy; sitting they stand a touch forward; lying they stretch out in front

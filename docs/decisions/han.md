@@ -129,3 +129,63 @@ land/index.js `buildLand`, one line (+ import) in land/parking.js, the
   on the walk up.
 - New shot spot `han-getin` (t = 2.0 s: door open, Han getting in) to
   check the door and the seat pose.
+
+## The portrait pass (2026-09-28, night; Tan: "mimic the exact actor", "as
+## long as it doesn't add weight")
+- **One head grid, not a sphere plus a patch.** The head is a 96 x 56
+  parametric grid (azimuth x polar), warped so three quarters of its
+  columns cover the front 180 degrees and its rows crowd from the brow to
+  the chin (~4 mm on the face). The features are a height field on the base
+  skull (`features()`): brow ridge, sockets, the nose as a bridge widening to
+  the tip with wings and an underside, cheekbones and the hollow under them,
+  philtrum, the upper lip with its bow, the line, the lower lip, the fold
+  below, the chin. The face map (512 x 384 RGBA, 0.75 MB with mips, drawn
+  in code) is painted in the same (azimuth, base height) frame, so every
+  mark lands on the form it belongs to; its bottom 4 % is a white swatch
+  the vertex-coloured parts (eyes, lids, ears, neck, catch lights) point at,
+  so the whole head is one draw with one material. CanvasTexture flipY is
+  off for both maps (v runs crown to chin, root to tip, as the canvases do).
+- **Eyes are meshes.** An eyeball cap per side (sclera shaded under the
+  lids and pink at the inner corner, an iris lit from below with a dark
+  limbal ring, a pupil, a slight corneal dome) set 10.5 mm back in a socket,
+  lid strips on a sphere just over it: the upper thick and heavy (a
+  monolid), the lower thin, both running from the lash margin down to the
+  socket floor. The lower lid's normals are bent down: at sun 2.2 a lit
+  skin strip clips to paper and read as a white crescent (it took a
+  vertex-recolour test in the page to see it was the sclera showing below a
+  too-short lid, then the lid lit as a shelf). The catch light is a 1 mm
+  disc in white vertex colour, lit like the rest, so it dims at blue hour
+  (an unlit one glowed at night).
+- **Skin shades softly.** The face, neck and hands use a 10-stop ramp
+  (136..255) instead of soft3's three bands, with the same violet shadow
+  tint: a painted face, not a cel mask; the town keeps its bands.
+- **Hair as ribbons.** ~80 flattened, slightly cupped ribbon clumps
+  (Catmull-Rom spines over the scalp shell then hanging, 3 quads across,
+  tapered), in an inner layer 1.5 mm off the scalp and an outer at 6 mm,
+  with a 64 x 256 strip map (strands along the clump, ragged edges and a
+  short frayed tip in alpha, alphaTest 0.5, no sorting) and a 4-stop ramp
+  with a crisp highlight band. The fringe parts a touch to his left and
+  sweeps sideways to the cheekbones; the sides fall past the ears to the
+  jaw, the back to the collar. Wide overlapping clumps close to the skull
+  were the cure for the "rope" look: the depth ink pass lines every ribbon
+  edge, so fewer, wider, closer ribbons read as painted hair, many thin
+  lifted ones as a wig of strips.
+- **The ends move.** A per-vertex `aHang` (0 on the skull, 1 at the tip)
+  and a `uSwing` uniform in the hair shader (wrapped round toon.js's
+  shadow-tint onBeforeCompile; no core change): a damped spring in the
+  head's frame kicked by the head's turn rate and its own acceleration
+  (the car), clamped to 3 cm at the tips, stepped from `apply()` on wall
+  time (it's already called once per frame by index.js; no rAF of its own).
+  The shadow and ink passes see the unswung hair: a few mm, invisible.
+- **Cost, measured (probe in the page, shots --no-density --no-train):**
+  Han 22,406 -> 28,400 triangles (+6.0k), 18 -> 17 draws, his textures
+  0.33 -> 1.08 MB (+0.75 MB); frame ms at 1440p han-close 11.2 -> 8.7,
+  han-face 9.6 -> 8.5, han-head 8.4 -> 7.8, hero-1 10.3 -> 10.2 (noise:
+  call it even); download 4.76 -> 4.73 MB after the merge (+~8 KB of code
+  here, less elsewhere); hero guard 0.000 % x 3.
+- **New spot** `han-head` (0.85 m, day / golden / blue): the portrait check.
+- **Left open:** the face is a likeness in the game's painted style, not a
+  photograph: the skin is still a little orange under the day sun (the
+  grade), the goatee reads as strokes at 40 cm, the eyes don't move
+  independently of the head, and the hair ribbons still carry a fine ink
+  edge each where the depth pass sees them stacked.

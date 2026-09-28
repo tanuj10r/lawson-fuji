@@ -167,6 +167,20 @@ try {
           trace = { t: +t.toFixed(0), P: [P.x, P.z], free: W.free(P.x, P.z), cost: W.cost[c], nearest: W.nearest(P.x, P.z, 2), next: n, nextAt: n >= 0 ? W.at(n) : null, m: S.field?.m[c], dogState: S.state, dist: dist(P, S), goalIsDog: !!S.target && !(S.state === 'atSpot' || (S.state === 'lead' && dist(S, S.target) < 2.5)), rest, away };
         }
       }
+      const end = g.state();
+      // the respawn (H, or anything that puts you back on the view in a jump): the dog is home, out of the frame, at once
+      let respawn = null;
+      {
+        g.reset();
+        const Q = { x: 0, y: 1.6, z: 16.5 };
+        for (let k = 0; k < 90; k++) { if (k > 5) Q.z -= 2.3 * dt; g.step(dt, Q); }     // off the view, the dog leading
+        const before = { state: g.G.state, x: +g.G.x.toFixed(1), z: +g.G.z.toFixed(1), d: +dist(Q, g.G).toFixed(1) };
+        Q.x = 0; Q.z = 16.5;                                                               // enterHero: a jump onto the view
+        g.step(dt, Q);
+        const dx = g.G.x - Q.x, dz = g.G.z - Q.z;
+        const angle = Math.acos(-dz / Math.hypot(dx, dz)) * 180 / Math.PI;                 // off the lens (which looks -z)
+        respawn = { before, after: { state: g.G.state, x: +g.G.x.toFixed(1), z: +g.G.z.toFixed(1) }, angle: +angle.toFixed(0), ok: angle > 60 && g.G.state === 'home' };
+      }
       // the map: the grid (black solid, grey asphalt, pale pavement) and the trail (red)
       const c = document.createElement('canvas');
       const sc = 2;
@@ -180,11 +194,11 @@ try {
       ctx.strokeStyle = '#e02020'; ctx.lineWidth = 2; ctx.beginPath();
       trail.forEach(([x, z], i) => { const px = ((x - W.X0) / W.C) * sc, pz = (W.nz - (z - W.Z0) / W.C) * sc; i ? ctx.lineTo(px, pz) : ctx.moveTo(px, pz); });
       ctx.stroke();
-      return { cone: +cone.toFixed(0), home0, rows, player: [+P.x.toFixed(1), +P.z.toFixed(1)], trace, secs: +t.toFixed(0), end: g.state(), viol, wall, pstuck: +pstuck.toFixed(1), stuck: +stuck.toFixed(1), gridMs: +W.ms.toFixed(0), cells: W.N, dogMs: +fieldMs.toFixed(0), steps: Math.round(t * 30), map: c.toDataURL('image/png') };
+      return { cone: +cone.toFixed(0), home0, rows, player: [+P.x.toFixed(1), +P.z.toFixed(1)], trace, respawn, secs: +t.toFixed(0), end, viol, wall, pstuck: +pstuck.toFixed(1), stuck: +stuck.toFixed(1), gridMs: +W.ms.toFixed(0), cells: W.N, dogMs: +fieldMs.toFixed(0), steps: Math.round(t * 30), map: c.toDataURL('image/png') };
     });
     fs.writeFileSync(path.join(out, 'trail.png'), Buffer.from(r.map.split(',')[1], 'base64'));
     delete r.map;
-    const ok = r.cone > 60 && r.rows.length === 4 && r.viol === 0 && r.wall === 0 && r.stuck < 5 && r.end.state === 'nap';
+    const ok = r.cone > 60 && r.rows.length === 4 && r.viol === 0 && r.wall === 0 && r.stuck < 5 && r.end.state === 'nap' && r.respawn?.ok;
     if (!ok) bad++;
     console.log(ok ? 'pass' : 'FAIL', 'guide', JSON.stringify(r, null, 1));
     console.log(`  ${(r.dogMs / r.steps).toFixed(3)} ms per step for the dog (grid and fields included)`);

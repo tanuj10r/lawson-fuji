@@ -29,10 +29,12 @@ main.js `__shot` stages the dog for a spot's `guide:` pose; shots.mjs passes it.
   the shoulders and folds the hind legs by morph; lying drops the body
   and lays the head on the outstretched forepaws (second morph). Head
   yaw/pitch/roll, ear perk, tail wag are per-instance floats. One draw.
-- **Done = stepping into the ring.** experiences.js keeps `done` private,
-  so the dog counts an engagement done when you stand in its ring (r +
-  0.25 m). Hook I would want: the lists' entries carrying `done` (or
-  `kind: 'engage' | 'sound'` and `r`), then this reads it directly.
+- **Which spots, and done = stepping into the ring.** The lists now carry
+  `kind`; the dog leads only to `engage` spots (konbini, han, slowlife,
+  train; `view` is done at the start, you stand on it). experiences.js
+  keeps `done` and `r` private, so it counts an engagement done when you
+  stand in its ring (a per-id radius in config `guide.engage`, + 0.25 m).
+  Hook I would want: the lists' entries carrying `r` and `done`.
 - **The way is a grid, not the colliders.** 0.5 m cells over the town
   bounds, built once on the first frame (~210k cells): colliders taller
   than 0.3 m inflated by 0.38 m (at least the player's radius, so you can

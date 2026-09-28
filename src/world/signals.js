@@ -23,6 +23,11 @@ const DIM = 0x39404f;
  */
 export const WALK_SIGNALS = [];
 
+/** A zebra's tune is a sound experience (Tan, 2026-09-28): a speaker on the map. */
+function listen(ctx, x, z) {
+  ctx.experiences?.add({ kind: 'sound', id: 'walk' + WALK_SIGNALS.length, name: 'Walk signal tune', jp: '横断歩道', x, z });
+}
+
 /**
  * @param o.x       crossing centre along the road
  * @param o.zNear   kerb line on the store side
@@ -127,6 +132,7 @@ export function buildSignals(ctx, o) {
   const marker = new THREE.Object3D();
   marker.position.set(o.x, 0, (o.zNear + o.zFar) / 2);
   ctx.add(marker);
+  listen(ctx, marker.position.x, marker.position.z);
   WALK_SIGNALS.push({ marker, walk: () => walk, sound: o.sound ?? 'kakko' });
   return g;
 }
@@ -167,5 +173,6 @@ export function buildWalkSignal(ctx, { ends, offset = 0, sound = 'piyo' }) {
   const marker = new THREE.Object3D();
   marker.position.set((ends[0].x + ends[1].x) / 2, 0, (ends[0].z + ends[1].z) / 2);
   ctx.add(marker);
+  listen(ctx, marker.position.x, marker.position.z);
   WALK_SIGNALS.push({ marker, walk: () => walk, sound });
 }

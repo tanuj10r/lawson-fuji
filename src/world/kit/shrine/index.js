@@ -14,7 +14,6 @@ import { toriiTunnel, mainTorii } from './torii.js';
 import { haiden, honden, roof } from './halls.js';
 import { fox, stoneLantern, temizuya, emaRack, omikujiRack, saisenBox, namePillar, treeRope, fenceStone } from './props.js';
 import { gakuTex, stoneNameTex, emaAtlas, chochinTex, trickleTex, noboriTex } from './tex.js';
-import { setupPrayer } from './prayer.js';
 
 /* ------------------------------------------------------------------ *
  * 富士見稲荷神社, the town's Inari shrine (Tan's experience 3).
@@ -26,13 +25,14 @@ import { setupPrayer } from './prayer.js';
  * (千本鳥居) up to the worship hall (拝殿) with its long sweeping roof, the
  * bell and the offering box; behind it the small sanctuary (本殿) in its
  * fence, the old camphor with its rope, the ema and the omikuji, and the
- * wind chimes (Tan's recording) heard only in the grounds.
+ * wind chimes (Tan's recording) heard only in the grounds.  A sound
+ * experience (Tan, 2026-09-28): no highlight and no E, a speaker on the map.
  *
  * Built in the lot's own frame (x across the frontage, z back from it).
  * Cost: the static parts bake into one mesh per material (and static
  * batching folds them into the town's style batches); the tunnel is two
- * InstancedMeshes and one mesh of inscriptions; the bell rope, the
- * trickle and the chimes are the only moving parts, updated only near.
+ * InstancedMeshes and one mesh of inscriptions; the trickle and the
+ * chimes are the only moving parts, updated only near.
  * ------------------------------------------------------------------ */
 
 let M = null;
@@ -99,7 +99,7 @@ export function buildShrine(ctx, net, kit, s, F) {
 
   /* ---- the layout (z back from the lane) ---- */
   const L = {
-    torii: 1.25, foxes: 3.0, tunnel: [4.3, 9.8], nTunnel: 12, spot: 10.75,
+    torii: 1.25, foxes: 3.0, tunnel: [4.3, 9.8], nTunnel: 12,
     hallF: 12.6, hallB: 15.0, honden: [16.55, 17.7], box: 11.9,
   };
 
@@ -280,8 +280,8 @@ export function buildShrine(ctx, net, kit, s, F) {
     G.add(im);
   }
 
-  /* ---- the moving parts: the bell and its rope, the trickle, the chimes ---- */
-  const bell = bellRope(G, hall.bellAt, m);
+  /* ---- the bell and its rope (still), and the moving parts: the trickle, the chimes ---- */
+  bellRope(G, hall.bellAt, m);
   const trickle = trickleMesh(G, tzPlace, spout);
   const chimes = [-1, 1].map((sx) => windChime(G, { x: sx * 2.75, y: hall.eave.y - 0.02, z: hall.eave.z + 0.1 }, m));
 
@@ -294,20 +294,17 @@ export function buildShrine(ctx, net, kit, s, F) {
     }
   }
 
-  /* ---- the prayer, and the wind chimes heard in the grounds ---- */
-  const spotT = town(0, L.spot), boxT = town(0, L.box);
-  setupPrayer(ctx, { spot: spotT, box: boxT, bell, faceYaw: Math.atan2(F.f.x, F.f.z) });
+  /* ---- the wind chimes, heard in the grounds (the shrine's sound experience) ---- */
   const mid = ctx.toWorld(town(0, D * 0.5));
   soundBus.zone('shrine-chimes', { x: mid.x, z: mid.z, y: 2.5, near: 6, far: 26, level: 0.5 });
+  ctx.experiences?.add({ kind: 'sound', id: 'shrine', name: 'Wind chimes', jp: '風鈴', ...town(0, D * 0.5) });
 
-  // animate only near: the bell's swing, the trickle, the chimes in the breeze
-  const centre = ctx.toWorld(town(0, D * 0.5));
+  // animate only near: the trickle, the chimes in the breeze
   let time = 0;
   ctx.update((dt, cam) => {
-    const near = !cam || Math.hypot(cam.x - centre.x, cam.z - centre.z) < 45;
-    if (!near && !bell.moving) return;
+    const near = !cam || Math.hypot(cam.x - mid.x, cam.z - mid.z) < 45;
+    if (!near) return;
     time += dt;
-    bell.update(dt);
     trickle.material.map.offset.y = (time * 1.6) % 1;
     for (let i = 0; i < chimes.length; i++) chimes[i].update(time + i * 1.7);
   });
@@ -320,12 +317,10 @@ function rectOf(town, x0, z0, x1, z1) {
   return [Math.min(a.x, b.x), Math.min(a.z, b.z), Math.max(a.x, b.x), Math.max(a.z, b.z)];
 }
 
-/* The bell (鈴) and its rope (鈴緒): a pendulum from the front beam that the
- * prayer shakes.  Returns { swing(k), update(dt), moving }. */
+/* The bell (鈴) and its rope (鈴緒), hanging from the front beam. */
 function bellRope(G, at, m) {
   const pivot = new THREE.Group();
   pivot.position.set(at.x, at.y, at.z);
-  pivot.userData.dynamic = true;
   pivot.name = 'shrine-bell';
   const add = (mesh) => { mesh.castShadow = true; pivot.add(mesh); return mesh; };
   add(new THREE.Mesh(cylG(0.012, 0.012, 0.12, 5, { y: -0.06 }), m.iron));
@@ -348,22 +343,6 @@ function bellRope(G, at, m) {
   add(new THREE.Mesh(cylG(0.035, 0.07, 0.18, 8, { y: y0 - len - 0.08 }), m.bib));
   pivot.traverse((n) => { if (n.isMesh) n.userData.noOutline = true; });
   G.add(pivot);
-  // a damped pendulum, in two directions
-  let ax = 0, vx = 0, az = 0, vz = 0;
-  const api = {
-    moving: false,
-    swing(k) { vx += 1.6 * k; vz += 0.9 * k * (Math.random() - 0.5); api.moving = true; },
-    update(dt) {
-      if (!api.moving) return;
-      const w2 = 9.81 / 1.2, c = 0.9;
-      vx += (-w2 * ax - c * vx) * dt; ax += vx * dt;
-      vz += (-w2 * az - c * vz) * dt; az += vz * dt;
-      pivot.rotation.x = ax * 0.35;
-      pivot.rotation.z = az * 0.35;
-      if (Math.abs(ax) + Math.abs(vx) + Math.abs(az) + Math.abs(vz) < 0.002) { ax = vx = az = vz = 0; pivot.rotation.set(0, 0, 0); api.moving = false; }
-    },
-  };
-  return api;
 }
 
 /* The trickle from the bamboo spout into the basin: a thin streak whose

@@ -4,7 +4,11 @@
  * shop name.  Shop entries are read by the shared sign textures in
  * core/textures.js (fascia, blade), keyed by `kind`. */
 
-export const STATION = { jp: 'さくら富士', en: 'SAKURA-FUJI' };
+/* The town is 富士川口湖町, Fujikawaguchikko (Tan, 2026-09-28: the real
+ * 富士河口湖町 with one character and one letter of our own), and its
+ * station is 富士川口湖駅. */
+export const TOWN_NAME = { jp: '富士川口湖町', en: 'Fujikawaguchikko' };
+export const STATION = { jp: '富士川口湖', en: 'FUJIKAWAGUCHIKKO', romaji: 'Fujikawaguchikko' };
 
 /** Destination board on the front of the train. */
 export const TRAIN_DEST = { kind: '各停', jp: '河口湖' };
@@ -40,8 +44,8 @@ export const ROAD_CLOSED = '通行止め';
 
 /* ---- town kit (M2a): poles, signs ---- */
 
-/** The town's address: 富士見町 一丁目 ... 四丁目. */
-export const AREA = { name: '富士見町', chome: ['一丁目', '二丁目', '三丁目', '四丁目'] };
+/** The town's address: 富士川口湖町 一丁目 ... 四丁目. */
+export const AREA = { name: TOWN_NAME.jp, chome: ['一丁目', '二丁目', '三丁目', '四丁目'] };
 
 /** Pole advertisements: fictional clinics, an estate agent, a driving school. */
 export const POLE_ADS = [
@@ -60,7 +64,7 @@ export const DIRECTIONS = [
 ];
 
 /** The bus stop in the town. */
-export const BUS_STOP = '富士見町';
+export const BUS_STOP = TOWN_NAME.jp;
 
 /* ---- special lots (M2b) ---- */
 export const COIN_PARKING = { t: 'ふじみパーク', s: '20分 100円', foot: '最大料金 600円' };
@@ -76,7 +80,7 @@ export const LINE = {
   stations: [
     { jp: '大月', en: 'OTSUKI', fare: 520 },
     { jp: 'ふじみ台', en: 'FUJIMIDAI', fare: 180 },
-    { jp: 'さくら富士', en: 'SAKURA-FUJI', fare: 0 },
+    { jp: '富士川口湖', en: 'FUJIKAWAGUCHIKKO', fare: 0 },
     { jp: 'こもれび野', en: 'KOMOREBINO', fare: 160 },
     { jp: '富士山麓', en: 'FUJISANROKU', fare: 230 },
     { jp: '河口湖', en: 'KAWAGUCHIKO', fare: 310 },
@@ -128,7 +132,7 @@ export const DEER_PARK = { jp: '鹿公園', soon: '近日公開', en: 'Deer Park
 
 /** Words cast into lids and painted on the road. */
 export const STREET_WORDS = {
-  sewer: 'おすい', town: 'ふじみ', gas: 'ガス', valve: '制水弁', hydrant: '消火栓', tomare: '止まれ', noBikes: '駐輪禁止',
+  sewer: 'おすい', town: 'かわぐちこ', gas: 'ガス', valve: '制水弁', hydrant: '消火栓', tomare: '止まれ', noBikes: '駐輪禁止',
 };
 /** 電柱番号札: the owner's line name and number on every pole. */
 export const POLE_TAG = { line: '富士見幹', branch: ['右', '左'] };
@@ -142,7 +146,7 @@ export const A_BOARDS = [
   { t: 'やきたて', l: ['メロンパン', '160円'], bg: '#fdf1dc', ink: '#8a5a20' },
 ];
 /** Standalone plates on the walks. */
-export const WALK_SIGNS = { noBikes: '駐輪禁止', removal: '放置自転車は撤去します', station: 'さくら富士駅', thisWay: 'この先' };
+export const WALK_SIGNS = { noBikes: '駐輪禁止', removal: '放置自転車は撤去します', station: '富士川口湖駅', thisWay: 'この先' };
 /** The capsule-toy machines' header cards. */
 export const GASHAPON = ['ガチャ', '100円', '200円', '300円'];
 
@@ -175,9 +179,8 @@ export const DONPEN = {
   name: 'ドンペン堂',
   mega: 'MEGA',
   tagline: '爆安の宮殿',
-  // the experience spot: its minimap name, and the E prompt (after the '·')
+  // the sound experience's name (experiences.list)
   en: 'Donpen-do, the discount palace',
-  label: 'ドンペン堂 · Cheer with Pen-chan',
   canopy: ['爆安の宮殿', '食品', '日用品', '化粧品', '家電', 'おもちゃ', 'パーティーグッズ', '深夜まで営業'],
   banners: ['爆安', 'お菓子', 'コスメ', '家電', 'パーティー', '免税'],
   floors: ['1F 食品・お菓子', '2F 化粧品・家電', '3F おもちゃ・パーティー'],
@@ -190,7 +193,7 @@ export const DONPEN = {
 /* ---- the station and the train (experiences build, 2026-09-28) ----
  * Track 1's trains run through to Shibuya (a fun liberty: the in-train
  * announcement says so); track 2's run up the line to 河口湖.  The world's
- * lettering is Japanese; `say` is the English the player reads (subtitles). */
+ * lettering is Japanese; `say` names the experience spots (English). */
 export const RIDE = {
   line: '富士見線', lineEn: 'Fujimi Line', color: '#2f8a55', pink: '#f08aa8',
   dest: {
@@ -204,27 +207,19 @@ export const RIDE = {
   office: { jp: 'さくらの窓口', en: 'Ticket Office', sub: 'きっぷ ・ 定期券 ・ 特急券' },
   machines: { jp: 'きっぷうりば', en: 'Tickets', ic: 'IC チャージ' },
   gates: { ic: 'IC専用', both: 'きっぷ・IC', out: '出口' },
-  master: { cap: '駅長', plate: 'さくら富士駅 駅長' },
   car: { number: 'クハ 2104', number2: 'クモハ 2204', priority: '優先席', weak: '弱冷房車', run: '1204F' },
   osaka: {
     title: '大阪行き きっぷ', sub: '予約受付 まもなく', place: '道頓堀', en: 'Tickets to Osaka · reservations open soon',
     neon: ['たこ焼', 'かに', 'ラーメン', 'ホテル', '串カツ', 'お好み焼'], soon: 'COMING SOON', teaser: 'つぎの旅は、大阪へ。',
   },
   say: {
-    welcome: 'Station master: "Welcome to Sakura-Fuji Station! Mind your step, and enjoy the ride."',
-    welcomeBack: 'Station master: "Welcome back! The next train to Shibuya will be along shortly."',
-    doorsClosing: 'Doors closing — please step off',
-    stepOff: 'The doors are closing. You step back onto the platform.',
-    board: 'Board the train',
-    boardHint: 'The doors are open: step aboard',
-    noTrain: 'No train yet — the next is due shortly',
-    ride: 'Ride the train (next one due shortly)',
+    listen: 'The next-stop announcement',
     station: 'The station',
   },
 };
 /** The 駅名標 (station name board): kana, station numbers, the neighbours either side. */
 export const NAME_BOARD = {
-  kana: 'さくらふじ', no: 'FJ05',
+  kana: 'ふじかわぐちこ', no: 'FJ05',
   west: { jp: 'ふじみ台', kana: 'ふじみだい', en: 'Fujimidai', no: 'FJ04' },
   east: { jp: 'こもれび野', kana: 'こもれびの', en: 'Komorebino', no: 'FJ06' },
 };
@@ -237,12 +232,12 @@ export const CAR_ADS = [
   { t: '河口湖 温泉', s: '日帰り 900円', bg: '#e6f1e2', fg: '#2f5a2a' },
   { t: 'えいご はじめよう', s: 'ふじみ英会話', bg: '#fff6d8', fg: '#c0561a' },
   { t: '優先席付近では', s: 'マナーモードに', bg: '#f2f2f2', fg: '#1f3f7a' },
-  { t: '桜まつり', s: '4月上旬 さくら富士駅前', bg: '#f7d8e2', fg: '#8a2f4a' },
+  { t: '桜まつり', s: '4月上旬 富士川口湖駅前', bg: '#f7d8e2', fg: '#8a2f4a' },
 ];
 
-/* ---- 富士見稲荷神社, the Inari shrine experience (2026-09-28) ----
- * World text (brush face) and the prayer's English subtitles.  The donors
- * on the tunnel's torii are ours: the town's shops and families. */
+/* ---- 富士見稲荷神社, the Inari shrine (a sound experience, 2026-09-28) ----
+ * World text (brush face).  The donors on the tunnel's torii are ours:
+ * the town's shops and families. */
 export const SHRINE_TEXT = {
   gaku: '稲荷大明神',                 // the main torii's plaque
   stone: '富士見稲荷神社',            // the name pillar (社号標)
@@ -251,22 +246,9 @@ export const SHRINE_TEXT = {
   donors: [
     '奉納 山田商店', '奉納 富士見建設株式会社', '奉納 佐藤家一同', '奉納 さくら湯',
     '奉納 富士見酒造', '奉納 鈴木工務店', '奉納 河口屋', '奉納 田中家',
-    '奉納 富士見町商店会', '奉納 小林精肉店', '奉納 高橋家', '奉納 ふじみ食堂',
+    '奉納 富士川口湖町商店会', '奉納 小林精肉店', '奉納 高橋家', '奉納 ふじみ食堂',
   ],
   dates: ['令和五年四月吉日', '令和六年三月吉日', '令和四年十月吉日', '令和六年十一月吉日', '平成三十年四月吉日', '令和二年五月吉日'],
   ema: ['合格祈願', '商売繁盛', '家内安全', '良縁成就', '健康第一', '五穀豊穣'],
 };
 
-/** The prayer at the hall (UI: English; the Japanese only beside it). */
-export const SHRINE_PRAYER = {
-  name: 'Pray at the shrine',
-  jp: '参拝',
-  steps: [
-    'A coin in the offering box, and ring the bell',
-    'Two deep bows',
-    'Two claps',
-    'Hands together, a quiet wish',
-    'One last bow',
-  ],
-  done: 'Two bows, two claps, one bow: how to pray at a shrine',
-};

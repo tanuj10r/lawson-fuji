@@ -436,9 +436,9 @@ export const SHOT_SPOTS = [
   { name: 'crossing-fence', scene: 'town', pos: [-78.4, 0, 155.6], yaw: -2.5, pitch: 0.0, looks: ['day'], train: 'approach', ref: '20-level-crossing-fence.png' },
   { name: 'crossing-path', scene: 'town', pos: [-28.5, 0, 156.6], yaw: -2.3, pitch: -0.05, looks: ['day'], ref: '21-crossing-path-fence.png' },
   { name: 'platform-canopy', scene: 'town', pos: [-56, 0, 167.2], yaw: -1.5708, pitch: 0.06, looks: ['day'], train: 'platform', ref: '22-platform-canopy.png' },
-  // the station and train experiences (2026-09-28): the gates and the master, the train close up and inside, the Osaka posters
+  // the station and train experiences (2026-09-28): the concourse, the train's listening spot, the train close up and inside, the Osaka posters
   { name: 'station-concourse', scene: 'town', pos: [-55.6, 0, 148.7], yaw: -1.95, pitch: 0.06, looks: ['day'], train: 'platform', indoor: true, close: true },
-  { name: 'station-master', scene: 'town', pos: [-54.0, 0, 154.5], yaw: 2.36, pitch: -0.08, looks: ['day'], train: 'platform', close: true },
+  { name: 'train-listen', scene: 'town', pos: [-49.0, 0, 155.2], yaw: 1.67, pitch: -0.1, looks: ['day'], train: 'platform', close: true },
   { name: 'train-front', scene: 'town', pos: [-26.8, 0, 157.4], yaw: 2.24, pitch: 0.02, looks: ['day', 'blue'], train: 'platform', close: true },
   { name: 'train-side', scene: 'town', pos: [-27.4, 0, 157.0], yaw: 1.76, pitch: 0.02, looks: ['day'], train: 'platform', close: true },
   { name: 'train-inside', scene: 'town', pos: [-44.65, 0, 160.75], yaw: 0.62, pitch: -0.04, looks: ['day', 'blue'], train: 'platform', close: true },
@@ -593,7 +593,7 @@ export const PLACES = [
   { id: 'shrine', kind: 'shrine', at: [13, 88], exp: 'shrine' },
   { id: 'plaza', kind: 'plaza', at: [-52.5, 137] },
   { id: 'station', kind: 'station', at: [-51, 151.5], exp: 'station' },
-  { id: 'crossing', kind: 'crossing', at: [-80, 162] },
+  { id: 'crossing', kind: 'crossing', at: [-80, 162], exp: 'crossing' },
   { id: 'pond', kind: 'pond', at: [75, 128] },
   { id: 'slowlife', kind: 'bench', at: [73, 102.2], exp: 'slowlife' },        // SLOWLIFE.bench
   { id: 'river', kind: 'river', at: [-10, -22] },
@@ -661,6 +661,13 @@ export const SOUND = {
    * crossings are about 55 m apart at the closest, so from the famous view
    * you hear the main road's alone, never two at once (M4, Tan). */
   walkSignal: { near: 14, far: 40 },
+  /* the station's announcements (a thing to hear): full within the `core`
+   * (the concourse, the gates, the platforms), then an `edge` of about a
+   * third carried over the plaza and the approach, gone by `far` (Tan,
+   * 2026-09-28: "slightly, mildly, outside the station") */
+  station: { near: 14, far: 42, edge: 0.33, core: { near: 8, far: 20 }, level: 0.45 },
+  // the train's next-stop announcement, played where you stand on platform 1's listening spot
+  trainListen: { near: 4, far: 14 },
   autoDoor: { near: 4, far: 18 },
   fridge: { near: 2.5, far: 9 },           // the cooler: its doors and its compressor
   shelf: { near: 3, far: 10 },             // taking and putting back

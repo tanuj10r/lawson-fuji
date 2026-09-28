@@ -1,9 +1,10 @@
 # Nippon Fuji (ニッポン 富士)
 
-A cozy first-person browser game set in a small Japanese town at the foot of
-Mt. Fuji. Walk into NIPPON, a konbini in the famous view under the
-mountain, browse the shelves, heat a bento, chat with the clerk, pay, and
-step back out.
+A cozy first-person browser game set in Fujikawaguchikko (富士川口湖町), a
+small Japanese town at the foot of Mt. Fuji. Walk into NIPPON, a konbini in
+the famous view under the mountain, browse the shelves, heat a bento, chat
+with the clerk, pay, and step back out. Then walk the town: things to do
+(the diamonds on the map) and things to hear (the speakers).
 
 ## Run it
 ```bash

@@ -1,10 +1,15 @@
 import * as THREE from 'three';
 
 /* ------------------------------------------------------------------ *
- * Experience spots (Tan, 2026-09-28): the town's things to do, each marked
- * so a player knows to walk up to it.
+ * Experience spots (Tan, 2026-09-28): the town's things to do and to hear.
+ * Two kinds (Tan, 2026-09-28):
+ *   engage  a place you walk up to and do something at (step in, or E):
+ *           the highlight below in town, a diamond on the map
+ *   sound   a place you only hear as you pass (a walk signal's tune, the
+ *           megastore's theme, the station, the level crossing, the
+ *           shrine's chimes): nothing in town, a speaker on the map
  *
- * The highlight (Tan: the first glow ring and diamond "look pretty lame";
+ * The engagements' highlight (Tan: the first glow ring and diamond "look pretty lame";
  * the lanterns that replaced them didn't say "come here"):
  *   - on the ground, a crisp painted ring in warm yellow with a gold edge,
  *     a faint fill, and a second ring that keeps rippling outward from the
@@ -19,7 +24,8 @@ import * as THREE from 'three';
  *                                  label, interact })
  *   spot.done()          // dim it (the player has had this experience)
  *   spot.setLabel(text)  // change the E prompt
- *   experiences.list     // for the minimap: [{ id, name, jp, x, z }] (world)
+ *   experiences.add({ kind: 'sound', id, name, jp, x, z })   // a sound: the map only
+ *   experiences.list     // for the map: [{ id, kind, name, jp, x, z }] (world)
  *
  * `interact: false` (or no `action`) makes a walk-in spot: no E prompt.
  * Positions are in the frame of the ctx it was made with; town.js makes it
@@ -94,9 +100,10 @@ export function makeExperiences(ctx) {
   const api = {
     list,
     add(o) {
-      const s = { r: 1.6, h: 2.2, y: 0, ...o };
+      const s = { r: 1.6, h: 2.2, y: 0, kind: 'engage', ...o };
       const w = ctx.toWorld ? ctx.toWorld({ x: s.x, z: s.z }) : { x: s.x, z: s.z };
-      list.push({ id: s.id, name: s.name, jp: s.jp, x: w.x, z: w.z });
+      list.push({ id: s.id, kind: s.kind, name: s.name, jp: s.jp, x: w.x, z: w.z });
+      if (s.kind === 'sound') return { done() {}, setLabel() {}, get world() { return w; } };
       // the hitbox the player aims at (invisible), only for spots that E does something at
       let item = null;
       if (s.action && s.interact !== false) {

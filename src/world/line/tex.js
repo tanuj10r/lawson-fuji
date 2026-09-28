@@ -223,7 +223,7 @@ export const nameBoardTex = () =>
     fit(c, NB.no.slice(2), 112, 118, 70, 40, INK, { font: SANS });
     fit(c, NB.kana, w / 2, 48, w * 0.4, 34, INK, { weight: '600' });
     fit(c, STATION.jp, w / 2, 118, w * 0.6, 104, INK);
-    fit(c, 'Sakura-Fuji', w / 2, 188, w * 0.5, 34, '#4a4a56', { weight: '600', font: SANS });
+    fit(c, STATION.romaji, w / 2, 188, w * 0.5, 34, '#4a4a56', { weight: '600', font: SANS });
     // the band
     c.fillStyle = GREEN; c.fillRect(0, 218, w, 62);
     c.fillStyle = PINK; c.fillRect(0, 280, w, 8);
@@ -244,9 +244,9 @@ export const entranceTex = () =>
     c.fillStyle = CREAM; c.fillRect(0, 0, w, h);
     c.fillStyle = GREEN; c.fillRect(0, 0, w, 22); c.fillRect(0, h - 22, w, 22);
     c.fillStyle = PINK; c.fillRect(0, h - 30, w, 8);
-    fit(c, `${STATION.jp}駅`, w * 0.42, h * 0.5, w * 0.62, 150, INK);
-    fit(c, STATION.en, w * 0.83, h * 0.42, w * 0.3, 36, '#5a5a66', { weight: '600' });
-    fit(c, LINE.name, w * 0.83, h * 0.66, w * 0.3, 32, GREEN);
+    fit(c, `${STATION.jp}駅`, w * 0.36, h * 0.5, w * 0.6, 150, INK);
+    fit(c, STATION.en, w * 0.835, h * 0.42, w * 0.28, 36, '#5a5a66', { weight: '600' });
+    fit(c, LINE.name, w * 0.835, h * 0.66, w * 0.28, 32, GREEN);
   });
 
 export const platformNumberTex = (n) =>
@@ -438,7 +438,7 @@ export const areaMapTex = () =>
 export const posterTex = (v) =>
   tex('stPoster' + v, 256, 360, (c, w, h) => {
     const sets = [
-      { bg: '#f7d8e2', fg: '#8a2f4a', t: '富士見 桜まつり', s: '4月上旬  駅前ひろば' },
+      { bg: '#f7d8e2', fg: '#8a2f4a', t: '富士川口湖 桜まつり', s: '4月上旬  駅前ひろば' },
       { bg: '#d8ecf6', fg: '#1f4f7a', t: '富士山麓 ハイキング', s: `${LINE.name}で いこう` },
       { bg: '#f6f0d8', fg: '#6a4a1a', t: 'かけこみ乗車は', s: 'おやめください' },
       { bg: '#e2f2dc', fg: '#2f5a2a', t: 'のりば ご案内', s: `1番線 ${D.east.jp} ・ 2番線 ${D.west.jp}` },

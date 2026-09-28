@@ -189,3 +189,14 @@ land/index.js `buildLand`, one line (+ import) in land/parking.js, the
   grade), the goatee reads as strokes at 40 cm, the eyes don't move
   independently of the head, and the hair ribbons still carry a fine ink
   edge each where the depth pass sees them stacked.
+- **Review fixes (the same night):** skin to a light-medium ivory-beige
+  (base #cfa68b, the mottle and zones lightened with it, the skin ramp
+  topping at 236 so lit planes stop clipping toward paper; reads warm at
+  golden, cool at blue, no longer orange by day); the ears in the shade
+  tone, set 3 mm back, two locks hung over each (they read as an orange
+  blob beside the hair); the eyes smaller (R 11.7 mm) and hooded (aperture
+  0.25 / -0.13 rad, sclera a shade darker); the scalp shell 8.5 % fuller at
+  the crown and every ribbon's root lifted 9 mm there, settling by the ear
+  line; the fringe as four heavy locks a side swung outward so both eyes
+  show. Han 28,016 triangles, 17 draws, 1.08 MB of textures; guard, play
+  and route checks pass; 4.73 MB.

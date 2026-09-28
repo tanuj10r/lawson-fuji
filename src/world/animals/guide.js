@@ -5,6 +5,7 @@ import { HAN_BAY, HAN_SHOW } from '../han/index.js';
 import { buildDrive, driveAt, T_DRIVE } from '../han/drive.js';
 import { shibaGeometry, RIG, SHADOW } from './shiba.js';
 import { animalMaterial, Herd, ease, turn } from './shade.js';
+import { soundBus } from '../../core/soundBus.js';
 
 /* ------------------------------------------------------------------ *
  * The guide (Tan, 2026-09-28): a shiba that leads you to the town's
@@ -278,6 +279,14 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     lostT: 0, awayT: 0, hopped: null, field: null, goal: null, since: 0, resume: null, aside: null, moved: 0, thinkT: 0,
   };
   const P = { x: VIEW.x, z: VIEW.z, y: 1.6, vx: 0, vz: 0, speed: 0, first: true };
+  /* Its voice (Tan: "very cute, adorable sounds"; core/sound.js dog-* recipes):
+   * soft, heard only near it, never two within 1.2 s. */
+  let lastSay = -9, pantT = 0, whined = false, snoreT = 0;
+  const say = (name, gain = 0.7, must = false) => {
+    if (!must && G.t - lastSay < 1.2) return;
+    lastSay = G.t;
+    soundBus.oneShot(name, { x: G.x, z: G.z, y: 0.4, near: 3, far: 18, gain, recipe: name });
+  };
   let list = [], listT = 0;
   const fields = { follow: null };
   const ready = new Map();            // goal key -> a finished Field (every engagement's, grown ahead of need)
@@ -539,8 +548,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         const q = G.aside ?? G.target;
         if (dist(G, q) > 0.25 && !G.done.has(G.target.id)) { r = move(dt, q, A.trot * 0.8); lookAt = 'way'; G.waitT = 0; } else G.waitT += dt;
         // arrived: a quick shake-off; you arrive: a little hop
-        if (G.shook !== G.target.id && dist(G, q) <= 0.25) { G.shook = G.target.id; G.shakeT = 0; }
-        if (G.hopped !== G.target.id && dist(P, G.target) < 3.5 && G.speed < 0.2) { G.hopped = G.target.id; G.hopT = 0; G.waitT = 0; }
+        if (G.shook !== G.target.id && dist(G, q) <= 0.25) { G.shook = G.target.id; G.shakeT = 0; say('dog-shake', 0.8); }
+        if (G.hopped !== G.target.id && dist(P, G.target) < 3.5 && G.speed < 0.2) { G.hopped = G.target.id; G.hopT = 0; G.waitT = 0; say('dog-yip', 0.9, true); }
         postureTo = G.waitT > A.waitSit + 1 ? 1 : 0;
         wagTo = dP < 6 ? 0.55 : 0.2;
         G.lostT = dP > A.lost ? G.lostT + dt : 0;
@@ -597,7 +606,12 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     const wasSitting = G.posture > 0.6;
     if (G.speed > 0.2) postureTo = 0;
     G.posture += Math.sign(postureTo - G.posture) * Math.min(Math.abs(postureTo - G.posture), dt * 1.3);
-    if (wasSitting && G.posture <= 0.6 && G.sat > 8 && G.shakeT < 0) G.shakeT = 0;
+    if (wasSitting && G.posture <= 0.6 && G.sat > 8 && G.shakeT < 0) { G.shakeT = 0; say('dog-shake', 0.7); }
+    // panting at a trot, now and then; a whine once when you've kept it waiting; snuffly breaths asleep
+    if (G.speed > 0.6) { pantT += dt; if (pantT > 3.2) { pantT = -Math.random() * 2.5; say('dog-pant', 0.6); } } else pantT = Math.min(pantT, 1.5);
+    if (G.state === 'lead' && G.waitT > 9 && !whined) { whined = true; say('dog-whine', 0.7); }
+    if (G.waitT < 1) whined = false;
+    if (G.state === 'nap' && G.posture > 1.8) { snoreT += dt; if (snoreT > 3.4) { snoreT = 0; say('dog-snore', 0.6); } }
     G.sat = G.posture > 0.6 ? G.sat + dt : 0;
     // the head: at you, along the way with a glance back over the shoulder, or down asleep
     const dxp = P.x - G.x, dzp = P.z - G.z;
@@ -609,7 +623,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     else if (lookAt === 'way') {
       // trotting: every few seconds a look back over the shoulder
       G.glance += dt;
-      if (G.glance > 3.6) G.glance = -1.3;
+      if (G.glance > 3.6) { G.glance = -1.3; if (Math.random() < 0.3) say('dog-boof', 0.7); }
       if (G.glance < 0) { lookTo = toYou; nodTo = nodYou * 0.6; } else { lookTo = Math.sin(G.t * 1.3) * 0.12; nodTo = 0.12; }
     } else if (lookAt === 'car') {
       const c = HAN_SHOW.car();
@@ -619,7 +633,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     G.nod += (nodTo - G.nod) * k3;
     // sitting and waiting: a head tilt now and then
     if (G.posture > 0.8 && G.speed < 0.1 && G.state !== 'nap') {
-      if (G.tiltT < 0) { G.tiltNext -= dt; if (G.tiltNext <= 0) { G.tiltT = 0; G.tiltNext = 3 + Math.random() * 4; G.tiltSide = Math.random() < 0.5 ? -1 : 1; } }
+      if (G.tiltT < 0) { G.tiltNext -= dt; if (G.tiltNext <= 0) { G.tiltT = 0; G.tiltNext = 3 + Math.random() * 4; G.tiltSide = Math.random() < 0.5 ? -1 : 1; if (Math.random() < 0.5) say('dog-hmm', 0.7); } }
     }
     let tiltTo = 0;
     if (G.tiltT >= 0) { G.tiltT += dt; const u = G.tiltT / 1.6; tiltTo = G.tiltSide * 0.38 * Math.sin(Math.PI * Math.min(1, u)); if (u >= 1) G.tiltT = -1; }

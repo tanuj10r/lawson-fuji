@@ -39,7 +39,7 @@ process.on('exit', unlock);
 const server = await createServer({ root: ROOT, configFile: path.join(ROOT, 'vite.config.js'), logLevel: 'error', server: { port: 5194, strictPort: false, host: '127.0.0.1' } });
 await server.listen();
 const base = server.resolvedUrls.local[0];
-const flags = ['--use-angle=metal', '--ignore-gpu-blocklist', '--enable-precise-memory-info'];
+const flags = ['--use-angle=metal', '--ignore-gpu-blocklist', '--enable-precise-memory-info', '--autoplay-policy=no-user-gesture-required'];
 let browser;
 try { browser = await chromium.launch({ channel: 'chrome', headless: true, args: flags }); }
 catch { browser = await chromium.launch({ headless: true, args: flags }); }
@@ -82,6 +82,26 @@ try {
     res.heapMB = await page.evaluate(() => +(performance.memory.usedJSHeapSize / 1048576).toFixed(0));
     console.log(JSON.stringify(res, null, 1));
   } else {
+    /* its voice (Tan: "very cute, adorable sounds"): each dog-* recipe really comes out, at the listener */
+    await page.mouse.click(800, 450);
+    await page.waitForFunction(() => window.__scene.sound.debug.ac?.state === 'running', null, { timeout: 20000 }).catch(() => {});
+    const voice = await page.evaluate(async () => {
+      const snd = window.__scene.sound, dbg = snd.debug;
+      if (!dbg.ac || dbg.ac.state !== 'running') return { error: 'no sound running' };
+      const out = {};
+      for (const n of ['dog-yip', 'dog-boof', 'dog-whine', 'dog-hmm', 'dog-pant', 'dog-shake', 'dog-snore']) {
+        await new Promise((r) => setTimeout(r, 900));
+        const before = await dbg.level(250);
+        snd.oneShot(n, { gain: 0.7, recipe: n });
+        const during = await dbg.level(700);
+        out[n] = { before: +before.peak.toFixed(3), peak: +during.peak.toFixed(3) };
+      }
+      dbg.log.length = 0;
+      return out;
+    });
+    const loud = voice.error ? false : Object.values(voice).every((v) => v.peak > 0.01 && v.peak > v.before * 1.5);
+    if (!loud) bad++;
+    console.log(loud ? 'pass' : 'FAIL', 'voice', JSON.stringify(voice));
     const r = await page.evaluate(async () => {
       const g = window.__guide, W = g.walk, world = window.__scene.world, camera = window.__scene.camera;
       g.reset();
@@ -194,11 +214,12 @@ try {
       ctx.strokeStyle = '#e02020'; ctx.lineWidth = 2; ctx.beginPath();
       trail.forEach(([x, z], i) => { const px = ((x - W.X0) / W.C) * sc, pz = (W.nz - (z - W.Z0) / W.C) * sc; i ? ctx.lineTo(px, pz) : ctx.moveTo(px, pz); });
       ctx.stroke();
-      return { cone: +cone.toFixed(0), home0, rows, player: [+P.x.toFixed(1), +P.z.toFixed(1)], trace, respawn, secs: +t.toFixed(0), end, viol, wall, pstuck: +pstuck.toFixed(1), stuck: +stuck.toFixed(1), gridMs: +W.ms.toFixed(0), cells: W.N, dogMs: +fieldMs.toFixed(0), steps: Math.round(t * 30), map: c.toDataURL('image/png') };
+      const said = [...new Set(window.__scene.sound.debug.log.map((e) => e.name).filter((n) => /^dog-/.test(n ?? '')))];
+      return { said, cone: +cone.toFixed(0), home0, rows, player: [+P.x.toFixed(1), +P.z.toFixed(1)], trace, respawn, secs: +t.toFixed(0), end, viol, wall, pstuck: +pstuck.toFixed(1), stuck: +stuck.toFixed(1), gridMs: +W.ms.toFixed(0), cells: W.N, dogMs: +fieldMs.toFixed(0), steps: Math.round(t * 30), map: c.toDataURL('image/png') };
     });
     fs.writeFileSync(path.join(out, 'trail.png'), Buffer.from(r.map.split(',')[1], 'base64'));
     delete r.map;
-    const ok = r.cone > 60 && r.rows.length === 4 && r.viol === 0 && r.wall === 0 && r.stuck < 5 && r.end.state === 'nap' && r.respawn?.ok;
+    const ok = r.said.length >= 2 && r.cone > 60 && r.rows.length === 4 && r.viol === 0 && r.wall === 0 && r.stuck < 5 && r.end.state === 'nap' && r.respawn?.ok;
     if (!ok) bad++;
     console.log(ok ? 'pass' : 'FAIL', 'guide', JSON.stringify(r, null, 1));
     console.log(`  ${(r.dogMs / r.steps).toFixed(3)} ms per step for the dog (grid and fields included)`);

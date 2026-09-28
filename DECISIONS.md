@@ -1714,3 +1714,7 @@ where below the bar, merged; builders' own calls in docs/decisions/*.md.
 ## H: back to the Nippon view; the counter laid out (2026-09-28)
 - H puts the player back on the Nippon Fuji view from anywhere, at the time of day they're in (Tan: "I'm finding it difficult to get back to the Nippon store" since 1 2 3 only change the light). Not during the konbini's scene, the map or the glide onto the view; it ends Han's watch and a seat like any move. _play step 29-home.
 - The counter: the second self-checkout sat inside the bun steamer and the first's bagging shelf ran into the oden pot; the second now stands at z -3.62 (its reader and printer on its far side, no shelf of its own), the oden pot moved to -5.62..-5.12, its cups on the lid.
+
+## The Shiba's voice (2026-09-28, Tan: "Don't you add very cute, adorable sounds?")
+- Made in code (core/sound.js `voice`: a sawtooth glide through two bandpass formants with a breath of noise; no files): a happy double yip when you arrive at a spot (always plays), a cheek-puffed little "boof" on some look-backs, a curious "hm?" with some head tilts, a soft rising whine once if you've kept it waiting 9 s, quick panting at a trot every few seconds, the collar tag jingling as it shakes off, snuffly breaths asleep. Placed at the dog (near 3 m, far 18 m), never two within 1.2 s. scripts/_guide.mjs checks each is really heard and that the dog uses them on a walk.
+- toon.js no longer passes flatShading to MeshToonMaterial (r180 has none; it only logged a warning per material at load; nothing on screen changed).

@@ -364,9 +364,12 @@ function viewSpot(dt) {
  * a damped turn toward it, a little ahead of it, capped to a head's speed,
  * the pitch kept near level.  The car's path is continuous, so the view never
  * jumps when a building hides it.  Then the view is yours again, where it is. */
-const watch = { on: false, mine: false, t: new THREE.Vector3(), at: { x: 0, z: 0 } };
+const watch = { on: false, mine: false, gone: false, t: new THREE.Vector3(), at: { x: 0, z: 0 } };
 function watchCar(dt) {
-  const on = hanShow.running && !player.scripted && !player.seat && !hero && !famousView && !gliding;
+  // moved from outside (a teleport, a famous view): let go for the rest of the show
+  if (watch.on && Math.hypot(player.pos.x - watch.at.x, player.pos.z - watch.at.z) > 1) watch.gone = true;
+  if (!hanShow.running) watch.gone = false;
+  const on = hanShow.running && !watch.gone && !player.scripted && !player.seat && !hero && !famousView && !gliding;
   if (on && !watch.on) {
     watch.on = true;
     watch.mine = !player.suspended;        // (anything else holding the player keeps its hold)

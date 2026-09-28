@@ -200,3 +200,55 @@ land/index.js `buildLand`, one line (+ import) in land/parking.js, the
   line; the fringe as four heavy locks a side swung outward so both eyes
   show. Han 28,016 triangles, 17 draws, 1.08 MB of textures; guard, play
   and route checks pass; 4.73 MB.
+
+## The stills pass (2026-09-28/29; Tan: "Han's hairstyle is badly
+## designed... try to replicate the face and hair style... he is wearing
+## a casual overcoat", with the car-park still of the actor)
+- **The part moves to his right.** The old hair was a centre part with
+  flat curtains, which is what read as "badly designed". Now ~75 chunky
+  ribbon locks from a part at azimuth -0.4 (his right): a fan of ten
+  fringe locks whose ends step down a diagonal (th 0.98 over his right
+  brow to 1.34 past his left brow, the last four hanging to the
+  cheekbone), the right side swept back over the temple with two pieces
+  falling at the corner (without them the temple read as receding), the
+  sides in two layers over the ears (inner 5 mm off the scalp, outer
+  15 mm) flicking out 2-4 cm at the jaw, the back to the collar, fifteen
+  short clumps piled at the crown. The scalp shell is 1.09 x the head
+  across and 1.08 deep, its crown 18 % taller and more so on his left
+  where the sweep piles. Ribbons are narrower (half-width 15-24 mm, was
+  up to 28) and cupped harder (0.5) so each reads as a piece; tones sit
+  between 0x261e22 and 0x584848 over a 44/82/126/250 ramp: near black
+  with a crisp sheen, not the old brown.
+- **What the loop taught:** the first pass was a black bowl. Two things
+  fixed it: the fringe ends must lie on a diagonal with gaps between
+  pointed tips (uniform end heights read as a wig edge whatever the part
+  does), and the locks need tonal contrast between neighbours (with one
+  tone the ink pass is the only separation and the mass goes flat).
+- **The smile is in the form.** `smileLift(fx)` raises the mouth up to
+  3.5 mm at the corners in both the height field and the map (the lips,
+  the line, the tucked corners), with cheek mounds beside it, a faint
+  fold from the nose's wing and the lower lid pushed up 2 deg. The first
+  try drew a crease under each eye as a line: it read as a scar across
+  the cheekbones; now a soft patch. Brows flatter (+3.5 mm rise, was 7),
+  goatee and moustache halved to light stubble, lips lighter.
+- **A denim overshirt, not a suit.** The jacket loft keeps its rings but
+  gains deeper folds, a hem sag, fronts hanging apart; over it a stand and
+  a rolled point collar (opening 0.55 rad; the first collar was twice
+  as wide and read as a shawl lapel), plackets in the jacket's own colour
+  (dark ones read as trim) with six snaps on his left, flap chest pockets
+  with a snap, dropped unpadded shoulders, sleeves rumpled into rings
+  above the cuff. The cloth material gets a tiled 256 x 256 weave map
+  (twill, wash mottle, whiskers; mean ~0.9, colour from the vertices), so
+  the jacket is worn denim, the tee heather, the cargos twill, all in the
+  same draw. Tee mid-blue (0x4c6b94) with a rib; cargos, trainers, chain
+  kept.
+- **Cost, measured:** Han 28,016 -> 29,250 triangles, 17 draws (same),
+  textures 1.08 -> 1.42 MB (+0.33 MB cloth map); frame ms at 1440p in
+  the same pair of runs: han-close 8.78 -> 9.56, han-face 8.74 -> 9.35,
+  han-head 7.77 -> 8.04, hero-1 9.25 -> 8.93 (untouched; the noise
+  band), so up to ~0.5 ms at his own spots, nothing elsewhere. Joints,
+  POSES, blendPose, apply unchanged; han-getin and han-drift-mid shot.
+- **Left open:** the hair still reads as painted ribbons at 40 cm (each
+  edge inked); the face is a likeness in the game's style, not the
+  actor; the smile is fixed (no expression change); the collar points
+  are soft where a real one is crisp.

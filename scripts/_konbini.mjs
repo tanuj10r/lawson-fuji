@@ -85,8 +85,9 @@ const server = await createServer({ root: ROOT, logLevel: 'error', server: { por
 await server.listen();
 const base = server.resolvedUrls.local[0];
 let browser;
-try { browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist', '--enable-precise-memory-info'] }); }
-catch { browser = await chromium.launch({ headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist'] }); }
+const AUDIO_ARGS = ['--autoplay-policy=no-user-gesture-required'];
+try { browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist', '--enable-precise-memory-info', ...AUDIO_ARGS] }); }
+catch { browser = await chromium.launch({ headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist', ...AUDIO_ARGS] }); }
 const close = async () => { await Promise.race([browser.close().then(() => server.close()), new Promise((r) => setTimeout(r, 8000))]).catch(() => {}); };
 for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, async () => { await close(); process.exit(130); });
 
@@ -138,6 +139,11 @@ try {
 
   /* ------------------------------ the loop ------------------------------ */
   async function loop() {
+    /* the sound, started as a player starts it (the first click), so what the
+     * visit plays is really played: the checkout's cuts must come from their
+     * files at full level, not as a stand-in tap (2026-09-28) */
+    await page.mouse.click(800, 450);
+    await page.waitForFunction(() => window.__scene.sound.debug.ac?.state === 'running' && Object.keys(window.__scene.sound.debug.manifest).length > 0, null, { timeout: 20000 }).catch(() => {});
     await page.evaluate((f) => { window.__FULL = f; }, FULL);
     await page.evaluate(() => {
       const S = window.__store.shop;
@@ -172,7 +178,7 @@ try {
 
     // the scene, played through: frames at its moments, what was said, where it ends
     const play = (id, frames) => page.evaluate(async ({ id, frames }) => {
-      const S = window.__store.shop;
+      const S = window.__store.shop, snd = window.__scene.sound.debug;
       window.__said.length = 0; window.__toasts.length = 0; S.debug.heard.length = 0;
       let tipsy = false;
       const t0 = S.onTipsy;
@@ -180,11 +186,13 @@ try {
       await window.__go({ pos: [-2.3, 0, 5], yaw: 0, pitch: 0 }, 0.1);
       await window.__go({ pos: [-2.3, 0, 2.3], yaw: 0, pitch: 0 }, 0.3);
       const atSpot = S.atSpot;
+      snd.log.length = 0;
       const ok = S.play(id);
       const shots = {}, phases = [];
       let t = 0, inside = false, took = false, eatT = 0;
       while (S.visiting && t < 120) {
         await window.__go({ stepWorld: true }, 0.5);
+        await new Promise((r) => setTimeout(r, 0));     // a turn of the event loop: the sound's files arrive and decode
         t += 0.5;
         const ph = S.phase;
         if (phases[phases.length - 1] !== ph) phases.push(ph);
@@ -193,18 +201,25 @@ try {
           if (!inside && cam.z < -0.5) { inside = true; shots.door = (await window.__go({}, 0, 'x')); }
           if (frames && inside && S.phase !== 'eat' && Math.round(t * 2) % 8 === 0) shots['walk' + Math.round(t)] = (await window.__go({}, 0, 'x'));
           if (!took && S.held.some((h) => h.where === 'hand')) { took = true; shots.take = (await window.__go({}, 0, 'x')); }
-          if (ph === 'till' && !shots.till && S.debug.checkout?.t > 3.6) shots.till = (await window.__go({}, 0, 'x'));
-          if (ph === 'till' && !shots.pay && S.debug.checkout?.t > 8.45 && S.debug.checkout?.t < 9.0) shots.pay = (await window.__go({}, 0, 'x'));
+          if (ph === 'till' && !shots.till && S.debug.checkout?.t > 0.5) shots.till = (await window.__go({}, 0, 'x'));
+          if (ph === 'till' && !shots.pay && S.debug.checkout?.t > 2.1) shots.pay = (await window.__go({}, 0, 'x'));
           if (ph === 'eat' && !shots.eat && (eatT += 0.5) >= 1.5) shots.eat = (await window.__go({}, 0, 'x'));
         }
       }
       S.onTipsy = t0;
       const p = window.__scene.player.pos;
-      return { ok, atSpot, secs: t, phases, heard: S.debug.heard.slice(), said: window.__said.slice(), toasts: window.__toasts.slice(), tipsy, end: [+p.x.toFixed(2), +p.z.toFixed(2)], scripted: !!window.__scene.player.scripted, ...shots };
+      const v = S.debug.visit();
+      // what the checkout played: each cut from its file (not the stand-in tap), at the level it is placed for
+      const kiosk = snd.log.filter((l) => /^kiosk-/.test(l.name)).map((l) => `${l.name}:${l.src}:${l.k}`);
+      return { ok, atSpot, secs: +v.t.toFixed(1), parts: v.marks.filter((m) => m[0] !== 'do' && m[0] !== 'pause' && m[0] !== 'wait' && m[0] !== 'face').map((m) => m.join('@')).join(' '), kiosk, phases, heard: S.debug.heard.slice(), said: window.__said.slice(), toasts: window.__toasts.slice(), tipsy, end: [+p.x.toFixed(2), +p.z.toFixed(2)], scripted: !!window.__scene.player.scripted, ...shots };
     }, { id, frames });
     // the self-checkout (no cashier: Tan): its two cuts of Tan's recording, and nobody speaks
     const sayAll = (r) => r.heard.join() === 'kiosk-scan,kiosk-pay' && r.said.length === 0;
-    const done = (r) => r.ok && r.atSpot && !r.scripted && r.secs < 120 && Math.hypot(r.end[0] + 2.3, r.end[1] - 2.4) < 0.5 && r.phases.includes('eat') && sayAll(r);
+    /* Tan (2026-09-28): the whole visit, choosing to eaten, in no more than
+     * 30-35 s (the choco wafer, beside the till, takes about 21) */
+    const brisk = (r) => r.secs >= 18 && r.secs <= 35;
+    const fromFiles = (r) => r.kiosk.length === 2 && r.kiosk.every((k) => /:file:/.test(k) && +k.split(':')[2] >= 0.8);
+    const done = (r) => r.ok && r.atSpot && !r.scripted && brisk(r) && Math.hypot(r.end[0] + 2.3, r.end[1] - 2.4) < 0.5 && r.phases.includes('eat') && sayAll(r) && fromFiles(r);
     let prev = null;
     for (const [i, id] of ['onigiri_tuna', 'sando_egg', 'fruit_sando', 'strong_nine', 'choco_wafer_jumbo'].entries()) {
       const r = await play(id, i === 0);
@@ -225,6 +240,21 @@ try {
       await window.__go({ pos: [-2.3, 0, 2.3], yaw: 0, pitch: 0 }, 0.2);
       return { atSpot: S.atSpot };
     }, (r) => r.atSpot);
+    // standing at the self-checkout: its cut really comes out of the speakers, well over the store's music
+    await step('08-kiosk-audible', async () => {
+      const S = window.__store.shop, snd = window.__scene.sound.debug, T = S.debug.TILL;
+      if (!snd.ac || snd.ac.state !== 'running') return { error: 'no sound running' };
+      const inside = window.__scene.scene.getObjectByName('lawson-interior');
+      const at = inside.localToWorld(T.stand.clone()), look = inside.localToWorld(T.look.clone());
+      await window.__go({ ...window.__look(at.x, at.z, look), stepWorld: true }, 1.0);
+      await new Promise((r) => setTimeout(r, 1500));          // the store's music fades in
+      const before = await snd.level(900);
+      S.debug.tillSound('kiosk-pay');
+      await new Promise((r) => setTimeout(r, 150));
+      const during = await snd.level(1100);
+      S.debug.heard.length = 0;
+      return { before, during, inside: snd.state.inside, lowpass: snd.state.lowpassTarget };
+    }, (r) => r.inside && r.during.peak > 0.1 && r.during.rms > r.before.rms * 1.5);
     await step('15-stock-inside', () => window.__stockCheck(), (r) => r.total === 0);
   }
 } finally {

@@ -226,15 +226,33 @@ try {
     window.__scene.player.pos.set(s.x, window.__scene.player.pos.y, s.z);
     await window.__wait(400);
     const st0 = window.__han.state();
+    const { player: pl, camera, world } = window.__scene;
+    const at0 = { x: pl.pos.x, z: pl.pos.z };
     window.__press('KeyE');
     await window.__wait(1500);
     const st1 = window.__han.state();
-    await window.__wait(5500);
-    const st2 = window.__han.state();
-    const audible = window.__audible();
-    const mid = await window.__frame();
-    await window.__wait(12500);
+    /* the view follows the car the whole drive (Tan): the angle between where
+     * you look and the car, sampled 4 times a second; you stay where you are */
+    const f = new window.__scene.THREE.Vector3();
+    const angles = [];
+    let st2 = null, audible = null, mid = null, held = true;
+    for (let k = 0; k < 72; k++) {
+      await window.__wait(250);
+      const h = window.__han.state();
+      if (!h.run) break;
+      const c = world.frame.toWorld({ x: h.x, z: h.z });
+      camera.getWorldDirection(f);
+      const a = Math.atan2(c.x - camera.position.x, c.z - camera.position.z) - Math.atan2(f.x, f.z);
+      angles.push(Math.round(Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) * 180 / Math.PI));
+      held = held && pl.suspended;
+      if (k === 22) { st2 = h; audible = window.__audible(); mid = await window.__frame(); }
+    }
+    await window.__wait(800);
     const st3 = window.__han.state();
+    const moved = +Math.hypot(pl.pos.x - at0.x, pl.pos.z - at0.z).toFixed(2);
+    const freed = !pl.suspended;
+    const sorted = angles.slice().sort((a, b) => a - b);
+    const view = { n: angles.length, median: sorted[sorted.length >> 1], p90: sorted[Math.floor(sorted.length * 0.9)], max: sorted[sorted.length - 1], held, freed, moved };
     // stepping into the glow starts it too, no E (the track starts with it; nothing played on the walk up)
     const { player } = window.__scene;
     player.pos.set(s.x - 3, player.pos.y, s.z);            // off the glow, then back on: it starts again
@@ -244,9 +262,10 @@ try {
     await window.__wait(600);
     const st4 = window.__han.state();
     window.__han.stop();
-    return { st0, st1, st2, st3, st4, audible, audibleBefore, toasts: window.__toasts.slice(), mid };
+    return { st0, st1, st2, st3, st4, view, audible, audibleBefore, toasts: window.__toasts.slice(), mid };
   }, (r) => r.st1.run && Math.hypot(r.st2.x - r.st0.x, r.st2.z - r.st0.z) > 3 && Math.hypot(r.st3.x - r.st0.x, r.st3.z - r.st0.z) < 0.3 && !r.st3.run
-    && r.st4.run && !r.audibleBefore.includes('han-drift'));
+    && r.st4.run && !r.audibleBefore.includes('han-drift')
+    && r.view.n > 50 && r.view.median <= 12 && r.view.p90 <= 25 && r.view.held && r.view.freed && r.view.moved < 0.05);
 
   // the station: heard, full in the concourse, mild over the plaza, nothing beyond; nobody there
   await step('23-station', async () => {

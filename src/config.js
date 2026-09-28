@@ -51,16 +51,27 @@ export const STORE = {
   slide: 0.25,         // seconds for the next unit to come forward
   door: { open: 1.66, ease: 0.3, away: 2.5 },   // fridge doors: radians, s, m (shut when you walk off)
   /* Tan's konbini (store/shop.js) */
-  till: { x: 7.32, z: -4.5 },                 // the self-checkout's line on the counter (store frame; no cashier: Tan)
+  till: { x: 7.32, z: -4.5 },                 // the self-checkout's line on the counter (store frame; no cashier: Tan). Not the other one at -3.3: its IC reader is under the bun steamer
   tillSound: { near: 3, far: 14 },            // the self-checkout's voice and beeps: the counter and the aisles near it
   eatGain: { bite: 0.9, munch: 0.7, gulp: 0.8, 'can-open': 0.8, wrapper: 0.6 },
   recommended: 'strong_nine',   // the choice card's stamp (Tan)
   checkoutGain: 0.9,  // the self-checkout (Tan's recording)
-  /* Tan's self-checkout recording, in two cuts (scripts/audio-cuts.json
-   * kiosk-scan, kiosk-pay): how long each is and where its beep falls, so
-   * the item meets the scanner and the card the reader on them. */
-  kiosk: { scanLen: 7.6, scanBeep: 3.45, payLen: 5.2, payBeep: 0.65 },
+  /* Tan's self-checkout recording, in two short cuts (scripts/audio-cuts.json
+   * kiosk-scan, kiosk-pay; Tan 2026-09-28: parts of it, not all 31 s): how
+   * long each is and where its beeps fall, so the item meets the scanner on
+   * the scan beep, the card the reader on the card beep, and the screen
+   * thanks you on the paid beep. */
+  kiosk: { scanLen: 1.5, scanBeep: 0.15, payLen: 3.95, payCard: 0.25, payDone: 1.15 },
+  /* The visit's pace (Tan 2026-09-28: the whole thing, choice to eaten, in
+   * no more than 30-35 s): walking speed in m/s, brisk but not a hurry
+   * (2.0 before; 2.5 read as a rush in first person). */
+  walk: 2.2,
 };
+
+/* Watching Han's drive (main.js watchCar): how fast the view closes on the
+ * car (1/s), the most it turns (rad/s: a head turning, not a camera rig),
+ * and the pitch it keeps within (rad). */
+export const HAN_WATCH = { follow: 3.2, maxTurn: 1.9, pitch: [-0.3, 0.22] };
 
 /* Ground plan in front of the store, as z lines (the store glass is z = 0). */
 export const STREET = {
@@ -652,6 +663,13 @@ export const SLOWLIFE = {
  * than switching on. */
 export const SOUND = {
   storeInside: 1.15,   // the store's bed, music and hum while you are in it (Tan: +15%, 2026-09-28)
+  /* Golden hour's crows (Tan 2026-09-28: "a million crows cawing right next
+   * to me").  Not the recording's chorus looped any more: now and then a
+   * single caw cut out of it (`calls`: its loudest caws, seconds into
+   * crows.m4a, heard from `before` to `after` around each), from somewhere
+   * `dist` metres off, high up and dulled by the distance.  One every
+   * `every` seconds, sometimes (`pair`) answered by a second. */
+  crows: { calls: [2.72, 4.32, 9.34, 10.28, 17.9, 22.96], before: 0.25, after: 0.6, every: [9, 20], pair: 0.35, level: 0.13, dist: [55, 95], lowpass: 2600 },
   crossingBells: { near: 10, far: 45 },    // the crossing, the plaza's south edge, the platforms' west end
   doorChime: { near: 5, far: 28 },         // the platform, the gates
   // the store (M4): its chime and door carry across the forecourt to the famous view, no further

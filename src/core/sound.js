@@ -140,7 +140,8 @@ export function createSound({ volume = 0.5 } = {}) {
       if (Math.hypot(at.x - listener.x, at.z - listener.z) >= range.far) return;   // beyond its range it does not play at all
       ({ k, f } = voiceLevel(v));
     }
-    if (!o._waited) log.push({ name: file ?? recipe, t: +now().toFixed(3) });   // (a waited replay was logged when asked)
+    const entry = { name: file ?? recipe, t: +now().toFixed(3), k: +k.toFixed(3) };
+    if (!o._waited) log.push(entry);   // (a waited replay was logged when asked)
     const g = ac.createGain();
     g.gain.value = k;
     let dest = g;
@@ -159,13 +160,17 @@ export function createSound({ volume = 0.5 } = {}) {
       s.buffer = b; s.playbackRate.value = rate;
       const [a] = loopSpan(file, b);
       s.connect(dest); s.start(t, a);
+      if (o._waited) o._waited.src = 'file-late';        // it played once decoded, late
+      else entry.src = 'file';
     } else if (file && manifest[file] && !recipe && !o._waited) {
       // not decoded yet: fetch it and play it then (a voice line or a track
       // must not become a tap the first time it is asked for)
       g.disconnect();
-      buffer(file).then((ok) => { if (ok) play(file, { at, range, recipe, gain, rate, bus, indoor, o: { ...o, _waited: true } }); });
+      entry.src = 'waiting';
+      buffer(file).then((ok) => { if (ok) play(file, { at, range, recipe, gain, rate, bus, indoor, o: { ...o, _waited: entry } }); });
     } else {
       if (file && manifest[file]) buffer(file);            // next time
+      entry.src = 'recipe';
       (RECIPES[recipe ?? file] ?? RECIPES['ui-tap'])(dest, t, o);
     }
   }
@@ -297,9 +302,20 @@ export function createSound({ volume = 0.5 } = {}) {
       zones.push(z);
       return { set: (p) => Object.assign(z, p) };
     },
-    /** A placed one-off (a line said, a track played on interaction). */
-    oneShot(name, { x, z, y = 1.6, near = 6, far = 40, gain = 1, recipe = null } = {}) {
-      play(name, { at: x === undefined ? null : { x, y, z }, range: x === undefined ? null : { near, far }, gain, recipe });
+    /** A placed one-off (a line said, a track played on interaction).
+     * `indoor`: it belongs inside the store (heard through the glass from outside). */
+    oneShot(name, { x, z, y = 1.6, near = 6, far = 40, gain = 1, recipe = null, indoor = false } = {}) {
+      play(name, { at: x === undefined ? null : { x, y, z }, range: x === undefined ? null : { near, far }, gain, recipe, indoor });
+    },
+    /** Fetch and decode these files now, so their first play is the file and
+     * not the recipe.  Waits for the list of files first: asked for before it
+     * has arrived (the first click, near the store), it used to fetch nothing
+     * and the self-checkout's first run was a tap (2026-09-28). */
+    async preload(names) {
+      if (!ac) return false;
+      await manifestReady;
+      const got = await Promise.all(names.map((n) => (manifest[n] ? buffer(n) : null)));
+      return got.every(Boolean);
     },
     get ready() { return !!ac; },
     get muted() { return muted; },

@@ -640,7 +640,12 @@ if (import.meta.env?.DEV) {
     // the shop: `opts.shop` seconds pass (flights land, doors swing), and what you carry follows the camera
     if (shop) {
       const steps = Math.round((opts.shop ?? 0) * 60);
-      for (let k = 0; k < steps; k++) { if (opts.stepWorld) world.update(1 / 60, camera); viewSpot(1 / 60); tipsyStep(1 / 60); shop.update(1 / 60, camera, 0); }
+      for (let k = 0; k < steps; k++) {
+        if (opts.stepWorld) world.update(1 / 60, camera);
+        viewSpot(1 / 60); tipsyStep(1 / 60); shop.update(1 / 60, camera, 0);
+        // the listener goes where the camera goes, so a stepped scene is heard from where it is seen
+        if (opts.stepWorld) sound.update(0, { camera, inside: shop.inside(camera), look: lookName, cooler: shop.coolerAt });
+      }
       shop.update(0, camera, 0);
     }
     seatLights();

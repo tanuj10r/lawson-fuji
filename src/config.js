@@ -51,15 +51,21 @@ export const STORE = {
   slide: 0.25,         // seconds for the next unit to come forward
   door: { open: 1.66, ease: 0.3, away: 2.5 },   // fridge doors: radians, s, m (shut when you walk off)
   /* Tan's konbini (store/shop.js) */
-  till: { x: 7.32, z: -4.5 },                 // the self-checkout's line on the counter (store frame; no cashier: Tan)
+  till: { x: 7.32, z: -4.5 },                 // the self-checkout's line on the counter (store frame; no cashier: Tan). Not the other one at -3.3: its IC reader is under the bun steamer
   tillSound: { near: 3, far: 14 },            // the self-checkout's voice and beeps: the counter and the aisles near it
   eatGain: { bite: 0.9, munch: 0.7, gulp: 0.8, 'can-open': 0.8, wrapper: 0.6 },
   recommended: 'strong_nine',   // the choice card's stamp (Tan)
   checkoutGain: 0.9,  // the self-checkout (Tan's recording)
-  /* Tan's self-checkout recording, in two cuts (scripts/audio-cuts.json
-   * kiosk-scan, kiosk-pay): how long each is and where its beep falls, so
-   * the item meets the scanner and the card the reader on them. */
-  kiosk: { scanLen: 7.6, scanBeep: 3.45, payLen: 5.2, payBeep: 0.65 },
+  /* Tan's self-checkout recording, in two short cuts (scripts/audio-cuts.json
+   * kiosk-scan, kiosk-pay; Tan 2026-09-28: parts of it, not all 31 s): how
+   * long each is and where its beeps fall, so the item meets the scanner on
+   * the scan beep, the card the reader on the card beep, and the screen
+   * thanks you on the paid beep. */
+  kiosk: { scanLen: 1.5, scanBeep: 0.15, payLen: 3.95, payCard: 0.25, payDone: 1.15 },
+  /* The visit's pace (Tan 2026-09-28: the whole thing, choice to eaten, in
+   * no more than 30-35 s): walking speed in m/s, brisk but not a hurry
+   * (2.0 before; 2.5 read as a rush in first person). */
+  walk: 2.2,
 };
 
 /* Ground plan in front of the store, as z lines (the store glass is z = 0). */

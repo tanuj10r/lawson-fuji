@@ -144,7 +144,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     return { mesh, show };
   };
   const screen = makeScreen(REG_Z);
-  makeScreen(REG_Z + 1.2);                  // the other self-checkout, waiting
+  makeScreen(REG_Z < -3.9 ? REG_Z + 1.2 : REG_Z - 1.2);   // the other self-checkout, waiting
   // the card, drawn on top like what you hold; in your right hand only to pay
   const cardMat = onTopClamped(new THREE.MeshBasicMaterial({ map: cardTexture() }));
   lit.push(cardMat);
@@ -208,7 +208,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   const tillAt = () => at(TILL.screen);
   /** A sound from the self-checkout (Tan's recording), heard only near it. */
   const heard = [];                 // dev tests: what the self-checkout played
-  const tillSound = (name, recipe, gain = 1) => { const w = tillAt(); heard.push(name); soundBus.oneShot(name, { x: w.x, y: w.y, z: w.z, ...STORE.tillSound, gain, recipe }); };
+  const tillSound = (name, recipe, gain = 1) => { const w = tillAt(); heard.push(name); soundBus.oneShot(name, { x: w.x, y: w.y, z: w.z, ...STORE.tillSound, gain, recipe, indoor: true }); };
   /** Sounds at you (eating). */
   const EAT_RECIPE = { bite: 'soft', munch: 'paper', gulp: 'bottle', 'can-open': 'can', wrapper: 'plastic' };
   const mine = (name) => soundBus.oneShot(name, { gain: STORE.eatGain[name] ?? 0.8, recipe: EAT_RECIPE[name] });
@@ -217,7 +217,8 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   function prime() {
     if (primed || !soundBus.ready) return;
     primed = true;
-    for (const n of ['kiosk-scan', 'kiosk-pay', 'bite', 'munch', 'gulp', 'can-open', 'wrapper']) soundBus.oneShot(n, { gain: 0 });
+    // (it waits for the list of files: asked for too early, it fetched nothing and the first checkout was a tap)
+    soundBus.preload(['kiosk-scan', 'kiosk-pay', 'bite', 'munch', 'gulp', 'can-open', 'wrapper']);
   }
 
   /* ----------------------------- flights ----------------------------- */
@@ -287,11 +288,17 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   }
 
   /* ------------------------------ paying ------------------------------ */
-  /* The self-checkout, as a timeline of moments, set to Tan's recording
-   * of one (STORE.kiosk: its two cuts and where their beeps fall): your
-   * thing goes on the scanner as the machine talks you through it, its
-   * beep, the screen shows it and the total; then your hand comes up with
-   * the IC card and touches the reader on the second cut's beep. */
+  /* The self-checkout, as a timeline of moments, set to two short cuts of
+   * Tan's recording (STORE.kiosk: where their beeps fall).  About 3.7 s from
+   * standing at it to walking away, the machine still talking as you go:
+   *   0.00  the screen asks for a scan; your thing goes onto the scanner
+   *   0.45  the scan beep as it lands; the screen shows it and the total
+   *   0.90  onto the bagging shelf; the screen asks how you'll pay
+   *   1.35  the IC card up in your right hand
+   *   2.25  the card on the reader: its beep
+   *   3.15  the paid beep: the screen thanks you
+   *   3.25  the card away, your thing back from the shelf
+   *   3.70  yours again (the thanks and the closing two-tone play on) */
   function startCheckout() {
     const items = held.filter((h) => !h.paid && h.where === 'hand');
     if (phase !== 'shop' || !items.length || flights.length) return;
@@ -303,36 +310,36 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     const T = (t, fn) => ev.push({ t, fn });
     const p = api.player;
     if (p) p.suspended = true;
-    gaze = TILL.look;
-    T(0, () => { screen.show('scan'); tillSound('kiosk-scan', 'ui-tap', STORE.checkoutGain); });
-    // onto the scanner, just before the recording's beep; then to the bagging shelf
-    T(K.scanBeep - 0.7, () => {
-      gaze = TILL.scan;
+    gaze = TILL.scan;
+    const beep = 0.45;                             // the item lands on the scanner on the recording's beep
+    T(0, () => {
+      screen.show('scan');
       const f = worldOf(h.mesh).clone();
       h.mesh.removeFromParent();
       hands.R.item = null;
       h.where = 'flying';
-      fly(h.mesh, f, () => counterMatrix(TILL.scan), { dur: 0.55, arc: 0.05, done: () => { h.where = 'counter'; } });
+      fly(h.mesh, f, () => counterMatrix(TILL.scan), { dur: beep, arc: 0.05, done: () => { h.where = 'counter'; } });
     });
-    T(K.scanBeep - 0.1, () => hands.raise(false));             // an empty hand has nothing to do in view
-    T(K.scanBeep, () => screen.show('item', h.id, sum));
-    T(K.scanBeep + 0.8, () => { gaze = TILL.look; fly(h.mesh, counterMatrix(TILL.scan), () => counterMatrix(TILL.bag), { dur: 0.45, arc: 0.06 }); });
-    T(K.scanLen - 1.2, () => screen.show('pay', h.id, sum));
-    // the card: up in the right hand, onto the reader on the beep
-    const tp = K.scanLen + 0.2;
-    T(tp, () => { screen.show('tap', h.id, sum); card.visible = true; hands.raise(true); tillSound('kiosk-pay', 'ui-tap', STORE.checkoutGain); gaze = TILL.reader; });
-    T(tp + K.payBeep - 0.45, () => { reachFor(TILL.reader); reachR = 0; });
-    T(tp + K.payBeep, () => screen.show('paid', h.id, sum));
-    T(tp + K.payBeep + 0.55, () => { reachR = -1; });
+    T(beep - K.scanBeep, () => tillSound('kiosk-scan', 'ui-tap', STORE.checkoutGain));
+    T(beep - 0.1, () => hands.raise(false));             // an empty hand has nothing to do in view
+    T(beep, () => screen.show('item', h.id, sum));
+    T(beep + 0.45, () => { gaze = TILL.look; screen.show('pay', h.id, sum); fly(h.mesh, counterMatrix(TILL.scan), () => counterMatrix(TILL.bag), { dur: 0.4, arc: 0.06 }); });
+    // the card: up in the right hand (0.55 s), onto the reader on the card beep
+    const tp = beep + 0.9, cardAt = tp + 0.9, pay = cardAt - K.payCard;
+    T(tp, () => { screen.show('tap', h.id, sum); card.visible = true; hands.raise(true); gaze = TILL.reader; });
+    T(pay, () => tillSound('kiosk-pay', 'ui-tap', STORE.checkoutGain));
+    T(cardAt - 0.45, () => { reachFor(TILL.reader); reachR = 0; });
+    T(cardAt + 0.35, () => { reachR = -1; });
+    T(pay + K.payDone, () => { screen.show('paid', h.id, sum); gaze = TILL.look; });
     // the card away, your thing back from the bagging shelf
-    T(tp + K.payBeep + 1.1, () => {
+    T(pay + K.payDone + 0.1, () => {
       card.visible = false;
       gaze = null;
       h.paid = true;
       h.hand = 0;
-      fly(h.mesh, counterMatrix(TILL.bag), anchorMatrix(0, h.mesh), { dur: 0.45, done: () => { h.where = 'hand'; holdIn(h.mesh, hands.anchor(0)); hands.R.item = h; changed(); } });
+      fly(h.mesh, counterMatrix(TILL.bag), anchorMatrix(0, h.mesh), { dur: 0.4, done: () => { h.where = 'hand'; holdIn(h.mesh, hands.anchor(0)); hands.R.item = h; changed(); } });
     });
-    T(Math.max(tp + K.payLen - 0.2, tp + K.payBeep + 1.7), () => {
+    T(pay + K.payDone + 0.55, () => {
       phase = 'paid';
       wallet = STORE.wallet - sum;
       if (api.player) api.player.suspended = false;
@@ -399,7 +406,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   const inv = new THREE.Matrix4();
   /* ------------------------------ the visit ------------------------------ */
   const visit = { active: false, id: null, eat: false, queue: [], cur: null, armed: true };
-  const WALK = 2.0;                         // m/s, a brisk konbini pace (Tan: +33%)
+  const WALK = STORE.walk;                  // m/s, a brisk konbini pace (Tan: the visit in 30-35 s)
 
   /* Where you can stand: the store's floor and the forecourt on a 10 cm
    * grid, clear of every collider (the entrance's own leaves excepted: they
@@ -413,7 +420,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     const X0 = -hw + 0.1, X1 = hw - 0.1, Z0 = -LAWSON.depth + 0.1, Z1 = 3.4;
     const nx = Math.ceil((X1 - X0) / C), nz = Math.ceil((Z1 - Z0) / C);
     const solid = colliders.filter((c) => !(c.top !== undefined && c.top <= 0.38)
-      && !(entrance && c.x0 === entrance.d0 && c.x1 === entrance.d1));
+      && !(entrance && c.x0 === entrance.d0 && c.x1 === entrance.d1)).concat(WALK_AROUND);
     const free = new Uint8Array(nx * nz);
     for (let iz = 0; iz < nz; iz++) for (let ix = 0; ix < nx; ix++) {
       const x = X0 + (ix + 0.5) * C, z = Z0 + (iz + 0.5) * C;
@@ -426,7 +433,13 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
       /** Nothing in the way along a straight line from p to q. */
       sight: (p, q) => { const n = Math.ceil(p.distanceTo(q) / 0.04); for (let i = 1; i < n; i++) { const t2 = i / n; if (!ok(p.x + (q.x - p.x) * t2, p.y + (q.y - p.y) * t2)) return false; } return true; } };
   }
-  const getGrids = () => (grids ??= { wide: makeGrid(0.55), body: makeGrid(0.38) });
+  /* Props with no collider that a walk must still go round (store frame):
+   * the umbrella-bag stand by the door (interior.js). */
+  const WALK_AROUND = [{ x0: -1.02, x1: -0.78, z0: -0.95, z1: -0.75 }];
+  /* Three clearances: a good half metre off the shelves; the body's own
+   * width; and a squeeze (shoulders past the umbrella stand, which leaves
+   * 0.69 m to the end caps of the front aisle). */
+  const getGrids = () => (grids ??= { wide: makeGrid(0.55), body: makeGrid(0.38), squeeze: makeGrid(0.28) });
   /** The free cell nearest (x, z). */
   function nearestFree(g, x, z) {
     let [cx, cz] = g.cell(x, z), best = null, bd = Infinity;
@@ -469,13 +482,20 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   }
   /** A walk from `from` to `to`: the shortest way, pulled taut, its corners rounded where that stays clear. */
   function plan(from, to) {
-    const { wide, body } = getGrids();
-    let g = wide, cells = null;
-    for (const gg of [wide, body]) {
+    const { wide, body, squeeze } = getGrids();
+    /* The roomier clearance is kept unless a tighter one saves a detour: the
+     * umbrella stand closes the front aisle to the wide and body grids, and
+     * from the till they went round the back of the store (23.6 m for 10). */
+    let pick = null;
+    for (const gg of [wide, body, squeeze]) {
       const a = nearestFree(gg, from.x, from.y), b = nearestFree(gg, to.x, to.y);
-      if (a && b && (cells = search(gg, a, b))) { g = gg; break; }
+      const c = a && b ? search(gg, a, b) : null;
+      if (!c) continue;
+      const len = c.reduce((n, q, i) => n + (i ? q.distanceTo(c[i - 1]) : 0), 0);
+      if (!pick || len < pick.len * 0.8 - 0.5) pick = { g: gg, cells: c, len };
     }
-    if (!cells) return [from.clone(), to.clone()];
+    if (!pick) return [from.clone(), to.clone()];
+    const g = pick.g, cells = pick.cells;
     // pulled taut: from each point, the farthest one still in plain sight
     const all = [from.clone(), ...cells, to.clone()];
     let pts = [all[0]];
@@ -496,7 +516,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
         const t2 = k / 6;
         curve.push(p0.clone().multiplyScalar((1 - t2) * (1 - t2)).add(c.clone().multiplyScalar(2 * t2 * (1 - t2))).add(p1.clone().multiplyScalar(t2 * t2)));
       }
-      if (curve.every((q, k) => k === 0 || body.sight(curve[k - 1], q))) out.push(...curve);
+      if (curve.every((q, k) => k === 0 || (g === squeeze ? squeeze : body).sight(curve[k - 1], q))) out.push(...curve);
       else out.push(c);
     }
     out.push(pts[pts.length - 1]);
@@ -531,29 +551,33 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     const u = pickable.filter((x) => x.id === id && x.count > 0)[0];
     if (!u) return false;
     const p = api.player;
-    visit.active = true; visit.id = id; visit.eat = false;
+    visit.active = true; visit.id = id; visit.eat = false; visit.t = 0; visit.marks = [];
     p.scripted = true; p.suspended = true;
     p.vel.set(0, 0, 0);
     const street = new THREE.Vector3(SPOT.x + 0.6, 1.45, SPOT.z + 12);
+    /* Tan (2026-09-28): in, the chime, the store's music on the way to the
+     * shelf, take it, the self-checkout's sounds, out through the chime, eat;
+     * 30-35 s in all.  No idle pauses: the hand goes up as you turn to the
+     * shelf and comes back as you walk on. */
+    const L = (label, step) => Object.assign(step, { label });
     visit.queue = [
-      walkTo(standFor(u)),
-      face(u.centre.clone(), 0.8),
-      act(() => { hands.raise(true); reachTo.set(-0.03, 0.09, -0.22); reachR = 0; }),
-      pause(0.35),
+      L('in', walkTo(standFor(u))),
+      L('take', act(() => hands.raise(true))),
+      face(u.centre.clone(), 0.6),
+      act(() => { reachTo.set(-0.03, 0.09, -0.22); reachR = 0; }),
+      pause(0.2),
       act(() => take(u)),
       until(() => held.some((h) => h.where === 'hand') && !flights.length && !pendingTakes.length),
       act(() => { reachR = -1; }),
-      pause(0.5),
-      walkTo(P2(TILL.stand.x, TILL.stand.z)),
-      face(TILL.look, 0.6),
+      L('to-till', walkTo(P2(TILL.stand.x, TILL.stand.z))),
+      L('checkout', face(TILL.look, 0.5)),
       act(() => startCheckout()),
       until(() => phase === 'paid'),
-      pause(0.4),
-      walkTo(P2(SPOT.x, SPOT.z + 0.1)),
-      face(street, 0.9),
+      L('out', walkTo(P2(SPOT.x, SPOT.z + 0.1))),
+      L('eat', face(street, 0.6)),
       act(() => { visit.eat = true; }),
       until(() => phase === 'out' || phase === 'shop'),
-      pause(0.6),
+      pause(0.3),
     ];
     visit.cur = null;
     return true;
@@ -569,6 +593,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   const _l = new THREE.Vector3();
   function stepVisit(dt, camera) {
     const p = api.player;
+    visit.t += dt;
     let moving = 0;
     for (let guard = 0; guard < 4; guard++) {
       if (!visit.cur) {
@@ -576,6 +601,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
         if (!visit.cur) { endVisit(); break; }
         const c = visit.cur;
         c.t = 0;
+        visit.marks.push([c.label ?? c.kind, +visit.t.toFixed(2)]);   // (dev: the timeline, part by part)
         if (c.kind === 'walk') {
           _l.copy(p.pos).applyMatrix4(inv.copy(inside.matrixWorld).invert());
           c.path = plan(P2(_l.x, _l.z), c.to);
@@ -605,7 +631,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
         if (entrance && q.y > -0.45 && q.y < 0.6 && Math.abs(q.x - LAWSON.doorX) < LAWSON.doorWidth && entrance.open < 0.8) next = c.s;
         moving = (next - c.s) / Math.max(dt, 1e-6);
         c.s = next;
-        const here = pt(c.s), ahead = pt(c.s + 0.9);
+        const here = pt(c.s), ahead = pt(c.s + 1.1);          // looking a little further ahead at the brisker pace
         const w = inside.localToWorld(new THREE.Vector3(here.x, 0, here.y));
         p.pos.x = w.x; p.pos.z = w.z;
         p.pos.y += (p.world.heightAt(w.x, w.z, p.pos.y) - p.pos.y) * Math.min(1, dt * 18);
@@ -767,10 +793,15 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
 
   if (import.meta.env?.DEV) {
     api.debug = {
-      pickable, take, startCheckout, visit: () => visit, heard, get reachErr() { return reachErr; }, get reachTo() { return reachTo; },
+      pickable, take, startCheckout, visit: () => visit, heard, tillSound: (n) => tillSound(n, null, STORE.checkoutGain), get reachErr() { return reachErr; }, get reachTo() { return reachTo; },
+      /** Each leg's length (m) for `id` (dev): door to shelf, shelf to till, till to the spot. */
+      legs(id) {
+        const u = pickable.find((x) => x.id === id), L = (pts) => +pts.reduce((n, q, i) => n + (i ? q.distanceTo(pts[i - 1]) : 0), 0).toFixed(2);
+        return [L(plan(P2(SPOT.x, SPOT.z), standFor(u))), L(plan(standFor(u), P2(TILL.stand.x, TILL.stand.z))), L(plan(P2(TILL.stand.x, TILL.stand.z), P2(SPOT.x, SPOT.z + 0.1)))];
+      },
       /** The walkable floor and the walk for `id`, as text (dev): '#' blocked, '.' free, '*' the path. */
-      pathMap(id) {
-        const g = getGrids().wide, u = pickable.find((x) => x.id === id);
+      pathMap(id, grid = 'wide') {
+        const g = getGrids()[grid], u = pickable.find((x) => x.id === id);
         const legs = [plan(P2(SPOT.x, SPOT.z), standFor(u)), plan(standFor(u), P2(TILL.stand.x, TILL.stand.z)), plan(P2(TILL.stand.x, TILL.stand.z), P2(SPOT.x, SPOT.z + 0.1))];
         const rows = [];
         for (let iz = 0; iz < g.nz; iz += 2) {

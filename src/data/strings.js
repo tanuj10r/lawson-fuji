@@ -43,11 +43,12 @@ export const STRINGS = {
   coordsOff: 'coordinates off',
   copied: 'copied',
   map: {
-    titleJp: '富士見町 マップ',
-    title: 'Town map',
+    titleJp: '富士川口湖町 マップ',
+    title: 'Fujikawaguchikko',
     close: 'M to close',
     here: 'You are here',
     todo: 'Things to do',
+    hear: 'Things to hear',
     north: 'N',
     scale: (m) => `${m} m`,
     /* The places' labels (config.js PLACES): English, the Japanese name small beside it. */
@@ -59,7 +60,7 @@ export const STRINGS = {
       donpen: { en: 'Donpen-do', jp: 'ドンペン堂' },
       shrine: { en: 'Inari shrine', jp: '富士見稲荷神社' },
       plaza: { en: 'Station plaza', jp: '駅前広場' },
-      station: { en: 'Sakura-Fuji Station', jp: 'さくら富士駅' },
+      station: { en: 'Fujikawaguchikko Station', jp: '富士川口湖駅' },
       crossing: { en: 'Level crossing', jp: '踏切' },
       pond: { en: 'Kagami Pond', jp: '鏡池' },
       slowlife: { en: 'Slow-life bench', jp: 'ひと休み' },

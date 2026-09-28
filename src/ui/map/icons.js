@@ -80,3 +80,26 @@ export function drawGem(c, x, y, r) {
   c.lineWidth = Math.max(1, r * 0.2); c.strokeStyle = 'rgba(90,64,20,0.85)'; c.stroke();
   c.restore();
 }
+
+/** The sound experiences' speaker (Tan, 2026-09-28): a small ink disc with a
+ * cream rim, a white speaker and two sound waves; heard, not done. */
+export function drawSpeaker(c, x, y, r) {
+  c.save();
+  c.translate(x, y);
+  c.fillStyle = 'rgba(40,32,60,0.2)';
+  c.beginPath(); c.arc(r * 0.12, r * 0.22, r, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2);
+  c.fillStyle = '#5a4a86'; c.fill();
+  c.lineWidth = Math.max(1, r * 0.18); c.strokeStyle = WHITE; c.stroke();
+  const u = r / 10;
+  c.fillStyle = WHITE;
+  c.beginPath();
+  c.moveTo(-5.6 * u, -2 * u); c.lineTo(-3.2 * u, -2 * u); c.lineTo(0.2 * u, -5 * u);
+  c.lineTo(0.2 * u, 5 * u); c.lineTo(-3.2 * u, 2 * u); c.lineTo(-5.6 * u, 2 * u);
+  c.closePath(); c.fill();
+  c.strokeStyle = WHITE; c.lineCap = 'round'; c.lineWidth = Math.max(0.8, 1.3 * u);
+  for (const k of [3.2, 5.8]) {
+    c.beginPath(); c.arc(0.6 * u, 0, k * u, -0.8, 0.8); c.stroke();
+  }
+  c.restore();
+}

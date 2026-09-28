@@ -32,11 +32,12 @@ export function buildLine(ctx, { kit }) {
     ],
   });
   const crossing = buildCrossing(ctx, { x: R.crossX, kit });
+  // its bells are a sound experience (Tan, 2026-09-28): a speaker on the map
+  ctx.experiences?.add({ kind: 'sound', id: 'crossing', name: 'Level crossing bells', jp: '踏切', x: R.crossX, z: LINE_Z });
   const sets = [buildEmu(ctx, { seed: 2104 }), buildEmu(ctx, { seed: 2231 })];
   const listeners = [];
-  const local = [];            // the station's own listeners (the master, boarding), in this frame
-  const service = makeService({ sets, crossing, onEvent: (name, run) => { local.forEach((f) => f(name, run)); listeners.forEach((f) => f(name, run)); } });
-  const station = buildStation(ctx, { kit, service, sets, onEvent: (f) => local.push(f) });
+  const service = makeService({ sets, crossing, onEvent: (name, run) => listeners.forEach((f) => f(name, run)) });
+  const station = buildStation(ctx, { kit, service, sets });
   buildBeyond(ctx, kit);
   lineCherries(ctx);
   /* the trains' sound and their straps: only near */

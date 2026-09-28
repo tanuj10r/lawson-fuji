@@ -1,4 +1,4 @@
-import { paintMap, drawIcon, drawGem, JP } from './mapArt.js';
+import { paintMap, drawIcon, drawGem, drawSpeaker, JP } from './mapArt.js';
 import { STRINGS } from '../data/strings.js';
 
 /* ------------------------------------------------------------------ *
@@ -10,8 +10,9 @@ import { STRINGS } from '../data/strings.js';
  *            to the rim when it is out of range
  *   full     M: the whole town north-up on its sheet, every place's
  *            pictogram and label (English, the Japanese small beside it),
- *            the experiences' diamonds, where you are, a title cartouche,
- *            a compass rose and a scale bar
+ *            the experiences' marks (a diamond for a thing to do, a
+ *            speaker for a thing to hear), where you are, a title
+ *            cartouche, a compass rose, a scale bar and the key
  *
  * The map itself is painted once (mapArt.js); a frame only copies it,
  * turned, into a small canvas -- and only when you have moved or turned.
@@ -55,19 +56,23 @@ export function createMinimap(world) {
   const cc = corner.getContext('2d');
 
   const lawson = art.places.find((p) => p.id === 'lawson');
-  // the experiences (Tan's things to do): the soft yellow of their glow in town
+  /* The experiences (Tan's things to do and to hear): a diamond, the soft
+   * yellow of their glow in town, for an engagement; a speaker for a sound. */
   const spots = () => [...(world.experiences?.list ?? []), ...(world.lawson?.experiences?.list ?? [])];
-  /* Where each diamond goes: on its spot, unless it belongs to a place (or
-   * a place's icon is there), when it sits on that icon's corner as a
-   * badge; two that land together draw once. */
+  const mark = { engage: drawGem, sound: drawSpeaker };
+  /* Where each mark goes: on its spot, unless it belongs to a place (or a
+   * place's icon is there), when it sits on that icon's corner as a badge
+   * (a diamond top right, a speaker top left, so a place can wear both);
+   * two of a kind that land together draw once.  [[x, y, kind]] */
   const placeGems = (list, at, icons, gr) => {
     const outp = [];
     for (const e of list) {
       let [x, y, d] = at(e.x, e.z);
       if (d !== undefined && d > RANGE * 0.95) continue;
+      const kind = e.kind === 'sound' ? 'sound' : 'engage', side = kind === 'sound' ? -1 : 1;
       const ic = icons.find((q) => q.exp === e.id) ?? icons.find((q) => Math.hypot(q.x - x, q.y - y) < q.r + gr * 0.6);
-      if (ic) { x = ic.x + ic.r * 0.85; y = ic.y - ic.r * 0.85; }
-      if (!outp.some(([a, b]) => Math.hypot(a - x, b - y) < gr * 1.2)) outp.push([x, y]);
+      if (ic) { x = ic.x + side * ic.r * 0.85; y = ic.y - ic.r * 0.85; }
+      if (!outp.some(([a, b, k]) => k === kind && Math.hypot(a - x, b - y) < gr * 1.2)) outp.push([x, y, kind]);
     }
     return outp;
   };
@@ -113,8 +118,8 @@ export function createMinimap(world) {
       drawIcon(cc, 'konbini', x, y, 10 * dpr);
       shown.push({ x, y, r: 10 * dpr, exp: lawson.exp });
     }
-    // the experiences' diamonds, over the icons
-    for (const [x, y] of placeGems(spots(), at, shown, 7 * dpr)) drawGem(cc, x, y, 7 * dpr);
+    // the experiences' marks, over the icons
+    for (const [x, y, kind] of placeGems(spots(), at, shown, 7 * dpr)) mark[kind](cc, x, y, 7 * dpr);
 
     // the compass ring, turning with the map, N at north
     cc.lineWidth = 5 * dpr; cc.strokeStyle = '#fffaf0';
@@ -170,11 +175,15 @@ export function createMinimap(world) {
     const M = STRINGS.map;
     font(21, 'bold '); const tw = Math.max(c.measureText(M.title).width + 30, (font(12), c.measureText(M.titleJp).width)) + 16;
     const seg = 25 * k * art.ppm;
-    font(10.5); const fw = seg * 2 + 86 + c.measureText(M.todo).width;
-    const taken = [[24, 24, 24 + tw, 86], [W - 104, 12, W - 20, 112], [24, H - 58, 24 + fw, H - 24], [ux - 34, uy - 44, ux + 34, uy + 16]];
+    font(10.5); const fw = seg * 2 + 60;
+    // the key to the marks sits bottom right, left of "M to close" (a wider foot on the left covered the Deer Park's icon)
+    const kw = 72 + c.measureText(M.todo).width + c.measureText(M.hear).width;
+    font(11); const cw = c.measureText(M.close).width + 16;
+    const kx = W - 24 - cw - 10 - kw, ky = H - 49;
+    const taken = [[24, 24, 24 + tw, 86], [W - 104, 12, W - 20, 112], [24, H - 58, 24 + fw, H - 24], [kx, ky, W - 20, H - 20], [ux - 34, uy - 44, ux + 34, uy + 16]];
     const hits = (b) => taken.some((t) => b[0] < t[2] && b[2] > t[0] && b[1] < t[3] && b[3] > t[1]);
     const icons = art.places.map((p) => { const [x, y] = P(p.w.x, p.w.z); taken.push([x - r, y - r, x + r, y + r]); return { p, x, y, r, exp: p.exp }; });
-    // the diamonds: placed first so no label covers them, drawn last, on top
+    // the marks: placed first so no label covers them, drawn last, on top
     const gems = placeGems(spots(), P, icons, gr);
     for (const [x, y] of gems) taken.push([x - gr, y - gr, x + gr, y + gr]);
     for (const { p, x, y } of icons) {
@@ -194,7 +203,7 @@ export function createMinimap(world) {
       font(10.5); text(p.jp, bx + 7, by + 24, INK_SOFT);
     }
     for (const { p, x, y } of icons) drawIcon(c, p.kind, x, y, r);
-    for (const [x, y] of gems) drawGem(c, x, y, gr);
+    for (const [x, y, kind] of gems) mark[kind](c, x, y, gr);
 
     // you are here
     c.save(); c.translate(ux, uy); c.rotate(-yaw);
@@ -227,7 +236,7 @@ export function createMinimap(world) {
     font(15, 'bold '); text(M.north, 0, -35, '#b8392e', 'center', 'bottom');
     c.restore();
 
-    // the foot: a scale bar (0, 25, 50 m) and the diamonds' key
+    // the foot: a scale bar (0, 25, 50 m)
     const fy = H - 58;
     chip(c, 24, fy, fw, 34);
     c.fillStyle = '#4a4460'; c.fillRect(36, fy + 12, seg, 5);
@@ -235,12 +244,17 @@ export function createMinimap(world) {
     font(10.5);
     text('0', 36, fy + 20, INK_SOFT, 'center', 'top'); text('25', 36 + seg, fy + 20, INK_SOFT, 'center', 'top');
     text(M.scale(50), 30 + seg * 2, fy + 20, INK_SOFT, 'left', 'top');
-    drawGem(c, 76 + seg * 2, fy + 17, 7);
-    text(M.todo, 88 + seg * 2, fy + 17.5, INK);
+
+    // the key to the marks: a diamond to do, a speaker to hear
+    chip(c, kx, ky, kw, 28);
+    drawGem(c, kx + 16, ky + 14, 7);
+    text(M.todo, kx + 28, ky + 14.5, INK);
+    const hx = kx + 28 + c.measureText(M.todo).width + 22;
+    drawSpeaker(c, hx, ky + 14, 7);
+    text(M.hear, hx + 12, ky + 14.5, INK);
 
     // the key to close, bottom right
     font(11);
-    const cw = c.measureText(M.close).width + 16;
     chip(c, W - 24 - cw, H - 46, cw, 22);
     text(M.close, W - 32, H - 35, INK_SOFT, 'right');
   }

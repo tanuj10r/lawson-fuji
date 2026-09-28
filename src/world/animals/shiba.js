@@ -183,11 +183,11 @@ void rig(inout vec3 p, inout vec3 n) {
     // legs: fold by the morphs; swing about the joint at a trot, diagonal pairs together
     p += aMorph * sit + aMorph2 * lie;
     float off = (id == 4.0 || id == 5.0) ? 3.14159 : 0.0;
-    float sw = amp * 0.38 * sin(ph + off);
+    float sw = amp * (id < 4.5 ? 0.38 : 0.3) * sin(ph + off);
     vec3 piv = aJoint.xyz;
     vec3 q = p - piv;
     // the lower leg lifts as it swings forward
-    float lift = amp * (id < 4.5 ? 0.55 : 0.3) * max(0.0, sin(ph + off + 0.6));
+    float lift = amp * (id < 4.5 ? 0.55 : 0.2) * max(0.0, sin(ph + off + 0.6));
     if (q.y < -0.12) { vec3 k = vec3(0.0, -0.12, 0.0); q = k + rotX(q - k, lift); }
     q = rotX(q, sw);
     n = rotX(n, sw);

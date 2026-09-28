@@ -98,7 +98,8 @@ try {
         if (d < 0.05) return true;
         const s = Math.min(d, v * dt);
         const nx = P.x + (dx / d) * s, nz = P.z + (dz / d) * s;
-        if (W.free(nx, nz)) { P.x = nx; P.z = nz; return true; }
+        // (the last stretch into a ring: you may stand nearer a bench than the dog's map allows)
+        if (W.free(nx, nz) || (d < 2.5 && !hit(nx, nz))) { P.x = nx; P.z = nz; return true; }
         if (W.free(nx, P.z)) { P.x = nx; return true; }
         if (W.free(P.x, nz)) { P.z = nz; return true; }
         return false;

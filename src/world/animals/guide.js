@@ -90,6 +90,8 @@ class Walk {
     rect(STREET.roadX0, STREET.roadZ, STREET.roadX1, STREET.sidewalkZ, paint(K.pavement));
     rect(STREET.x0, LAWSON.frontZ, STREET.x1, STREET.forecourtZ, paint(K.lot));
     rect(TOWN.crosswalk.x - TOWN.crosswalk.width / 2, STREET.forecourtZ, TOWN.crosswalk.x + TOWN.crosswalk.width / 2, STREET.roadZ, paint(K.pavement));
+    // the road in front of the store's forecourt has no kerb (cars turn in off it): crossed there, as everyone does
+    rect(STREET.bayX0, STREET.forecourtZ, STREET.bayX1, STREET.roadZ, paint(K.lot));
     { const t = TOWN.land.track; wrect(t.x - t.w / 2, t.z0, t.x + t.w / 2, t.z1, K.lane); }
     { const [x0, z0, x1, z1] = TOWN.land.parking; wrect(x0, z0, x1, z1, K.lot); }
     /* solid things: every collider a dog can't step over, with clearance */
@@ -154,10 +156,14 @@ class Walk {
     }
     return best;
   }
-  /** Nothing solid on a straight line from a to b. */
+  /** Nothing solid on a straight line from a to b, nor a hand's width either side of it (no grazing a corner). */
   sight(ax, az, bx, bz) {
-    const n = Math.ceil(Math.hypot(bx - ax, bz - az) / (this.C * 0.4));
-    for (let k = 1; k <= n; k++) { const t = k / n; if (!this.free(ax + (bx - ax) * t, az + (bz - az) * t)) return false; }
+    const L = Math.hypot(bx - ax, bz - az) || 1, n = Math.ceil(L / (this.C * 0.4));
+    const px = (-(bz - az) / L) * 0.14, pz = ((bx - ax) / L) * 0.14;
+    for (let k = 1; k <= n; k++) {
+      const t = k / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t;
+      if (!this.free(x, z) || !this.free(x + px, z + pz) || !this.free(x - px, z - pz)) return false;
+    }
     return true;
   }
 }
@@ -416,13 +422,21 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     if (d < 0.05) { G.speed = 0; return 'there'; }
     const want = Math.atan2(dx, dz);
     const dyaw = turn(G.yaw, want);
-    const rate = 4.5 * dt;
+    const rate = 5 * dt;
     G.yaw += Math.abs(dyaw) < rate ? dyaw : Math.sign(dyaw) * rate;
-    // slow for a sharp turn, and to arrive
-    const v = Math.min(wantSpeed * (Math.abs(dyaw) > 1.2 ? 0.35 : 1), Math.max(0.6, d * 2.5));
+    // a sharp turn is made on the spot; then on, slowing to arrive
+    if (Math.abs(dyaw) > 1.0) { G.speed *= Math.max(0, 1 - dt * 8); return 'moving'; }
+    const v = Math.min(wantSpeed * (Math.abs(dyaw) > 0.5 ? 0.5 : 1), Math.max(0.6, d * 2.5));
     G.speed += (v - G.speed) * Math.min(1, dt * 5);
-    const nx = G.x + Math.sin(G.yaw) * G.speed * dt, nz = G.z + Math.cos(G.yaw) * G.speed * dt;
-    if (W.free(nx, nz)) { G.moved += Math.hypot(nx - G.x, nz - G.z); G.x = nx; G.z = nz; } else G.speed = 0;
+    const s = G.speed * dt;
+    let nx = G.x + Math.sin(G.yaw) * s, nz = G.z + Math.cos(G.yaw) * s;
+    if (!W.free(nx, nz)) { nx = G.x + (dx / d) * s; nz = G.z + (dz / d) * s; }      // straight at it, then
+    if (W.free(nx, nz)) { G.moved += Math.hypot(nx - G.x, nz - G.z); G.x = nx; G.z = nz; G.stall = 0; }
+    else {
+      G.speed = 0;
+      // held against something for a while: back to the middle of its own cell
+      if ((G.stall = (G.stall ?? 0) + dt) > 1.5) { const c = W.cell(G.x, G.z); if (c >= 0 && W.cost[c]) { const q = W.at(c); G.x = q.x; G.z = q.z; } G.stall = 0; }
+    }
     return 'moving';
   };
 
@@ -459,7 +473,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
 
     let wantSpeed = 0, lookAt = 'player', wagTo = 0.15, perkTo = 1, postureTo = 0;
     const dP = dist(P, G);
-    const gap = () => (G.field?.ready ? G.field.near(P.x, P.z) - G.field.at(G.x, G.z) : 0);
+    // how far ahead of you it is: along the way, or as the crow flies when you are right here (off the way, your path metres run long)
+    const gap = () => (G.field?.ready ? Math.min(G.field.near(P.x, P.z) - G.field.at(G.x, G.z), dP) : 0);
     let r = 'still';
     switch (G.state) {
       case 'home': {
@@ -539,6 +554,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         break;
       }
     }
+    G.r = r;
     if (r !== 'moving') G.speed += (0 - G.speed) * Math.min(1, dt * 6);
     if (G.speed < 0.05) G.speed = 0;
 

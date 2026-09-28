@@ -160,6 +160,66 @@ function subdivide(S, sub) {
   return out;
 }
 
+/**
+ * Sections resampled to `n`, evenly along the spine, by monotone cubic
+ * (PCHIP) interpolation of every coordinate and radius: no overshoot, so the
+ * radius never ripples between control sections and the normals turn evenly
+ * (Catmull-Rom `subdivide` ripples, and a cel band flips at every ripple).
+ * An end whose radius is 0 is rounded: the last stretch follows a quarter
+ * ellipse to the point, so the loft ends in a dome, not a cone.
+ */
+export function smooth(S, n) {
+  const keys = ['rx', 'ry', 'ox', 'oy'];
+  const pts = S.map((s) => ({ p: [...s.p], rx: s.rx, ry: s.ry, ox: s.ox ?? 0, oy: s.oy ?? 0 }));
+  // the parameter: chord length along the spine
+  const x = [0];
+  for (let i = 1; i < pts.length; i++) x.push(x[i - 1] + Math.hypot(...pts[i].p.map((v, k) => v - pts[i - 1].p[k])) + 1e-6);
+  const pchip = (ys) => {
+    const m = ys.length, h = [], d = [], sl = new Array(m).fill(0);
+    for (let i = 0; i < m - 1; i++) { h.push(x[i + 1] - x[i]); d.push((ys[i + 1] - ys[i]) / h[i]); }
+    for (let i = 1; i < m - 1; i++) {
+      if (d[i - 1] * d[i] <= 0) sl[i] = 0;
+      else { const w1 = 2 * h[i] + h[i - 1], w2 = h[i] + 2 * h[i - 1]; sl[i] = (w1 + w2) / (w1 / d[i - 1] + w2 / d[i]); }
+    }
+    sl[0] = d[0]; sl[m - 1] = d[m - 2];
+    return (t) => {
+      let i = 0;
+      while (i < m - 2 && t > x[i + 1]) i++;
+      const u = (t - x[i]) / h[i], u2 = u * u, u3 = u2 * u;
+      return (2 * u3 - 3 * u2 + 1) * ys[i] + (u3 - 2 * u2 + u) * h[i] * sl[i] + (-2 * u3 + 3 * u2) * ys[i + 1] + (u3 - u2) * h[i] * sl[i + 1];
+    };
+  };
+  const fp = [0, 1, 2].map((k) => pchip(pts.map((s) => s.p[k])));
+  const fr = {};
+  for (const k of keys) fr[k] = pchip(pts.map((s) => s[k]));
+  const L = x[x.length - 1];
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const t = (i / (n - 1)) * L;
+    const sec = { p: fp.map((f) => f(t)) };
+    for (const k of keys) sec[k] = Math.max(0, fr[k](t));
+    out.push(sec);
+  }
+  // rounded ends: within the last control stretch the radius follows a quarter ellipse to the point
+  const dome = (end) => {
+    const k0 = end ? pts.length - 1 : 0, k1 = end ? pts.length - 2 : 1;
+    if (pts[k0].rx > 1e-6 || pts[k0].ry > 1e-6) return;
+    const t0 = x[k0], t1 = x[k1];
+    for (let i = 0; i < n; i++) {
+      const t = (i / (n - 1)) * L;
+      const u = (t - t0) / (t1 - t0);                  // 0 at the point .. 1 at the neighbour
+      if (u < 0 || u > 1) continue;
+      const w = Math.sqrt(Math.max(0, 1 - (1 - u) * (1 - u)));
+      out[i].rx = pts[k1].rx * w; out[i].ry = pts[k1].ry * w;
+    }
+  };
+  dome(false); dome(true);
+  // an end that was a point stays one
+  if (pts[0].rx <= 1e-6 && pts[0].ry <= 1e-6) out[0].rx = out[0].ry = 0;
+  if (pts[pts.length - 1].rx <= 1e-6 && pts[pts.length - 1].ry <= 1e-6) out[n - 1].rx = out[n - 1].ry = 0;
+  return out;
+}
+
 /** An ellipsoid (rx, ry, rz) at the origin. */
 export function blob(rx, ry, rz, w = 10, h = 7) {
   const g = new THREE.SphereGeometry(1, w, h);

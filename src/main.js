@@ -19,6 +19,7 @@ import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
 import { PRODUCT } from './data/catalog.js';
 import { hanShow } from './world/han/index.js';
+import { GUIDE } from './world/animals/guide.js';
 import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain, HAN_WATCH } from './config.js';
 
 /* ------------------------------------------------------------------ *
@@ -516,6 +517,8 @@ window.addEventListener('keydown', (e) => {
     enterHero(lastView);
     return;
   }
+  // F: a whistle for the pup, from anywhere; it comes running and guides on from here (Tan)
+  if (e.code === 'KeyF' && player.locked && !shop?.visiting && !minimap?.fullOpen && !player.suspended) GUIDE.whistle();
   if (e.code === 'KeyM' && minimap && player.locked && !shop?.busy && (minimap.fullOpen || !player.suspended)) {
     const open = !minimap.fullOpen;
     minimap.setFull(open, player.pos, player.yaw);
@@ -555,7 +558,7 @@ function controlRows(hovered) {
   if (handsHud?.open) rows.push([`1–${shop.menu.length}`, K.choose]);
   rows.push(['Shift', K.run]);
   if (hovered) rows.push(['E', K.interact]);
-  rows.push(['M', K.map], ['H', K.home], ['1 2 3', K.views]);
+  rows.push(['F', K.whistle], ['M', K.map], ['H', K.home], ['1 2 3', K.views]);
   rows.push(['N', K.sound], ['Space', K.pause]);
   return rows;
 }

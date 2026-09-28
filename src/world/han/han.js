@@ -23,8 +23,8 @@ import { cel } from '../../core/toon.js';
  * ------------------------------------------------------------------ */
 
 const C = {
-  skin: 0xc48e68,
-  skinShade: 0xac7856,
+  skin: 0xcfa78c,
+  skinShade: 0xb58e72,
   hair: 0x1c1517,
   jacket: 0x252d48,
   jacketDark: 0x1c2238,
@@ -124,7 +124,7 @@ const HEAD = { rx: 0.0785, ry: 0.1175, rz: 0.0931 };   // half sizes: 0.157 wide
 const HEAD_Y = 0.103;                                   // the head's centre above its pivot
 /* feature heights, metres from the head's centre (chin -0.1175, crown +0.1175) */
 const F = { brow: 0.027, eye: 0.009, eyeX: 0.031, noseTip: -0.035, noseBase: -0.043, lipTop: -0.059, mouth: -0.0685, lipBot: -0.0785, chin: -0.106 };
-const EYE_R = 0.0125;
+const EYE_R = 0.0117;
 const G = (x, s) => Math.exp(-(x * x) / (2 * s * s));
 const G2 = (x, sx, y, sy) => G(x, sx) * G(y, sy);
 const clamp = THREE.MathUtils.clamp;
@@ -281,21 +281,21 @@ function faceMap() {
   };
 
   // skin
-  g.fillStyle = '#bd8c6e'; g.fillRect(0, 0, W, H);
-  const mottle = [0xd29a72, 0xb47f5c, 0xc9886c, 0xb98b6c, 0xcf9470];
+  g.fillStyle = '#cfa68b'; g.fillRect(0, 0, W, H);
+  const mottle = [0xdbb498, 0xc2977a, 0xd4a48c, 0xc7a08a, 0xd8ad90];
   for (let i = 0; i < 1400; i++) {
     const r = 3 + rnd() * 12;
     g.fillStyle = rgba(mottle[i % mottle.length], 0.05 + rnd() * 0.04);
     g.beginPath(); g.ellipse(rnd() * W, rnd() * H * UV_V, r, r * (0.6 + rnd() * 0.6), rnd() * 3, 0, TAU); g.fill();
   }
   // zones: the forehead lighter, the cheeks and the nose warm, under the eyes a little bruised, the beard cool
-  soft(0, 0.075, 0.07, 0.03, 0xd8a47c, 0.28);
+  soft(0, 0.075, 0.07, 0.03, 0xe0bc9e, 0.28);
   for (const s of [-1, 1]) {
-    soft(s * 0.05, -0.02, 0.03, 0.024, 0xcf7c5c, 0.22);
+    soft(s * 0.05, -0.02, 0.03, 0.024, 0xd28e74, 0.16);
     soft(s * 0.031, -0.006, 0.017, 0.007, 0x9e6e66, 0.34);
-    soft(s * 0.079, 0.0, 0.012, 0.03, 0xcf7c5c, 0.25);       // the ears' side
+    soft(s * 0.079, 0.0, 0.012, 0.03, 0xd28e74, 0.15);       // the ears' side
   }
-  soft(0, F.noseTip, 0.016, 0.012, 0xcd785a, 0.3);
+  soft(0, F.noseTip, 0.016, 0.012, 0xd08a70, 0.22);
   // the beard zone: from the mouth's corners down over the chin and along the jaw to the ears
   g.fillStyle = rgba(0x8d7770, 0.2);
   g.beginPath();
@@ -420,16 +420,16 @@ function ramp(stops) {
 /* ------------------------------- the eyes ------------------------------- */
 /** The eye opening: the lid margins over the eyeball, s -1 (inner corner) .. 1 (outer), as
  * elevation angles on the eyeball (rad).  Narrow: the upper lid heavy and low, the outer corner a touch higher. */
-const AZ_HALF = 1.36;   // the corners' azimuth on the eyeball
-const lidUp = (s) => 0.29 * (1 - s * s) ** 0.5 + 0.06 * (1 - s * s) * (0.4 - s) + 0.05 * s;
-const lidLo = (s) => -0.16 * (1 - s * s) ** 0.7 + 0.05 * s;
+const AZ_HALF = 1.32;   // the corners' azimuth on the eyeball
+const lidUp = (s) => 0.25 * (1 - s * s) ** 0.5 + 0.05 * (1 - s * s) * (0.4 - s) + 0.05 * s;
+const lidLo = (s) => -0.13 * (1 - s * s) ** 0.7 + 0.05 * s;
 
 /** Eyeballs, lids and the catch lights, in the head's frame.  Returns { parts: [{geo, color|colored}], lights: [geo] }. */
 function eyeParts() {
   const parts = [], lights = [];
   for (const s of [-1, 1]) {
     const [bx, by, bz] = baseAt(s * F.eyeX, F.eye);
-    const C0 = new THREE.Vector3(bx, by, bz - 0.0105);      // the eyeball's centre, back in its socket
+    const C0 = new THREE.Vector3(bx, by, bz - 0.0098);      // the eyeball's centre, back in its socket
     const tiltY = s * 0.12;                                 // the eyes' axes toe out with the face's curve
     const place = (g) => { g.rotateY(tiltY); g.translate(C0.x, C0.y, C0.z); return g; };
     // the eyeball: a cap facing +z, the iris and pupil in vertex colour, the cornea a slight dome
@@ -437,7 +437,7 @@ function eyeParts() {
     eye.rotateX(Math.PI / 2);
     {
       const p = eye.getAttribute('position'), col = new Float32Array(p.count * 3);
-      const v = new THREE.Vector3(), cc = new THREE.Color(), sc = new THREE.Color(0xe4d8cc), top = new THREE.Color(0xa08a80), pink = new THREE.Color(0xc98a7c);
+      const v = new THREE.Vector3(), cc = new THREE.Color(), sc = new THREE.Color(0xd8ccc0), top = new THREE.Color(0x968078), pink = new THREE.Color(0xc98a7c);
       const iris = new THREE.Color(0x3b2216), rim = new THREE.Color(0x1e1210), light = new THREE.Color(0x6a4224), pupil = new THREE.Color(0x050303);
       for (let i = 0; i < p.count; i++) {
         v.set(p.getX(i), p.getY(i), p.getZ(i));
@@ -513,12 +513,12 @@ function eyeParts() {
 /** An ear, in the head's frame: the shell, the helix's rim, the lobe; most of it under the hair. */
 function earParts(s) {
   const parts = [];
-  const x = HEAD.rx * 0.985, y = -0.003, z = -0.012;
+  const x = HEAD.rx * 0.985, y = -0.003, z = -0.015;
   const shell = new THREE.SphereGeometry(0.016, 12, 9);
   shell.scale(0.3, 1.75, 1.0); shell.rotateZ(-s * 0.12); shell.translate(s * (x + 0.002), y, z);
   {
     const p = shell.getAttribute('position'), col = new Float32Array(p.count * 3);
-    const a = new THREE.Color(C.skin), b = new THREE.Color(0x8a5a42), cc = new THREE.Color();
+    const a = new THREE.Color(C.skinShade), b = new THREE.Color(0x8e6650), cc = new THREE.Color();
     for (let i = 0; i < p.count; i++) {
       const ox = (p.getX(i) - s * (x + 0.002)) * s;   // outward
       cc.copy(a).lerp(b, 0.75 * (1 - sm(ox, -0.001, 0.004)));   // the concha, in shadow
@@ -529,10 +529,10 @@ function earParts(s) {
   parts.push({ geo: shell, colored: true });
   const rim = new THREE.TorusGeometry(0.0125, 0.0038, 6, 18, Math.PI * 1.25);
   rim.rotateZ(Math.PI * 0.62); rim.scale(1, 1.55, 1); rim.rotateY(s * Math.PI / 2); rim.translate(s * (x + 0.006), y + 0.006, z);
-  parts.push({ geo: rim, color: C.skin });
+  parts.push({ geo: rim, color: 0xc29a7e });
   const lobe = new THREE.SphereGeometry(0.0065, 10, 8);
   lobe.scale(0.7, 1, 1); lobe.translate(s * (x + 0.005), y - 0.025, z + 0.002);
-  parts.push({ geo: lobe, color: C.skin });
+  parts.push({ geo: lobe, color: C.skinShade });
   return parts;
 }
 
@@ -636,7 +636,7 @@ function hairParts() {
       const st = Math.sin(th), ct = Math.cos(th);
       const k = Math.hypot(x, z) || 1;
       const part = 1 - 0.022 * Math.exp(-(((d - PART) / 0.09) ** 2)) * sm(z, -0.6, 0.2) * sm(ct, 0.3, 0.9);
-      const crown = 1 + 0.04 * sm(ct, 0.2, 0.9) * (1 - 0.5 * sm(z, 0.2, 0.7));   // volume at the crown and behind
+      const crown = 1 + 0.085 * sm(ct, 0.1, 0.9) * (1 - 0.45 * sm(z, 0.2, 0.7));   // volume at the crown and behind
       p.setXYZ(i, (x / k) * st * RX * part * crown, ct * RY * part * crown + 0.003, (z / k) * st * RZ * part * crown);
       uv.setY(i, uv.getY(i) * 0.6);
     }
@@ -655,7 +655,7 @@ function hairParts() {
     const th0 = 0.2 + rnd() * 0.06;
     for (let k = 0; k <= 5; k++) {
       const u = k / 5, th = th0 + u * (thEnd - th0), az = PART + s * (az0 + (az1 - az0) * u);
-      pts.push(onHead(th, az, out * (0.3 + 0.7 * u) + 0.002));
+      pts.push(onHead(th, az, out * (0.5 + 0.5 * u) + 0.003 + 0.009 * (1 - u) ** 1.5));   // lifted at the crown, settling toward the ear line
     }
     let hangFrom = 1;
     if (len > 0) {
@@ -673,23 +673,23 @@ function hairParts() {
   };
   const T = { deep: 0x36282a, mid: 0x44342e, top: 0x503e38, warm: 0x5e4a40 };
   for (const s of [-1, 1]) {
-    // the fringe: wide clumps from the part sweeping sideways over the temples to the cheekbone, a loose strand forward
-    add(s, 0.02, 0.6, 0.03 + rnd() * 0.02, 0.015, 0.004, 0.003, T.mid);
-    add(s, 0.1, 0.8, 0.05 + rnd() * 0.02, 0.015, 0.006, 0.006, T.top);
-    add(s, 0.16, 1.0, 0.07 + rnd() * 0.02, 0.015, 0.01, 0.004, T.mid);
-    add(s, 0.24, 1.2, 0.09 + rnd() * 0.02, 0.014, 0.013, 0.007, T.top);
-    add(s, 0.33, 1.4, 0.1, 0.013, 0.016, 0.003, T.deep);
-    add(s, 0.42, 1.55, 0.11, 0.013, 0.018, 0.008, T.warm);
-    add(s, 0.03, 0.35, 0.025, 0.005, 0.01, 0.01, T.top);      // a loose strand off the part
-    // the sides, over the ear: an inner layer close and wide, an outer layer lighter
-    for (let i = 0; i < 9; i++) {
-      const a0 = 0.5 + i * 0.18 + rnd() * 0.06;
-      add(s, a0, a0 + 0.8 + rnd() * 0.3, 0.12 + rnd() * 0.04, 0.014 + rnd() * 0.003, 0.012 + rnd() * 0.01, 0.0015, i % 2 ? T.deep : T.mid);
+    // the fringe: four heavy locks a side from the part, falling past the cheekbones, and a loose strand
+    add(s, 0.02, 0.55, 0.05 + rnd() * 0.02, 0.02, 0.005, 0.004, T.mid);
+    add(s, 0.2, 1.1, 0.08 + rnd() * 0.02, 0.019, 0.012, 0.007, T.top);
+    add(s, 0.36, 1.35, 0.1 + rnd() * 0.02, 0.018, 0.016, 0.004, T.deep);
+    add(s, 0.5, 1.6, 0.115, 0.017, 0.02, 0.009, T.warm);
+    add(s, 0.04, 0.4, 0.03, 0.005, 0.012, 0.012, T.top);      // a loose strand off the part
+    // the sides, over the ear: an inner layer close and wide, an outer layer lighter, two locks hung over the ear itself
+    for (let i = 0; i < 8; i++) {
+      const a0 = 0.55 + i * 0.2 + rnd() * 0.06;
+      add(s, a0, a0 + 0.8 + rnd() * 0.3, 0.12 + rnd() * 0.04, 0.015 + rnd() * 0.003, 0.012 + rnd() * 0.01, 0.0015, i % 2 ? T.deep : T.mid);
     }
-    for (let i = 0; i < 6; i++) {
-      const a0 = 0.6 + i * 0.27 + rnd() * 0.08;
-      add(s, a0, a0 + 0.9 + rnd() * 0.3, 0.11 + rnd() * 0.05, 0.011 + rnd() * 0.003, 0.016 + rnd() * 0.012, 0.006, i % 3 ? T.top : T.warm);
+    for (let i = 0; i < 5; i++) {
+      const a0 = 0.7 + i * 0.3 + rnd() * 0.08;
+      add(s, a0, a0 + 0.9 + rnd() * 0.3, 0.11 + rnd() * 0.05, 0.013 + rnd() * 0.003, 0.016 + rnd() * 0.012, 0.006, i % 3 ? T.top : T.warm);
     }
+    add(s, 1.45, 1.7, 0.13, 0.017, 0.006, 0.015, T.mid);
+    add(s, 1.65, 1.95, 0.14, 0.017, 0.006, 0.015, T.deep);
     // the back, to the collar
     for (let i = 0; i < 7; i++) {
       const a0 = 2.2 + i * 0.14 + rnd() * 0.06;
@@ -699,10 +699,10 @@ function hairParts() {
       const a0 = 2.3 + i * 0.2 + rnd() * 0.08;
       add(s, a0, Math.min(3.1, a0 + 0.6 + rnd() * 0.4), 0.15 + rnd() * 0.05, 0.012, 0.012, 0.006, T.top);
     }
-    // short clumps lying over the crown from the part
+    // short thick clumps lying over the crown from the part
     for (let i = 0; i < 6; i++) {
       const a0 = 0.1 + i * 0.5 + rnd() * 0.2;
-      add(s, a0, a0 + 0.3 + rnd() * 0.3, 0, 0.012, 0, 0.003 + rnd() * 0.003, i % 2 ? T.top : T.mid, 0.9 + rnd() * 0.2);
+      add(s, a0, a0 + 0.3 + rnd() * 0.3, 0, 0.015, 0, 0.004 + rnd() * 0.004, i % 2 ? T.top : T.mid, 0.9 + rnd() * 0.2);
     }
   }
   return parts;
@@ -820,7 +820,7 @@ export function makeHan() {
   {
     // the neck, drawn with the head (it turns with it)
     const nk = tube([{ y: 0.03, rx: 0.052, rz: 0.05 }, { y: -0.06, rx: 0.056, rz: 0.056, z: -0.004 }, { y: -0.13, rx: 0.07, rz: 0.062, z: -0.01 }], 16, { capBottom: true });
-    mesh(head, nk, 0xb8845e, 'face');
+    mesh(head, nk, 0xc0987c, 'face');
     // the head, with the face map
     const hg = headGeometry();
     hg.translate(0, HEAD_Y, 0);
@@ -904,7 +904,7 @@ export function makeHan() {
   leg('l'); leg('r');
 
   // the skin shades softly (a painted face, not three bands); the hair keeps a crisp highlight band
-  const skinRamp = ramp([136, 150, 164, 178, 192, 206, 220, 234, 246, 255]);
+  const skinRamp = ramp([124, 138, 152, 166, 180, 194, 206, 218, 228, 236]);
   const skinMat = cel({ color: 0xffffff, bands: 'soft3', tint: 0xb07a8a, flat: false, vertexColors: true });
   skinMat.gradientMap = skinRamp;
   const faceMat = cel({ color: 0xffffff, map: faceMap(), bands: 'soft3', tint: 0xa8788a, flat: false, vertexColors: true });

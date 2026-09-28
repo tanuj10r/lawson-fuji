@@ -15,7 +15,7 @@ const errs = [], missing = [];
 page.on('pageerror', (e) => errs.push(String(e)));
 page.on('response', (r) => { if (r.status() >= 400) missing.push(r.status() + ' ' + r.url()); });
 const t0 = Date.now();
-await page.goto('http://localhost:5178/', { waitUntil: 'domcontentloaded', timeout: 120000 });
+await page.goto(process.env.AUDIO_URL ?? 'http://localhost:5178/', { waitUntil: 'domcontentloaded', timeout: 120000 });
 await page.waitForFunction(() => window.__ready === true, null, { timeout: 120000 });
 const firstFrame = (Date.now() - t0) / 1000;
 let bad = 0;
@@ -119,12 +119,23 @@ const spawnHeard = await page.evaluate(async () => {
 check('at the spawn point only one crossing is ever heard', spawnHeard.most <= 1, spawnHeard);
 
 // the bed follows the time of day
-for (const [view, bed] of [['morning', 'birds'], ['golden', 'crows'], ['night', 'night-insects']]) {
+// (golden hour has no bed: a crow now and then, far off -- Tan 2026-09-28)
+for (const [view, bed] of [['morning', 'birds'], ['golden', 'crow-call'], ['night', 'night-insects']]) {
   await page.evaluate((v) => window.__scene.enterHero(v), view);
-  await page.waitForFunction((b) => window.__scene.sound.debug.log.some((l) => l.name === b), bed, { timeout: 8000 }).catch(() => {});
+  await page.waitForFunction((b) => window.__scene.sound.debug.log.some((l) => l.name === b), bed, { timeout: 14000 }).catch(() => {});
   s = await st();
   check(`look ${view}: ${bed} plays`, s.look && s.log.includes(bed), { look: s.look });
 }
+// golden hour's crows: a few single calls, spaced out and far off, never a chorus
+const crows = await page.evaluate(async () => {
+  const { log } = window.__scene.sound.debug;
+  window.__scene.enterHero('golden');
+  const from = log.length, t0 = performance.now();
+  await new Promise((r) => setTimeout(r, 30000));
+  const calls = log.slice(from).filter((l) => l.name === 'crow-call');
+  return { secs: Math.round((performance.now() - t0) / 1000), n: calls.length, d: calls.map((c) => c.d), k: calls.map((c) => c.k), chorus: log.slice(from).some((l) => l.name === 'crows') };
+});
+check('golden hour: 1-6 crow calls in 30 s, all 55 m or more away and quiet, no chorus loop', crows.n >= 1 && crows.n <= 6 && crows.d.every((d) => d >= 55) && crows.k.every((k) => k <= 0.13) && !crows.chorus, crows);
 // the crossing's bells are never heard at the store (its range)
 s = await st();
 check('the crossing bells: not playing at the store', !s.bells, { bells: s.bells });

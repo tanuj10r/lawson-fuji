@@ -30,9 +30,10 @@ export function falloff(d, { near, far }) {
   return t * t * (3 - 2 * t);
 }
 
-// the beds, quiet (Tan: another 10-15% down, M4 review)
-const BEDS = { wind: 0.14, birds: 0.26, crows: 0.23, 'night-insects': 0.21 };
-const BED_OF_LOOK = { day: 'birds', golden: 'crows', blue: 'night-insects' };
+// the beds, quiet (Tan: another 10-15% down, M4 review).  Golden hour has
+// no bed but the wind: its crows call now and then, far off (crowCalls).
+const BEDS = { wind: 0.14, birds: 0.26, 'night-insects': 0.21 };
+const BED_OF_LOOK = { day: 'birds', blue: 'night-insects' };
 
 export function createSound({ volume = 0.5 } = {}) {
   let ac = null, master, sfxBus, outBus, outLow, outGain, inGain, musicGain, reverb, wet;
@@ -248,6 +249,29 @@ export function createSound({ volume = 0.5 } = {}) {
     return L;
   }
   let beds = {}, music = null, hum = null, fridge = null;
+  /* Golden hour's crows (config SOUND.crows): a single caw, cut on the fly
+   * from the crows recording, from a point far off round the listener. */
+  const crow = { wait: 0, pair: 0 };
+  function crowCall() {
+    const C = SOUND.crows, b = buffers.get('crows');
+    if (!b) { buffer('crows'); return; }
+    const [pad] = loopSpan('crows', b);
+    const at = C.calls[Math.floor(Math.random() * C.calls.length)] - C.before, len = C.before + C.after;
+    const ang = Math.random() * Math.PI * 2, d = C.dist[0] + Math.random() * (C.dist[1] - C.dist[0]);
+    const t = now() + 0.02, lvl = C.level * (0.7 + Math.random() * 0.3);
+    const s = ac.createBufferSource(), g = ac.createGain(), lp = ac.createBiquadFilter(), p = ac.createPanner();
+    s.buffer = b; s.playbackRate.value = 0.94 + Math.random() * 0.12;      // not the same bird each time
+    lp.type = 'lowpass'; lp.frequency.value = C.lowpass;
+    p.panningModel = 'HRTF'; p.rolloffFactor = 0;
+    p.positionX.value = listener.x + Math.sin(ang) * d; p.positionY.value = listener.y + 14; p.positionZ.value = listener.z + Math.cos(ang) * d;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(lvl, t + 0.06);
+    g.gain.setValueAtTime(lvl, t + len - 0.25);
+    g.gain.linearRampToValueAtTime(0, t + len);
+    s.connect(g).connect(lp).connect(p).connect(outBus);
+    s.start(t, pad + Math.max(0, at), len + 0.05);
+    log.push({ name: 'crow-call', t: +now().toFixed(3), k: +lvl.toFixed(3), d: Math.round(d) });
+  }
   /* Experience zones (Tan's experiences): a looping track heard only near a
    * place, e.g. the discount store's theme or the shrine's wind chimes.
    * Beyond `far` it does not play at all; between near and far it fades. */
@@ -419,6 +443,18 @@ export function createSound({ volume = 0.5 } = {}) {
         state.look = look;
         beds.wind.set(true, 2);
         for (const [k, name] of Object.entries(BED_OF_LOOK)) if (beds[name]) beds[name].set(k === look, 3);
+        if (look === 'golden') { buffer('crows'); crow.wait = 3 + Math.random() * 5; crow.pair = 0; }
+      }
+      // golden hour: a crow now and then, far off
+      if (look === 'golden' && !muted) {
+        const C = SOUND.crows;
+        crow.wait -= dt;
+        if (crow.pair > 0 && (crow.pair -= dt) <= 0) crowCall();
+        if (crow.wait <= 0) {
+          crowCall();
+          crow.wait = C.every[0] + Math.random() * (C.every[1] - C.every[0]);
+          if (Math.random() < C.pair) crow.pair = 0.7 + Math.random() * 0.8;
+        }
       }
       // the cooler's compressor, heard near the drinks wall, cycling on and off
       if (cooler) {

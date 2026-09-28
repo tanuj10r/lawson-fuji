@@ -68,6 +68,11 @@ export const STORE = {
   walk: 2.2,
 };
 
+/* Watching Han's drive (main.js watchCar): how fast the view closes on the
+ * car (1/s), the most it turns (rad/s: a head turning, not a camera rig),
+ * and the pitch it keeps within (rad). */
+export const HAN_WATCH = { follow: 3.2, maxTurn: 1.9, pitch: [-0.3, 0.22] };
+
 /* Ground plan in front of the store, as z lines (the store glass is z = 0). */
 export const STREET = {
   apron: 1.6,      // concrete walk along the glass
@@ -657,6 +662,13 @@ export const SLOWLIFE = {
  * than switching on. */
 export const SOUND = {
   storeInside: 1.15,   // the store's bed, music and hum while you are in it (Tan: +15%, 2026-09-28)
+  /* Golden hour's crows (Tan 2026-09-28: "a million crows cawing right next
+   * to me").  Not the recording's chorus looped any more: now and then a
+   * single caw cut out of it (`calls`: its loudest caws, seconds into
+   * crows.m4a, heard from `before` to `after` around each), from somewhere
+   * `dist` metres off, high up and dulled by the distance.  One every
+   * `every` seconds, sometimes (`pair`) answered by a second. */
+  crows: { calls: [2.72, 4.32, 9.34, 10.28, 17.9, 22.96], before: 0.25, after: 0.6, every: [9, 20], pair: 0.35, level: 0.13, dist: [55, 95], lowpass: 2600 },
   crossingBells: { near: 10, far: 45 },    // the crossing, the plaza's south edge, the platforms' west end
   doorChime: { near: 5, far: 28 },         // the platform, the gates
   // the store (M4): its chime and door carry across the forecourt to the famous view, no further

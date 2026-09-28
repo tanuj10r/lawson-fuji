@@ -5,7 +5,7 @@ import { planPaddies, RIDGE } from '../world/land/paddies.js';
 import { pondShore } from '../world/land/pond.js';
 import { rngKit } from '../core/util.js';
 import { M, roofStyle } from './map/style.js';
-export { drawIcon, drawGem, ICON } from './map/icons.js';
+export { drawIcon, drawGem, drawSpeaker, ICON } from './map/icons.js';
 
 /* ------------------------------------------------------------------ *
  * The town map, painted once (M2f; map 2.0, 2026-09-28).

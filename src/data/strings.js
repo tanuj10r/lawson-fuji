@@ -53,6 +53,25 @@ export const STRINGS = {
     title: 'Town map',
     close: 'M to close',
     here: 'You are here',
+    todo: 'Things to do',
+    north: 'N',
+    scale: (m) => `${m} m`,
+    /* The places' labels (config.js PLACES): English, the Japanese name small beside it. */
+    places: {
+      lawson: { en: 'Nippon Mart', jp: 'ニッポン' },
+      start: { en: 'Nippon Mart Viewpoint', jp: '富士山ビュー' },
+      han: { en: 'Tokyo Drift', jp: 'ハンのRX-7' },
+      spine: { en: 'Shopping street', jp: '商店街' },
+      donpen: { en: 'Donpen-do', jp: 'ドンペン堂' },
+      shrine: { en: 'Inari shrine', jp: '富士見稲荷神社' },
+      plaza: { en: 'Station plaza', jp: '駅前広場' },
+      station: { en: 'Sakura-Fuji Station', jp: 'さくら富士駅' },
+      crossing: { en: 'Level crossing', jp: '踏切' },
+      pond: { en: 'Kagami Pond', jp: '鏡池' },
+      slowlife: { en: 'Slow-life bench', jp: 'ひと休み' },
+      river: { en: 'The river', jp: '桜川' },
+      deerGate: { en: 'Deer Park (coming soon)', jp: '鹿公園' },
+    },
   },
   /* The konbini (Tan's experience): English only; product names come from
    * the catalogue, the cashier's lines are Japanese said aloud with an

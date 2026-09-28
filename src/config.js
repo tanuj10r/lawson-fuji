@@ -553,23 +553,26 @@ for (const s of SHOT_SPOTS) {
   if (s.scene === 'town' && !s.hero && !s.name.startsWith('close-lawson') && !s.frame) s.frame = 'core';
 }
 
-/* The places worth walking to (the map now, the minimap in M2f).  `at` is
- * in the town's own frame unless `frame: 'world'`; placeAt() gives world. */
+/* The places worth walking to: the town map's icons and labels (map 2.0:
+ * only where there is something to do or see; Tan, 2026-09-28).  `at` is in
+ * the town's own frame unless `frame: 'world'`; placeAt() gives world.
+ * `kind` picks the pictogram (ui/map/icons.js); the label is
+ * STRINGS.map.places[id].  `exp`: the experience it belongs to (its diamond
+ * sits on the icon as a badge). */
 export const PLACES = [
-  { id: 'lawson', kind: 'konbini', jp: 'ニッポン', en: 'Nippon konbini', at: [0, -5], frame: 'world' },
-  { id: 'start', kind: 'view', jp: '富士山ビュー', en: 'The famous view', at: [0, 16.5], frame: 'world' },
-  { id: 'spine', kind: 'shops', jp: '商店街', en: 'Shopping street', at: [-50, 70] },
-  { id: 'shrine', kind: 'shrine', jp: '富士見稲荷神社', en: 'Inari shrine', at: [13, 88] },
-  { id: 'apartment', kind: 'home', jp: 'コーポ', en: 'Apartment block', at: [40, 94] },
-  { id: 'vacant', kind: 'lot', jp: '空き地', en: 'Vacant lot', at: [45.5, 105] },
-  { id: 'park', kind: 'park', jp: '児童公園', en: 'Small park', at: [14.5, 122] },
-  { id: 'plaza', kind: 'plaza', jp: '駅前広場', en: 'Station plaza', at: [-52.5, 137] },
-  { id: 'station', kind: 'station', jp: 'さくら富士駅', en: 'Sakura-Fuji Station', at: [-51, 151.5] },
-  { id: 'crossing', kind: 'crossing', jp: '踏切', en: 'Level crossing', at: [-80, 162] },
-  { id: 'parking', kind: 'parking', jp: 'コインパーキング', en: 'Coin parking', at: [50, 27] },
-  { id: 'river', kind: 'park', jp: '桜川', en: 'The river', at: [-10, -22] },
-  { id: 'pond', kind: 'park', jp: '鏡池', en: 'Kagami Pond', at: [75, 128] },
-  { id: 'deerGate', kind: 'park', jp: '鹿公園', en: 'Deer Park (coming soon)', at: [30, -40] },
+  { id: 'lawson', kind: 'konbini', at: [0, -5], frame: 'world', exp: 'konbini' },
+  { id: 'start', kind: 'view', at: [0, 16.5], frame: 'world', exp: 'view' },   // the map draws it at HERO_VIEWS.morning.play.pos
+  { id: 'han', kind: 'car', at: [24.15, 4.7], exp: 'han' },                    // the RX-7 in its bay (han/index.js HAN_BAY)
+  { id: 'spine', kind: 'shops', at: [-50, 100] },
+  { id: 'donpen', kind: 'mega', at: [-62.3, 67.1], exp: 'donki' },            // ドンペン堂's lot (town-plan.js SPECIALS)
+  { id: 'shrine', kind: 'shrine', at: [13, 88], exp: 'shrine' },
+  { id: 'plaza', kind: 'plaza', at: [-52.5, 137] },
+  { id: 'station', kind: 'station', at: [-51, 151.5], exp: 'station' },
+  { id: 'crossing', kind: 'crossing', at: [-80, 162] },
+  { id: 'pond', kind: 'pond', at: [75, 128] },
+  { id: 'slowlife', kind: 'bench', at: [73, 102.2], exp: 'slowlife' },        // SLOWLIFE.bench
+  { id: 'river', kind: 'river', at: [-10, -22] },
+  { id: 'deerGate', kind: 'deer', at: [30, -40.6] },
 ];
 /** A place's world position (x, z). */
 export function placeAt(p) {

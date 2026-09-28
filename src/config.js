@@ -494,6 +494,21 @@ export const SHOT_SPOTS = [
   { name: 'land-overview', scene: 'town', pos: [26, 0, 6], yaw: 3.1416, pitch: -0.82, lift: 95, looks: ['day', 'golden'], frame: 'world' },
   // wave 2c: Tan's river you walk down to, and the pond 鏡池
   { name: 'land-spawn-back', scene: 'town', pos: [0, 0, 16.5], yaw: 3.1416, pitch: -0.02, looks: ['day', 'golden'], frame: 'world' },
+  // quality pass: Tan's walk from the spawn, turned round, down the stairs to the river (2026-09-28)
+  { name: 'qp-walk-1', scene: 'town', pos: [0, 0, 22], yaw: 3.1416, pitch: -0.06, looks: ['day'], frame: 'world' },
+  { name: 'qp-walk-2', scene: 'town', pos: [0, 0, 31], yaw: 3.1416, pitch: -0.1, looks: ['day', 'golden'], frame: 'world' },
+  { name: 'qp-walk-3', scene: 'town', pos: [0, 0, 37.5], yaw: 3.1416, pitch: -0.22, looks: ['day'], frame: 'world' },
+  { name: 'qp-walk-4', scene: 'town', pos: [0.9, 0, 40.2], yaw: 3.1416, pitch: -0.3, looks: ['day', 'golden'], frame: 'world' },
+  { name: 'qp-walk-5', scene: 'town', pos: [0, 0, 42.4], yaw: 3.1416, pitch: -0.12, looks: ['day'], frame: 'world' },
+  { name: 'qp-walk-6', scene: 'town', pos: [0.5, 0, 42.4], yaw: 2.2, pitch: -0.08, looks: ['day'], frame: 'world' },
+  // the ryokan and the old wooden house by the pond (quality pass)
+  { name: 'qp-ryokan-lane', scene: 'town', pos: [70, 0, 110], yaw: -1.45, pitch: 0.06, looks: ['day', 'blue'] },        // arriving down the lane
+  { name: 'qp-ryokan-gate', scene: 'town', pos: [80.5, 0, 107.5], yaw: -1.5708, pitch: 0.1, looks: ['day', 'golden'] },
+  { name: 'qp-ryokan-engawa', scene: 'town', pos: [83, 0, 97.5], yaw: -2.4, pitch: 0.08, looks: ['day'] },             // the paddies' side, from the bench path
+  { name: 'qp-kominka', scene: 'town', pos: [82.5, 0, 121], yaw: -1.35, pitch: 0.06, looks: ['day', 'golden'] },
+  { name: 'qp-ryokan-back', scene: 'town', pos: [88, 0, 116], yaw: 2.7, pitch: 0.12, looks: ['day'] },
+  { name: 'qp-ryokan-over', scene: 'town', pos: [78, 0, 112], yaw: -1.5708, pitch: -0.5, lift: 14, looks: ['day'] },
+  { name: 'qp-teahouse-back', scene: 'town', pos: [63, 0, 91.5], yaw: 3.1416, pitch: 0.06, looks: ['day'] },           // from the paddies' path
   { name: 'land-rail', scene: 'town', pos: [4, 0, -9.3], yaw: 0.15, pitch: -0.32, looks: ['day'] },
   { name: 'close-land-stairs', scene: 'town', pos: [0.4, 0, -9.2], yaw: 0, pitch: -0.42, looks: ['day'] },
   { name: 'close-land-stones', scene: 'town', pos: [0.3, 0, -13.8], yaw: -0.08, pitch: -0.22, looks: ['day'] },

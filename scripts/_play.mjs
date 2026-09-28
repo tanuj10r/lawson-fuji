@@ -244,15 +244,20 @@ try {
     return { before, during, after, toasts: window.__toasts.slice(), frame };
   }, (r) => r.during.suspended && !r.after.suspended && r.toasts.every(english));
 
-  // the station: the master bows and says welcome
+  // the station: the master bows; no subtitle (quality pass, Tan: text only where required)
   await step('23-station', async () => {
     const s = window.__spotOf('station');
+    const { world } = window.__scene;
+    const master = (world.line.local ?? world.line).station.master;
     window.__standBy(s.x, s.z, 2.0, 0.9);
     await window.__wait(400);
+    const n0 = window.__toasts.length;
     window.__press('KeyE');
-    await window.__wait(800);
-    return { toasts: window.__toasts.slice(), frame: await window.__frame() };
-  }, (r) => r.toasts.some((t) => /Station master/.test(t)) && r.toasts.every(english));
+    await window.__wait(300);
+    const busy = master.busy;
+    await window.__wait(500);
+    return { busy, newToasts: window.__toasts.slice(n0), frame: await window.__frame() };
+  }, (r) => r.busy === 'bow' && r.newToasts.length === 0);
 
   // the train: no train -> the note; a train in -> aboard; the chime -> put back on the platform
   await step('24-train', async () => {

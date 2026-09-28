@@ -463,3 +463,81 @@ export const pondWobbleTex = () =>
       wrapped(c, w, h, () => { c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + len / 2, y - 1.5, x + len, y); c.stroke(); });
     }
   }, { repeat: true, srgb: false });
+
+/* ------------------------- the ryokan and the old house (quality pass) ------------------------- */
+
+/** 焼杉 (charred cedar) boarding: 8 vertical boards per 1.44 m, near-black
+ * with the silver-grey grain a charred face shows, a paler weathered board
+ * now and then, a dark shadow line at each joint.  Tile 1.44 x 2.88 m. */
+export const YAKISUGI_TILE = [1.44, 2.88];
+export const yakisugiTex = () =>
+  canvasTex('landYakisugi', 128, 256, (c, w, h) => {
+    const r = rng(9101);
+    const n = 8, bw = w / n;
+    for (let i = 0; i < n; i++) {
+      const x = i * bw, t = r();
+      c.fillStyle = t < 0.2 ? '#54504c' : t < 0.55 ? '#443f3c' : '#3a3634';
+      c.fillRect(x, 0, bw, h);
+      // the grain: long faint silver streaks, broken
+      for (let k = 0; k < 18; k++) {
+        const y = r() * h, len = 12 + r() * 60, a = 0.1 + r() * 0.18;
+        c.fillStyle = `rgba(190,180,170,${a})`;
+        c.fillRect(x + 2 + r() * (bw - 4), y, 1, len);
+      }
+      // the joint, and a lit edge beside it
+      c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(x, 0, 2, h);
+      c.fillStyle = 'rgba(120,112,104,0.25)'; c.fillRect(x + 2, 0, 1, h);
+    }
+    // a few nail heads down each board's line
+    c.fillStyle = 'rgba(150,140,130,0.5)';
+    for (let i = 0; i < n; i++) for (const y of [24, 128, 232]) c.fillRect(i * bw + bw * 0.5 - 1, y, 2, 2);
+  }, { repeat: true, aniso: 4 });
+
+/** 漆喰 plaster, aged: a warm white with broad faint trowel clouds and a
+ * fine grain.  Tile 2 m; the material's colour gives the tone. */
+export const PLASTER_TILE = 2.0;
+export const plasterTex = () =>
+  canvasTex('landPlaster', 128, 128, (c, w, h) => {
+    const r = rng(9202);
+    c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 26; i++) {
+      const x = r() * w, y = r() * h, rx = 14 + r() * 30, ry = 8 + r() * 20, rot = r() * 3, dark = r() < 0.5;
+      wrapped(c, w, h, () => {
+        c.fillStyle = dark ? 'rgba(214,204,188,0.16)' : 'rgba(255,255,255,0.2)';
+        c.beginPath(); c.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2); c.fill();
+      });
+    }
+    for (let i = 0; i < 90; i++) { c.fillStyle = 'rgba(160,150,140,0.12)'; c.fillRect(r() * w, r() * h, 1.5, 1.5); }
+  }, { repeat: true, aniso: 4 });
+
+/** A vertical wooden sign board (看板): brush letters top to bottom on
+ * weathered cedar, a darker border.  96 x 384 px for a 0.36 x 1.44 m board. */
+export function boardSignTex(text, key) {
+  return canvasTex('landBoard' + key, 96, 384, (c, w, h) => {
+    const r = rng(9303);
+    c.fillStyle = '#b8946a'; c.fillRect(0, 0, w, h);
+    for (let k = 0; k < 60; k++) { c.fillStyle = r() < 0.5 ? 'rgba(90,60,40,0.18)' : 'rgba(255,240,220,0.18)'; c.fillRect(r() * w, r() * h, 1.5, 10 + r() * 50); }
+    c.strokeStyle = '#5a3e2c'; c.lineWidth = 6; c.strokeRect(3, 3, w - 6, h - 6);
+    c.fillStyle = '#2a201c';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    const chars = [...text];
+    const step = Math.min(78, (h - 40) / chars.length);
+    c.font = `${Math.round(step * 0.86)}px ${JP_BRUSH}`;
+    const top = 20 + (h - 40 - step * chars.length) / 2;
+    chars.forEach((ch, i) => c.fillText(ch, w / 2, top + step * (i + 0.5)));
+  }, { aniso: 4 });
+}
+
+/** A small square nameplate (表札): the family name on pale stone. */
+export function namePlateTex(text, key) {
+  return canvasTex('landPlate' + key, 64, 128, (c, w, h) => {
+    c.fillStyle = '#e9e4da'; c.fillRect(0, 0, w, h);
+    c.strokeStyle = '#8a847a'; c.lineWidth = 3; c.strokeRect(2, 2, w - 4, h - 4);
+    c.fillStyle = '#2a2a30'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    const chars = [...text];
+    const step = Math.min(50, (h - 16) / chars.length);
+    c.font = `bold ${Math.round(step * 0.8)}px ${JP}`;
+    const top = 8 + (h - 16 - step * chars.length) / 2;
+    chars.forEach((ch, i) => c.fillText(ch, w / 2, top + step * (i + 0.5)));
+  }, { aniso: 2 });
+}

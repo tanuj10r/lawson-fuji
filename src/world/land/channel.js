@@ -39,6 +39,7 @@ export function channelMats(tex) {
     track: cel({ color: 0x8a8ea0, bands: 3, tint: 0x5a5480, map: tex.track }),   // the bridge road's asphalt
     granite: cel({ color: 0xc9c5bb, bands: 3, tint: 0x6a6490 }),
     graniteDark: cel({ color: 0xa6a298, bands: 3, tint: 0x5f5880 }),
+    nosing: cel({ color: 0x7e7a74, bands: 3, tint: 0x4f4a6c }),
     railWood: cel({ color: 0x8a6a50, bands: 3, tint: 0x5a4a68 }),
     deck: cel({ color: 0x8e8c94, bands: 3, tint: 0x5a5480 }),
     bridge: cel({ color: 0xd6d2c8, bands: 3, tint: 0x6f6790 }),
@@ -156,9 +157,12 @@ export function buildChannel(ctx, staticParts, scatter, water) {
   const walk = (side) => {
     const town = side === 'town';
     const [z0, z1] = town ? [P.townEdge, P.townFoot] : [P.farFoot, P.farEdge];
-    // from the wall: a grass strip (the sakura), the path, a grass verge to the water
+    // from the wall: a grass strip (the sakura, the benches), the path, a
+    // grass verge to the kerb, all within the walk (it is 3.2 m: bands that
+    // overran it lay over the water; quality pass)
     const wz = (d) => (town ? z1 - d : z0 + d);
-    const bands = [[0, 1.3, 'grass'], [1.3, 4.3, 'slab'], [4.3, z1 - z0, 'grass']];
+    const wide = z1 - z0;
+    const bands = [[0, 1.05, 'grass'], [1.05, wide - 0.55, 'slab'], [wide - 0.55, wide, 'grass']];
     for (const [a, b, mat] of bands) {
       const za = wz(a), zb = wz(b);
       parts.add(mat, sheetGeo(S.x0, S.x1, Math.min(za, zb), Math.max(za, zb), W + (mat === 'slab' ? 0.015 : 0), mat === 'slab' ? 4 : TILE.grass));
@@ -170,7 +174,7 @@ export function buildChannel(ctx, staticParts, scatter, water) {
     for (let k = 0; k < 520; k++) {
       const x = r.range(-160, 160);
       const inner = r.chance(0.5);
-      const d = inner ? r.range(0.1, 1.2) : r.range(4.4, z1 - z0 - 0.3);
+      const d = inner ? r.range(0.1, 0.95) : r.range(wide - 0.5, wide - 0.15);
       const h = r.range(0.12, 0.28);
       scatter.put('tuft', x, W - 0.02, wz(d), h, h, h, r.range(0, 6.3), r.pick([0x86ad62, 0x94b86a, 0x7a9e5a]));
       if (r.chance(0.2)) scatter.put('head', x, W + h * 0.8, wz(d), 0.045, 0.03, 0.045, 0, r.pick([0xf4cf3a, 0xfbfaf0, 0xf4cf3a]));
@@ -379,7 +383,9 @@ function stair(ctx, parts, s, P) {
     const lo = Math.min(za, zb), hi = Math.max(za, zb);
     const y = -rise * (i + 1);
     parts.box('granite', x0, x1, W - 0.05, y, lo, hi);
-    parts.box('graniteDark', x0, x1, y - 0.03, y + 0.004, dir < 0 ? lo : hi - 0.04, dir < 0 ? lo + 0.04 : hi);   // the nosing
+    // the nosing: a worn dark lip along each tread's edge, deep enough to read
+    // from the top of the flight (cel-flat treads merged into one slab; quality pass)
+    parts.box('nosing', x0, x1, y - 0.04, y + 0.006, dir < 0 ? lo : hi - 0.11, dir < 0 ? lo + 0.11 : hi);
     ctx.platform({ x0, x1, z0: lo, z1: hi, top: y });
     // the side walls, a parapet stepping down beside the treads
     for (const [a, b] of [[x0 - 0.3, x0], [x1, x1 + 0.3]]) {

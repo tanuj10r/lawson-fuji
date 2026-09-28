@@ -116,6 +116,10 @@ export const LAND_SIGNS = {
 /** The pond beyond the river (Tan's bench by the water in Nara, made our
  * own): its name stone, and the tea house's curtain. */
 export const POND = { jp: '鏡池', kana: 'かがみいけ', teahouse: 'かがみ茶屋' };
+/** The ryokan by the pond (quality pass): its board, its noren, the bath sign. */
+export const RYOKAN = { jp: '鏡月旅館', noren: '鏡月', bath: 'ゆ' };
+/** The old wooden house beside it: the family's nameplate. */
+export const KOMINKA = { plate: '小林' };
 /** The board on the closed gate at the far side of the paddies: a place to
  * come (Tan's Deer Park).  The English line is for players, on purpose. */
 export const DEER_PARK = { jp: '鹿公園', soon: '近日公開', en: 'Deer Park · coming soon' };
@@ -213,7 +217,7 @@ export const RIDE = {
     stepOff: 'The doors are closing. You step back onto the platform.',
     board: 'Board the train',
     boardHint: 'The doors are open: step aboard',
-    noTrain: 'No train at the platform yet: the next one is due shortly',
+    noTrain: 'No train yet — the next is due shortly',
     ride: 'Ride the train (next one due shortly)',
     station: 'The station',
   },

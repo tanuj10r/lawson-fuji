@@ -629,13 +629,10 @@ export function buildStation(ctx, { kit, service, sets, onEvent }) {
     if (name === 'doorsClosed') master.whistle(cabOf(r), () => whistle(ctx.toWorld({ x: MX.x, z: MX.z })));
   });
   // the experience spots: the station at the gates, the train by the door nearest them
-  let greeted = false;
   const stationSpot = ctx.experiences?.add({
     id: 'station', name: RIDE.say.station, jp: '駅', x: cxE, z: gz - 1.9, y: PH, r: 1.0, h: 1.1,   // clear of the gate cabinets (its glow ran under them), the marker under the gate sign (bottom PH + 2.54), not into it
     action: () => {
-      master.bow(true);
-      say(greeted ? RIDE.say.welcomeBack : RIDE.say.welcome, 4200);
-      greeted = true;
+      master.bow(true);                     // no subtitle: the bow is the greeting (quality pass, Tan)
       stationSpot?.done();
     },
   });

@@ -4,10 +4,11 @@ import { rngKit } from '../../core/util.js';
 import { TOWN } from '../../config.js';
 import { POND } from '../../data/town.js';
 import { makeBench } from '../props.js';
-import { makeHouse } from '../buildings.js';
 import { buildShrubs } from '../trees.js';
 import { plant } from '../kit/green.js';
-import { TILE, markerTex, norenTex, pondWobbleTex } from './tex.js';
+import { kawaraTex } from '../kit/tex.js';
+import { TILE, markerTex, norenTex, pondWobbleTex, yakisugiTex, plasterTex } from './tex.js';
+import { buildRyokan, buildKominka, dressPlainBox } from './ryokan.js';
 import { makeMirror, REFLECT } from './mirror.js';
 
 /* ------------------------------------------------------------------ *
@@ -45,6 +46,13 @@ export function pondMats(tex) {
     willowWood: cel({ color: 0x5e5048, bands: 3, tint: 0x3e3448 }),
     lanternPaper: flat({ color: 0xfff7ea }),    // paper with the light through it: unlit, always pale
     wire: cel({ color: 0x3c3a40, bands: 3, tint: 0x2c2a3c }),
+    // the ryokan and the old house (ryokan.js): tiled kawara, charred cedar, aged plaster, dark lattice
+    kawara: cel({ color: 0x6b7082, bands: 3, tint: 0x46425f, map: kawaraTex(), cache: false }),
+    kawaraDark: cel({ color: 0x4a4c58, bands: 3, tint: 0x34324c }),
+    yakisugi: cel({ color: 0xffffff, bands: 3, tint: 0x4a4658, map: yakisugiTex(), cache: false }),
+    plasterOld: cel({ color: 0xf1e9d9, bands: 3, tint: 0xb4a4b8, map: plasterTex(), cache: false }),
+    lattice: cel({ color: 0x3a2c26, bands: 3, tint: 0x2c2440 }),
+    cedar: cel({ color: 0x9c7c5c, bands: 3, tint: 0x6a5670 }),
   };
 }
 
@@ -441,17 +449,16 @@ export function buildPond(ctx, parts, scatter, water) {
   /* ---- the tea house and the houses round the pond's point, where the
    * lanes come in: an old townhouse, family houses, hedges, trees ---- */
   teahouse(ctx, parts, 60.5, 100.4);
-  const home = (x, zFront, w, d, floors, roofKind, seed, wall) => {
-    const z = zFront - d / 2;
-    (ctx.addStatic ?? ctx.add)(makeHouse({ x, z, y: 0, w, d, face: 'z+', floors, seed, roofKind, wall, flowers: true }));
-    ctx.collide(x - w / 2 - 0.1, z - d / 2 - 0.1, x + w / 2 + 0.1, z + d / 2 + 0.1, 2.72 * floors + 1);
-  };
-  home(91.5, 107.2, 8.5, 6.8, 2, 'hip', 7202, 1);
-  house(ctx, parts, 91, 109.6, 9, 5.0, 7201);
+  /* the two lots east of the point held the blankest boxes in town (a
+   * plain two-storey house and the old house's back wall to the paddies):
+   * now 鏡月旅館 and an old wooden house (ryokan.js; quality pass), both
+   * facing the lane that comes in at z 112 */
+  buildRyokan(ctx, parts, { x0: 86.4, x1: 94.6, z0: 102.4, z1: 112.6, door: 107.5, grounds: [83.6, 96.6, 100.6, 114.4] });
+  buildKominka(ctx, parts, { x0: 88.6, x1: 95.4, z0: 116.6, z1: 122.6, door: 119.4, hedgeX: 86.0 });
   buildShrubs(ctx, [
     { x: 57, z: 107.5, r: 0.7, count: 6, spread: 3.2, seed: 7301, y: 0 },
-    { x: 82, z: 101.5, r: 0.6, count: 5, spread: 2.6, seed: 7302, y: 0 },
-    { x: 95, z: 125, r: 0.7, count: 6, spread: 3.0, seed: 7303, y: 0 },
+    { x: 80.5, z: 100.3, r: 0.6, count: 5, spread: 2.4, seed: 7302, y: 0 },
+    { x: 95, z: 127, r: 0.7, count: 6, spread: 2.6, seed: 7303, y: 0 },
     { x: 55.5, z: 136, r: 0.6, count: 5, spread: 2.4, seed: 7304, y: 0 },
   ]);
   plant(ctx, 'camphor', { x: 95, z: 139, y: 0, scale: 1.2, seed: 7401 });
@@ -538,6 +545,8 @@ function teahouse(ctx, parts, x, zBack) {
     parts.box('shoji', px - w / 12 + 0.1, px + w / 12 - 0.1, 0.5, h - 0.32, zf - 0.02, zf + 0.01);
   }
   hipRoof(parts, x, z, w, d, h, 1.6, 0.9);
+  // its back and ends were bare plaster to the paddies' path (quality pass): the frame, a wainscot, a door, windows
+  dressPlainBox(ctx, parts, [x - w / 2, x + w / 2, zBack, zf], 0.45, h);
   // the noren over the open door
   const dx = x - w / 2 + (w * 2.5) / 6;
   const noren = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.8), flat({ map: norenTex(POND.teahouse, 'tea'), side: THREE.DoubleSide }));
@@ -559,22 +568,3 @@ function teahouse(ctx, parts, x, zBack) {
   ctx.night?.pool(dx, zf + 1.2, 4, { strength: 0.9 });
 }
 
-/** A low old house: plaster over a timber base, a hip roof of grey tile. */
-function house(ctx, parts, x, zBack, w, d, seed) {
-  const r = rngKit(seed);
-  const h = r.range(2.8, 3.3);
-  const zf = zBack + d;
-  parts.box('timber', x - w / 2, x + w / 2, 0, 0.9, zBack, zf);
-  parts.box('plaster', x - w / 2 + 0.06, x + w / 2 - 0.06, 0.9, h, zBack + 0.06, zf - 0.06);
-  // the frame shows through the plaster (真壁): posts and a beam
-  for (let px = x - w / 2 + 0.08; px <= x + w / 2; px += w / Math.round(w / 1.8)) parts.box('timber', px - 0.07, px + 0.07, 0.9, h, zf - 0.04, zf + 0.03);
-  parts.box('timber', x - w / 2, x + w / 2, h - 0.28, h - 0.1, zf - 0.04, zf + 0.035);
-  // lattice windows (格子) on the front
-  for (let i = 0; i < 2; i++) {
-    const px = x - w / 4 + (i * w) / 2;
-    parts.box('timber', px - 1.1, px + 1.1, 1.1, 2.2, zf - 0.04, zf + 0.02);
-    for (let k = 0; k < 9; k++) parts.box('shoji', px - 1.0 + k * 0.25, px - 0.94 + k * 0.25, 1.16, 2.14, zf + 0.02, zf + 0.05);
-  }
-  hipRoof(parts, x, zBack + d / 2, w, d, h, r.range(1.4, 1.8), 0.6);
-  ctx.collide(x - w / 2, zBack, x + w / 2, zf, h);
-}

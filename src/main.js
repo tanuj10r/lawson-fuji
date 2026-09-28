@@ -324,8 +324,7 @@ function timeFade(dt) {
   if (!fade.done && fade.t >= IN) {
     fade.done = true;
     lastView = fade.name;
-    applyLook(HERO_VIEWS[fade.name].look);
-    hud.flash(STRINGS.heroViews[fade.name]);
+    applyLook(HERO_VIEWS[fade.name].look);   // the sky says what changed: no toast (quality pass, Tan)
   }
   fadeEl.style.opacity = String(fade.t < IN ? fade.t / IN : Math.max(0, 1 - (fade.t - IN - HOLD) / OUT));
   if (fade.t > IN + HOLD + OUT) { fade = null; fadeEl.style.opacity = '0'; }

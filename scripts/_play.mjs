@@ -154,6 +154,27 @@ try {
   }, (r) => Object.keys(r.musicOverlapM2).length === 0);
 
   /* ---- the famous view first: the opening shot ---- */
+  // no tree through a building (Tan, 2026-09-28): every crown cushion against every building-sized collider
+  await step('03-trees-clear', async () => {
+    const S = window.__scene, T = S.THREE, W = S.world;
+    const bldg = W.colliders.filter((c) => (c.top ?? 0) >= 3 && (c.x1 - c.x0) * (c.z1 - c.z0) >= 8 && c.x1 - c.x0 > 1.2 && c.z1 - c.z0 > 1.2);
+    const m4 = new T.Matrix4(), p = new T.Vector3(), q = new T.Quaternion(), sc = new T.Vector3(), hits = [];
+    S.scene.updateMatrixWorld(true);
+    S.scene.traverse((o) => {
+      if (!o.isInstancedMesh || !/^(townSakura(Kept)?Far|pineFar|mapleFar|mapleRedFar|camphorFar|zelkovaFar|groveCanopyFar)/.test(o.name || '')) return;
+      if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+      const r0 = o.geometry.boundingSphere.radius;
+      for (let i = 0; i < o.instanceMatrix.count; i++) {
+        o.getMatrixAt(i, m4); m4.premultiply(o.matrixWorld); m4.decompose(p, q, sc);
+        if (sc.x === 0) continue;
+        const r = r0 * Math.max(sc.x, sc.y, sc.z) * 0.7;
+        const c = bldg.find((c) => p.x > c.x0 - r * 0.3 && p.x < c.x1 + r * 0.3 && p.z > c.z0 - r * 0.3 && p.z < c.z1 + r * 0.3 && p.y - r < c.top - 0.3 && p.y + r > (c.bottom ?? 0) + 0.5);
+        if (c) hits.push([o.name, +p.x.toFixed(1), +p.z.toFixed(1)]);
+      }
+    });
+    return { buildings: bldg.length, hits: hits.length, first: hits.slice(0, 5) };
+  }, (r) => r.buildings > 50 && r.hits === 0);
+
   await step('02-spawn', async () => {
     window.__scene.enterHero('morning');
     await window.__wait(600);
@@ -306,6 +327,22 @@ try {
     const reached = +Math.abs(player.pos.z - s.z).toFixed(2);
     return { prompt, played, toasts: window.__toasts.slice(), reached, phase: r0.phase, frame };
   }, (r) => r.prompt === '' && r.played >= 1 && r.toasts.length === 0 && r.reached < 1.6);
+
+  // Tan: "Midway, I ran outside ... away from the station, and I could still hear that at the same intensity":
+  // a placed sound follows you for as long as it plays (it was 8 s)
+  await step('25-announce-fades', async () => {
+    const { player, world, sound } = window.__scene;
+    const s = window.__spotOf('train');
+    player.pos.set(s.x + 3, world.heightAt(s.x + 3, s.z), s.z);
+    await window.__wait(600);
+    player.pos.set(s.x, world.heightAt(s.x, s.z), s.z);                 // into the ring: it starts
+    await window.__wait(9000);                                          // past the old 8 s
+    const near = Math.max(0, ...sound.debug.voiceLevels().map((v) => v.k));
+    player.pos.set(s.x - 40, world.heightAt(s.x - 40, s.z), s.z);       // run off, 40 m away
+    await window.__wait(800);
+    const far = Math.max(0, ...sound.debug.voiceLevels().map((v) => v.k));
+    return { near: +near.toFixed(3), far: +far.toFixed(3) };
+  }, (r) => r.near > 0.05 && r.far < 0.01);
 
   // slow life: sit, the flute comes up; any key stands you up
   await step('26-slowlife', async () => {

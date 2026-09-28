@@ -381,14 +381,22 @@ function watchCar(dt) {
     if (watch.mine) player.suspended = false;
     watch.mine = false;
   }
-  if (!on || dt <= 0) return;
+  if (!on || dt <= 0) { watch.last = 0; return; }
+  /* the car keeps the song's (real) time; so does the turn of the head, or a
+   * slow frame (dt is capped at 1/20 s) left the view behind the car */
+  const nowMs = performance.now();
+  const rdt = watch.last ? Math.min(0.25, (nowMs - watch.last) / 1000) : dt;
+  watch.last = nowMs;
+  dt = Math.max(dt, rdt);
   const W = HAN_WATCH, t = hanShow.target(watch.t), c = camera.position;
   const dx = t.x - c.x, dz = t.z - c.z;
   const yaw = Math.atan2(-dx, -dz);
   const pitch = THREE.MathUtils.clamp(Math.atan2(t.y - c.y, Math.hypot(dx, dz)), W.pitch[0], W.pitch[1]);
   const k = 1 - Math.exp(-W.follow * dt);
   const dy = Math.atan2(Math.sin(yaw - player.yaw), Math.cos(yaw - player.yaw));
-  player.yaw += THREE.MathUtils.clamp(dy * k, -W.maxTurn * dt, W.maxTurn * dt);
+  // well behind the car: turn quicker until it's back in the middle of the view
+  const turnMax = W.maxTurn * (1 + 3 * Math.max(0, Math.abs(dy) - 0.35));
+  player.yaw += THREE.MathUtils.clamp(dy * k, -turnMax * dt, turnMax * dt);
   player.pitch += THREE.MathUtils.clamp((pitch - player.pitch) * k, -W.maxTurn * 0.6 * dt, W.maxTurn * 0.6 * dt);
 }
 if (import.meta.env?.DEV) window.__watch = watch;

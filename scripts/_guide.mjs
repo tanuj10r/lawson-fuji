@@ -310,6 +310,8 @@ try {
     const voice = await page.evaluate(async () => {
       const snd = window.__scene.sound, dbg = snd.debug;
       if (!dbg.ac || dbg.ac.state !== 'running') return { error: 'no sound running' };
+      // the engine really putting sound out before the first measure (it was 0 on a slow start)
+      for (let k = 0; k < 20 && (await dbg.level(250)).peak < 0.001; k++) await new Promise((r) => setTimeout(r, 250));
       const out = {};
       for (const n of ['dog-yip', 'dog-boof', 'dog-whine', 'dog-hmm', 'dog-pant', 'dog-shake', 'dog-snore', 'dog-awoo', 'dog-snort', 'dog-sneeze', 'whistle']) {
         await new Promise((r) => setTimeout(r, 900));

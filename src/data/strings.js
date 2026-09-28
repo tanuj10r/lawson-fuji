@@ -42,11 +42,6 @@ export const STRINGS = {
   coordsOn: 'coordinates on',
   coordsOff: 'coordinates off',
   copied: 'copied',
-  heroViews: {
-    morning: '1 · Morning',
-    golden: '2 · Golden hour',
-    night: '3 · Night',
-  },
   map: {
     titleJp: '富士見町 マップ',
     title: 'Town map',
@@ -87,8 +82,4 @@ export const STRINGS = {
   },
   refOn: 'reference overlay on',
   refOff: 'reference overlay off',
-  /* The slow-life bench by the paddies and 鏡池 (world/land/slowlife.js). */
-  slowlife: {
-    sit: 'Nowhere to be. Stay as long as you like.',
-  },
 };

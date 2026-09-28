@@ -1,5 +1,16 @@
 # The experiences build (2026-09-28, launch the next day)
 
+The town is Fujikawaguchikko (富士川口湖町), its station 富士川口湖駅
+(docs/decisions/rename-and-sound.md).
+
+**Two kinds (Tan, later on 2026-09-28).** Things to do (`kind: 'engage'`:
+the konbini, the Nippon Fuji view, Han's RX-7, the train's listening spot,
+the slow-life bench) keep the highlight in town and a diamond on the map.
+Things to hear (`kind: 'sound'`: each zebra's walk-signal tune, ドンペン堂's
+theme, the station, the level crossing's bells, the shrine's wind chimes)
+have no highlight and no E; a speaker on the map. Gone: the shrine's
+prayer, the megastore's confetti, boarding the train, the station master.
+
 Tan (the owner; they/them) turned the game into a set of experiences in a
 compact town. Read AGENTS.md and docs/BUILDERS.md first; this adds to them.
 
@@ -12,10 +23,13 @@ compact town. Read AGENTS.md and docs/BUILDERS.md first; this adds to them.
    The Fast and the Furious: Tokyo Drift, orange with the black side sweep; a
    stylised racer (not the actor's likeness) leaning on it; `E` plays the
    drift track and a short drift.
-3. **Inari shrine**: detailed torii tunnel, fox statues, halls, wind chimes.
-4. **The station**: gates, ticket office, a station master, announcements.
-5. **The train**: detailed, braking/pulling away, board it at the platform,
-   the in-train announcement.
+3. **Inari shrine**: detailed torii tunnel, fox statues, halls, wind chimes
+   (heard in the grounds: a thing to hear).
+4. **The station**: gates, ticket office, announcements (a thing to hear,
+   mild over the plaza). Nobody works here.
+5. **The train**: detailed, braking/pulling away; nobody boards. Step into
+   the highlighted spot by its door on platform 1 to hear the in-train
+   announcement.
 6. **The discount megastore** (a MEGA Don Quijote homage, ドンペン堂): its theme
    as you pass.
 7. **Slow life**: a bench by the paddies and pond, the flute theme.
@@ -24,8 +38,9 @@ compact town. Read AGENTS.md and docs/BUILDERS.md first; this adds to them.
 9. **Deer Park, coming soon**: the gate at the bridge road's end (exists).
 
 ## Rules that changed tonight
-- **People:** only the player's own hand, Han and the station master. No
-  one else (the cashier was replaced by self-checkouts, 2026-09-28).
+- **People:** only the player's own hand and Han (and the animals). No
+  one else (the cashier was replaced by self-checkouts, the station master
+  removed, 2026-09-28).
 - **Names:** close homages for brands (ドンペン堂, Strong Nine, Choco Wafer
   Jumbo). Tan's one exception: the car is the real Mazda RX-7 from the film.
 - **Look:** today's cartoon cel look (the pond pass is the quality bar: Tan
@@ -42,6 +57,8 @@ compact town. Read AGENTS.md and docs/BUILDERS.md first; this adds to them.
   name, jp, x, z, r, h, y, action, label, marker })` in your ctx's frame (the
   town's code gets the turned town frame, T). It draws the yellow glow ring
   and floating marker and hooks `E`. Returns `{ done(), setLabel(text) }`.
+  A thing to hear: `ctx.experiences.add({ kind: 'sound', id, name, jp, x, z })`
+  (the map's speaker only).
 - **Sound** (core/soundBus.js; import `soundBus`): `soundBus.zone(name, { x,
   z, y, near, far, level, indoor })` for a place's looping track (world
   coordinates; convert with ctx.toWorld in the town frame), and

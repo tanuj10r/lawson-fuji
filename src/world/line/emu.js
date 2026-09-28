@@ -127,33 +127,6 @@ export function benchRuns(cab = 0) {
   return runs;
 }
 
-/**
- * What a walker meets inside one car, in the car's own frame: the seats,
- * the partitions and the end walls, as boxes [x0, z0, x1, z1, top].
- * `cab` +1 / -1: which end is a cab (0 for none).  line/boarding.js places
- * them while the train stands at the platform.
- */
-export function carColliders(cab = 0) {
-  const out = [];
-  for (const sz of [1, -1]) {
-    const zIn = sz * (CAR_W / 2 - 0.08), zSeat = sz * (CAR_W / 2 - 0.08 - SEAT_D);
-    for (const [a, b] of benchRuns(cab)) out.push([a, Math.min(zIn, zSeat), b, Math.max(zIn, zSeat), SEAT_TOP + 0.3]);
-    // the far wall (the near wall is the platform edge's colliders, with gaps at the doors)
-    if (sz > 0) out.push([-CAR_L / 2, CAR_W / 2 - 0.12, CAR_L / 2, CAR_W / 2 + 0.2, TOP]);
-  }
-  // the ends: the cab's back wall (its door shut), or the end wall with its gangway opening
-  for (const s of [-1, 1]) {
-    if (s === cab) {
-      out.push([s * CAB_WALL - 0.08, -CAR_W / 2, s * CAB_WALL + 0.08, CAR_W / 2, TOP]);
-    } else {
-      const x = s * (CAR_L / 2 - 0.06);
-      out.push([x - 0.08, -CAR_W / 2, x + 0.08, -0.45, TOP]);
-      out.push([x - 0.08, 0.45, x + 0.08, CAR_W / 2, TOP]);
-    }
-  }
-  return out;
-}
-
 const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
 /** A geometry painted one colour (for the vertex-coloured door leaves). */
 function painted(geo, hex) {

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { cel, flat } from '../../core/toon.js';
 import { box, cyl, bake, trs } from '../../core/util.js';
 import { hullOutline } from '../../core/outline.js';
-import { TOWN, ROADS } from '../../config.js';
+import { TOWN, ROADS, SOUND } from '../../config.js';
 import { steps, railing } from '../ground.js';
 import { makeBench, makeBins, makePhoneBooth, makePlanter, makeBikeRack } from '../props.js';
 import { makeBusStop, makeVehicle } from '../vehicles.js';
@@ -17,9 +17,6 @@ import {
 } from './tex.js';
 import { RIDE } from '../../data/town.js';
 import { soundBus } from '../../core/soundBus.js';
-import { buildMaster } from './master.js';
-import { makeBoarding, say, host } from './boarding.js';
-import { whistle } from './sfx.js';
 import { buildShop } from '../kit/shopfronts.js';
 import { lampMaterial } from '../kit/poles.js';
 import { makeAircon, makeBicycle, makeNoticeBoard } from '../props.js';
@@ -38,6 +35,10 @@ import { makeAircon, makeBicycle, makeNoticeBoard } from '../props.js';
  *              the in-station crossing (構内踏切) at the east end.
  *   plaza      completes M2b's: a clock pole, the bus stop and its shelter,
  *              a waiting taxi, bikes, a phone booth, the area map, bins.
+ *   sound      the announcements (a thing to hear, mild over the plaza),
+ *              and the listening spot on platform 1: the in-train
+ *              announcement where you stand.  Nobody boards; nobody works
+ *              here (Tan, 2026-09-28).
  * ------------------------------------------------------------------ */
 
 const PH = 1.08;                               // platform and concourse floor
@@ -174,7 +175,7 @@ function smallBuilding(ctx, g, { x0, z0, x1, z1, y = 0, h = 2.8, face, sign, wal
   return b;
 }
 
-export function buildStation(ctx, { kit, service, sets, onEvent }) {
+export function buildStation(ctx, { kit, service, sets }) {
   const m = mats();
   const g = new THREE.Group();
   g.name = 'station';
@@ -279,7 +280,7 @@ export function buildStation(ctx, { kit, service, sets, onEvent }) {
       reg(ctx, 'prop', x, B.z0 - 0.5);
     }
     // name over the entrance
-    board(g, entranceTex(), 7.2, 1.8, cxE, y0 + 3.6, B.z0 - 0.58, Math.PI, true);
+    board(g, entranceTex(), 7.2, 1.8, cxE, y0 + 4.0, B.z0 - 0.58, Math.PI, true);   // clear of the canopy (its roof hid the name's lower half)
     // lit from inside after dark: the open entrance and the two windows
     ctx.night?.glow(g, entW - 0.2, 2.5, cxE, PH + 1.3, B.z0 + 0.3, Math.PI);
     for (const x of [B.x0 + 4, B.x1 - 4]) ctx.night?.glow(g, 3.8, 1.4, x, PH + 1.65, B.z0 - 0.03, Math.PI);
@@ -352,11 +353,11 @@ export function buildStation(ctx, { kit, service, sets, onEvent }) {
     deck.receiveShadow = deck.castShadow = true;
     g.add(deck);
     hullOutline(deck, { thickness: 0.0028 });
-    ctx.platform({ x0: PL.x0, x1: PL.x1, z0: P.z0 - (P.n === 1 ? 0.05 : 0), z1: P.z1, top: PH });
+    ctx.platform({ x0: PL.x0, x1: PL.x1, z0: P.z0, z1: P.z1, top: PH });
     // the edge: a darker coping and a line nobody may stand beyond
     const ez = P.edge - P.face * 0.2;
     g.add(box(PL.x1 - PL.x0, 0.03, 0.4, m.edge, (PL.x0 + PL.x1) / 2, PH + 0.005, ez));
-    if (P.n !== 1) ctx.collide(PL.x0, P.edge - P.face * 0.05 - 0.05, PL.x1, P.edge - P.face * 0.05 + 0.05, PH + 1.2);   // platform 1's opens at the doors (boarding.js)
+    ctx.collide(PL.x0, P.edge - P.face * 0.05 - 0.05, PL.x1, P.edge - P.face * 0.05 + 0.05, PH + 1.2);
     // yellow tactile line, a metre in from the edge
     for (let x = PL.x0 + 0.3; x < PL.x1 - 0.15; x += 0.3) {
       kit.decals.add('tactileLine', x, P.edge - P.face * 0.95, 0.3, 0.3, { x: 1, z: 0 }, PH - ROADS.asphaltY, LAYER.paint);
@@ -617,58 +618,40 @@ export function buildStation(ctx, { kit, service, sets, onEvent }) {
 
   /* ================================ the experiences ================================ */
   const P1 = PLAT[0];
-  // the station master, on platform 1 just through the gates, facing them
-  const MX = { x: cxE - 4.3, z: P1.z0 + 0.8 };
-  const master = buildMaster(ctx, { x: MX.x, z: MX.z, y: PH, yaw: Math.PI });
-  const boarding = makeBoarding(ctx, { service, P: P1, PH, sets });
-  // where he points: the arriving train's cab
-  const cabOf = (r) => ({ x: r.x + r.dir * (r.len / 2 - 1), z: r.z });
-  onEvent?.((name, r) => {
-    boarding.onEvent(name, r);
-    if (name === 'arrive') master.point(cabOf(r));
-    if (name === 'doorsClosed') master.whistle(cabOf(r), () => whistle(ctx.toWorld({ x: MX.x, z: MX.z })));
-  });
-  // the experience spots: the station at the gates, the train by the door nearest them
-  const stationSpot = ctx.experiences?.add({
-    id: 'station', name: RIDE.say.station, jp: '駅', x: cxE, z: gz - 1.9, y: PH, r: 1.0, h: 1.1,   // clear of the gate cabinets (its glow ran under them), the marker under the gate sign (bottom PH + 2.54), not into it
-    action: () => {
-      master.bow(true);                     // no subtitle: the bow is the greeting (quality pass, Tan)
-      stationSpot?.done();
-    },
-  });
-  const doorX = boarding.doorsX.reduce((a, b) => (Math.abs(b - cxE) < Math.abs(a - cxE) ? b : a));
+  /* The station is a thing to hear (Tan, 2026-09-28): its announcements and
+   * bustle, full in the concourse and on the platforms, mild over the plaza
+   * and the approach (config SOUND.station), no highlight, nobody in it. */
+  const hear = { x: cxE, z: (B.z0 + P1.z1) / 2 };
+  soundBus.zone('station-ambience', { ...ctx.toWorld(hear), y: 3, ...SOUND.station });
+  ctx.experiences?.add({ kind: 'sound', id: 'station', name: RIDE.say.station, jp: '駅', ...hear });
+  /* The train: a place to listen (Tan, 2026-09-28: nobody boards).  The
+   * spot on platform 1 by the door nearest the gates keeps its highlight;
+   * stepping into it plays the in-train announcement there, once each time
+   * you step in, heard only on that stretch of platform.  No E, no text. */
+  const doorsX = sets[0].carX.flatMap((c) => DOORS.map((d) => TOWN.station.stopX + c.x + d));
+  const doorX = doorsX.reduce((a, b) => (Math.abs(b - cxE) < Math.abs(a - cxE) ? b : a));
+  const listen = { x: doorX, z: P1.edge - 1.25, r: 1.1 };
+  const listenW = ctx.toWorld(listen);
   const trainSpot = ctx.experiences?.add({
-    id: 'train', name: RIDE.say.ride, jp: '電車', x: doorX, z: P1.edge - 1.25, y: PH, r: 1.1, h: 2.0,
-    action: () => { if (boarding.board()) trainSpot?.done(); },
+    id: 'train', name: RIDE.say.listen, jp: '電車', x: listen.x, z: listen.z, y: PH, r: listen.r, h: 2.0, interact: false,
   });
-  // the station's sound: its announcements and bustle, heard in the concourse and on the platforms
-  soundBus.zone('station-ambience', { ...ctx.toWorld({ x: cxE, z: (B.z0 + P1.z1) / 2 }), y: 3, near: 8, far: 30, level: 0.45 });
-
-  // dev: stand the master in a moment of an action, for screenshots (`__master('point', 2)`)
-  if (import.meta.env?.DEV && typeof window !== 'undefined') {
-    window.__master = (name, secs = 1) => {
-      const r = service.runs[0];
-      if (name === 'bow') master.bow(true);
-      else if (name === 'point') master.point(cabOf({ ...r, x: TOWN.station.stopX, dir: 1 }));
-      else if (name === 'whistle') master.whistle(cabOf({ ...r, x: TOWN.station.stopX, dir: 1 }), () => {});
-      for (let i = 0; i < Math.round(secs * 30); i++) master.update(1 / 30, null);
-    };
-  }
-  let lastZ = null, labelOpen = null;
-  const MASTER_NEAR = 60;
+  let inSpot = false, warmed = false;
   return {
-    group: g, boards, platforms: PLAT, PH, master, boarding,
+    group: g, boards, platforms: PLAT, PH,
     /** Each frame (line/index.js): `me` the camera in this frame. */
     update(dt, cam, me) {
-      boarding.update(dt, cam);
-      const open = boarding.state.open;
-      if (open !== labelOpen) { labelOpen = open; trainSpot?.setLabel(`電車  ·  ${open ? RIDE.say.board : RIDE.say.ride}`); }
-      const d = Math.hypot(me.x - MX.x, me.z - MX.z);
-      if (d > MASTER_NEAR) { lastZ = null; return; }
-      // coming through the gates: a bow
-      if (lastZ !== null && Math.abs(me.x - cxE) < 5 && Math.sign(me.z - gz) !== Math.sign(lastZ - gz) && d < 7) master.bow();
-      lastZ = me.z;
-      master.update(dt, me);
+      const d = Math.hypot(me.x - listen.x, me.z - listen.z);
+      // warm the file as you come near (the engine plays a file on its second asking)
+      if (!warmed && d < 80 && soundBus.ready) {
+        warmed = true;
+        soundBus.oneShot('train-nextstop', { x: cam.x, z: cam.z, gain: 0.0001, near: 1, far: 400 });   // silent: it only fetches the file
+      }
+      const inside = d < listen.r;
+      if (inside && !inSpot) {
+        soundBus.oneShot('train-nextstop', { x: listenW.x, z: listenW.z, y: PH + 2.2, ...SOUND.trainListen, gain: 1 });
+        trainSpot?.done();
+      }
+      inSpot = inside;
     },
   };
 }

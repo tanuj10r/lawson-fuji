@@ -69,7 +69,7 @@ on the cards marked `lang="ja"`. scripts/_cards.mjs checks it.
   Han leaning on it and the shiba beside him, both looking where you look,
   NIPPON across the road under Fuji, the sakura along the lane, ドンペン堂
   lit, petals in the air. The engagement highlights are hidden for the shot
-  (`clean`), the shiba staged with the guide's own dev pose (`guideFrom`).
+  (`clean`), the pup staged with the guide's own dev pose (`guideFrom`), 9 m out, looking at the view.
 - Not in it: the train and station. They are 150 m beyond the store, under
   the haze, from anywhere the store and Fuji read well together.
 - New dev-only `__shot` options for this: `vfov`, `clean`, `guideFrom`,

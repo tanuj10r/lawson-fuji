@@ -37,7 +37,7 @@ const CANDIDATES = {
   // over the town, Fuji behind
   town: { look: 'golden', pos: [-10, 0, 45], yaw: -0.15, pitch: -0.05, lift: 12, clean: true },
   // behind Han and the RX-7, the shiba beside him looking at the view (the key art)
-  bay: { ...FROM_THE_BAY, guide: 'look', guideFrom: { pos: { x: -26, z: 33.5 }, yaw: -0.58 }, guideD: 11 },
+  bay: { ...FROM_THE_BAY, guide: 'look', guideFrom: { pos: { x: -26, z: 33.5 }, yaw: -0.6 }, guideD: 9 },
   'bay-alone': FROM_THE_BAY,
 };
 const SHOT = 'bay';

@@ -34,6 +34,8 @@ import { buildDrive, driveAt, T_DRIVE } from './drive.js';
 export const HAN_BAY = { x: 24.15, z: 4.7, keep: 5.1 };   // the car park's reserved bay (land/parking.js: the road row's east end)
 /** The glow Han waits by: step in and he goes. */
 export const HAN_SPOT = { x: HAN_BAY.x - 2.45, z: 4.2, r: 0.85 };
+/** The show, for whoever must keep out of the car's way (the guide shiba): is it running, where is the car (world). */
+export const HAN_SHOW = { running: () => false, car: () => null };
 
 const SONG = 17.74;            // han-drift's length
 const T_IN = 2.8;              // Han is in and the door shut: the drive starts
@@ -293,6 +295,8 @@ export function buildHan(ctx) {
     spot?.done();
   }
   trigger = start;
+  HAN_SHOW.running = () => S.run;
+  HAN_SHOW.car = () => ctx.toWorld({ x: cg.position.x, z: cg.position.z });
 
   // the paint's sky reflections follow the light: the scene's sun (the one shadow-casting directional)
   let sun = null;

@@ -561,6 +561,14 @@ export const SHOT_SPOTS = [
   { name: 'han-out', scene: 'town', pos: [20.5, 0, 4.2], yaw: -1.26, pitch: -0.05, looks: ['day'], train: 'han:6.46' },         // out of the car park's mouth onto the bridge road
   { name: 'han-flick', scene: 'town', pos: [20.5, 0, 4.2], yaw: 2.23, pitch: -0.02, looks: ['day'], train: 'han:9.32' },        // the handbrake 180 on NIPPON's forecourt
   { name: 'han-getin', scene: 'town', pos: [20.2, 0, 6.2], yaw: -1.0, pitch: -0.1, looks: ['day'], train: 'han:2.0' },              // the door open, Han getting in
+  // the guide shiba (animals/guide.js), staged in a pose 2.4 m in front of the lens on the far pavement (world frame)
+  { name: 'guide-trot', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.5, looks: ['day', 'golden'], guide: 'trot' },
+  { name: 'guide-look', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.5, looks: ['day'], guide: 'look' },
+  { name: 'guide-sit', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.55, looks: ['day', 'blue'], guide: 'sit' },
+  { name: 'guide-tilt', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.55, looks: ['golden'], guide: 'tilt' },
+  { name: 'guide-nap', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.6, looks: ['day'], guide: 'nap' },
+  { name: 'guide-low', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.0, lift: -1.15, looks: ['day', 'golden'], guide: 'stand' },   // at dog height
+  { name: 'guide-low-sit', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.02, lift: -1.1, looks: ['day'], guide: 'tilt' },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },
@@ -676,8 +684,22 @@ export const ANIMALS = {
   ducks: { shy: 3.2 },
   /* the waders: flee within `flee`, fly a hop of [min, max] metres at `flySpeed`, `cruise` above the water */
   heron: { flee: 7, hop: [25, 70], flySpeed: 3.6, cruise: 2.0, beatHz: 2.1, beatAmp: 0.6, walkChance: 0.12, walkSpeed: 0.12, stepAngle: 0.32 },
-  /* the shiba: in the yard of the lane house nearest `near` (town frame), `inset` behind its frontage */
-  shiba: { near: [30, 79], inset: 0.8, size: 1.0, hear: 16, greet: 4.2, leave: 20 },
+  /* the shiba's kennel: in the yard of the lane house nearest `near` (town frame); the dog itself is out, guiding */
+  shiba: { near: [30, 79], inset: 0.8 },
+  /* the guide (animals/guide.js): the shiba that leads you to the engagements one at a time */
+  guide: {
+    size: 1.0,
+    home: [4.6, 19.3],                        // world: the far pavement behind the famous view, out of every hero frame
+    lead: [3, 6],                             // trots this far ahead of you along the way (m)
+    trot: 2.6, run: 5.2,                      // m/s (you walk at 2.55, run at 5.1)
+    waitSit: 2.5,                             // stands waiting this long, then sits
+    lost: 14,                                 // farther off than this for a while: it comes back to you
+    engage: { konbini: 1.2, view: 1.0, han: 0.85, train: 1.1, slowlife: 1.1 },   // the engagements' ring radii (and which ids count until the list says `kind`)
+    cell: 0.4, radius: 0.25,                  // its map of the town: cell size, and clearance from anything solid (its own half-width and a little)
+    step: 0.45,                               // the biggest step between neighbouring cells it will take: kerbs yes, the channel no
+    costs: { pavement: 10, ground: 15, asphalt: 200, lane: 30, lot: 20 },   // a metre of each, relative: it keeps to pavements and crosses kerbed roads on the zebras; lanes have no pavement
+    nap: [75.6, 103.6],                       // town frame: beside the slow-life bench, where it sleeps once everything is done
+  },
   butterflies: { size: 1.15, beatHz: 9, speed: 0.9, near: 45, shy: 1.0 },
   pigeons: { plaza: 9, spine: 5, flush: 2.4, flushSpeed: 0.6, shy: 1.3, walkSpeed: 0.2, stepAngle: 0.36, flySpeed: 5, sit: [8, 20], back: 10 },
   egret: { flee: 6, hop: [8, 30], flySpeed: 3.0, cruise: 1.6, beatHz: 2.8, beatAmp: 0.62, walkChance: 0.55, walkSpeed: 0.2, stepAngle: 0.38 },

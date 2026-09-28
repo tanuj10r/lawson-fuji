@@ -140,7 +140,7 @@ for (const spot of spots) {
   for (const look of looks) {
     const name = spot.looks.length > 1 ? `${spot.name}-${look}` : spot.name;
     const opts = {
-      hero: spot.hero, look, pos: spot.pos, yaw: spot.yaw, pitch: spot.pitch, lift: spot.lift, train: spot.train, frame: spot.frame,
+      hero: spot.hero, look, pos: spot.pos, yaw: spot.yaw, pitch: spot.pitch, lift: spot.lift, train: spot.train, frame: spot.frame, guide: spot.guide,
       png: true, scale: SCALE, returnData: true,
     };
     const t0 = Date.now();

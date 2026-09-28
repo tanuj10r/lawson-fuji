@@ -9,6 +9,7 @@ import * as THREE from 'three';
  *   aJoint   xyz: the pivot the part turns about; w: the part's id
  *   aMorph   where the vertex goes in the second pose (wings spread,
  *            legs stood up), as an offset; the rig blends it in
+ *   aMorph2  a third pose (the guide dog lying down), the same way
  *
  * so the vertex shader (shade.js) can move the parts with no bones.
  * ------------------------------------------------------------------ */
@@ -21,7 +22,8 @@ const _nm = new THREE.Matrix3();
 
 export class Body {
   constructor() {
-    this.pos = []; this.nrm = []; this.col = []; this.joint = []; this.morph = []; this.idx = [];
+    this.pos = []; this.nrm = []; this.col = []; this.joint = []; this.morph = []; this.morph2 = []; this.idx = [];
+    this.two = false;
   }
 
   /**
@@ -31,8 +33,9 @@ export class Body {
    * @param o.part     the part id the rig moves it by
    * @param o.pivot    [x, y, z] it turns about
    * @param o.morph    a second Matrix4 for the other pose, or (p, local) => [dx, dy, dz]
+   * @param o.morph2   a third pose, the same way (aMorph2)
    */
-  add(geo, { matrix = null, color = 0xffffff, part = 0, pivot = [0, 0, 0], morph = null } = {}) {
+  add(geo, { matrix = null, color = 0xffffff, part = 0, pivot = [0, 0, 0], morph = null, morph2 = null } = {}) {
     const P = geo.attributes.position;
     if (!geo.attributes.normal) geo.computeVertexNormals();
     const N = geo.attributes.normal;
@@ -56,6 +59,10 @@ export class Body {
         const d = morph(_p, local);
         this.morph.push(d[0], d[1], d[2]);
       } else this.morph.push(0, 0, 0);
+      if (morph2) {
+        this.two = true;
+        if (morph2.isMatrix4) { _q.copy(local).applyMatrix4(morph2); this.morph2.push(_q.x - _p.x, _q.y - _p.y, _q.z - _p.z); } else { const d = morph2(_p, local); this.morph2.push(d[0], d[1], d[2]); }
+      } else this.morph2.push(0, 0, 0);
     }
     if (geo.index) for (const k of geo.index.array) this.idx.push(base + k);
     else for (let i = 0; i < P.count; i++) this.idx.push(base + i);
@@ -69,6 +76,7 @@ export class Body {
     g.setAttribute('color', new THREE.Float32BufferAttribute(this.col, 3));
     g.setAttribute('aJoint', new THREE.Float32BufferAttribute(this.joint, 4));
     g.setAttribute('aMorph', new THREE.Float32BufferAttribute(this.morph, 3));
+    if (this.two) g.setAttribute('aMorph2', new THREE.Float32BufferAttribute(this.morph2, 3));
     g.setIndex(this.pos.length / 3 > 65535 ? new THREE.Uint32BufferAttribute(this.idx, 1) : new THREE.Uint16BufferAttribute(this.idx, 1));
     g.computeBoundingSphere();
     g.computeBoundingBox();

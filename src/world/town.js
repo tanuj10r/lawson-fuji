@@ -73,7 +73,9 @@ export function buildTown(scene) {
     },
   });
   const core = buildCore(T);
-  const animals = buildAnimals(T, { core });   // wave 3: koi, ducks, herons, pigeons... (world/animals/)
+  // wave 3: koi, ducks, herons, pigeons... (world/animals/), and the guide shiba, which
+  // reads the experiences (every frame's list, world coordinates) and where you look
+  const animals = buildAnimals(T, { core, spots: () => [...expWorld.list, ...expTown.list, ...lawson.experiences.list], facing: () => camDir });
 
   /* The line, seen from the world: its crossing, its trains' events and
    * their gusts in world terms (`local` is the line itself, for checks

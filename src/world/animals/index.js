@@ -9,7 +9,8 @@ import { buildDucks } from './ducks.js';
 import { planPaddies } from '../land/paddies.js';
 import { buildWaders } from './waders.js';
 import { buildPigeons } from './pigeons.js';
-import { buildShiba } from './shiba.js';
+import { buildKennel } from './shiba.js';
+import { buildGuide } from './guide.js';
 import { buildButterflies } from './butterflies.js';
 import { lotFrame } from '../kit/lots.js';
 import { sagCurve } from '../../core/util.js';
@@ -27,7 +28,7 @@ import { POLES } from '../../config.js';
  * while the camera is within ANIMALS.near of where it lives.
  * ------------------------------------------------------------------ */
 
-export function buildAnimals(ctx, { core } = {}) {
+export function buildAnimals(ctx, { core, spots, facing } = {}) {
   const group = new THREE.Group();
   group.name = 'animals';
   ctx.add(group);
@@ -188,7 +189,7 @@ export function buildAnimals(ctx, { core } = {}) {
     kinds.push({ x: -51, z: 118, r: 40, name: 'pigeons', shadowed: true, mesh: 'pigeons', draw: 70, update: pigeons.update, list: pigeons.list });
   }
 
-  /* ---- the shiba, in a front yard on a lane ---- */
+  /* ---- the shiba's kennel, in a front yard on a lane (the dog is out: it is the guide, below) ---- */
   if (core?.lots) {
     const SH = ANIMALS.shiba;
     const [tx, tz] = SH.near;
@@ -253,11 +254,12 @@ export function buildAnimals(ctx, { core } = {}) {
       // standing on a yard's apron if there is one
       const pw = ctx.toWorld(p);
       const floor = floors.filter((q) => pw.x > q.min.x && pw.x < q.max.x && pw.z > q.min.z && pw.z < q.max.z).reduce((y, q) => Math.max(y, q.max.y), ctx.groundAt(p.x, p.z));
-      const spot = { x: p.x, z: p.z, y: floor, yaw: base + tilt, kennel: k, kennelYaw: base, bowl: F.at(u + 0.58, v + 0.28) };
-      const shiba = buildShiba(actx, { spot, shadows });
-      kinds.push({ x: p.x, z: p.z, r: 5, name: 'shiba', shadowed: true, mesh: 'shiba', draw: 45, update: shiba.update, list: [spot], dog: shiba.dog, spot });
+      buildKennel(actx, { x: p.x, z: p.z, y: floor, yaw: base + tilt, kennel: k, kennelYaw: base, bowl: F.at(u + 0.58, v + 0.28) });
     }
   }
+
+  /* ---- the guide: the shiba that leads you round (Tan, 2026-09-28) ---- */
+  const guide = buildGuide(actx, { spots, shadows, core, facing });
 
   /* ---- cabbage whites over the renge and the walks' flowers ---- */
   {
@@ -282,7 +284,8 @@ export function buildAnimals(ctx, { core } = {}) {
     if (!cam) return;
     const p = ctx.toLocal({ x: cam.x, z: cam.z });
     camL = { x: p.x, y: cam.y, z: p.z };
-    let wet = false, any = false;
+    guide.update(dt, cam);                     // always near you, by design; world frame
+    let wet = false, any = true;               // (the guide's shadow: always)
     for (const k of kinds) {
       const d = Math.hypot(k.x - camL.x, k.z - camL.z);
       // drawn while any of them is within `draw` of the camera

@@ -87,3 +87,31 @@ untouched.
   hips (pelvis 0.86 m, was 0.82) rest on the rear quarter 11 cm out from
   the body (was 5), the legs a little less splayed to keep the feet where
   they were.
+
+## The river (land/channel.js, mirror.js, town.js, config `riverMirror`)
+- **A mirror where you stand, painted water beyond.** The stretch through
+  the town (x -130..130 in the town's frame, `TOWN.land.riverMirror`) is a
+  planar mirror (the pond's `makeMirror`, 512² target, the river's own teal
+  in place of the pond's olive, the chop drifting downstream) while you are
+  within 45 m of it; the two reaches beyond stay the painted bands. The
+  revetments, the bridge, the cherries and the sky are in the water now,
+  stepped into the painted tones as the pond's are.
+- **What the mirror may see.** The pond's tagging (`tagReflections`) now
+  takes a list of rects; the river's adds the channel and 12 m round it, so
+  the sakura batches along the banks and the water's birds are on the
+  REFLECT layer. The channel's own pieces are batched into the town's
+  128 m cells and a merged cell is never shown to a mirror, so the mirrored
+  stretch keeps a reflection-only copy of its walls, copings, railings,
+  stairs and bridge (REFLECT layer alone, no shadows, no ink): the main
+  pass never draws it. My first try made the whole channel dynamic instead,
+  which broke the cells' culling (hero-1 870 → 987 calls); reverted.
+- **The pass runs only when the river is in view.** A 260 m strip's
+  bounding sphere reaches the spawn, so three's culling ran the reflection
+  with the river behind you, at the famous view. The Reflector's
+  onBeforeRender is gated on the strip's own world box against the
+  camera's frustum. hero-1 is back to 870 calls / 3,540k tris / 0.291%.
+- **Cost, day @1440p:** land-river 6.48 → 7.06 ms, land-walk 6.38 → 7.02,
+  under-bridge 6.13 → 6.50, stones 4.48 → 5.03, land-rail 5.08 → 5.99:
+  +0.4-0.9 ms only where the water is on screen, under the brief's ~1.5 ms;
+  nothing elsewhere. Memory: one 512² target (1 MB) and the copy's few
+  hundred boxes.

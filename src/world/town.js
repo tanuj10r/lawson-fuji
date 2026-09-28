@@ -156,10 +156,13 @@ export function buildTown(scene) {
   const pb = TOWN.land.pond?.box && [
     Math.min(TOWN.land.pond.box[0], TOWN.land.paddies?.box[0] ?? Infinity), Math.min(TOWN.land.pond.box[1], TOWN.land.paddies?.box[1] ?? Infinity),
     Math.max(TOWN.land.pond.box[2], TOWN.land.paddies?.box[2] ?? -Infinity), Math.max(TOWN.land.pond.box[3], TOWN.land.paddies?.box[3] ?? -Infinity)];
-  const reflectRect = pb && (() => {
-    const a = T.toWorld({ x: pb[0], z: pb[1] }), b = T.toWorld({ x: pb[2], z: pb[3] });
-    return [Math.min(a.x, b.x) - 25, Math.min(a.z, b.z) - 25, Math.max(a.x, b.x) + 25, Math.max(a.z, b.z) + 25];
-  })();
+  const worldRect = (r, pad) => {
+    const a = T.toWorld({ x: r[0], z: r[1] }), b = T.toWorld({ x: r[2], z: r[3] });
+    return [Math.min(a.x, b.x) - pad, Math.min(a.z, b.z) - pad, Math.max(a.x, b.x) + pad, Math.max(a.z, b.z) + pad];
+  };
+  // and the river's mirror (land/channel.js): the channel's stretch through the town, 12 m round
+  const rv = TOWN.land.sunk && TOWN.land.riverMirror && [TOWN.land.riverMirror[0], TOWN.land.sunk.z0, TOWN.land.riverMirror[1], TOWN.land.sunk.z1];
+  const reflectRect = pb && [worldRect(pb, 25), ...(rv ? [worldRect(rv, 12)] : [])];
 
   return {
     root,

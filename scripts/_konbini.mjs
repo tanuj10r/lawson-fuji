@@ -205,7 +205,7 @@ try {
     const done = (r) => r.ok && r.atSpot && !r.scripted && r.secs < 120 && Math.hypot(r.end[0] + 2.3, r.end[1] - 2.4) < 0.5 && r.phases.includes('eat') && sayAll(r);
     let prev = null;
     for (const [i, id] of ['onigiri_tuna', 'sando_egg', 'fruit_sando', 'strong_nine', 'choco_wafer_jumbo'].entries()) {
-      const r = await play(id, i === 0 || id === 'strong_nine' || id === 'choco_wafer_jumbo');
+      const r = await play(id, true);
       for (const k of Object.keys(r).filter((k) => /^(door|take|till|eat|walk\d+)$/.test(k))) if (r[k]) { fs.writeFileSync(path.join(out, `${id}-${k}.png`), Buffer.from(r[k].split(',')[1], 'base64')); delete r[k]; }
       const ok = done(r) && (id !== 'strong_nine' || r.tipsy) && r.toasts.every(english);
       if (!ok) bad++;

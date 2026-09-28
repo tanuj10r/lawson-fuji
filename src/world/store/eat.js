@@ -116,20 +116,34 @@ const bakeAll = (geos) => { const g = bake(geos.map((geometry) => ({ geometry, m
 const BREAD = { face: 0xfbf5e6, rim: 0xe0b476, inner: 0xfff8ea };
 /* Each recipe: its bite stages (circles cut from the outline, cumulative). */
 const RECIPE = {
-  sando(filling, extra) {
-    /* one half of the pack (Tan: sandos are squares cut in two, not
-     * triangles): crustless, standing, bitten from the top */
-    const out = rect(0.058, 0.1);
-    const stages = [[], [[-0.004, 0.102, 0.022], [0.018, 0.098, 0.016]], [[-0.004, 0.102, 0.022], [0.018, 0.098, 0.016], [-0.016, 0.074, 0.022], [0.014, 0.07, 0.022]]];
+  /* a sando (Tan's photos): a wedge, a square cut corner to corner.
+   * Its bread faces are right triangles (the back upright, the base
+   * flat), the fruit set in cream up the slanted cut face; held turned so
+   * you see that face, bitten from the top corner down. */
+  wedge(filling, fruits = []) {
+    const w = 0.07, h = 0.1;
+    const s2 = new THREE.Shape();
+    s2.moveTo(-w / 2, 0); s2.lineTo(w / 2, 0); s2.lineTo(-w / 2, h); s2.closePath();
+    const out = s2.getSpacedPoints(90).slice(0, -1);
+    const stages = [[], [[-w / 2, h, 0.026]], [[-w / 2, h, 0.026], [-w / 2 + 0.012, h - 0.04, 0.026]]];
     return stages.map((bites) => {
       const pts = bitten(out, bites);
       const g = [
-        layer(pts, -0.024, -0.009, BREAD, bites),
+        layer(pts, -0.022, -0.009, BREAD, bites),
         layer(pts, -0.009, 0.009, { face: filling, rim: filling, inner: filling }, bites),
-        layer(pts, 0.009, 0.024, BREAD, bites),
+        layer(pts, 0.009, 0.022, BREAD, bites),
       ];
-      for (const e of extra) if (inPoly(pts, new V2(e[0], e[1]))) g.push(piece(new THREE.SphereGeometry(e[2], 8, 6), e[3], new THREE.Matrix4().makeScale(1, 1, 0.6).setPosition(e[0], e[1], e[4] ?? 0)));
-      return bakeAll(g);
+      // each fruit halved by the cut: its middle on the slanted face
+      fruits.forEach((col, i) => {
+        const t2 = (i + 0.7) / (fruits.length + 0.4);
+        const fx = w / 2 - t2 * w, fy = t2 * h;
+        const nx = h / Math.hypot(w, h), ny = w / Math.hypot(w, h);
+        const cx = fx - nx * 0.004, cy = fy - ny * 0.004;
+        if (inPoly(pts, new V2(cx - nx * 0.006, cy - ny * 0.006))) g.push(piece(new THREE.SphereGeometry(0.0115, 10, 8), col, new THREE.Matrix4().makeScale(0.85, 1.15, 0.75).setPosition(cx, cy, 0)));
+      });
+      const b = bakeAll(g);
+      b.rotateY(-0.75);                     // the cut face toward you
+      return b;
     });
   },
   onigiri() {
@@ -179,11 +193,11 @@ const cache = new Map();
 export function eatStages(id) {
   if (cache.has(id)) return cache.get(id);
   let st = null;
-  if (id === 'sando_egg') st = RECIPE.sando(0xf6d45c, []);
-  else if (id === 'fruit_sando') st = RECIPE.sando(0xfffaf0, [[-0.01, 0.03, 0.011, 0xe8455a, 0.009], [0.012, 0.055, 0.011, 0xe8455a, 0.009], [0.0, 0.08, 0.009, 0xf2a030, 0.009], [-0.01, 0.03, 0.011, 0xe8455a, -0.009], [0.012, 0.055, 0.011, 0xe8455a, -0.009], [0.004, 0.015, 0.008, 0x7ac04a, 0.009]]);
+  if (id === 'sando_egg') st = RECIPE.wedge(0xf6d45c);
+  else if (id === 'fruit_sando') st = RECIPE.wedge(0xfffaf0, [0xe8455a, 0xf2a030, 0x8cc84a]);
   else if (id === 'onigiri_tuna') st = RECIPE.onigiri();
   else if (id === 'choco_wafer_jumbo') st = RECIPE.wafer();
-  if (st) for (const g of st) g.translate(0, id === 'choco_wafer_jumbo' ? -0.034 : id === 'onigiri_tuna' ? -0.046 : -0.05, 0);   // held about its middle
+  if (st) for (const g of st) g.translate(0, id === 'choco_wafer_jumbo' ? -0.034 : id === 'onigiri_tuna' ? -0.046 : -0.045, 0);   // held about its middle
   cache.set(id, st);
   return st;
 }

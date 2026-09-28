@@ -82,15 +82,19 @@ export function productGeometry(id) {
   switch (m.shape) {
     case 'onigiri':
       P.push(part(prism(tri(0.1, 0.092), 0.036), null, body, 'front', cell)); break;
-    case 'sandwich': case 'fruitsando':
-      /* the sando pack (Tan: they read as onigiri): a clear box standing
-       * upright, two crustless halves inside with their cut faces to the
-       * front, the film crimped over the top.  The front is the picture of
-       * the cut faces and the label band (labels.js); the sides are bread
-       * seen through the film. */
-      P.push(part(new THREE.BoxGeometry(0.112, 0.118, 0.056), trs(0, 0.059, 0), 0xf4ecda, 'front', cell));
-      P.push(part(new THREE.BoxGeometry(0.118, 0.008, 0.06), trs(0, 0.121, 0), 0xe6ecf2));
+    case 'sandwich': case 'fruitsando': {
+      /* every sando (Tan's photos): a wedge.  From the side a right
+       * triangle (the back upright, the base flat), from the front the tall
+       * slanted cut face, fruit set in cream between the two slices, two
+       * halves side by side in the pack.  The front picture is labels.js. */
+      const d = 0.075, h = 0.12, w = 0.106;
+      const side = new THREE.Shape();
+      side.moveTo(-d / 2, 0); side.lineTo(d / 2, 0); side.lineTo(-d / 2, h); side.closePath();
+      const g = prism(side, w, 0.003);
+      g.rotateY(-Q);                          // the profile's depth runs to the front (+z), the halves across (x)
+      P.push(part(g, null, 0xf4ecda, 'front', cell));
       break;
+    }
     case 'bento':
       P.push(part(new THREE.BoxGeometry(0.2, 0.035, 0.15), trs(0, 0.0175, 0), body));
       P.push(part(new THREE.BoxGeometry(0.196, 0.018, 0.146), trs(0, 0.044, 0), 0xffffff, 'top', cell)); break;

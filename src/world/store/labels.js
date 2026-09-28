@@ -38,8 +38,8 @@ function vfit(c, str, x, y0, y1, size, color) {
 /* What each sando's cut face shows: the filling's colour and what is set in it (x, y, r across the filling column; `cut` halves shine). */
 const SANDO_FILL = {
   sando_egg: { base: '#f5d24a', bits: [[0.3, 0.25, 0.22, '#fbf3d8'], [0.7, 0.5, 0.2, '#fbf3d8'], [0.35, 0.72, 0.2, '#fbf3d8']] },
-  fruit_sando: { base: '#fffdf6', cut: true, bits: [[0.5, 0.2, 0.42, '#e8455a'], [0.5, 0.45, 0.4, '#f2a030'], [0.5, 0.7, 0.42, '#e8455a']] },
-  fruit_sando_ichigo: { base: '#fffdf6', cut: true, bits: [[0.5, 0.2, 0.42, '#e8455a'], [0.5, 0.45, 0.44, '#e8455a'], [0.5, 0.72, 0.42, '#e8455a']] },
+  fruit_sando: { base: '#fffdf6', cut: true, bits: [[0.5, 0.2, 0.4, '#e8455a'], [0.5, 0.44, 0.38, '#f2a030'], [0.5, 0.66, 0.38, '#8cc84a']] },
+  fruit_sando_ichigo: { base: '#fffdf6', cut: true, bits: [[0.5, 0.2, 0.4, '#e8455a'], [0.5, 0.44, 0.4, '#e8455a'], [0.5, 0.68, 0.4, '#e8455a']] },
   ham_sando: { base: '#f0a0a0', bits: [[0.5, 0.3, 0.35, '#7ac04a'], [0.5, 0.65, 0.3, '#fbf3d8']] },
   sando_katsu: { base: '#b8743a', bits: [[0.5, 0.5, 0.35, '#8a4a2a']] },
   sando_tuna: { base: '#efe2c4', bits: [[0.4, 0.35, 0.2, '#d8c49a'], [0.6, 0.65, 0.2, '#d8c49a']] },
@@ -86,12 +86,23 @@ const PAINT = {
       const fx = x + w * 0.3, fw = w * 0.4;
       c.fillStyle = F.base; c.beginPath(); c.roundRect(fx, top + 6, fw, h - 12, 8); c.fill();
       for (const [dx, dy, r, col] of F.bits) {
-        c.fillStyle = col; c.beginPath(); c.ellipse(fx + fw * dx, top + h * dy, fw * r, fw * r * 0.85, 0, 0, 7); c.fill();
-        if (F.cut) { c.fillStyle = 'rgba(255,255,255,0.7)'; c.beginPath(); c.ellipse(fx + fw * dx, top + h * dy, fw * r * 0.35, fw * r * 0.3, 0, 0, 7); c.fill(); }
+        const cx = fx + fw * dx, cy = top + h * dy, R = fw * r;
+        if (F.cut && col === '#e8455a') {
+          // a strawberry halved lengthwise: a heart of red, its pale core, the seeds' dots
+          c.fillStyle = col;
+          c.beginPath(); c.moveTo(cx, cy + R * 1.05);
+          c.bezierCurveTo(cx - R * 1.25, cy + R * 0.2, cx - R * 0.9, cy - R * 1.0, cx, cy - R * 0.8);
+          c.bezierCurveTo(cx + R * 0.9, cy - R * 1.0, cx + R * 1.25, cy + R * 0.2, cx, cy + R * 1.05); c.fill();
+          c.fillStyle = '#fbd4d8'; c.beginPath(); c.ellipse(cx, cy - R * 0.05, R * 0.38, R * 0.6, 0, 0, 7); c.fill();
+          c.fillStyle = '#b82a3c'; for (const [sx, sy] of [[-0.7, -0.2], [0.7, -0.2], [-0.5, 0.45], [0.5, 0.45]]) c.fillRect(cx + R * sx - 1, cy + R * sy - 1, 2, 2);
+        } else {
+          c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, R, R * 0.85, 0, 0, 7); c.fill();
+          if (F.cut) { c.fillStyle = 'rgba(255,255,255,0.55)'; c.beginPath(); c.ellipse(cx, cy, R * 0.35, R * 0.3, 0, 0, 7); c.fill(); }
+        }
       }
     }
     // the label band across the lower half: the name, the price
-    const by = CELL * 0.6, bh = CELL * 0.24;
+    const by = CELL * 0.8, bh = CELL * 0.18;          // the band at the foot: the cut face stays clear
     c.fillStyle = hex(m.band); c.fillRect(0, by, CELL, bh);
     c.fillStyle = 'rgba(255,255,255,0.9)'; c.fillRect(0, by + bh - 6, CELL, 3);
     fit(c, p.nameJa, CELL / 2, by + bh * 0.42, CELL * 0.86, 36, '#ffffff');

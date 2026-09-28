@@ -1690,3 +1690,4 @@ where below the bar, merged; builders' own calls in docs/decisions/*.md.
 - The cooler's glass leaves: 0.08 opacity, barely tinted (the milky film at 0.18 read as glare).
 - The choice card: a red "Recommended" stamp on the Strong Nine, "Lemon beer · 9%" beside it (Tan).
 - Open: hero-2 is 0.510% against its baseline (the sando packs, seen through the glass, shift ink edges; it was already 0.487%); the download is 5.03 MB. Both are Tan's calls (re-baseline; budget).
+- Sandos, corrected (Tan's photos, same day): every sando is a wedge, a square cut corner to corner. On the shelf a right-triangle pack (back upright, base flat), the slanted cut face to the front showing the filling between the two slices, the label band at its foot; eaten as the same wedge, turned so the cut face shows, bitten from the top corner.

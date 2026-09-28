@@ -503,7 +503,9 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         postureTo = G.waitT > A.waitSit && G.speed < 0.1 ? 1 : 0;
         wagTo = G.speed > 0.5 ? 0.3 : G.waitT > 6 ? 0.1 : 0.45;
         G.lostT = dP > A.lost || (facingAway() && dP > 8) ? G.lostT + dt : 0;
-        if (G.lostT > 4 && !inStore(P)) { G.state = 'follow'; G.field = null; G.since = 0; G.waitT = 0; }
+        // near, but off its way and not coming (a wall between, or your own idea): the same
+        G.awayT = g > hi + 4 && P.speed > 0.3 ? G.awayT + dt : 0;
+        if ((G.lostT > 4 || G.awayT > 12) && !inStore(P)) { G.state = 'follow'; G.field = null; G.since = 0; G.waitT = 0; }
         break;
       }
       case 'atSpot': {

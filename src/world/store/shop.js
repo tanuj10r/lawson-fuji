@@ -367,7 +367,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   const inv = new THREE.Matrix4();
   /* ------------------------------ the visit ------------------------------ */
   const visit = { active: false, id: null, eat: false, queue: [], cur: null, armed: true };
-  const WALK = 1.5;                         // m/s, an easy stroll
+  const WALK = 2.0;                         // m/s, a brisk konbini pace (Tan: +33%)
 
   /* Where you can stand: the store's floor and the forecourt on a 10 cm
    * grid, clear of every collider (the entrance's own leaves excepted: they
@@ -581,7 +581,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
         if (d.lengthSq() > 1e-4) {
           const wd = new THREE.Vector3(d.x, 0, d.y).transformDirection(inside.matrixWorld);
           const yaw = Math.atan2(-wd.x, -wd.z);
-          p.yaw += wrap(yaw - p.yaw) * Math.min(1, dt * 3.5);
+          p.yaw += wrap(yaw - p.yaw) * Math.min(1, dt * 4.5);
         }
         p.pitch += (-0.06 - p.pitch) * Math.min(1, dt * 3);
         if (c.s >= L - 1e-3) visit.cur = null;

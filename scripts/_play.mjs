@@ -307,6 +307,22 @@ try {
     return { prompt, played, toasts: window.__toasts.slice(), reached, phase: r0.phase, frame };
   }, (r) => r.prompt === '' && r.played >= 1 && r.toasts.length === 0 && r.reached < 1.6);
 
+  // Tan: "Midway, I ran outside ... away from the station, and I could still hear that at the same intensity":
+  // a placed sound follows you for as long as it plays (it was 8 s)
+  await step('25-announce-fades', async () => {
+    const { player, world, sound } = window.__scene;
+    const s = window.__spotOf('train');
+    player.pos.set(s.x + 3, world.heightAt(s.x + 3, s.z), s.z);
+    await window.__wait(600);
+    player.pos.set(s.x, world.heightAt(s.x, s.z), s.z);                 // into the ring: it starts
+    await window.__wait(9000);                                          // past the old 8 s
+    const near = Math.max(0, ...sound.debug.voiceLevels().map((v) => v.k));
+    player.pos.set(s.x - 40, world.heightAt(s.x - 40, s.z), s.z);       // run off, 40 m away
+    await window.__wait(800);
+    const far = Math.max(0, ...sound.debug.voiceLevels().map((v) => v.k));
+    return { near: +near.toFixed(3), far: +far.toFixed(3) };
+  }, (r) => r.near > 0.05 && r.far < 0.01);
+
   // slow life: sit, the flute comes up; any key stands you up
   await step('26-slowlife', async () => {
     const { player } = window.__scene;

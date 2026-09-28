@@ -203,8 +203,8 @@ class Field {
   work(ms) {
     if (this.ready) return;
     const W = this.W, d = this.d, m = this.m, cost = W.cost, h = W.h, nx = W.nx, nz = W.nz, C = W.C, step = Math.round(A.step * 100);
-    const shut = (this.shut ??= new Uint8Array(W.N));
-    if (this.fresh !== false) { shut.fill(0); this.fresh = false; }
+    const shut = (W.shut ??= new Uint8Array(W.N));
+    if (this.fresh !== false || W.shutOf !== this) { shut.fill(0); this.fresh = false; W.shutOf = this; }
     const t0 = performance.now();
     let n = 0;
     while (this.heap.length) {
@@ -279,7 +279,9 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   };
   const P = { x: VIEW.x, z: VIEW.z, y: 1.6, vx: 0, vz: 0, speed: 0, first: true };
   let list = [], listT = 0;
-  const fields = { goal: null, follow: null };
+  const fields = { follow: null };
+  const ready = new Map();            // goal key -> a finished Field (every engagement's, grown ahead of need)
+  const queue = [];                   // keys still to grow while nothing else is wanted
   const dbg = { paths: 0 };
 
   const rOf = (e) => e.r ?? ENGAGE[e.id] ?? 1.2;
@@ -287,9 +289,23 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   const refresh = () => { list = (spots?.() ?? []).filter(isEngage); };
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 
-  /** Grow a field from a disc round (x, z); the dog thinks until it is ready. */
+  /** Grow a field from a disc round (x, z); the dog thinks until it is ready (unless it was grown ahead). */
   const aim = (which, x, z, r, limit = INF) => {
+    if (which !== 'follow') {
+      const key = `${x.toFixed(1)},${z.toFixed(1)}`;
+      if (ready.has(key)) return ready.get(key);
+      const f = new Field(W);
+      ready.set(key, f);
+      grow(f, x, z, r, limit);
+      dbg.paths++;
+      return f;
+    }
     const f = (fields[which] ??= new Field(W));
+    grow(f, x, z, r, limit);
+    dbg.paths++;
+    return f;
+  };
+  const grow = (f, x, z, r, limit) => {
     const cells = [];
     const n = Math.max(1, Math.round(r / W.C));
     for (let dz = -n; dz <= n; dz++) for (let dx = -n; dx <= n; dx++) {
@@ -300,9 +316,15 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     if (!cells.length) { const c = W.nearest(x, z, 4); if (c >= 0) cells.push(c); }
     f.start(cells, limit);
     f.goalAt = { x, z };
-    dbg.paths++;
     return f;
   };
+  /** Ahead of need: every engagement's field, home's and the nap's, one at a time while the dog isn't waiting on one. */
+  const prefetch = () => {
+    refresh();
+    for (const e of list) if (!G.done.has(e.id)) queue.push(() => aim('goal', e.x, e.z, rOf(e) * 0.7));
+    queue.push(() => aim('goal', NAP.x, NAP.z, 0.3));
+  };
+  let growing = null;
   const pickTarget = () => {
     refresh();
     let best = null, bd = INF;
@@ -442,7 +464,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
 
   /* ---- what it does ---- */
   function update(dt, cam) {
-    if (!W.built) { W.build(); const c = W.nearest(HOME.x, HOME.z, 3); if (c >= 0) { const q = W.at(c); G.x = q.x; G.z = q.z; } G.y = ground(G.x, G.z); }
+    if (!W.built) { W.build(); const c = W.nearest(HOME.x, HOME.z, 3); if (c >= 0) { const q = W.at(c); G.x = q.x; G.z = q.z; } G.y = ground(G.x, G.z); prefetch(); }
     G.t += dt;
     // you
     const jumped = !P.first && Math.hypot(cam.x - P.x, cam.z - P.z) > 3;
@@ -468,8 +490,13 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     }
     if (!show && G.state === 'hazard') { G.state = 'home'; if (G.resume) lead(G.resume); else nextOrNap(); }
 
-    // the field grows a little each frame while it is wanted
-    if (G.field && !G.field.ready) G.field.work(dt > 0 ? 3 : 40);
+    // the field grows a little each frame while it is wanted; the others are grown ahead, one at a time
+    if (G.field && !G.field.ready) G.field.work(dt > 0 ? 4 : 40);
+    else if (dt > 0) {
+      if (growing && growing.ready) growing = null;
+      if (!growing && queue.length) growing = queue.shift()();
+      if (growing && !growing.ready) growing.work(2.5);
+    }
 
     let wantSpeed = 0, lookAt = 'player', wagTo = 0.15, perkTo = 1, postureTo = 0;
     const dP = dist(P, G);
@@ -511,6 +538,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       case 'atSpot': {
         const q = G.aside ?? G.target;
         if (dist(G, q) > 0.25 && !G.done.has(G.target.id)) { r = move(dt, q, A.trot * 0.8); lookAt = 'way'; G.waitT = 0; } else G.waitT += dt;
+        // arrived: a quick shake-off; you arrive: a little hop
+        if (G.shook !== G.target.id && dist(G, q) <= 0.25) { G.shook = G.target.id; G.shakeT = 0; }
         if (G.hopped !== G.target.id && dist(P, G.target) < 3.5 && G.speed < 0.2) { G.hopped = G.target.id; G.hopT = 0; G.waitT = 0; }
         postureTo = G.waitT > A.waitSit + 1 ? 1 : 0;
         wagTo = dP < 6 ? 0.55 : 0.2;
@@ -596,18 +625,22 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     if (G.tiltT >= 0) { G.tiltT += dt; const u = G.tiltT / 1.6; tiltTo = G.tiltSide * 0.38 * Math.sin(Math.PI * Math.min(1, u)); if (u >= 1) G.tiltT = -1; }
     G.tilt += (tiltTo - G.tilt) * Math.min(1, dt * 5);
     // the tail
+    const glancing = lookAt === 'way' && G.glance < 0;
+    if (glancing) wagTo = Math.max(wagTo, 0.55);
     G.wagA += (wagTo - G.wagA) * k3;
-    G.wagPh += dt * (G.wagA > 0.4 ? 13 : 8);
+    G.wagPh += dt * (glancing ? 17 : G.wagA > 0.4 ? 13 : 8);
     G.wag = Math.sin(G.wagPh) * G.wagA + G.amp * 0.08 * Math.sin(2 * G.ph);
     // ears: pricked when alert, back for the hop and the nap
+    // excited (you close and it wagging hard): the tongue comes out (the rig reads ears past 1)
     let perk = perkTo;
+    if (perkTo >= 1 && G.wagA > 0.42 && dP < 7 && G.state !== 'nap') perk = 1.3;
     if (G.hopT >= 0) perk = 0.55;
     G.perk += (perk - G.perk) * Math.min(1, dt * 5);
     // the little hop, and the shake
     G.hop = 0; G.roll = 0;
     if (G.hopT >= 0) { G.hopT += dt; const u = G.hopT / 0.5; G.hop = 0.2 * Math.sin(Math.PI * Math.min(1, u)); if (u >= 1) G.hopT = -1; }
-    if (G.shakeT >= 0) { G.shakeT += dt; const u = G.shakeT / 0.7; G.roll = 0.13 * Math.sin(G.shakeT * 70) * (1 - u); if (u >= 1) G.shakeT = -1; }
-    G.y = ground(G.x, G.z) + G.amp * 0.02 * (0.5 + 0.5 * Math.sin(2 * G.ph + 1)) + G.hop;
+    if (G.shakeT >= 0) { G.shakeT += dt; const u = G.shakeT / 0.7; G.roll = 0.16 * Math.sin(G.shakeT * 70) * (1 - u); G.tilt += 0.3 * Math.sin(G.shakeT * 70 + 1) * (1 - u); if (u >= 1) G.shakeT = -1; }
+    G.y = ground(G.x, G.z) + G.amp * 0.032 * (0.5 + 0.5 * Math.sin(2 * G.ph + 1)) + G.hop;
     place();
   }
 
@@ -631,7 +664,9 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         const toCam = Math.atan2(player.pos.x - q.x, player.pos.z - q.z);
         if (kind === 'trot') Object.assign(G, { yaw: toCam + 2.1, amp: 1, ph: 1.1, wag: 0.25, nod: 0.12 });
         else if (kind === 'look') Object.assign(G, { yaw: toCam + Math.PI - 0.5, look: -1.25, nod: 0.05, wag: 0.4 });
-        else if (kind === 'sit') Object.assign(G, { yaw: toCam + 0.25, posture: 1, nod: -0.1, wag: 0.35 });
+        else if (kind === 'sit') Object.assign(G, { yaw: toCam + 0.25, posture: 1, nod: -0.1, wag: 0.35, perk: 1.3 });
+        else if (kind === 'side') Object.assign(G, { yaw: toCam + Math.PI / 2, amp: 1, ph: 4.2, wag: 0.3, nod: 0.1 });
+        else if (kind === 'behind') Object.assign(G, { yaw: toCam + Math.PI, amp: 1, ph: 1.1, wag: -0.3, nod: 0.12, look: 0 });
         else if (kind === 'tilt') Object.assign(G, { yaw: toCam, posture: 1, tilt: 0.38, nod: -0.12, wag: 0.3 });
         else if (kind === 'nap') Object.assign(G, { yaw: toCam + 1.9, posture: 2, look: 0.9, nod: 0.2, perk: 0.35 });
         else if (kind === 'hop') Object.assign(G, { yaw: toCam + 0.3, hop: 0.16, perk: 0.55, wag: 0.5, nod: -0.15 });
@@ -641,7 +676,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       },
       /** Step the dog by `dt` with the player at `p` (the headless run drives it). */
       step(dt, p) { update(dt, p); },
-      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0 }); G.done = new Set(['view']); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
+      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null }); G.done = new Set(['view']); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
     };
   }
   return { update, herd, G };

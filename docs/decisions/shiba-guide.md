@@ -58,3 +58,17 @@ main.js `__shot` stages the dog for a spot's `guide:` pose; shots.mjs passes it.
   long wait, played very rarely, local.
 - **No collider.** It bends its way round you when you are on its line and
   never blocks you.
+- **Second pass (the review: "not extremely cute yet").** Plush, not
+  lean: the barrel and chest deeper and rounder, thick ruff, "pants" on
+  the haunches, thicker neck; legs shorter and sturdier with cream socks
+  and bigger paws; the skull rounder with big cream cheek fluff, a shorter
+  blunter muzzle, ears smaller and set wider, eyes bigger and darker with
+  a clear shine; a tight fluffy tail. The mouth opens with a pink tongue
+  at a trot and when it is excited (you near, tail going), the shiba
+  smile: the rig reads the ears channel past 1 as "excited", so no ninth
+  float was needed. Smoother tessellation: 9.4k triangles, still one
+  draw. Motion: a higher bob on the trot, the wag quickening to 17 rad/s
+  on the look back over the shoulder, a shake-off when it arrives beside a
+  ring. The goal fields are now grown ahead of need (every engagement's,
+  the nap's, 2.5 ms a frame while nothing is wanted; ~10 MB of Float32
+  for the town), so a new goal never leaves it standing blank.

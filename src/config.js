@@ -568,7 +568,10 @@ export const SHOT_SPOTS = [
   { name: 'guide-tilt', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.55, looks: ['golden'], guide: 'tilt' },
   { name: 'guide-nap', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.6, looks: ['day'], guide: 'nap' },
   { name: 'guide-low', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.0, lift: -1.15, looks: ['day', 'golden'], guide: 'stand' },   // at dog height
-  { name: 'guide-low-sit', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.02, lift: -1.1, looks: ['day'], guide: 'tilt' },
+  { name: 'guide-low-sit', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.02, lift: -1.1, looks: ['day', 'blue'], guide: 'sit' },
+  { name: 'guide-low-side', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.0, lift: -1.15, looks: ['day', 'golden'], guide: 'side' },     // mid-stride, from the side
+  { name: 'guide-low-behind', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.0, lift: -1.05, looks: ['day'], guide: 'behind' },          // trotting away
+  { name: 'guide-side', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.5, looks: ['golden'], guide: 'side' },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },

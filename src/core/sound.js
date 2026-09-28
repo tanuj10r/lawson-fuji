@@ -195,7 +195,7 @@ export function createSound({ volume = 0.5 } = {}) {
       p.positionX.value = at.x; p.positionY.value = at.y ?? 1.2; p.positionZ.value = at.z;
       const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = f;
       g.connect(lp).connect(p); p.connect(bus ?? sfxBus);
-      if (v) { v.g = g; v.lp = lp; voices.add(v); setTimeout(() => voices.delete(v), 8000); }
+      if (v) { v.g = g; v.lp = lp; voices.add(v); }
     } else g.connect(bus ?? sfxBus);
     const t = now() + 0.01;
     const b = file && buffers.get(file);
@@ -204,18 +204,23 @@ export function createSound({ volume = 0.5 } = {}) {
       s.buffer = b; s.playbackRate.value = rate;
       const [a] = loopSpan(file, b);
       s.connect(dest); s.start(t, a);
+      // followed by where you are for as long as it plays (was a fixed 8 s: a longer
+      // announcement stayed at the level it had then, however far you walked)
+      if (v) s.onended = () => voices.delete(v);
       if (o._waited) o._waited.src = 'file-late';        // it played once decoded, late
       else entry.src = 'file';
     } else if (file && manifest[file] && !recipe && !o._waited) {
       // not decoded yet: fetch it and play it then (a voice line or a track
       // must not become a tap the first time it is asked for)
       g.disconnect();
+      if (v) voices.delete(v);                                     // its replay, once decoded, is followed instead
       entry.src = 'waiting';
       buffer(file).then((ok) => { if (ok) play(file, { at, range, recipe, gain, rate, bus, indoor, o: { ...o, _waited: entry } }); });
     } else {
       if (file && manifest[file]) buffer(file);            // next time
       entry.src = 'recipe';
       (RECIPES[recipe ?? file] ?? RECIPES['ui-tap'])(dest, t, o);
+      if (v) setTimeout(() => voices.delete(v), 4000);              // the recipes are all short
     }
   }
 

@@ -23,10 +23,11 @@ import { LAYER } from './decals.js';
 export function buildCanopyTrees(ctx, spots, look, { decals, name = look.name } = {}) {
   if (!spots.length) return null;
   const F = look.form;
-  const wood = [];
-  const woodTrees = [];          // layered crowns: each tree's wood, near and far
-  const blobs = [[], [], []];
-  const cards = [[], [], []];
+  let wood = [];
+  let woodTrees = [];            // layered crowns: each tree's wood, near and far
+  let blobs = [[], [], []];
+  let cards = [[], [], []];
+  let dry = false;               // a dry run: grow a crown only to see where it reaches (clearOfBuildings)
   const trunkGeo = new THREE.CylinderGeometry(0.7, 1.0, 1, 8, 1);
   const limbGeo = new THREE.CylinderGeometry(0.3, 0.6, 1, 6, 1);
   const twigGeo = new THREE.CylinderGeometry(0.14, 0.32, 1, 5, 1);
@@ -44,7 +45,9 @@ export function buildCanopyTrees(ctx, spots, look, { decals, name = look.name } 
     wood.push({ geometry: geo, matrix: new THREE.Matrix4().compose(mid, q, new THREE.Vector3(r, len, r)) });
   };
 
-  for (const spot of spots) {
+  /* Grow one tree.  Each tree is its seed's alone, so a dry run gives the
+   * very crown the real one will have. */
+  function growOne(spot) {
     const r = rngKit(spot.seed ?? 1);
     const S = spot.scale ?? 1;
     const base = new THREE.Vector3(spot.x, spot.y ?? 0, spot.z);
@@ -56,7 +59,7 @@ export function buildCanopyTrees(ctx, spots, look, { decals, name = look.name } 
       const g = growLobed(F, look, r, S, base, hero, blobs, cards);
       woodTrees.push({ hi: g.wood, lo: g.woodLo, x: base.x, z: base.z });
       settle(spot, r, S, base, hero, g.trunkH, g.top, g.reach, g.crownY);
-      continue;
+      return;
     }
 
     // trunk: two lengths with a kink, flared at the foot; big trees spread
@@ -136,9 +139,61 @@ export function buildCanopyTrees(ctx, spots, look, { decals, name = look.name } 
     settle(spot, r, S, base, hero, trunkH, top, null);
   }
 
+  /* No crown through a building (Tan, 2026-09-28: a tree "protruding through
+   * a building" by the shrine; 40 trees in town did).  Each tree is grown dry,
+   * its crown's cushions tested against every building (world.colliders tall
+   * and wide enough to be one); one that cuts in slides away from what it
+   * hits, a little at a time, and failing that grows smaller.  The town's
+   * colliders are all in before the trees are built. */
+  const buildings = (ctx.colliders ?? []).filter((c) => (c.top ?? 0) >= 2.5 && c.x1 - c.x0 > 1.2 && c.z1 - c.z0 > 1.2 && (c.x1 - c.x0) * (c.z1 - c.z0) >= 6);
+  const toW = (x, z) => (ctx.toWorld ? ctx.toWorld({ x, z }) : { x, z });
+  const _m = new THREE.Matrix4(), _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3();
+  /** The building the tree at `spot` cuts into (and by how much), or null. */
+  function clash(spot) {
+    const keep = [wood, woodTrees, blobs, cards];
+    wood = []; woodTrees = []; blobs = [[], [], []]; cards = [[], [], []]; dry = true;
+    growOne(spot);
+    const crown = blobs.flat();
+    [wood, woodTrees, blobs, cards] = keep; dry = false;
+    let worst = null;
+    for (const b of crown) {
+      b.m.decompose(_p, _q, _s);
+      const rad = 0.8 * Math.max(_s.x, _s.z) * 0.8;
+      const w = toW(b.px, b.pz);
+      for (const c of buildings) {
+        if (b.py - rad > c.top - 0.2 || b.py + rad < (c.bottom ?? 0) + 0.5) continue;
+        const dx = Math.max(c.x0 - w.x, 0, w.x - c.x1), dz = Math.max(c.z0 - w.z, 0, w.z - c.z1);
+        const cut = rad * 0.6 - Math.hypot(dx, dz);
+        if (cut > 0 && (!worst || cut > worst.cut)) worst = { c, cut };
+      }
+    }
+    return worst;
+  }
+  function clearOfBuildings(spot) {
+    if (!buildings.length || spot.clear === false) return;
+    for (let k = 0; k < 14; k++) {
+      const hit = clash(spot);
+      if (!hit) return;
+      if (k >= 8) { spot.scale = (spot.scale ?? 1) * 0.88; continue; }     // no room to move: smaller
+      // away from the building's nearest face, in the tree's own frame
+      const w = toW(spot.x, spot.z), c = hit.c;
+      const cx = Math.max(c.x0, Math.min(c.x1, w.x)), cz = Math.max(c.z0, Math.min(c.z1, w.z));
+      let ax = w.x - cx, az = w.z - cz;
+      if (Math.hypot(ax, az) < 1e-3) { const mx = (c.x0 + c.x1) / 2, mz = (c.z0 + c.z1) / 2; ax = w.x - mx; az = w.z - mz; }
+      const n = Math.hypot(ax, az) || 1, step = Math.min(1.2, hit.cut + 0.3);
+      const a = toW(0, 0), b = toW(1, 0), d = toW(0, 1);               // the frame's axes in the world
+      const ux = { x: b.x - a.x, z: b.z - a.z }, uz = { x: d.x - a.x, z: d.z - a.z };
+      spot.x += (ax * ux.x + az * ux.z) / n * step;
+      spot.z += (ax * uz.x + az * uz.z) / n * step;
+    }
+  }
+
+  for (const spot of spots) { clearOfBuildings(spot); growOne(spot); }
+
   /** What every tree leaves round it: its petal fall, its collider, its
    * registry entry and the ground under it. */
   function settle(spot, r, S, base, hero, trunkH, top, reach, crownY) {
+    if (dry) return;
     if (look.emit) emitters.push({ x: top.x, y: crownY ?? top.y + 0.8 * S, z: top.z, r: reach ? reach * 0.85 : 2.6 * S });
     if (spot.collide !== false) ctx.collide(base.x - F.girth * 1.2 * S, base.z - F.girth * 1.2 * S, base.x + F.girth * 1.2 * S, base.z + F.girth * 1.2 * S, base.y + trunkH);
     ctx.registry?.push({ kind: 'prop', x: base.x, z: base.z });

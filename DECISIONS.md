@@ -1726,3 +1726,4 @@ where below the bar, merged; builders' own calls in docs/decisions/*.md.
 ## No tree through a building (2026-09-28, Tan found one by the shrine)
 - An audit found 40 trees whose crowns cut into buildings (sakura, pine, maple, camphor, zelkova). kit/canopy.js now grows each tree dry first (a tree is its seed's alone, so the dry crown is the real one), tests its cushions against every building-sized collider, and slides it away from what it hits (up to ~9 m), or makes it smaller if there's no room. After: 0. _play step 03-trees-clear keeps it so.
 - Moving the famous views' framing sakura changes hero-1 to 0.61% (hero-2 0.36, hero-3 0.32): to be looked at and re-baselined.
+- Re-baselined the famous views after the tree fix (the framing sakura on hero-1's left had cut into the house behind it and now stands clear; checked by eye): guard 0.000%.

@@ -1,4 +1,6 @@
-# Nippon Fuji (ニッポン 富士)
+# Take Me Back to Japan (日本へ、もう一度)
+
+Play it at [takemebacktojapan.com](https://takemebacktojapan.com).
 
 A cozy first-person browser game set in Fujikawaguchikko (富士川口湖町), a
 small Japanese town at the foot of Mt. Fuji. Walk into NIPPON, a konbini in
@@ -22,12 +24,12 @@ corner of the screen, so this table is only for reference.
 
 | Action | Input |
 | --- | --- |
-| Move | W A S D |
+| Move | Arrow keys (W A S D also work) |
 | Run (outdoors) | Shift |
 | Look | Mouse (pointer lock; Esc to release) |
-| Interact (take, open a fridge, take a basket) | E |
-| Your basket (W/S choose, X put back) | Tab |
-| Famous views: morning, golden hour, night | 1 2 3 |
+| Interact | E |
+| Time of day: morning, golden hour, night | 1 2 3 |
+| Back to the start (the famous view, same time of day) | R |
 | Town map | M |
 | Sound on/off | N |
 | Pause / resume | Space (Esc also pauses) |

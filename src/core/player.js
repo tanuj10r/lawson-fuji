@@ -5,7 +5,7 @@ import { SPAWN, PLAYER } from '../config.js';
 /* ------------------------------------------------------------------ *
  * First-person walker.
  *
- * Pointer-lock look, accelerated WASD movement, axis-separated AABB
+ * Pointer-lock look, accelerated movement on the arrow keys (WASD too), axis-separated AABB
  * collision against the street's colliders, and a terrain height query so
  * the player steps up onto kerbs and follows the slope beyond the
  * crossing.  Deliberately no jump, no crouch, no third person.
@@ -17,6 +17,8 @@ import { SPAWN, PLAYER } from '../config.js';
 const EYE = PLAYER.eye;
 const RADIUS = 0.34;
 const STEP = 0.38;
+/** The walking keys: the arrows (shown), WASD (still works, not shown); Space pauses. */
+const MOVE_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space']);
 
 export class Player {
   constructor(camera, domElement, world, opts = {}) {
@@ -93,11 +95,11 @@ export class Player {
       if (this.seat) {
         // seated: any key stands you up (and does nothing else)
         if (this.locked && this.seat.dir > 0) this.stand();
-        if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'].includes(c) && this.locked) e.preventDefault();
+        if (MOVE_KEYS.has(c) && this.locked) e.preventDefault();
         return;
       }
       if (c === 'KeyE' && this.locked) this.onInteract?.(this.hovered);
-      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'].includes(c) && this.locked) e.preventDefault();
+      if (MOVE_KEYS.has(c) && this.locked) e.preventDefault();
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());

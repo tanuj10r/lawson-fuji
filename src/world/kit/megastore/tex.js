@@ -12,13 +12,16 @@ import { DONPEN } from '../../../data/town.js';
  *   MISC   1024 x 1024  everything smaller: the product walls, the top
  *                       floor's banners, the blade sign, the price cards
  *                       (POP), the striped stands, the red board, boxes
+ *   PROD   768 x 512    the goods: 95 printed packages in 64 px cells
+ *                       (PRODUCTS), the 96th cell white; seen at 1.5-3 m
+ *                       on the walk, and stamped into the product walls
  *
  * `R.front[k]` / `R.misc[k]` are regions in pixels; uvRegion() maps a
  * geometry's 0..1 UVs into one, so every sign on the store shares one
  * material per page and draws in a single batch.
  * ------------------------------------------------------------------ */
 
-export const PAGE = { front: [2048, 512], misc: [1024, 1024] };
+export const PAGE = { front: [2048, 512], misc: [1024, 1024], prod: [768, 512] };
 /** Where the mascot sits across the front (0 = the viewer's left end): the
  * band and the fascia leave it a gap there. */
 export const PEN_AT = 0.383;
@@ -232,9 +235,10 @@ let misc = null;
 export function miscPage() {
   if (misc) return misc;
   misc = page(1024, 1024, (c) => {
-    productWall(c, ...R.misc.wall, 5, 11, true);
-    productWall(c, ...R.misc.side, 5, 23, false);
-    productWall(c, ...R.misc.aisle, 3, 37, true);
+    prodPage();   // the packages first: the walls are stamped from them
+    productWall(c, ...R.misc.wall, 5, 11, true, 80);
+    productWall(c, ...R.misc.side, 5, 23, false, 97);
+    productWall(c, ...R.misc.aisle, 3, 37, true, 160);
     upper(c, ...R.misc.upper);
     blade(c, ...R.misc.blade);
     goods(c, ...R.misc.goods);
@@ -250,7 +254,7 @@ export function miscPage() {
 
 /** Floor-to-ceiling shelves crammed with packs, price rails and POP cards;
  * `signs` puts the category boards along the top. */
-function productWall(c, x0, y0, w, h, rows, seed, signs) {
+function productWall(c, x0, y0, w, h, rows, seed, signs, ppm) {
   const r = rng(seed);
   c.save();
   c.beginPath(); c.rect(x0, y0, w, h); c.clip();
@@ -271,19 +275,14 @@ function productWall(c, x0, y0, w, h, rows, seed, signs) {
     const y = top + k * rh;
     // the shelf's back, a touch darker
     c.fillStyle = '#e9e1d4'; c.fillRect(0, y, w, rh);
-    // packs shoulder to shoulder
+    // packs shoulder to shoulder, one kind of thing a shelf (the same
+    // printed packages as the goods in front, PROD)
+    const pool = PRODUCTS.filter((p) => p.cat === CATS[Math.floor(r() * CATS.length)]);
     let x = 2;
     while (x < w) {
-      const pw = 6 + r() * 16, ph = rh * (0.5 + r() * 0.42);
-      const col = BRIGHT[Math.floor(r() * BRIGHT.length)];
-      c.fillStyle = col;
-      if (r() < 0.25) {   // bottles
-        c.fillRect(x + pw * 0.3, y + rh - 6 - ph, pw * 0.4, ph * 0.25);
-        c.fillRect(x, y + rh - 6 - ph * 0.78, pw, ph * 0.78);
-      } else c.fillRect(x, y + rh - 6 - ph, pw, ph);
-      // a label band
-      c.fillStyle = r() < 0.5 ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.18)';
-      c.fillRect(x + 1, y + rh - 6 - ph * 0.6, pw - 2, Math.max(2, ph * 0.2));
+      const p = pool[Math.floor(r() * pool.length)];
+      const ph = Math.min(rh - 8, Math.max(rh * 0.55, p.h * ppm * 1.5));
+      const pw = stampProd(c, p, x, y + rh - 6, ph);
       x += pw + 1;
     }
     // the price rail and its tags
@@ -464,4 +463,248 @@ function goldFoil(c, x0, y0, w, h) {
     c.fillRect(r() * w, r() * h, 2 + r() * 8, 1.5);
   }
   c.restore();
+}
+
+/* -------------------------------------------------------------- PROD */
+/* The goods on the walk and in the entrance: 95 packages, each a 64 px
+ * cell of printed paint and a body (kind, size, colour) index.js builds
+ * the mesh from.  Coined names, no real brand anywhere.  The names are in
+ * the system gothic (JP), as packaging is: every character draws. */
+export const PC = 64, PCOLS = 12, PROWS = 8;
+export const PROD_WHITE = PCOLS * PROWS - 1;
+export const prodRegion = (i) => [(i % PCOLS) * PC, Math.floor(i / PCOLS) * PC, PC, PC];
+
+const N = {
+  snack: ['パリッチ', 'サクサク王', 'カリッと', 'のりしお', 'うすしお', 'コンソメ', 'えびせん', 'ポテチ極', 'とんがり', 'あげもち', 'コーンぱふ', 'チーズ棒', 'ざくざく', 'ぱりぱり海苔', 'カラムー', 'わさビーフ'],
+  choco: ['チョコリッチ', 'ミルクチョコ', 'いちごポッキ', 'アーモンド', 'ビター72', 'クッキーサンド', 'ホワイト', 'カカオ', 'マカダミア', 'ラングド'],
+  noodle: ['ラーメン太郎', 'とんこつ', 'しょうゆ', 'みそバター', '担々麺', '焼そば', 'カレーうどん', '塩ラーメン'],
+  drink: ['ゴクゴク茶', 'スパークル', 'コーラZ', 'レモンサイダー', 'むぎ茶', 'ミルクティー', 'オレンジ100', 'アクア', 'ジャスミン', 'カルピ'],
+  can: ['コーヒー極', 'ブラック', 'カフェオレ', '微糖', 'サイダー', 'レモンサワー', 'ハイボール', 'グレープ'],
+  cosme: ['うるおい', 'ホワイトニング', 'クレンジング', 'つやめき', 'モイスト', 'UVミルク', 'ヘアオイル', 'リップ', 'マスク7', 'ハンドクリーム'],
+  clean: ['ピカット', 'アワアワ', 'さらさら', '除菌99', 'キラリ', 'ふんわり'],
+  tissue: ['やわらか', 'ふわっと', 'はなセレブ', 'ソフト'],
+  toy: ['ペンちゃん', 'ロボキング', 'プリンセス', 'ミニカー', 'ぬいぐるみ', 'パズル', 'スライム', 'キラキラ'],
+  candy: ['グミッチ', 'ソフトキャン', 'ラムネ', 'ミルキー玉', 'こんぺい', 'ハイチュ', 'あめ玉', 'フルーツ'],
+  party: ['パーティー', 'クラッカー', 'カツラ', 'マスク'],
+  misc: ['単3電池', '延長コード', 'イヤホン'],
+};
+const C = {
+  snack: ['#e8322e', '#f5c21b', '#2f7fd8', '#35b35a', '#ff8a1e', '#8c5cd6', '#1fb7c4', '#d81e62', '#4a3a8a', '#f4e04a'],
+  choco: ['#4a2418', '#7a1a1a', '#1e1a30', '#c8102e', '#f3e8d8', '#2a5a2a', '#8a3a10', '#d8b060'],
+  noodle: ['#f6f0e4', '#e0141c', '#f5c21b', '#2a2a2a', '#ffffff', '#3a6ad8'],
+  drink: ['#3a9a3a', '#e8e8f0', '#1a1418', '#ffe040', '#8a5a2a', '#d8b890', '#ff8a1e', '#3ab8f0', '#2a7a4a', '#ffffff'],
+  can: ['#2a2018', '#1a1a1a', '#c8a060', '#3a6ad8', '#3ab8f0', '#f4e04a', '#d8a020', '#8c5cd6'],
+  cosme: ['#ffffff', '#fce8ee', '#f4f8ff', '#fff6e0', '#eaf6ee', '#f8f0ff'],
+  clean: ['#2f7fd8', '#35b35a', '#ff8a1e', '#f5c21b', '#1fb7c4', '#e8322e'],
+  tissue: ['#ffffff', '#eaf4ff', '#fff2f6', '#f4fff0'],
+  toy: ['#f5c21b', '#e8322e', '#f07ab0', '#2f7fd8', '#35b35a', '#ff8a1e', '#8c5cd6', '#1fb7c4'],
+  candy: ['#ffd0e0', '#d8f0ff', '#fff4b0', '#d8ffd0', '#f0d8ff', '#ffe0c0'],
+  party: ['#f5c21b', '#8c5cd6', '#e8322e', '#1fb7c4'],
+  misc: ['#ffffff', '#2f7fd8', '#1a1a1a'],
+};
+export const CATS = Object.keys(N);
+
+function defs() {
+  const r = rng(808);
+  const P = [];
+  const add = (cat, kind, dims) => N[cat].forEach((name, i) => {
+    P.push({ cat, kind, name, body: C[cat][i % C[cat].length], cell: P.length, ...dims(i, r) });
+  });
+  add('snack', 'bag', () => ({ w: 0.15 + r() * 0.05, h: 0.21 + r() * 0.05, d: 0.065 }));
+  add('choco', 'box', () => ({ w: 0.13 + r() * 0.04, h: 0.075 + r() * 0.03, d: 0.03 }));
+  add('noodle', 'cup', () => ({ r: 0.047, h: 0.1 }));
+  add('drink', 'pet', (i) => (i % 3 === 2 ? { r: 0.046, h: 0.3 } : { r: 0.033, h: 0.21 }));
+  add('can', 'can', (i) => ({ r: 0.033, h: i % 2 ? 0.165 : 0.12 }));
+  add('cosme', 'tube', (i) => (i % 3 === 1 ? { kind: 'tub', r: 0.036, h: 0.055 } : { w: 0.05, h: 0.14 + r() * 0.03, d: 0.03 }));
+  add('clean', 'box', () => ({ w: 0.12 + r() * 0.03, h: 0.24 + r() * 0.03, d: 0.075 }));
+  add('tissue', 'box', () => ({ w: 0.23, h: 0.062, d: 0.115 }));
+  add('toy', 'box', () => ({ w: 0.18 + r() * 0.06, h: 0.24 + r() * 0.05, d: 0.07 }));
+  add('candy', 'bag', () => ({ w: 0.1 + r() * 0.03, h: 0.14 + r() * 0.03, d: 0.04 }));
+  add('party', 'bag', () => ({ w: 0.2, h: 0.27, d: 0.05 }));
+  add('misc', 'box', () => ({ w: 0.11, h: 0.14, d: 0.04 }));
+  return P;
+}
+export const PRODUCTS = defs();
+
+let prod = null, prodCv = null;
+export function prodPage() {
+  if (prod) return prod;
+  prodCv = document.createElement('canvas');
+  prodCv.width = PAGE.prod[0]; prodCv.height = PAGE.prod[1];
+  const c = prodCv.getContext('2d');
+  PRODUCTS.forEach((p) => {
+    const [x, y] = prodRegion(p.cell);
+    c.save(); c.translate(x, y); c.beginPath(); c.rect(0, 0, PC, PC); c.clip();
+    paintProd(c, p);
+    c.restore();
+  });
+  const [wx, wy] = prodRegion(PROD_WHITE);
+  c.fillStyle = '#ffffff'; c.fillRect(wx, wy, PC, PC);
+  prod = new THREE.CanvasTexture(prodCv);
+  prod.colorSpace = THREE.SRGBColorSpace;
+  prod.anisotropy = 8;
+  return prod;
+}
+
+const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
+const ink = (bg) => (lum(bg) > 0.6 ? '#1a1420' : '#ffffff');
+const rr = (c, x, y, w, h, r0) => { c.beginPath(); c.roundRect(x, y, w, h, r0); };
+/** Small print: a few grey lines, as the back of every pack has. */
+function fine(c, x, y, w, n, col = 'rgba(0,0,0,0.35)') {
+  c.fillStyle = col;
+  for (let i = 0; i < n; i++) c.fillRect(x, y + i * 3, w * (0.6 + ((i * 7) % 5) / 10), 1.2);
+}
+function barcode(c, x, y, w, h) {
+  c.fillStyle = '#ffffff'; c.fillRect(x - 1, y - 1, w + 2, h + 2);
+  c.fillStyle = '#111';
+  for (let i = 0; i < w; i += 2) if ((i * 7 + 3) % 5 < 3) c.fillRect(x + i, y, 1, h);
+}
+function burst(c, x, y, s, str, fill = '#e0141c', tcol = '#fff23a') {
+  star(c, x, y, s, s * 0.62, fill, null);
+  if (str) text(c, str, x, y + 0.5, s * 1.3, s * 0.7, JP, { fill: tcol, weight: '900' });
+}
+
+/** One package's face, in a 64 x 64 cell. */
+function paintProd(c, p) {
+  const r = rng(p.cell * 31 + 7);
+  const bg = p.body, tx = ink(bg);
+  c.fillStyle = bg; c.fillRect(0, 0, PC, PC);
+  switch (p.cat) {
+    case 'snack': {
+      // a paler swoosh, the name big, a photo of the crisps, a flavour tag
+      c.fillStyle = 'rgba(255,255,255,0.22)';
+      c.beginPath(); c.moveTo(0, 40); c.quadraticCurveTo(32, 20, 64, 34); c.lineTo(64, 64); c.lineTo(0, 64); c.fill();
+      text(c, p.name, 32, 14, 58, 15, JP, { fill: '#fff23a', stroke: '#5a1010', sw: 3, weight: '900' });
+      c.fillStyle = ['#f0c060', '#e8b050', '#f4d080'][p.cell % 3];
+      c.beginPath(); c.ellipse(34, 44, 22, 13, -0.2, 0, Math.PI * 2); c.fill();
+      c.fillStyle = 'rgba(160,90,20,0.5)';
+      for (let i = 0; i < 9; i++) { c.beginPath(); c.ellipse(16 + r() * 36, 36 + r() * 16, 4, 2.2, r() * 3, 0, Math.PI * 2); c.fill(); }
+      c.fillStyle = 'rgba(255,255,255,0.5)';
+      for (let i = 0; i < 5; i++) { c.beginPath(); c.ellipse(18 + r() * 32, 38 + r() * 12, 2.5, 1.2, r() * 3, 0, Math.PI * 2); c.fill(); }
+      burst(c, 54, 26, 9, p.cell % 2 ? '増量' : '新');
+      fine(c, 4, 55, 20, 3, 'rgba(255,255,255,0.7)');
+      break;
+    }
+    case 'choco': {
+      c.strokeStyle = '#e8c060'; c.lineWidth = 1.5; c.strokeRect(3, 3, 58, 58);
+      text(c, p.name, 32, 16, 56, 12, JP, { fill: lum(bg) > 0.6 ? '#6a2a10' : '#f4d890', weight: '900' });
+      // the bar, and a lighter glint along its top
+      c.fillStyle = '#5a2a14';
+      rr(c, 12, 30, 40, 20, 3); c.fill();
+      c.fillStyle = '#7a3a1c';
+      for (let i = 0; i < 4; i++) c.fillRect(15 + i * 9.5, 33, 7, 14);
+      c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(14, 31, 36, 2);
+      fine(c, 12, 54, 40, 2, lum(bg) > 0.6 ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)');
+      break;
+    }
+    case 'noodle': {
+      // a wrap: the name where the front is (the middle), a broth band, noodles
+      c.fillStyle = p.cell % 2 ? '#e0141c' : '#1a1a1a';
+      c.fillRect(0, 18, 64, 26);
+      c.fillStyle = 'rgba(255,255,255,0.15)'; c.fillRect(0, 44, 64, 4);
+      text(c, p.name, 32, 31, 60, 13, JP, { fill: '#fff23a', stroke: '#3a0a0a', sw: 2, weight: '900' });
+      c.fillStyle = '#f4d060';
+      for (let i = 0; i < 12; i++) { c.beginPath(); c.arc(4 + i * 5.5, 55 + (i % 2) * 3, 2, 0, Math.PI * 2); c.fill(); }
+      c.strokeStyle = 'rgba(0,0,0,0.25)'; c.lineWidth = 1;
+      for (let i = 0; i < 8; i++) { c.beginPath(); c.moveTo(i * 9, 2); c.quadraticCurveTo(i * 9 + 4, 8, i * 9 + 8, 2); c.stroke(); }
+      text(c, 'カップめん', 32, 9, 40, 7, JP, { fill: tx, weight: 'bold' });
+      break;
+    }
+    case 'drink': {
+      // a wrap on a bottle: the label band; the plastic above and below shows the body colour
+      const lab = ['#3a9a3a', '#e0141c', '#1a1418', '#ffe040', '#8a5a2a', '#f4f0e8', '#ff8a1e', '#2f7fd8', '#2a7a4a', '#ffffff'][p.cell % 10];
+      c.fillStyle = lab; c.fillRect(0, 22, 64, 30);
+      c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(0, 22, 64, 3);
+      text(c, p.name, 32, 34, 60, 12, JP, { fill: ink(lab), stroke: lum(lab) > 0.6 ? null : 'rgba(0,0,0,0.4)', sw: 2, weight: '900' });
+      text(c, ['お茶', '炭酸', 'ゼロ', '果汁', '水', 'ミルク'][p.cell % 6], 32, 46, 40, 7, JP, { fill: ink(lab), weight: 'bold' });
+      barcode(c, 4, 54, 16, 6);
+      c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(8, 0, 4, 64);
+      break;
+    }
+    case 'can': {
+      c.fillStyle = 'rgba(255,255,255,0.22)'; c.fillRect(6, 0, 3, 64);
+      c.fillStyle = p.cell % 2 ? '#f4e04a' : '#ffffff';
+      c.fillRect(0, 24, 64, 18);
+      text(c, p.name, 32, 33, 60, 12, JP, { fill: '#1a1420', weight: '900' });
+      text(c, ['缶コーヒー', 'BLACK', 'ALC 5%', '無糖'][p.cell % 4], 32, 14, 50, 8, JP, { fill: tx, weight: 'bold' });
+      burst(c, 50, 54, 7, null, '#e0141c');
+      barcode(c, 6, 52, 14, 6);
+      break;
+    }
+    case 'cosme': {
+      c.fillStyle = ['#f4b8c8', '#c8dcf4', '#e8d8f8', '#d8ecd8', '#f8e0b8'][p.cell % 5];
+      c.beginPath(); c.ellipse(32, 46, 30, 14, 0, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = '#d8b870'; c.lineWidth = 1; c.beginPath(); c.moveTo(8, 24); c.lineTo(56, 24); c.stroke();
+      text(c, p.name, 32, 14, 56, 9, JP, { fill: '#3a3040', weight: 'bold' });
+      text(c, ['保湿', '美白', '毛穴', 'ツヤ'][p.cell % 4], 32, 36, 30, 8, JP, { fill: '#8a6a30', weight: 'bold' });
+      fine(c, 10, 54, 44, 2, 'rgba(0,0,0,0.3)');
+      break;
+    }
+    case 'clean': {
+      c.fillStyle = 'rgba(255,255,255,0.3)';
+      c.beginPath(); c.moveTo(0, 64); c.lineTo(64, 10); c.lineTo(64, 64); c.fill();
+      for (let i = 0; i < 7; i++) { c.fillStyle = 'rgba(255,255,255,0.55)'; c.beginPath(); c.arc(8 + r() * 48, 40 + r() * 20, 2 + r() * 4, 0, Math.PI * 2); c.fill(); }
+      text(c, p.name, 32, 20, 60, 17, JP, { fill: '#ffffff', stroke: '#1a2a5a', sw: 3, weight: '900' });
+      burst(c, 52, 46, 9, '強力', '#fff23a', '#e0141c');
+      text(c, ['洗剤', '柔軟剤', '漂白', 'スプレー'][p.cell % 4], 20, 48, 30, 8, JP, { fill: '#ffffff', weight: 'bold' });
+      break;
+    }
+    case 'tissue': {
+      c.fillStyle = ['#bcdcf4', '#f8c8d8', '#c8ecc8', '#e8d8f8'][p.cell % 4];
+      c.beginPath(); c.moveTo(0, 30); c.bezierCurveTo(20, 10, 44, 50, 64, 30); c.lineTo(64, 64); c.lineTo(0, 64); c.fill();
+      text(c, p.name, 32, 20, 56, 13, JP, { fill: '#3a4a6a', weight: '900' });
+      text(c, 'ティッシュ 200組', 32, 46, 56, 7, JP, { fill: '#3a4a6a', weight: 'bold' });
+      break;
+    }
+    case 'toy': {
+      for (let i = 0; i < 6; i++) star(c, r() * 64, r() * 64, 3 + r() * 3, 1.5, 'rgba(255,255,255,0.7)', null);
+      // a window with a cartoon face looking out
+      c.fillStyle = '#ffffff'; rr(c, 14, 22, 36, 34, 4); c.fill();
+      c.fillStyle = ['#23336e', '#f07ab0', '#f5c21b', '#35b35a'][p.cell % 4];
+      c.beginPath(); c.arc(32, 40, 12, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#ffffff';
+      c.beginPath(); c.arc(27, 38, 3.5, 0, Math.PI * 2); c.fill(); c.beginPath(); c.arc(37, 38, 3.5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#1a1420';
+      c.beginPath(); c.arc(27.5, 38.5, 1.6, 0, Math.PI * 2); c.fill(); c.beginPath(); c.arc(37.5, 38.5, 1.6, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = '#1a1420'; c.lineWidth = 1.2; c.beginPath(); c.arc(32, 43, 4, 0.2, Math.PI - 0.2); c.stroke();
+      text(c, p.name, 32, 11, 58, 12, JP, { fill: '#ffffff', stroke: '#4a1040', sw: 3, weight: '900' });
+      burst(c, 54, 56, 7, null, '#e0141c');
+      break;
+    }
+    case 'candy': {
+      c.fillStyle = 'rgba(255,255,255,0.7)';
+      for (let y = 4; y < 64; y += 10) for (let x = (y / 10) % 2 ? 4 : 9; x < 64; x += 10) { c.beginPath(); c.arc(x, y, 1.6, 0, Math.PI * 2); c.fill(); }
+      const cc = ['#e8322e', '#f5c21b', '#35b35a', '#8c5cd6', '#ff8a1e'];
+      for (let i = 0; i < 5; i++) { c.fillStyle = cc[i]; c.beginPath(); c.arc(14 + i * 9, 44 + (i % 2) * 5, 4.5, 0, Math.PI * 2); c.fill(); c.fillStyle = 'rgba(255,255,255,0.6)'; c.beginPath(); c.arc(12 + i * 9, 42 + (i % 2) * 5, 1.5, 0, Math.PI * 2); c.fill(); }
+      text(c, p.name, 32, 16, 56, 13, JP, { fill: '#e0141c', stroke: '#ffffff', sw: 3, weight: '900' });
+      break;
+    }
+    case 'party': {
+      const cc = ['#e8322e', '#f5c21b', '#35b35a', '#2f7fd8', '#f07ab0', '#ffffff'];
+      for (let i = 0; i < 26; i++) { c.fillStyle = cc[i % 6]; c.save(); c.translate(r() * 64, r() * 64); c.rotate(r() * 3); c.fillRect(-2, -1, 4, 2); c.restore(); }
+      c.fillStyle = 'rgba(255,255,255,0.85)'; rr(c, 8, 22, 48, 22, 3); c.fill();
+      text(c, p.name, 32, 33, 44, 11, JP, { fill: '#8c2cb6', weight: '900' });
+      text(c, 'パーティーグッズ', 32, 54, 56, 7, JP, { fill: tx, weight: 'bold' });
+      break;
+    }
+    default: {
+      c.fillStyle = p.cell % 2 ? '#2f7fd8' : '#f5c21b'; c.fillRect(0, 0, 64, 14);
+      text(c, p.name, 32, 30, 56, 11, JP, { fill: tx, weight: '900' });
+      c.fillStyle = '#c8ccd4'; for (let i = 0; i < 4; i++) { rr(c, 8 + i * 13, 40, 9, 18, 2); c.fill(); }
+      c.fillStyle = '#d8a020'; for (let i = 0; i < 4; i++) c.fillRect(10 + i * 13, 38, 5, 3);
+      break;
+    }
+  }
+}
+
+/** Stamp a package's cell onto a canvas, `ph` high, its foot on `y1`;
+ * returns the width used.  Wraps show their front half. */
+export function stampProd(c, p, x, y1, ph) {
+  prodPage();
+  const [sx, sy] = prodRegion(p.cell);
+  const wrap = p.r !== undefined;
+  const pw = Math.max(4, Math.round(ph * ((wrap ? 2 * p.r : p.w) / p.h)));
+  if (wrap) c.drawImage(prodCv, sx + 16, sy, 32, PC, x, y1 - ph, pw, ph);
+  else c.drawImage(prodCv, sx, sy, PC, PC, x, y1 - ph, pw, ph);
+  return pw;
 }

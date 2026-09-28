@@ -557,6 +557,7 @@ export const SHOT_SPOTS = [
   { name: 'donki-entrance', scene: 'town', pos: [-53.3, 0, 66.4], yaw: 1.5708, pitch: 0.1, looks: ['day'] },
   { name: 'donki-mascot', scene: 'town', pos: [-49.5, 0, 67.3], yaw: 1.855, pitch: 0.55, looks: ['day'] },
   { name: 'donki-night', scene: 'town', pos: [-45.2, 0, 62.5], yaw: 1.95, pitch: 0.16, looks: ['blue'] },
+  { name: 'donki-goods', scene: 'town', pos: [-53.3, 0, 75.4], yaw: 0.72, pitch: -0.06, looks: ['day', 'golden', 'blue'] },
   { name: 'donki-street', scene: 'town', pos: [-47.6, 0, 38], yaw: 3.0, pitch: 0.06, looks: ['day', 'golden'] },
   // Han and the RX-7 (world/han/): the car park's bay by the bridge road
   { name: 'han-wide', scene: 'town', pos: [0, 0, 16.5], yaw: 1.85, pitch: -0.03, looks: ['golden'], frame: 'world' },      // from the spawn, turned round

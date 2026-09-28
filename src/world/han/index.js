@@ -199,7 +199,7 @@ export function buildHan(ctx) {
 
   // where Han stands, car frame (the car's right side, +z, is the driver's)
   const HW = car.halfW(-0.55);
-  const LEAN = new THREE.Vector3(-0.55, 0, HW + 0.05);
+  const LEAN = new THREE.Vector3(-0.55, 0, HW + 0.11);   // his hips on the belt of the rear quarter
   const STAND = new THREE.Vector3(-0.42, 0, HW + 0.34);
   const DOOR = new THREE.Vector3(-0.08, 0, HW + 0.32);
   const SEAT = new THREE.Vector3(-0.38, 0.2, 0.37);

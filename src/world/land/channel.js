@@ -4,8 +4,9 @@ import { rngKit } from '../../core/util.js';
 import { TOWN } from '../../config.js';
 import { RIVER } from '../../data/town.js';
 import { makeBench } from '../props.js';
-import { sheetGeo, quadGeo, boxGeo } from './geo.js';
-import { TILE, postPlateTex, riverSignTex } from './tex.js';
+import { sheetGeo, quadGeo, boxGeo, makeParts } from './geo.js';
+import { TILE, postPlateTex, riverSignTex, pondWobbleTex } from './tex.js';
+import { makeMirror, REFLECT } from './mirror.js';
 
 /* ------------------------------------------------------------------ *
  * The river 桜川 in its sunken channel (Tan's layout, wave 2c), in the
@@ -79,11 +80,34 @@ function runs(a, b, gaps) {
   return out;
 }
 
-export function buildChannel(ctx, parts, scatter, water) {
+export function buildChannel(ctx, staticParts, scatter, water) {
   const L = TOWN.land, S = L.sunk, R = L.river;
   const P = channelProfile();
   const W = S.walk;
   const r = rngKit(5301);
+
+  /* The channel's pieces are batched into the town's 128 m cells as ever
+   * (so the town's culling stays as it was).  The river's mirror cannot see
+   * a merged cell (it would draw whole cells of the town again), so every
+   * piece standing along the mirrored stretch is also kept as a copy on the
+   * REFLECT layer alone: drawn only by the mirror's camera, no shadows, and
+   * the main pass never sees it. */
+  const [mx0, mx1] = L.riverMirror ?? [0, 0];
+  const rparts = makeParts(staticParts.mats);
+  const bb = new THREE.Box3();
+  const parts = {
+    mats: staticParts.mats,
+    add(name, geo) {
+      staticParts.add(name, geo);
+      if (mx1 > mx0) {
+        geo.computeBoundingBox();
+        bb.copy(geo.boundingBox);
+        if (bb.max.x > mx0 - 6 && bb.min.x < mx1 + 6 && bb.max.y > R.water + 0.05) rparts.add(name, geo.clone());
+      }
+      return geo;
+    },
+    box(name, x0, x1, y0, y1, z0, z1) { return this.add(name, boxGeo(x0, x1, y0, y1, z0, z1)); },
+  };
 
   /* ---- one sink at the river's bed (one hole in the ground plane); the
    * walks stand on platforms at W ---- */
@@ -158,29 +182,81 @@ export function buildChannel(ctx, parts, scatter, water) {
   /* ================= the river ================= */
   {
     const bands = [[0, 0.1, 0.78], [0.1, 0.24, 0.9], [0.24, 0.8, 1.0], [0.8, 0.9, 0.9], [0.9, 1, 0.8]];
-    const pos = [], col = [], idx = [], uv = [];
     const U = 12, V = 7;
     const w = R.z1 - R.z0;
-    for (const [a, b, k] of bands) {
-      const za = R.z1 - a * w, zb = R.z1 - b * w;
-      const v = pos.length / 3;
-      pos.push(S.x0, R.water, za, S.x1, R.water, za, S.x1, R.water, zb, S.x0, R.water, zb);
-      uv.push(S.x0 / U, za / V, S.x1 / U, za / V, S.x1 / U, zb / V, S.x0 / U, zb / V);
-      for (let j = 0; j < 4; j++) col.push(k, k, k);
-      idx.push(v, v + 1, v + 2, v, v + 2, v + 3);
+    const riverGeo = (x0, x1) => {
+      const pos = [], col = [], idx = [], uv = [];
+      for (const [a, b, k] of bands) {
+        const za = R.z1 - a * w, zb = R.z1 - b * w;
+        const v = pos.length / 3;
+        pos.push(x0, R.water, za, x1, R.water, za, x1, R.water, zb, x0, R.water, zb);
+        uv.push(x0 / U, za / V, x1 / U, za / V, x1 / U, zb / V, x0 / U, zb / V);
+        for (let j = 0; j < 4; j++) col.push(k, k, k);
+        idx.push(v, v + 1, v + 2, v, v + 2, v + 3);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      g.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
+      g.setIndex(idx);
+      return g;
+    };
+    // the painted water: the stretch through the town, and the two reaches beyond it
+    const [mx0, mx1] = L.riverMirror ?? [S.x0, S.x0];
+    const reaches = [[S.x0, mx0], [mx1, S.x1]].filter(([a, b]) => b > a);
+    let near = null;
+    for (const [a, b] of [[mx0, mx1], ...reaches]) {
+      if (b <= a) continue;
+      const m = new THREE.Mesh(riverGeo(a, b), water.river);
+      m.name = 'land-river';
+      m.userData.dynamic = true;
+      m.userData.ground = true;
+      ctx.add(m);
+      water.watch(m, [a, R.z0, b, R.z1], 'river');
+      if (a === mx0 && b === mx1) near = m;
     }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
-    g.setIndex(idx);
-    const base = new THREE.Mesh(g, water.river);
-    base.name = 'land-river';
-    base.userData.dynamic = true;
-    base.userData.ground = true;
-    ctx.add(base);
-    water.watch(base, [S.x0, R.z0, S.x1, R.z1], 'river');
+    /* The stretch through the town is a true mirror while you are near it
+     * (land/mirror.js, as the pond's): the revetments, the bridge, the
+     * sakura and the sky upside down in a moving river, in the river's own
+     * teal.  Only what the pond's tagging puts on the REFLECT layer is drawn
+     * again (the channel's own pieces, the trees, the sky, the animals). */
+    if (near) {
+      const mirror = makeMirror(near.geometry, R.water, pondWobbleTex(), { size: 512, base: 0x4b8fa4, deep: 0x2f6a80, name: 'land-river-mirror' });
+      mirror.camera.layers.set(REFLECT);
+      mirror.visible = false;
+      ctx.add(mirror);
+      /* A 260 m strip's bounding sphere reaches the spawn, so three's culling
+       * would run the reflection pass with the river behind you (the famous
+       * view).  The pass runs only when the strip's own box is in the frustum. */
+      {
+        const a = ctx.toWorld({ x: mx0, z: R.z0 }), b = ctx.toWorld({ x: mx1, z: R.z1 });
+        const box = new THREE.Box3(new THREE.Vector3(Math.min(a.x, b.x), R.water - 0.5, Math.min(a.z, b.z)), new THREE.Vector3(Math.max(a.x, b.x), R.water + 0.5, Math.max(a.z, b.z)));
+        const frustum = new THREE.Frustum(), pv = new THREE.Matrix4();
+        const render = mirror.onBeforeRender;
+        mirror.onBeforeRender = function (renderer, scene, camera, ...rest) {
+          pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+          if (!frustum.setFromProjectionMatrix(pv).intersectsBox(box)) return;
+          render.call(this, renderer, scene, camera, ...rest);
+        };
+      }
+      const NEAR = 45;            // the walks, the stairs, the bridge and the spawn's turn-round: not the town beyond
+      let t = 0;
+      ctx.update((dt, cam) => {
+        if (!cam) return;
+        const p = ctx.toLocal({ x: cam.x, z: cam.z });
+        const d = Math.hypot(Math.max(mx0 - p.x, 0, p.x - mx1), Math.max(R.z0 - p.z, 0, p.z - R.z1));
+        mirror.visible = d < NEAR;
+        near.visible = !mirror.visible;
+        if (mirror.visible) {
+          t += dt;
+          const fog = ctx.scene.fog;
+          if (fog) mirror.material.uniforms.light.value = THREE.MathUtils.clamp((fog.color.r * 0.3 + fog.color.g * 0.55 + fog.color.b * 0.15) * 1.7, 0.22, 1);
+          // downstream is +x: the chop drifts along the river
+          mirror.material.uniforms.chopOff.value.set(t * 0.035, Math.sin(t * 0.3) * 0.006);
+        }
+      });
+    }
     // the water is not for walking, but for the stepping stones' line
     const sx = L.stones.x;
     for (const [a, b] of [[S.x0, sx - 0.62], [sx + 0.62, S.x1]]) ctx.collide(a, R.z0, b, R.z1, W + 0.5);
@@ -271,6 +347,21 @@ export function buildChannel(ctx, parts, scatter, water) {
     ctx.add(board);
     parts.box('post', sx - 0.78, sx + 0.78, 1.38, 1.92, sz - 0.02, sz + 0.03);
     ctx.collide(sx - 0.72, sz - 0.1, sx + 0.72, sz + 0.1, 2);
+  }
+
+  /* the reflection-only copy of the mirrored stretch (see the top) */
+  if (mx1 > mx0) {
+    const rg = new THREE.Group();
+    rg.name = 'land-channel-reflect';
+    rg.userData.dynamic = true;
+    rparts.build(rg);
+    rg.traverse((o) => {
+      if (!o.isMesh) return;
+      o.layers.set(REFLECT);
+      o.castShadow = o.receiveShadow = false;
+      o.userData.noOutline = true;
+    });
+    ctx.add(rg);
   }
 }
 

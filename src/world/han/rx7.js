@@ -40,9 +40,12 @@ export const RX7 = {
 };
 const HL = RX7.L / 2;
 const ARCH = 0.372;                // wheel-arch radius: a slammed car
-const N = 3.0;                     // the top curve's superellipse exponent
-const A_BELT = 0.74;               // where the cabin stands on the top curve
-const PAINT_V = 1.3;               // the paint map's height in metres
+const N = 2.6;                     // the top curve's superellipse exponent (a soft shoulder)
+const TUCK = 0.075;                // how far the shoulder sits in from the side's widest point (less round the narrow nose)
+const tuckAt = (W) => TUCK * THREE.MathUtils.clamp((W - 0.45) / 0.45, 0.25, 1);
+const A_BELT = 0.62;               // where the cabin stands on the top curve (the belt: 88% of the half-width)
+const PAINT_V = 1.3;               // the paint map's side band: height in metres
+const SIDE_V = 300 / 460;          // the side band's share of the map; above it the plan band (the tops)
 
 /* ---------------------------- the shape ---------------------------- */
 
@@ -70,19 +73,19 @@ function spline(pts) {
 }
 
 // half-width: the Fortune's hips over the rear wheels, the round nose in plan
-const halfW = spline([[-2.18, 0.8], [-2.12, 0.9], [-1.95, 0.96], [-1.55, 0.99], [-1.2, 0.99], [-0.8, 0.975],
-  [-0.35, 0.945], [0.25, 0.935], [0.85, 0.95], [1.23, 0.955], [1.55, 0.93], [1.85, 0.86], [2.03, 0.76], [2.13, 0.64], [2.18, 0.52]]);
+const halfW = spline([[-2.18, 0.8], [-2.12, 0.9], [-1.95, 0.97], [-1.55, 0.995], [-1.2, 0.99], [-0.8, 0.965],
+  [-0.35, 0.93], [0.25, 0.92], [0.85, 0.935], [1.23, 0.95], [1.55, 0.93], [1.85, 0.87], [2.03, 0.78], [2.13, 0.66], [2.18, 0.54]]);
 // the floor: a front splitter low over the road, the diffuser kicking up at the tail
 const floorY = spline([[-2.18, 0.27], [-1.95, 0.22], [-1.55, 0.14], [1.45, 0.13], [1.95, 0.16], [2.18, 0.17]]);
 const sillY = spline([[-2.18, 0.27], [-1.95, 0.22], [-1.55, 0.16], [1.45, 0.16], [1.95, 0.17], [2.18, 0.17]]);
-// the shoulder, where the sides turn into the top: high over the wheels, low along the door
-const shoulderY = spline([[-2.18, 0.7], [-1.85, 0.76], [-1.2, 0.77], [-0.65, 0.68], [0.15, 0.6], [0.8, 0.66], [1.23, 0.73], [1.55, 0.7], [1.85, 0.56], [2.05, 0.44], [2.18, 0.34]]);
-// the top along the centre: a low bonnet between the fenders, falling to the round nose; the ducktail at the back
-const topY = spline([[-2.18, 0.94], [-2.1, 1.0], [-1.98, 1.005], [-1.7, 0.96], [-1.1, 0.9], [-0.3, 0.8], [0.45, 0.76], [0.9, 0.7],
-  [1.4, 0.61], [1.8, 0.53], [2.05, 0.46], [2.18, 0.41]]);
+// the shoulder, where the sides turn into the top: an FD's belt is about 0.85 m
+// at the door, higher over the hips, falling away down the long nose
+const shoulderY = spline([[-2.18, 0.78], [-1.95, 0.86], [-1.5, 0.885], [-1.2, 0.875], [-0.75, 0.82], [-0.2, 0.78], [0.4, 0.78], [0.85, 0.8], [1.23, 0.83], [1.55, 0.79], [1.85, 0.68], [2.05, 0.58], [2.18, 0.5]]);
+// the top along the centre: the low bonnet sunk between the fenders, falling to the round nose; the ducktail at the back
+const topY = spline([[-2.18, 0.86], [-2.1, 0.94], [-1.98, 0.975], [-1.7, 0.985], [-1.1, 0.95], [-0.3, 0.9], [0.45, 0.855], [0.9, 0.8],
+  [1.4, 0.72], [1.8, 0.645], [2.05, 0.585], [2.18, 0.535]]);
 // the fenders stand proud of the bonnet (the FD's signature), the round hips over the rear wheels
-const fender = (x) => 0.085 * Math.exp(-(((x - 1.25) / 0.48) ** 2)) + 0.035 * Math.exp(-(((x - 1.75) / 0.3) ** 2))
-  + 0.075 * Math.exp(-(((x + 1.22) / 0.55) ** 2));
+const fender = (x) => 0.065 * Math.exp(-(((x - 1.2) / 0.42) ** 2)) + 0.06 * Math.exp(-(((x + 1.22) / 0.55) ** 2));
 
 const pw = (c) => Math.sign(c) * Math.abs(c) ** (2 / N);
 
@@ -97,10 +100,10 @@ function archY(x) {
 
 /** A point on the top curve at station x, a in [0 (side), PI/2 (centre)]. */
 function topPoint(x, a) {
-  const W = halfW(x), ySh = shoulderY(x), yT = topY(x);
+  const W = halfW(x) - tuckAt(halfW(x)), ySh = shoulderY(x), yT = topY(x);
   const lat = W * pw(Math.cos(a));
   const k = lat / W;
-  const y = ySh + (yT - ySh) * pw(Math.sin(a)) + fender(x) * Math.exp(-(((k - 0.8) / 0.17) ** 2));
+  const y = ySh + (yT - ySh) * pw(Math.sin(a)) + fender(x) * Math.exp(-(((k - 0.78) / 0.24) ** 2));
   return [lat, y];
 }
 
@@ -119,17 +122,22 @@ function bodySection(x) {
     [0, yF, 0.3], [Wi * 0.5, yF, 0.3], [Wi, yF, 0.3], [Wi, (yF + yS) / 2, 0.3], [Wi, yS, 0.3],
     [(Wi + lip) / 2, yS, 0.3], [lip - 0.015, yS, 0.45],
   ];
-  // the side: from the lip up to the shoulder, tucked in at the bottom
+  // the side: from the lip up to the shoulder, tucked in at the sill, fullest
+  // just above the middle, rolling in again toward the shoulder
   const y0 = yS + 0.012, y1 = Math.max(ySh, y0 + 0.004);
-  for (let i = 0; i <= 4; i++) {
-    const k = i / 4;
-    pts.push([W - 0.05 * (1 - k) ** 2, y0 + (y1 - y0) * k, 1, 'side']);
+  for (let i = 0; i <= 8; i++) {
+    const k = i / 8;
+    pts.push([W - 0.09 * (1 - k) ** 2 - tuckAt(W) * k ** 2.2, y0 + (y1 - y0) * k, 1, 'side']);
   }
   // the top curve (skipping a = 0: the shoulder is the side's last point);
-  // over a wheel it never dips below the arch
+  // over a wheel it never dips below the arch.  The belt point is doubled,
+  // once as the side's last and once as the top's first, so the paint's two
+  // bands (side, plan) meet there without a smeared quad.
   for (let i = 1; i < TOP_A.length; i++) {
     const [lat, y] = topPoint(x, TOP_A[i]);
-    pts.push([lat, lat > Wi ? Math.max(y, y1) : y, 1, TOP_A[i] <= A_BELT + 1e-6 ? 'side' : 'top']);
+    const yy = lat > Wi ? Math.max(y, y1) : y;
+    if (Math.abs(TOP_A[i] - A_BELT) < 1e-6) { pts.push([lat, yy, 1, 'side'], [lat, yy, 1, 'top']); continue; }
+    pts.push([lat, yy, 1, TOP_A[i] < A_BELT ? 'side' : 'top']);
   }
   return pts;
 }
@@ -137,16 +145,20 @@ const SEC_N = bodySection(0).length;
 
 /* ------------------------- the cabin's shape ------------------------ */
 const CAB = { cowl: 0.45, rf: -0.3, rr: -0.72, tail: -1.9, phiE: 0.55 };
-const roofY = spline([[-1.9, 1.02], [-1.4, 1.14], [-0.72, 1.235], [-0.5, 1.25], [-0.3, 1.245], [0.45, 1.2]]);
+const roofY = spline([[-1.9, 1.0], [-1.4, 1.13], [-0.72, 1.225], [-0.5, 1.235], [-0.3, 1.232], [0.45, 1.17]]);
 const roofW = spline([[-1.9, 0.44], [-1.3, 0.53], [-0.72, 0.57], [-0.3, 0.57], [0.45, 0.55]]);
 /** How far the cabin stands up out of the body top: 0 at the cowl and the tail. */
 function cabH(x) {
   if (x >= CAB.cowl) return 0;
-  if (x > CAB.rf) { const t = (CAB.cowl - x) / (CAB.cowl - CAB.rf); return Math.sin(t * Math.PI / 2) ** 0.55; }
+  // the windscreen: fast and nearly straight, rounding only into the header
+  if (x > CAB.rf) { const t = (CAB.cowl - x) / (CAB.cowl - CAB.rf); return 1 - (1 - t) ** 1.7; }
   if (x >= CAB.rr) return 1;
-  if (x > CAB.tail) { const t = (CAB.rr - x) / (CAB.rr - CAB.tail); return Math.cos(t * Math.PI / 2) ** 0.45; }
+  // the hatch glass: a long fastback, holding the roofline then sweeping down to the deck
+  if (x > CAB.tail) { const t = (CAB.rr - x) / (CAB.rr - CAB.tail); return Math.cos(t * Math.PI / 2) ** 0.7; }
   return 0;
 }
+/** The double-bubble roof panel: two shallow domes over the seats, and only there. */
+const bubble = (x) => THREE.MathUtils.smoothstep(x, -1.05, -0.8) * (1 - THREE.MathUtils.smoothstep(x, -0.2, 0.05));
 /** A point on the cabin: phi 0 on the crown's centre, 1 at the belt. */
 function cabinPoint(x, phi) {
   const a = Math.PI / 2 - phi * (Math.PI / 2 - A_BELT);
@@ -157,7 +169,7 @@ function cabinPoint(x, phi) {
   if (phi <= CAB.phiE) {
     const t = phi / CAB.phiE;
     lat = Wr * t;
-    y = yR - 0.075 * t * t + 0.028 * Math.sin(Math.PI * t) ** 2;
+    y = yR - 0.075 * t * t + 0.03 * Math.sin(Math.PI * t) ** 2 * bubble(x);
   } else {
     const t = (phi - CAB.phiE) / (1 - CAB.phiE);
     lat = Wr + (wb - Wr) * t ** 1.35;
@@ -201,6 +213,14 @@ function gridParts(P, { closed = false, classify, uv, shade }) {
   full.setIndex(all);
   full.computeVertexNormals();
   const nrm = full.getAttribute('normal').array;
+  // columns that share a point (the belt, doubled for the paint) share a normal too, or the ink finds a seam
+  for (let i = 0; i < ni; i++) for (let j = 0; j < nj - 1; j++) {
+    const a = P[i][j], b = P[i][j + 1];
+    if (a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2]) continue;
+    const ka = (i * nj + j) * 3, kb = ka + 3;
+    const x = nrm[ka] + nrm[kb], y = nrm[ka + 1] + nrm[kb + 1], z = nrm[ka + 2] + nrm[kb + 2], l = Math.hypot(x, y, z) || 1;
+    nrm[ka] = nrm[kb] = x / l; nrm[ka + 1] = nrm[kb + 1] = y / l; nrm[ka + 2] = nrm[kb + 2] = z / l;
+  }
   const out = {};
   for (const [key, idx] of byKey) {
     // re-index to the vertices this part uses
@@ -227,7 +247,8 @@ function gridParts(P, { closed = false, classify, uv, shade }) {
   return out;
 }
 
-const paintUV = (p) => [(p[0] + HL) / RX7.L, p[1] / PAINT_V];
+const paintUV = (p) => [(p[0] + HL) / RX7.L, (p[1] / PAINT_V) * SIDE_V];             // the side band: (x, height)
+const planUV = (p) => [(p[0] + HL) / RX7.L, SIDE_V + (1 - SIDE_V) * (0.5 + p[2] / 2)];   // the plan band: (x, across)
 
 /** Stations along x: an even step plus every edge that must be exact. */
 function stations(x0, x1, step, extra) {
@@ -246,23 +267,48 @@ const BLACK = '#26242c';
 export function sweepTop(x) {
   if (x > 0.86 || x < -1.55) return -1;
   const t = THREE.MathUtils.smoothstep(x, -0.83, 0.86);    // 1 at the front, 0 at the rear
-  return 0.27 + 0.42 * (1 - t) ** 1.25;
+  return 0.27 + 0.5 * (1 - t) ** 1.25;
 }
 function paintTex() {
-  const Wp = 1024, Hp = 300;
+  const Wp = 1024, Hp = 460, Hs = Hp * SIDE_V;     // the side band (300 px) below, the plan band (160 px) above
   const c = document.createElement('canvas');
   c.width = Wp; c.height = Hp;
   const g = c.getContext('2d');
   const X = (x) => (x + HL) / RX7.L * Wp;
-  const Y = (y) => Hp - y / PAINT_V * Hp;
+  const Y = (y) => Hp - y / PAINT_V * Hs;
+  const Z = (lat) => (Hp - Hs) * (0.5 - lat / 2);   // the plan band: lat +1 (the right side) at the top
   g.fillStyle = ORANGE; g.fillRect(0, 0, Wp, Hp);
+  /* ---- the plan band: the shut lines seen from above ---- */
+  {
+    g.strokeStyle = 'rgba(40,24,30,0.6)'; g.lineWidth = 1.5; g.lineJoin = 'round';
+    // the bonnet: sunk between the fenders, its edges running forward along the
+    // inside of the crests to a wide, nearly straight front edge at the nose
+    g.beginPath();
+    g.moveTo(X(0.5), Z(-0.64)); g.lineTo(X(0.5), Z(0.64)); g.lineTo(X(1.72), Z(0.54)); g.lineTo(X(1.94), Z(0.5));
+    g.quadraticCurveTo(X(1.985), Z(0.48), X(1.99), Z(0.4)); g.lineTo(X(1.99), Z(-0.4)); g.quadraticCurveTo(X(1.985), Z(-0.48), X(1.94), Z(-0.5));
+    g.lineTo(X(1.72), Z(-0.54)); g.closePath(); g.stroke();
+    // the bumper seams over the fender tops (the bonnet's edge takes over between them)
+    for (const s of [-1, 1]) {
+      g.beginPath(); g.moveTo(X(1.72), Z(s)); g.lineTo(X(1.72), Z(s * 0.52)); g.stroke();
+      g.beginPath(); g.moveTo(X(-1.72), Z(s)); g.lineTo(X(-1.72), Z(s * 0.82)); g.stroke();
+      // the hatch's sides continuing from the glass to its edge on the deck
+      g.beginPath(); g.moveTo(X(-1.79), Z(s * 0.7)); g.lineTo(X(-1.9), Z(s * 0.8)); g.stroke();
+    }
+    g.beginPath(); g.moveTo(X(-1.9), Z(-0.8)); g.lineTo(X(-1.9), Z(0.8)); g.stroke();
+    // the cowl vent between bonnet and windscreen: a soft dark strip
+    g.fillStyle = 'rgba(30,20,26,0.35)'; g.fillRect(X(0.44), Z(0.62), X(0.5) - X(0.44), Z(-0.62) - Z(0.62));
+    // the fenders' crests read a shade darker than the bonnet between them (the cel band does the rest)
+    g.fillStyle = 'rgba(255,255,255,0.06)'; g.fillRect(X(0.5), Z(0.62), X(2.0) - X(0.5), Z(-0.62) - Z(0.62));
+  }
+  /* ---- the side band ---- */
+  g.save(); g.beginPath(); g.rect(0, Hp - Hs, Wp, Hs); g.clip();
   // the black sweep: a wedge that grows toward the rear
   g.fillStyle = BLACK;
   g.beginPath();
   g.moveTo(X(0.86), Y(0));
   for (let x = 0.86; x >= -1.55; x -= 0.02) {
     let y = sweepTop(x);
-    if (x < -0.83) y = 0.69 - ((x + 0.83) / 0.72) ** 2 * 0.4;   // runs out over the rear hip
+    if (x < -0.83) y = 0.77 - ((x + 0.83) / 0.72) ** 2 * 0.48;   // runs out over the rear hip
     g.lineTo(X(x), Y(y));
   }
   g.lineTo(X(-1.55), Y(0));
@@ -272,17 +318,22 @@ function paintTex() {
   g.beginPath();
   for (let x = 0.84; x >= -0.83; x -= 0.02) { const y = sweepTop(x) + 0.018; if (x === 0.84) g.moveTo(X(x), Y(y)); else g.lineTo(X(x), Y(y)); }
   g.stroke();
-  // shut lines: the door, the fuel flap, the hood's edge
+  // shut lines: the door, the bumper seams, the fuel flap
   g.strokeStyle = 'rgba(40,24,30,0.75)'; g.lineWidth = 2;
-  for (const x of RX7.door) { g.beginPath(); g.moveTo(X(x), Y(0.2)); g.lineTo(X(x + (x > 0 ? -0.02 : 0.03)), Y(0.8)); g.stroke(); }
-  g.strokeRect(X(-1.72), Y(0.8), 20, 14);
+  for (const x of RX7.door) { g.beginPath(); g.moveTo(X(x), Y(0.2)); g.lineTo(X(x + (x > 0 ? -0.02 : 0.03)), Y(0.9)); g.stroke(); }
+  for (const x of [1.72, -1.72]) { g.beginPath(); g.moveTo(X(x), Y(0.2)); g.lineTo(X(x), Y(0.95)); g.stroke(); }
+  g.strokeRect(X(-1.62), Y(0.82), 22, 16);
   // the rear-quarter intake ahead of the hip (in the black: its dark mouth)
   g.fillStyle = '#0e0d12';
   g.beginPath();
   g.moveTo(X(-0.62), Y(0.38)); g.lineTo(X(-0.76), Y(0.38)); g.quadraticCurveTo(X(-0.8), Y(0.5), X(-0.72), Y(0.6));
   g.lineTo(X(-0.58), Y(0.56)); g.closePath(); g.fill();
+  // the fender gills behind the front wheel: three slats
+  g.fillStyle = 'rgba(20,14,18,0.85)';
+  for (let k = 0; k < 3; k++) { const x = 0.78 - k * 0.06; g.beginPath(); g.moveTo(X(x), Y(0.5)); g.lineTo(X(x + 0.03), Y(0.5)); g.lineTo(X(x + 0.06), Y(0.68)); g.lineTo(X(x + 0.03), Y(0.68)); g.closePath(); g.fill(); }
   // the door handle
-  g.fillStyle = 'rgba(30,20,26,0.8)'; g.fillRect(X(-0.38), Y(0.7), 26, 5);
+  g.fillStyle = 'rgba(30,20,26,0.8)'; g.fillRect(X(-0.38), Y(0.78), 26, 5);
+  g.restore();
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
@@ -296,10 +347,12 @@ function glassTex() {
   c.width = c.height = S;
   const g = c.getContext('2d');
   const grad = g.createLinearGradient(0, 0, 0, S);
-  grad.addColorStop(0, 'rgba(58,64,92,0.86)');
-  grad.addColorStop(1, 'rgba(34,38,58,0.72)');
+  grad.addColorStop(0, 'rgba(168,186,215,0.92)');    // the sky, pale in the top of the glass
+  grad.addColorStop(0.35, 'rgba(96,110,148,0.85)');
+  grad.addColorStop(0.7, 'rgba(52,58,86,0.78)');
+  grad.addColorStop(1, 'rgba(34,38,58,0.7)');
   g.fillStyle = grad; g.fillRect(0, 0, S, S);
-  g.fillStyle = 'rgba(220,232,255,0.55)';
+  g.fillStyle = 'rgba(220,232,255,0.62)';
   g.beginPath(); g.moveTo(S * 0.3, 0); g.lineTo(S * 0.48, 0); g.lineTo(S * 0.18, S); g.lineTo(S * 0.0, S); g.closePath(); g.fill();
   g.fillStyle = 'rgba(220,232,255,0.4)';
   g.beginPath(); g.moveTo(S * 0.56, 0); g.lineTo(S * 0.62, 0); g.lineTo(S * 0.32, S); g.lineTo(S * 0.26, S); g.closePath(); g.fill();
@@ -416,7 +469,7 @@ function painted(g, shade = 1) {
   if (!g.getAttribute('normal')) g.computeVertexNormals();
   const p = g.getAttribute('position'), n = p.count;
   const uv = new Float32Array(n * 2), col = new Float32Array(n * 3).fill(shade);
-  for (let i = 0; i < n; i++) { uv[i * 2] = (p.getX(i) + HL) / RX7.L; uv[i * 2 + 1] = p.getY(i) / PAINT_V; }
+  for (let i = 0; i < n; i++) { uv[i * 2] = (p.getX(i) + HL) / RX7.L; uv[i * 2 + 1] = (p.getY(i) / PAINT_V) * SIDE_V; }
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   return g;
@@ -451,8 +504,8 @@ export function makeRX7() {
   const paint = cel({ color: 0xffffff, map: paintTex(), bands: 3, tint: 0x6a4a78, flat: false, vertexColors: true });
   const glassMat = new THREE.MeshBasicMaterial({ map: glassTex(), transparent: true, depthWrite: false, side: THREE.DoubleSide });
   const trim = cel({ color: 0x1d1c22, bands: 2, tint: 0x3b3550 });
-  const interior = cel({ color: 0x3a3842, bands: 2, tint: 0x4b4560, side: THREE.BackSide });
-  const seatMat = cel({ color: 0x34323c, bands: 3, tint: 0x4b4560, flat: false });
+  const interior = cel({ color: 0x43414b, bands: 2, tint: 0x4b4560, side: THREE.BackSide });
+  const seatMat = cel({ color: 0x3c3a45, bands: 3, tint: 0x4b4560, flat: false });
   const tail = flat({ color: 0x8a1f26 });
 
   /* the body */
@@ -473,7 +526,8 @@ export function makeRX7() {
   const inDoor = (i) => xs[i] >= RX7.door[0] - 1e-6 && xs[i + 1] <= RX7.door[1] + 1e-6;
   const body = gridParts(P, {
     closed: false,
-    uv: paintUV,
+    // the sides take the paint's side band, the tops (bonnet, deck) its plan band
+    uv: (p, i, j) => (secs[i][j < SEC_N ? j : RING - 1 - j][3] === 'top' ? planUV(p) : paintUV(p)),
     shade: (i, j) => { const jj = j < SEC_N ? j : RING - 1 - j; return secs[i][jj][2]; },
     classify: (i, j) => {
       // the driver's door: its side rows between the edges, right side only
@@ -536,7 +590,12 @@ export function makeRX7() {
   // glass: its own UVs, so the highlight streaks run across each pane
   const glassUV = (g, x0, x1) => {
     const p = g.getAttribute('position'), uv = g.getAttribute('uv');
-    for (let i = 0; i < p.count; i++) uv.setXY(i, (p.getX(i) - x0) / (x1 - x0) * 2.2, (p.getY(i) - 0.75) / 0.48);
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), v = (p.getY(i) - 0.8) / 0.45;
+      // the windscreen: its streaks run across, from the driver's corner
+      if (x > CAB.rf + 0.02) uv.setXY(i, 0.15 + (0.5 - p.getZ(i) / 1.5) * 1.3, v);
+      else uv.setXY(i, (x - x0) / (x1 - x0) * 2.2, v);
+    }
     uv.needsUpdate = true;
   };
   glassUV(cab.glass, CAB.tail, CAB.cowl);
@@ -554,13 +613,19 @@ export function makeRX7() {
     blade.rotateZ(0.08);
     blade.translate(-1.98, 1.29, 0);
     wingParts.push(blade);
+    // the end plates: rounded, deeper at the back
+    const ps = new THREE.Shape();
+    ps.moveTo(-0.2, -0.06); ps.lineTo(0.14, -0.04); ps.quadraticCurveTo(0.22, -0.03, 0.22, 0.04); ps.lineTo(0.22, 0.09);
+    ps.quadraticCurveTo(0.22, 0.13, 0.17, 0.13); ps.lineTo(-0.16, 0.1); ps.quadraticCurveTo(-0.2, 0.1, -0.2, 0.06); ps.closePath();
     for (const s of [-1, 1]) {
-      const up = new THREE.BoxGeometry(0.12, 0.34, 0.03);
-      up.rotateZ(-0.12);
-      up.translate(-1.93, 1.13, s * 0.58);
+      // the upright: a swept blade, wider at its foot
+      const us = new THREE.Shape();
+      us.moveTo(-0.14, 0); us.lineTo(0.1, 0); us.lineTo(0.02, 0.33); us.lineTo(-0.06, 0.33); us.closePath();
+      const up = new THREE.ExtrudeGeometry(us, { depth: 0.03, bevelEnabled: false });
+      up.translate(-1.9, 0.97, s * 0.58 - 0.015);
       wingParts.push(up);
-      const plate = new THREE.BoxGeometry(0.4, 0.17, 0.02);
-      plate.translate(-1.99, 1.29, s * 0.93);
+      const plate = new THREE.ExtrudeGeometry(ps, { depth: 0.02, bevelEnabled: false, curveSegments: 6 });
+      plate.translate(-1.99, 1.27, s * 0.93 - 0.01);
       wingParts.push(plate);
     }
   }
@@ -610,8 +675,8 @@ export function makeRX7() {
   const x1 = xs[xs.length - 1], x0 = xs[0];
   {
     // front: the big mouth and its two outer ducts, on the bumper face
-    const mouth = new THREE.CapsuleGeometry(0.068, 0.6, 4, 12);   // a wide, round-ended mouth
-    mouth.rotateX(Math.PI / 2); mouth.scale(0.35, 1, 1); mouth.translate(x1 + 0.03, 0.27, 0);
+    const mouth = new THREE.CapsuleGeometry(0.1, 0.72, 4, 12);   // the Fortune's wide, round-ended mouth
+    mouth.rotateX(Math.PI / 2); mouth.scale(0.3, 1, 1); mouth.translate(x1 + 0.03, 0.3, 0);
     trimParts.push(mouth);
     const splitter = new THREE.BoxGeometry(0.3, 0.02, 1.36);
     splitter.translate(x1 - 0.17, 0.125, 0);
@@ -627,8 +692,8 @@ export function makeRX7() {
       trimParts.push(skirt);
     }
     // rear: the dark panel the lamps sit in, the diffuser, the plate recess
-    const panel = new THREE.BoxGeometry(0.03, 0.2, 1.46);
-    panel.translate(x0 - 0.01, 0.7, 0);
+    const panel = new THREE.BoxGeometry(0.03, 0.2, 1.58);
+    panel.translate(x0 - 0.01, 0.72, 0);
     trimParts.push(panel);
     const diff = new THREE.BoxGeometry(0.3, 0.05, 1.2);
     diff.translate(x0 + 0.1, 0.27, 0);
@@ -640,19 +705,22 @@ export function makeRX7() {
     }
   }
 
-  // tail lamps: two round, smoked lamps each side
-  const lampParts = [];
-  for (const s of [-1, 1]) for (const z of [0.42, 0.62]) {
-    const ring = new THREE.CylinderGeometry(0.082, 0.082, 0.03, 24);
-    ring.rotateZ(Math.PI / 2); ring.translate(x0 - 0.02, 0.7, s * z);
+  // tail lamps: the FD's three round lamps a side (the inner one the reverse lamp), in bezels
+  const lampParts = [], reverseParts = [];
+  for (const s of [-1, 1]) for (const [k, z] of [0.36, 0.53, 0.7].entries()) {
+    const ring = new THREE.CylinderGeometry(0.075, 0.075, 0.03, 24);
+    ring.rotateZ(Math.PI / 2); ring.translate(x0 - 0.02, 0.72, s * z);
     trimParts.push(ring);
-    const lens = new THREE.CylinderGeometry(0.06, 0.06, 0.03, 24);
-    lens.rotateZ(Math.PI / 2); lens.translate(x0 - 0.03, 0.7, s * z);
-    lampParts.push(lens);
+    const lens = new THREE.CylinderGeometry(0.056, 0.056, 0.03, 24);
+    lens.rotateZ(Math.PI / 2); lens.translate(x0 - 0.03, 0.72, s * z);
+    (k === 0 ? reverseParts : lampParts).push(lens);
   }
   const tailMesh = new THREE.Mesh(mergeGeos(lampParts), tail);
   tailMesh.userData.noOutline = true;
   group.add(tailMesh);
+  const reverseMesh = new THREE.Mesh(mergeGeos(reverseParts), flat({ color: 0xd9dbd6 }));
+  reverseMesh.userData.noOutline = true;
+  group.add(reverseMesh);
 
   // exhausts: twin round tips, chrome
   {

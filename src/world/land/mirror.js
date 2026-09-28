@@ -133,11 +133,13 @@ export function makeMirror(flatGeo, y, chopTex, { size = 768, base, deep, name =
 export const REFLECT = 5;
 
 /**
- * Put on the REFLECT layer every mesh whose world box touches `rect`
- * ([x0, z0, x1, z1], world), everything outside `townRoot` (sky, clouds,
- * Fuji), and every light.  Run once, after the world is built.
+ * Put on the REFLECT layer every mesh whose world box touches one of
+ * `rects` ([x0, z0, x1, z1], world; one rect or a list: the pond's, the
+ * river's), everything outside `townRoot` (sky, clouds, Fuji), and every
+ * light.  Run once, after the world is built.
  */
-export function tagReflections(scene, townRoot, rect) {
+export function tagReflections(scene, townRoot, rects) {
+  if (typeof rects[0] === 'number') rects = [rects];
   const box = new THREE.Box3();
   const inTown = new Set();
   townRoot.traverse((o) => inTown.add(o));
@@ -146,8 +148,8 @@ export function tagReflections(scene, townRoot, rect) {
   // shadow stand-ins, not the falling petals)
   const WORTH = /sakura|pine|camphor|maple|zelkova|grove|canopy|willow|shrub|land|koi|duck|turtle|egret|heron/i;
   const SKIP = /shadow|petal|shower/i;
-  const touches = () => box.max.x > rect[0] && box.min.x < rect[2] && box.max.z > rect[1] && box.min.z < rect[3];
-  const inside = () => box.min.x >= rect[0] && box.max.x <= rect[2] && box.min.z >= rect[1] && box.max.z <= rect[3];
+  const touches = () => rects.some((rect) => box.max.x > rect[0] && box.min.x < rect[2] && box.max.z > rect[1] && box.min.z < rect[3]);
+  const inside = () => rects.some((rect) => box.min.x >= rect[0] && box.max.x <= rect[2] && box.min.z >= rect[1] && box.max.z <= rect[3]);
   scene.traverse((o) => {
     if (o.isLight) { o.layers.enable(REFLECT); return; }
     if (!o.isMesh && !o.isPoints && !o.isLine) return;

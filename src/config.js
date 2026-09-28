@@ -307,6 +307,7 @@ export const TOWN = {
       { x: 0, w: 3.2, side: 'far' },
     ],
     stones: { x: 0, top: -2.5 },            // 飛び石 across the water, on the spawn's axis
+    riverMirror: [-130, 130],                // the stretch of river (x) that mirrors its banks when you are near (land/channel.js)
     farTop: { z0: -37, z1: -34 },            // the far river walk, railing at z1: the town's edge
     far: [-118, -41, 118, -37],             // what lies past the far walk: a verge, then the tree line
     /* 鏡池, in the town's corner by the railway (the freed east block): a

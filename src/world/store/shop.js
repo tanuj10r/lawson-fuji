@@ -10,27 +10,27 @@ import { makeCashier } from './cashier.js';
 import { makeEating } from './eat.js';
 
 /* ------------------------------------------------------------------ *
- * The Nippon Konbini (Tan's experience; SPEC 6 made simple).
+ * The Nippon Konbini (Tan's experience, made a scene: 2026-09-28).
  *
- * Everybody has ¥1,000.  Walk in to the chime and "irasshaimase", and your
- * two hands rise into view: the left holds the folded note, the right
- * takes what you pick.  Four things glow: the sando case (an egg sando and
- * a fruit sando side by side), the onigiri, the Strong Nine in the chu-hi
- * fridge and the Choco Wafer Jumbo in the ice case.  Take up to two (E);
- * X puts the last one back.  Everything else on the shelves is scenery.
+ * Tan: "very simple ... just experience the nostalgia that a konbini
+ * carries".  You don't roam the store.  Stand on the highlighted spot at the
+ * door and choose one thing (main.js shows the choice); then it plays out
+ * in first person, no skipping: you walk to the door, it slides open to
+ * the chime, "irasshaimase"; down the aisle to the shelf, your hand takes
+ * it; to the till, where the cashier scans it (the beep), says the total,
+ * your note goes on the tray, the drawer, the coins, "arigatou
+ * gozaimasu"; out through the door (the chime again, "arigatou
+ * gozaimashita") and you eat or drink it outside.  Then you are yours
+ * again.  The Strong Nine leaves you a little tipsy (main.js).
  *
- * At the till (E) the cashier scans each one, says the total, your left
- * hand pays, the change comes back into it, "arigatou gozaimasu".  You
- * can't walk out with anything unpaid: the door stays shut and says so.
- * Outside you eat it all, first person.  Then the spot by the door is
- * marked done, and you can go in again: a fresh ¥1,000 each visit.
- *
- * Aiming is boxes, not meshes (M3c): the featured facings, and the till.
- * Only indoors.  The hands, what they hold and the flights are drawn on
- * top of the world (store/figure.js).
+ * The walk is planned on the store's own colliders (a small grid search),
+ * so it keeps to the aisles whatever the planogram does.  The hands, what
+ * they hold and the flights are drawn on top of the world (store/figure.js).
  * ------------------------------------------------------------------ */
 
 const hw = LAWSON.width / 2;
+/** The highlighted spot outside the door (store frame): where you choose, and where you eat. */
+export const SPOT = { x: LAWSON.doorX, z: 2.3, r: 1.2 };
 const S = STRINGS.store;
 const Q = Math.PI / 2;
 /* every total two of the featured things can come to: each has its own
@@ -52,7 +52,7 @@ const TILL = {
   look: new THREE.Vector3(6.9, 1.3, REG_Z - 0.02),
 };
 
-export function makeShop(inside, { doors, lit }) {
+export function makeShop(inside, { doors, lit, colliders = [], entrance = null }) {
   const units = inside.userData.units;
 
   /* ------------------- the featured facings, as boxes ------------------- */
@@ -74,62 +74,6 @@ export function makeShop(inside, { doors, lit }) {
       && u.centre[d.spec.holds.axis] >= d.spec.holds.a && u.centre[d.spec.holds.axis] < d.spec.holds.b) ?? null;
     pickable.push(u);
   }
-
-  /* ---- the four spots: a soft glow behind the block and on its shelf edge, a marker ----
-   * Only while you are inside (the famous views never see them).  All of it is
-   * userData.dynamic: the town's static merge must not bake it in place. */
-  const glowTex = (radial) => {
-    const c = document.createElement('canvas');
-    c.width = 64; c.height = radial ? 64 : 32;
-    const g = c.getContext('2d');
-    const gr = radial ? g.createRadialGradient(32, 32, 2, 32, 32, 32) : g.createLinearGradient(0, 0, 0, 32);
-    if (radial) { gr.addColorStop(0, 'rgba(255,226,140,1)'); gr.addColorStop(0.55, 'rgba(255,214,110,0.55)'); gr.addColorStop(1, 'rgba(255,214,110,0)'); }
-    else { gr.addColorStop(0, 'rgba(255,215,106,0)'); gr.addColorStop(0.5, 'rgba(255,236,160,1)'); gr.addColorStop(1, 'rgba(255,215,106,0)'); }
-    g.fillStyle = gr; g.fillRect(0, 0, 64, c.height);
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  };
-  const glow = { depthWrite: false, transparent: true, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0 };
-  const glowMat = new THREE.MeshBasicMaterial({ map: glowTex(false), ...glow });
-  const haloMat = new THREE.MeshBasicMaterial({ map: glowTex(true), ...glow });
-  const gemMat = new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, depthWrite: false, toneMapped: false, opacity: 0 });
-  const gemGeo = new THREE.OctahedronGeometry(0.05, 0).scale(1, 1.5, 1);
-  const spots = FEATURED.map((f) => {
-    const us = pickable.filter((u) => u.feature === f.key);
-    const box = new THREE.Box3();
-    for (const u of us) box.union(u.box);
-    const s = us[0]?.slot;
-    const g = new THREE.Group();
-    g.name = 'spot-' + f.key;
-    g.visible = false;
-    g.userData.dynamic = true;
-    if (s) {
-      const c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
-      const along = s.zone === 'chilled' ? sz.z : sz.x;
-      const strip = new THREE.Mesh(new THREE.PlaneGeometry(along + 0.14, 0.12), glowMat);
-      const halo = new THREE.Mesh(new THREE.PlaneGeometry(along + 0.5, s.zone === 'icecase' ? sz.z + 0.35 : 0.5), haloMat);
-      const gem = new THREE.Mesh(gemGeo, gemMat);
-      if (s.zone === 'chilled') {                 // the rail faces the aisle (+x); the halo on the case's back
-        strip.position.set(s.rail + 0.006, s.y - 0.03, c.z); strip.rotation.y = Q;
-        halo.position.set(-hw + 0.28 + 0.125, s.y + 0.14, c.z); halo.rotation.y = Q;
-        gem.position.set(s.rail + 0.12, s.y + 0.22, c.z);
-      } else if (s.zone === 'drinks') {           // behind the fridge door: the rail, the cooler's back; the marker out front
-        strip.position.set(c.x, s.y - 0.045, s.rail + 0.004);
-        halo.position.set(c.x, s.y + 0.14, -LAWSON.depth + 0.28 + 0.06);
-        gem.position.set(c.x, s.y + 0.26, s.rail + 0.2);
-      } else {                                    // the ice case: its front rim, and the basket's floor
-        strip.position.set(c.x, 0.815, -3.0 + 0.008);
-        halo.position.set(c.x, 0.605, c.z); halo.rotation.x = -Q;
-        gem.position.set(c.x, 1.1, c.z);
-      }
-      for (const m of [strip, halo, gem]) { m.userData.noOutline = true; m.renderOrder = 5; }
-      g.add(halo, strip, gem);
-      g.userData.gem = gem; g.userData.y = gem.position.y;
-    }
-    inside.add(g);
-    return { ...f, units: us, box, group: g };
-  });
 
   /* ----------------------------- the cast ----------------------------- */
   const view = new THREE.Group();          // follows the camera (main.js adds it to the scene)
@@ -192,14 +136,20 @@ export function makeShop(inside, { doors, lit }) {
   let wasInside = false, wallet = STORE.wallet, change = 0;
   let phase = 'out';            // out | shop | till | paid | eat
   let checkout = null;          // the running checkout's timeline
-  let doorHint = false, primed = false;
+  let primed = false;
   const api = {
     view, fx, hands, cashier,
     get held() { return held; },
     get phase() { return phase; },
     get wallet() { return wallet; },
-    get busy() { return phase === 'till'; },
-    get canPutBack() { return phase === 'shop' && held.some((h) => !h.paid && h.where === 'hand'); },
+    get busy() { return visit.active || phase === 'till'; },
+    /** Scripted: the visit is playing (main.js leaves the player alone). */
+    get visiting() { return visit.active; },
+    /** Standing on the highlighted spot at the door, free to choose. */
+    atSpot: false,
+    /** What you can choose (catalogue ids), in the order main.js lists them. */
+    menu: FEATURED.flatMap((f) => f.ids),
+    onTipsy: null,             // main.js: after the Strong Nine
     onChange: null,            // main.js: the HUD
     onSay: null,               // main.js: a line spoken, for the subtitles
     flash: null,               // main.js: hud.flash
@@ -212,10 +162,7 @@ export function makeShop(inside, { doors, lit }) {
   const changed = () => api.onChange?.(api.hud());
   api.hud = () => ({
     wallet: phase === 'paid' || phase === 'eat' ? wallet : STORE.wallet - total(),
-    slots: [0, 1].map((i) => { const h = held.find((x) => x.hand === i && x.where !== 'gone'); return h ? { id: h.id, paid: h.paid } : null; }),
-    paid: phase === 'paid' || phase === 'eat',
-    change,
-    show: (wasInside || phase === 'paid' || phase === 'eat') && phase !== 'out',
+    show: false,
   });
 
   /* ------------------------------ sounds ------------------------------ */
@@ -296,26 +243,6 @@ export function makeShop(inside, { doors, lit }) {
     refreshSlot(u);
     if (u.count > 0 && u.slot.zone !== 'icecase') slides.push({ u, t: -0.08 });
     changed();
-  }
-  /** Put the last unpaid thing back on its shelf (X). */
-  function putBack() {
-    const h = [...held].reverse().find((x) => !x.paid && x.where === 'hand');
-    if (!h || phase !== 'shop') return false;
-    const from = worldOf(h.mesh).clone();
-    h.where = 'gone';
-    hands[h.hand ? 'L' : 'R'].item = null;
-    held.splice(held.indexOf(h), 1);
-    fly(h.mesh, from, () => unitMatrix(h.u, new THREE.Matrix4()).premultiply(inside.matrixWorld), {
-      done: () => { fx.remove(h.mesh); h.u.count++; refreshSlot(h.u); api.onSound?.('put', h.u); },
-    });
-    // the other one moves to the right hand, so the right is always the first
-    const other = held.find((x) => x.where === 'hand' && x.hand === 1);
-    if (other && h.hand === 0) {
-      other.hand = 0; hands.L.item = null; hands.R.item = other;
-      holdIn(other.mesh, hands.anchor(0));
-    }
-    changed();
-    return true;
   }
   /** Walked out with unpaid things (a famous-view key, say): they go straight back. */
   function returnUnpaid() {
@@ -410,7 +337,6 @@ export function makeShop(inside, { doors, lit }) {
       wallet = change;
       if (api.player) api.player.suspended = false;
       cashier.lookAt = lookTarget;
-      api.flash?.(S.paid(change), 3200);
       changed();
     });
     checkout = { ev, t: 0, from, sum };
@@ -453,41 +379,218 @@ export function makeShop(inside, { doors, lit }) {
     phase = wasInside ? 'shop' : 'out';
     if (!wasInside) hands.raise(false);
     api.spot?.done();
-    api.flash?.(S.ate, 4200);
     changed();
   }
 
-  /* ----------------------------- aiming ----------------------------- */
-  const ray = new THREE.Ray(), inv = new THREE.Matrix4(), hit = new THREE.Vector3(), eye = new THREE.Vector3();
-  const targets = new Map();
-  const target = (key, make) => targets.get(key) ?? targets.set(key, make()).get(key);
-  let aimed = null;
-  function aim(camera) {
-    inv.copy(inside.matrixWorld).invert();
-    camera.getWorldPosition(ray.origin);
-    camera.getWorldDirection(ray.direction);
-    ray.applyMatrix4(inv);
-    eye.copy(ray.origin);
-    const R = STORE.reach;
-    // the till: pay for what you hold
-    if (ray.intersectBox(TILL.box, hit) && hit.distanceTo(eye) < R + 0.4) {
-      if (phase === 'shop' && held.some((h) => !h.paid && h.where === 'hand')) {
-        return target('pay' + total(), () => ({ label: S.pay(total()), action: startCheckout, kind: 'till' }));
+  const inv = new THREE.Matrix4();
+  /* ------------------------------ the visit ------------------------------ */
+  const visit = { active: false, id: null, eat: false, queue: [], cur: null, armed: true };
+  const WALK = 1.5;                         // m/s, an easy stroll
+
+  /* Where you can stand: the store's floor and the forecourt on a 15 cm
+   * grid, clear of every collider by the player's radius (the entrance's
+   * own leaves excepted: they open for you). */
+  let grid = null;
+  function makeGrid() {
+    const C = 0.15, R = 0.4;
+    const X0 = -hw + 0.1, X1 = hw - 0.1, Z0 = -LAWSON.depth + 0.1, Z1 = 3.4;
+    const nx = Math.ceil((X1 - X0) / C), nz = Math.ceil((Z1 - Z0) / C);
+    const solid = colliders.filter((c) => !(c.top !== undefined && c.top <= 0.38)
+      && !(entrance && c.x0 === entrance.d0 && c.x1 === entrance.d1));
+    const free = new Uint8Array(nx * nz);
+    for (let iz = 0; iz < nz; iz++) for (let ix = 0; ix < nx; ix++) {
+      const x = X0 + (ix + 0.5) * C, z = Z0 + (iz + 0.5) * C;
+      free[iz * nx + ix] = solid.some((c) => x > c.x0 - R && x < c.x1 + R && z > c.z0 - R && z < c.z1 + R) ? 0 : 1;
+    }
+    return { C, X0, Z0, nx, nz, free,
+      cell: (x, z) => [Math.floor((x - X0) / C), Math.floor((z - Z0) / C)],
+      at: (ix, iz) => new THREE.Vector2(X0 + (ix + 0.5) * C, Z0 + (iz + 0.5) * C),
+      ok: (x, z) => { const ix = Math.floor((x - X0) / C), iz = Math.floor((z - Z0) / C); return ix >= 0 && iz >= 0 && ix < nx && iz < nz && free[iz * nx + ix] === 1; } };
+  }
+  /** The free cell nearest (x, z). */
+  function nearestFree(g, x, z) {
+    let [cx, cz] = g.cell(x, z), best = null, bd = Infinity;
+    for (let r = 0; r < 20 && !best; r++) for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+      const ix = cx + dx, iz = cz + dz;
+      if (ix < 0 || iz < 0 || ix >= g.nx || iz >= g.nz || !g.free[iz * g.nx + ix]) continue;
+      const d = dx * dx + dz * dz;
+      if (d < bd) { bd = d; best = [ix, iz]; }
+    }
+    return best;
+  }
+  /** A smooth walk from (x, z) to `to` through free floor: breadth-first on the grid, pulled taut, corners rounded. */
+  function plan(from, to) {
+    grid ??= makeGrid();
+    const g = grid;
+    const a = nearestFree(g, from.x, from.y), b = nearestFree(g, to.x, to.y);
+    if (!a || !b) return [from.clone(), to.clone()];
+    const N = g.nx * g.nz, prev = new Int32Array(N).fill(-1);
+    const start = a[1] * g.nx + a[0], goal = b[1] * g.nx + b[0];
+    const q = [start]; prev[start] = start;
+    for (let h = 0; h < q.length && prev[goal] < 0; h++) {
+      const c = q[h], cx = c % g.nx, cz = (c / g.nx) | 0;
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+        const ix = cx + dx, iz = cz + dz, n = iz * g.nx + ix;
+        if ((!dx && !dz) || ix < 0 || iz < 0 || ix >= g.nx || iz >= g.nz || !g.free[n] || prev[n] >= 0) continue;
+        if (dx && dz && (!g.free[cz * g.nx + ix] || !g.free[iz * g.nx + cx])) continue;    // no corner cutting
+        prev[n] = c; q.push(n);
       }
     }
-    if (phase !== 'shop') return null;
-    let best = null, bestT = R;
-    for (const u of pickable) {
-      if (u.count <= 0) continue;
-      if (Math.abs(u.centre.x - eye.x) > R + 0.5 || Math.abs(u.centre.z - eye.z) > R + 0.5) continue;
-      if (!ray.intersectBox(u.box, hit)) continue;
-      const t = hit.distanceTo(eye);
-      if (t < bestT) { bestT = t; best = u; }
+    if (prev[goal] < 0) return [from.clone(), to.clone()];
+    const cells = [];
+    for (let c = goal; ; c = prev[c]) { cells.push(g.at(c % g.nx, (c / g.nx) | 0)); if (c === start) break; }
+    cells.reverse();
+    // pulled taut: from each point, the farthest one still in plain sight
+    const sight = (p, q2) => { const n = Math.ceil(p.distanceTo(q2) / 0.07); for (let i = 1; i < n; i++) { const t2 = i / n; if (!g.ok(p.x + (q2.x - p.x) * t2, p.y + (q2.y - p.y) * t2)) return false; } return true; };
+    let pts = [from.clone()];
+    let i = 0;
+    const all = [from.clone(), ...cells, to.clone()];
+    while (i < all.length - 1) {
+      let j = all.length - 1;
+      while (j > i + 1 && !sight(all[i], all[j])) j--;
+      pts.push(all[j].clone());
+      i = j;
     }
-    if (!best) return null;
-    if (inHands().length >= STORE.carry) return target('full', () => ({ label: S.handsFull, action: () => api.flash?.(S.handsFull), kind: 'full', unit: null }));
-    const p = PRODUCT[best.id];
-    return target(best, () => ({ label: S.take(p.nameEn, p.priceYen), action: () => take(best), unit: best, kind: 'item' }));
+    // corners rounded (Chaikin, twice), the ends kept
+    for (let k = 0; k < 2; k++) {
+      const out = [pts[0]];
+      for (let m = 0; m < pts.length - 1; m++) {
+        const p = pts[m], q2 = pts[m + 1];
+        if (m > 0) out.push(p.clone().lerp(q2, 0.25));
+        if (m < pts.length - 2) out.push(p.clone().lerp(q2, 0.75));
+      }
+      out.push(pts[pts.length - 1]);
+      pts = out;
+    }
+    return pts;
+  }
+
+  const P2 = (x, z) => new THREE.Vector2(x, z);
+  /** Where to stand to take from `u`: in the aisle in front of it. */
+  function standFor(u) {
+    const s = u.slot, c = u.centre;
+    if (s.zone === 'chilled') return P2(s.rail + 0.95, c.z);
+    if (s.zone === 'drinks') return P2(c.x, s.rail + 0.95);
+    return P2(c.x, -3.0 + 0.62);                    // the ice case's front rim
+  }
+  /** Turn to look at `p` (store frame, a Vector3). */
+  function lookAngles(p, camera) {
+    const w = at(p).sub(camera.position);
+    return { yaw: Math.atan2(-w.x, -w.z), pitch: Math.atan2(w.y, Math.hypot(w.x, w.z)) };
+  }
+  const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+  /* The scene, as a queue of steps; each is { kind, ... } and runs until done. */
+  const walkTo = (to) => ({ kind: 'walk', to });
+  const face = (p, dur = 0.7) => ({ kind: 'face', p, dur });
+  const act = (fn) => ({ kind: 'do', fn });
+  const until = (cond) => ({ kind: 'wait', cond });
+  const pause = (sec) => ({ kind: 'pause', sec });
+
+  /** Play the visit for catalogue id `id` (one of api.menu). */
+  api.play = (id) => {
+    if (visit.active || !api.player) return false;
+    const u = pickable.filter((x) => x.id === id && x.count > 0)[0];
+    if (!u) return false;
+    const p = api.player;
+    visit.active = true; visit.id = id; visit.eat = false;
+    p.scripted = true; p.suspended = true;
+    p.vel.set(0, 0, 0);
+    const street = new THREE.Vector3(SPOT.x + 0.6, 1.45, SPOT.z + 12);
+    visit.queue = [
+      walkTo(standFor(u)),
+      face(u.centre.clone(), 0.8),
+      pause(0.25),
+      act(() => take(u)),
+      until(() => held.some((h) => h.where === 'hand') && !flights.length && !pendingTakes.length),
+      pause(0.5),
+      walkTo(P2(TILL.stand.x, TILL.stand.z)),
+      face(TILL.look, 0.6),
+      act(() => startCheckout()),
+      until(() => phase === 'paid'),
+      pause(0.4),
+      walkTo(P2(SPOT.x, SPOT.z + 0.1)),
+      face(street, 0.9),
+      act(() => { visit.eat = true; }),
+      until(() => phase === 'out' || phase === 'shop'),
+      pause(0.6),
+    ];
+    visit.cur = null;
+    return true;
+  };
+  function endVisit() {
+    const p = api.player;
+    visit.active = false; visit.eat = false; visit.armed = false;
+    p.scripted = false; p.suspended = false;
+    p.vel.set(0, 0, 0);
+    api.flash?.(S.ate, 4200);
+    if (visit.id === 'strong_nine') api.onTipsy?.();
+  }
+  const _l = new THREE.Vector3();
+  function stepVisit(dt, camera) {
+    const p = api.player;
+    let moving = 0;
+    for (let guard = 0; guard < 4; guard++) {
+      if (!visit.cur) {
+        visit.cur = visit.queue.shift() ?? null;
+        if (!visit.cur) { endVisit(); break; }
+        const c = visit.cur;
+        c.t = 0;
+        if (c.kind === 'walk') {
+          _l.copy(p.pos).applyMatrix4(inv.copy(inside.matrixWorld).invert());
+          c.path = plan(P2(_l.x, _l.z), c.to);
+          c.len = [0];
+          for (let i = 1; i < c.path.length; i++) c.len.push(c.len[i - 1] + c.path[i].distanceTo(c.path[i - 1]));
+          c.s = 0;
+        }
+        if (c.kind === 'face') { c.from = { yaw: p.yaw, pitch: p.pitch }; c.goal = lookAngles(c.p, camera); }
+        if (c.kind === 'do') { c.fn(); visit.cur = null; continue; }
+      }
+      const c = visit.cur;
+      c.t += dt;
+      if (c.kind === 'walk') {
+        const L = c.len[c.len.length - 1];
+        const pt = (s) => {
+          s = Math.max(0, Math.min(L, s));
+          let i = 1;
+          while (i < c.len.length - 1 && c.len[i] < s) i++;
+          const k = (s - c.len[i - 1]) / Math.max(1e-6, c.len[i] - c.len[i - 1]);
+          return c.path[i - 1].clone().lerp(c.path[i], k);
+        };
+        // ease in and out over the first and last half metre
+        const v = WALK * Math.min(1, 0.35 + c.s / 0.6, 0.35 + (L - c.s) / 0.6);
+        let next = c.s + v * dt;
+        // the automatic door: wait for it to open
+        const q = pt(next);
+        if (entrance && q.y > -0.45 && q.y < 0.6 && Math.abs(q.x - LAWSON.doorX) < LAWSON.doorWidth && entrance.open < 0.8) next = c.s;
+        moving = (next - c.s) / Math.max(dt, 1e-6);
+        c.s = next;
+        const here = pt(c.s), ahead = pt(c.s + 0.9);
+        const w = inside.localToWorld(new THREE.Vector3(here.x, 0, here.y));
+        p.pos.x = w.x; p.pos.z = w.z;
+        p.pos.y += (p.world.heightAt(w.x, w.z, p.pos.y) - p.pos.y) * Math.min(1, dt * 18);
+        const d = ahead.sub(here);
+        if (d.lengthSq() > 1e-4) {
+          const wd = new THREE.Vector3(d.x, 0, d.y).transformDirection(inside.matrixWorld);
+          const yaw = Math.atan2(-wd.x, -wd.z);
+          p.yaw += wrap(yaw - p.yaw) * Math.min(1, dt * 3.5);
+        }
+        p.pitch += (-0.06 - p.pitch) * Math.min(1, dt * 3);
+        if (c.s >= L - 1e-3) visit.cur = null;
+      } else if (c.kind === 'face') {
+        const k = ease(clamp01(c.t / c.dur));
+        p.yaw = c.from.yaw + wrap(c.goal.yaw - c.from.yaw) * k;
+        p.pitch = c.from.pitch + (c.goal.pitch - c.from.pitch) * k;
+        if (c.t >= c.dur) visit.cur = null;
+      } else if (c.kind === 'pause') {
+        if (c.t >= c.sec) visit.cur = null;
+      } else if (c.kind === 'wait') {
+        if (c.cond()) visit.cur = null;
+      }
+      break;
+    }
+    p.bob += dt * moving * 6.4;
+    p.applyCamera(moving);
   }
 
   /* ------------------------------- frame ------------------------------- */
@@ -498,22 +601,22 @@ export function makeShop(inside, { doors, lit }) {
     local.copy(camera.position).applyMatrix4(inv.copy(inside.matrixWorld).invert());
     return local.x > -hw && local.x < hw && local.z < 0 && local.z > -LAWSON.depth;
   };
-  api.pick = (camera) => { aimed = aim(camera); return aimed; };
-  api.clearAim = () => { aimed = null; };
-  api.putBack = putBack;
+  api.pick = () => null;
+  api.clearAim = () => {};
   api.stats = inside.userData.stockStats;
   api.unitAt = (u) => inside.localToWorld(new THREE.Vector3(u.x, u.y, u.z));
   api.coolerAt = inside.localToWorld(new THREE.Vector3(-2.4, 1, -12.3));
   api.doors = doors;
   api.total = total;
   api.nearDoor = () => false;
-  /** The automatic door keeps shut on you while you hold anything unpaid (lawson.js asks). */
-  api.holdDoor = (p) => p.z < -0.15 && held.some((h) => !h.paid && h.where !== 'gone');
+  /** The automatic door opens for the visit only (you don't roam the store); anyone inside is let out. */
+  api.holdDoor = (p) => !visit.active && p.z > -0.15;
 
   let t = 0;
   const _e = new THREE.Vector3();
   api.update = (dt, camera, bob = 0) => {
     t += dt;
+    if (visit.active) stepVisit(dt, camera);
     camera.updateMatrixWorld();
     view.matrix.copy(camera.matrixWorld);
     view.matrixWorldNeedsUpdate = true;
@@ -540,13 +643,13 @@ export function makeShop(inside, { doors, lit }) {
     if (phase === 'till' && !inNow) abortCheckout();
 
     // outside with what you paid for, clear of the door: eat
-    if (phase === 'paid' && !inNow && local.z > 1.4) startEating();
+    if (phase === 'paid' && !inNow && local.z > 1.4 && (!visit.active || visit.eat)) startEating();
+    // the choice shows on the spot; after a visit, only once you have stepped off and back on
+    const dSpot = Math.hypot(local.x - SPOT.x, local.z - SPOT.z);
+    if (dSpot > SPOT.r + 0.3) visit.armed = true;
+    api.atSpot = visit.armed && !visit.active && !inNow && dSpot < SPOT.r;
     if (phase === 'eat') { eating.update(dt); if (eating.done) finishEating(); }
 
-    // the door won't let unpaid things out: say why, once per try
-    const atDoor = inNow && dDoor < 1.9 && api.holdDoor(local);
-    if (atDoor && !doorHint) api.flash?.(S.notOut, 3200);
-    doorHint = atDoor;
 
     /* the checkout's timeline, and the view easing onto the till */
     if (checkout) {
@@ -589,17 +692,6 @@ export function makeShop(inside, { doors, lit }) {
     }
     doors.update(dt, local);
 
-    // the glows, only while you are inside; dimmed when your hands are full
-    const full = inHands().length >= STORE.carry || phase !== 'shop';
-    glowMat.opacity = inNow ? (full ? 0.15 : 0.7 + 0.25 * Math.sin(t * 2.6)) : 0;
-    haloMat.opacity = inNow ? (full ? 0.08 : 0.3 + 0.1 * Math.sin(t * 2.6)) : 0;
-    gemMat.opacity = inNow && !full ? 0.9 : 0;
-    for (const sp of spots) {
-      sp.group.visible = inNow && phase === 'shop';
-      const gem = sp.group.userData.gem;
-      if (gem) { gem.position.y = sp.group.userData.y + Math.sin(t * 1.8 + sp.box.min.x) * 0.02; gem.rotation.y = t * 1.2; }
-    }
-
     for (let k = slides.length - 1; k >= 0; k--) {
       const s = slides[k];
       s.t += dt / STORE.slide;
@@ -633,7 +725,18 @@ export function makeShop(inside, { doors, lit }) {
 
   if (import.meta.env?.DEV) {
     api.debug = {
-      pickable, spots, take, putBack, startCheckout, productGeometry, TILL,
+      pickable, take, startCheckout, visit: () => visit,
+      /** Stop the scene where it is (dev tests): everything put back, the player freed. */
+      cancel() {
+        if (!visit.active) return;
+        visit.queue = []; visit.cur = null;
+        if (phase === 'till') abortCheckout();
+        if (phase === 'eat') eating.stop();
+        for (const h of held) h.mesh.removeFromParent();
+        held.length = 0; hands.R.item = hands.L.item = null; hands.raise(false);
+        phase = 'out';
+        endVisit();
+      }, productGeometry, TILL,
       get flights() { return flights; }, get checkout() { return checkout; }, eating,
       /** Everything as it is when you walk in (dev shots): hands up, the greeting done. */
       reset() { returnUnpaid(); phase = wasInside ? 'shop' : 'out'; hands.snap(wasInside); },

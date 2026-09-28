@@ -126,7 +126,6 @@ if (shop) {
   shop.onChange = (s) => handsHud.update(s);
   shop.onSay = (line) => handsHud.say(line);
   shop.player = player;
-  // the konbini's spot by the door is aimed at like the town's (its E says what's inside)
   world.interactables.push(...(world.lawson.interactables ?? []));
 }
 /* The sound setting: one of the five (config VOLUME_STEPS), not a free
@@ -142,8 +141,8 @@ try {
 const hud = createHud({ volume: volumeStep });
 if (shop) {
   shop.flash = (text, error = false) => hud.flash(text, error ? 2800 : 2200, error);
-  // walking in with nothing yet: what to do here
-  shop.onEnter = () => { if (!shop.held.length) hud.flash(STRINGS.store.welcome, 4500); };
+  // the Strong Nine: ten seconds a little tipsy
+  shop.onTipsy = () => { tipsy = 0; hud.flash(STRINGS.store.tipsy, 3200); };
 }
 /* The sound (M4): one engine for the town and the store, started by the
  * same first click that takes the pointer lock (browsers start no audio
@@ -169,8 +168,7 @@ const walkList = walkAt.map(({ w, p }) => ({ x: p.x, z: p.z, on: false, sound: w
 if (import.meta.env?.DEV) window.__walkList = walkList;
 if (shop) {
   // the chime once as you come in and once as you go out, at the door
-  const enter = shop.onEnter;
-  shop.onEnter = () => { enter?.(); sound.storeChime(CHIME_AT); };
+  shop.onEnter = () => sound.storeChime(CHIME_AT);
   shop.onExit = () => sound.storeChime(CHIME_AT);
   shop.doors.onSound = (door, opening) => sound.fridgeDoor({ x: door.box.getCenter(_v).x, y: 1.2, z: _v.z }, opening);
   shop.onSound = (kind, u) => {
@@ -309,6 +307,73 @@ function leaveHero() {
 }
 player.onReleaseLook = leaveHero;
 
+/* The time of day (Tan, 2026-09-28): 1 2 3 change the light wherever you
+ * are, no longer a jump back to the famous view.  A short dip to dark hides
+ * the switch (the sky, the lamps, the grade all change at once). */
+const fadeEl = document.createElement('div');
+fadeEl.style.cssText = 'position:fixed;inset:0;background:#0c0a14;opacity:0;pointer-events:none;z-index:4';
+document.body.appendChild(fadeEl);
+let fade = null;
+function setTime(name) {
+  if (fade) return;
+  fade = { t: 0, name, done: false };
+}
+function timeFade(dt) {
+  if (!fade) return;
+  fade.t += Math.min(dt, 1 / 30) || 1 / 60;
+  const IN = 0.22, HOLD = 0.08, OUT = 0.4;
+  if (!fade.done && fade.t >= IN) {
+    fade.done = true;
+    lastView = fade.name;
+    applyLook(HERO_VIEWS[fade.name].look);
+    hud.flash(STRINGS.heroViews[fade.name]);
+  }
+  fadeEl.style.opacity = String(fade.t < IN ? fade.t / IN : Math.max(0, 1 - (fade.t - IN - HOLD) / OUT));
+  if (fade.t > IN + HOLD + OUT) { fade = null; fadeEl.style.opacity = '0'; }
+}
+
+/* The Nippon Fuji view as a place to stand (Tan): walk onto its highlight and
+ * the camera settles into the famous framing; walk off and it is yours. */
+const VIEW_SPOT = HERO_VIEWS.morning.play;
+let gliding = null;
+function viewSpot(dt) {
+  if (gliding) {
+    gliding.t += dt;
+    const k = THREE.MathUtils.smootherstep(gliding.t / 1.3, 0, 1);
+    const f = gliding.from;
+    player.pos.x = f.x + (VIEW_SPOT.pos[0] - f.x) * k;
+    player.pos.z = f.z + (VIEW_SPOT.pos[2] - f.z) * k;
+    player.yaw = f.yaw + Math.atan2(Math.sin(VIEW_SPOT.yaw - f.yaw), Math.cos(VIEW_SPOT.yaw - f.yaw)) * k;
+    player.pitch = f.pitch + (VIEW_SPOT.pitch - f.pitch) * k;
+    player.applyCamera(0);
+    if (gliding.t >= 1.3) { gliding = null; player.scripted = false; enterHero(lastView); }
+    return;
+  }
+  if (famousView || hero || player.scripted || player.seat || !player.locked || FROZEN) return;
+  if (Math.hypot(player.pos.x - VIEW_SPOT.pos[0], player.pos.z - VIEW_SPOT.pos[2]) < 0.8) {
+    gliding = { t: 0, from: { x: player.pos.x, z: player.pos.z, yaw: player.yaw, pitch: player.pitch } };
+    player.scripted = true;
+    player.vel.set(0, 0, 0);
+  }
+}
+
+/* The Strong Nine (Tan: "just a fun add-on"): ten seconds of a soft blur
+ * and a slow sway after you drink it.  A CSS filter on the canvas, so it
+ * costs nothing when it's over. */
+let tipsy = -1, tipsyT = 0;
+function tipsyStep(dt) {
+  if (tipsy < 0) return;
+  if (player.locked) tipsy += dt;
+  tipsyT += dt;
+  const k = Math.min(1, tipsy / 1.5) * Math.min(1, Math.max(0, (10 - tipsy) / 2));
+  canvas.style.filter = k > 0.01 ? `blur(${(k * 3).toFixed(2)}px)` : '';
+  if (tipsy >= 10) { tipsy = -1; canvas.style.filter = ''; return; }
+  // the world leans and drifts a little
+  player.yaw += Math.sin(tipsyT * 0.7) * 0.22 * k * dt;
+  camera.rotation.z += Math.sin(tipsyT * 1.1) * 0.05 * k;
+  camera.rotation.x += Math.sin(tipsyT * 0.8 + 1) * 0.02 * k;
+}
+
 /* Dev only: R lays the matching reference photo over the frame at 50%,
  * fitted by height like the photo lens, and switches to that lens.  Photos load from reference/ through
  * the dev server and never reach the build. */
@@ -391,8 +456,14 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   // seated (ひと休み): any key stands you up and does nothing else (core/player.js)
   if (player.seat) return;
-  // X: put the last thing you took back on its shelf (the konbini)
-  if (e.code === 'KeyX' && player.locked && shop?.canPutBack) shop.putBack();
+  // the konbini's choice: on the highlighted spot at its door, a number picks what you'll have
+  if (handsHud?.open && player.locked && /^Digit[1-9]$/.test(e.code)) {
+    const id = shop.menu[Number(e.code.slice(5)) - 1];
+    if (id && shop.play(id)) handsHud.menu(null);
+    return;
+  }
+  // nothing else while the konbini's scene plays (the time of day still changes)
+  if (shop?.visiting && !/^Digit[1-3]$/.test(e.code) && e.code !== 'KeyN') return;
   // M: the full town map (M2f); it holds your walking and looking while open (not while you pay)
   // (not opened while something else holds the player, e.g. the shrine's prayer)
   if (e.code === 'KeyM' && minimap && player.locked && !shop?.busy && (minimap.fullOpen || !player.suspended)) {
@@ -409,11 +480,9 @@ window.addEventListener('keydown', (e) => {
   // two quiet toggles, handy for seeing what the ink and grade passes do
   if (e.code === 'KeyO') pipeline.enabled.ink = !pipeline.enabled.ink;
   if (e.code === 'KeyG') pipeline.enabled.grade = !pipeline.enabled.grade;
+  // 1 2 3: the time of day, wherever you are (Tan)
   for (const [name, v] of Object.entries(HERO_VIEWS)) {
-    if (e.code === v.key) {
-      enterHero(name);
-      hud.flash(STRINGS.heroViews[name]);
-    }
+    if (e.code === v.key && name !== lastView) setTime(name);
   }
   if (e.code === 'KeyR' && refOverlay) {
     refOn = !refOn;
@@ -429,18 +498,14 @@ function controlRows(hovered) {
   if (minimap?.fullOpen) return [['M', K.closeMap]];
   // standing on a famous view the shot is the point (the minimap keeps off
   // it too): only how to take the camera back
+  if (shop?.visiting) return [['1 2 3', K.views]];
   if (hero || famousView) return [['WASD', K.leaveView], ['1 2 3', K.views]];
   if (player.seat) return [['Any key', K.standUp]];
   const rows = [['WASD', K.move], ['Mouse', K.look]];
-  if (shop?.inside(camera)) {
-    // in the store: take and pay, and putting one back
-    rows.push(['E', K.shop, !!hovered]);
-    rows.push(['X', K.putBack, shop.canPutBack]);
-  } else {
-    rows.push(['Shift', K.run]);
-    if (hovered) rows.push(['E', K.interact]);
-    rows.push(['M', K.map]);
-  }
+  if (handsHud?.open) rows.push([`1–${shop.menu.length}`, K.choose]);
+  rows.push(['Shift', K.run]);
+  if (hovered) rows.push(['E', K.interact]);
+  rows.push(['M', K.map], ['1 2 3', K.views]);
   rows.push(['N', K.sound], ['Space', K.pause]);
   return rows;
 }
@@ -461,7 +526,10 @@ function frame(now = 0) {
   if (import.meta.env?.DEV) window.__drawn = (window.__drawn ?? 0) + 1;
   const dt = FROZEN ? 0 : Math.min(clock.getDelta(), 1 / 20);
 
-  player.update(dt);
+  if (!player.scripted) player.update(dt);
+  viewSpot(dt);
+  tipsyStep(dt);
+  timeFade(dt);
   // walking off the spot hands the lens back to the player
   if (hero && (Math.abs(player.pos.x - heroAt.x) > 0.01 || Math.abs(player.pos.z - heroAt.z) > 0.01)) {
     leaveHero();
@@ -492,8 +560,13 @@ function frame(now = 0) {
 
   // in the store the shelves are aimed at by the shop; outside, the hitboxes
   let hovered = null;
-  if (shop) shop.update(dt, camera, player.bob);
-  if (player.locked && !shop?.busy && !player.seat) {   // not while paying (the till) or seated (ひと休み)
+  // the konbini's scene holds still while paused
+  if (shop) shop.update(shop.visiting && !player.locked ? 0 : dt, camera, player.bob);
+  if (handsHud) {
+    const want = shop.atSpot && player.locked && !FROZEN && !minimap?.fullOpen;
+    if (want !== handsHud.open) handsHud.menu(want ? shop.menu : null);
+  }
+  if (player.locked && !shop?.busy && !player.seat && !gliding) {   // not while paying (the till) or seated (ひと休み)
     hovered = shop?.inside(camera) ? shop.pick(camera) : player.pick(world.interactables);
   }
   if (shop && !hovered) shop.clearAim();
@@ -569,7 +642,7 @@ if (import.meta.env?.DEV) {
     // the shop: `opts.shop` seconds pass (flights land, doors swing), and what you carry follows the camera
     if (shop) {
       const steps = Math.round((opts.shop ?? 0) * 60);
-      for (let k = 0; k < steps; k++) shop.update(1 / 60, camera, 0);
+      for (let k = 0; k < steps; k++) { if (opts.stepWorld) world.update(1 / 60, camera); viewSpot(1 / 60); tipsyStep(1 / 60); shop.update(1 / 60, camera, 0); }
       shop.update(0, camera, 0);
     }
     seatLights();

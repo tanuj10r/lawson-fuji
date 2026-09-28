@@ -172,23 +172,31 @@ try {
     return { stood, prompt, hovered, audible: window.__audible() };
   }, { id, opts });
 
-  for (const id of ['konbini', 'han', 'shrine', 'station', 'train', 'donki', 'slowlife']) {
+  for (const id of ['han', 'shrine', 'station', 'train', 'donki', 'slowlife']) {
     const r = await visit(id, id === 'han' ? { d: 1.9 } : {});
     const ok = r && !r.error && /^E  ·  /.test(r.prompt) && english(r.prompt);
     if (!ok) bad++;
     console.log(ok ? 'pass' : 'FAIL', `10-prompt-${id}`, JSON.stringify(r));
   }
 
-  // the konbini's spot: says what's inside
+  // the konbini: walk onto its spot, the choice shows; a number starts the scene (no roaming, no skipping)
   await step('20-konbini', async () => {
     const { player } = window.__scene;
+    const S = window.__store.shop;
     const s = window.__spotOf('konbini');
-    window.__standBy(s.x, s.z, 2.2, 0.9, 0);
-    await window.__wait(400);
-    window.__press('KeyE');
+    player.pos.set(s.x, player.pos.y, s.z + 3);
     await window.__wait(300);
-    return { toasts: window.__toasts.slice(), prompt: window.__prompt(), frame: await window.__frame() };
-  }, (r) => r.toasts.length && r.toasts.every(english));
+    player.pos.set(s.x, player.pos.y, s.z);
+    await window.__wait(400);
+    const menu = !!document.querySelector('.kmenu.on');
+    window.__press('Digit2');
+    await window.__wait(1500);
+    const visiting = S.visiting;
+    window.__press('KeyW');                        // your keys don't move you while it plays
+    const frame = await window.__frame();
+    S.debug.cancel();
+    return { menu, visiting, menuAfter: !!document.querySelector('.kmenu.on'), frame };
+  }, (r) => r.menu && r.visiting && !r.menuAfter);
 
   // Han: E starts the show; the car leaves the bay and comes back
   await step('21-han', async () => {
@@ -319,7 +327,7 @@ try {
     window.__press('Digit1');
     await window.__wait(1500);
     return { mapOpen, suspended: player.suspended, yaw: +player.yaw.toFixed(2), pitch: +player.pitch.toFixed(2), at: [+player.pos.x.toFixed(1), +player.pos.z.toFixed(1)] };
-  }, (r) => !r.mapOpen && !r.suspended && r.at[0] === 0 && r.at[1] === 16.5);
+  }, (r) => !r.mapOpen && r.at[0] === -13);          // 1 2 3 change the light only: you stay where you are
   // Han's show, then straight into the store: nothing of his keeps going
   await step('42-han-then-store', async () => {
     const { sound } = window.__scene;

@@ -1674,3 +1674,10 @@ where below the bar, merged; builders' own calls in docs/decisions/*.md.
   the guard has room again.
 - **Checks on main after all merges:** konbini loop 15/15, audio all pass,
   walks all stuck 0, STOCK pass, train timing pass, guard pass.
+
+## Time of day, the view spot, the highlight, the konbini scene (2026-09-28, Tan's review)
+- 1 2 3 change the time of day wherever you are (a 0.7 s dip to dark hides the switch); they no longer jump to the famous view.
+- The Nippon Fuji view is an experience: its highlight at the photo spot (HERO_VIEWS.*.play); stepping on it glides the camera into the framing (1.3 s) and hands it back as you walk off.
+- The highlight (experiences.js): Tan found the first ring and diamond lame and the paper lanterns not evident. Now a crisp painted ring with a gold edge, a ripple running out from its middle, a column of warm light (the finder from afar, gone as you step in) and rising motes. 4 draws a spot when near, 2 far; no download.
+- Nippon Mart is a scene, not a store to roam: stand on its spot, pick one of five (egg sando, fruit sando, onigiri, Strong Nine, Choco Wafer Jumbo) with 1-5; the walk in, the take, the till, the walk out and eating play by themselves, no skipping (Tan). The walk is planned on the store's colliders (a grid search, pulled taut, corners rounded), so it follows any planogram. The door opens only for the scene; anyone inside is let out. Gone: the wallet card, the shelf glows, X to put back, E at the shelves. About 45-49 s a visit.
+- The Strong Nine: ten seconds of a CSS blur on the canvas and a slow sway after you drink it (Tan's add-on); nothing is left running after.

@@ -442,6 +442,8 @@ export const SHOT_SPOTS = [
   { name: 'poster-gate', scene: 'town', pos: [27.4, 0, -35.4], yaw: 0.12, pitch: 0.02, looks: ['day'], close: true },
   // M2e: close-ups, at arm's length, where finish shows (no density check)
   { name: 'close-lawson-front', scene: 'town', pos: [3.5, 0, 2.6], yaw: 0.25, pitch: 0.12, looks: ['day'], close: true },
+  // the experience highlights (experiences.js): the konbini's and the view's, from the forecourt's edge
+  { name: 'close-lawson-highlights', scene: 'town', pos: [3.0, 0, 9.5], yaw: 0.35, pitch: 0.02, looks: ['day', 'blue'], close: true },
   { name: 'close-lawson-side', scene: 'town', pos: [15.5, 0, 3.5], yaw: 0.75, pitch: 0.1, looks: ['day'], close: true },
   { name: 'close-forecourt', scene: 'town', pos: [-5, 0, 7], yaw: 0.35, pitch: -0.42, looks: ['day'], close: true },
   { name: 'close-house-wall', scene: 'town', pos: [60, 0, 77.5], yaw: 1.9, pitch: 0.1, looks: ['day'], close: true },

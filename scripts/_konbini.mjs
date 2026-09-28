@@ -167,153 +167,58 @@ try {
     }
     const english = (x) => !!x && !/[぀-ヿ一-鿿]/.test(x);
 
-    await step('01-outside', async () => {
-      const data = await window.__go({ pos: [-2.3, 0, 4.5], yaw: 0, pitch: 0.02 }, 0.3, 'outside');
-      return { ...window.__state(), data };
-    }, (r) => r.phase === 'out' && r.up === 0);
-    await step('02-enter-hands', async () => {
-      await window.__go({ pos: [-2.3, 0, -1.4], yaw: 0, pitch: -0.05 }, 0.05);
-      const data = await window.__go({ pos: [-2.3, 0, -1.4], yaw: 0, pitch: -0.05 }, 0.9, 'hands');
-      return { ...window.__state(), said: window.__said.slice(), toasts: window.__toasts.slice(), data };
-    }, (r) => r.phase === 'shop' && r.up === 1 && r.said.includes('Welcome!') && r.wallet === 1000);
-    await step('03-onigiri-spot', async () => {
-      const sp = window.__spot('onigiri'), c = sp.box.getCenter(new window.__scene.THREE.Vector3());
-      const o = window.__look(c.x + 1.2, c.z + 0.3, c);
-      const data = await window.__go(o, 0.1, 'spot');
-      const t = window.__store.shop.pick(window.__scene.camera);
-      const label = t?.label; const n0 = t?.unit?.count;
-      t?.action();
-      await window.__go(o, 0.6);
-      return { label, took: window.__state().held, countDown: n0 - (t?.unit?.count ?? 0), data };
-    }, (r) => r.label === 'Take the Tuna-mayo onigiri (¥150)' && r.took.length === 1 && r.countDown === 1);
-    await step('04-scenery-not-takeable', async () => {
-      // an ordinary onigiri: aiming at it does nothing
+    // the scene, played through: frames at its moments, what was said, where it ends
+    const play = (id, frames) => page.evaluate(async ({ id, frames }) => {
       const S = window.__store.shop;
-      const inside = window.__scene.scene.getObjectByName('lawson-interior');
-      const u = inside.userData.units.find((x) => !x.feature && !x.front && x.slot?.zone === 'chilled' && x.id.startsWith('onigiri'));
-      const o = window.__look(u.x + 1.0, u.z, { x: u.x, y: u.y + 0.04, z: u.z });
-      await window.__go(o, 0.05);
-      const t = S.pick(window.__scene.camera);
-      return { aimed: t?.label ?? null, id: u.id };
-    }, (r) => r.aimed === null);
-    await step('05-fruit-sando', async () => {
-      const S = window.__store.shop;
-      const u = S.debug.pickable.find((x) => x.id === 'fruit_sando');
-      const o = window.__look(u.centre.x + 1.1, u.centre.z, u.centre);
-      await window.__go(o, 0.05);
-      const t = S.pick(window.__scene.camera);
-      const label = t?.label;
-      t?.action();
-      const data = await window.__go(o, 0.6, 'two');
-      const full = S.pick(window.__scene.camera)?.label;
-      return { label, full, ...window.__state(), data };
-    }, (r) => r.held.length === 2 && /Fruit sando \(¥398\)/.test(r.label) && /hands are full/.test(r.full));
-    await step('06-put-back', async () => {
-      const S = window.__store.shop;
-      const u = S.debug.pickable.find((x) => x.id === 'fruit_sando');
-      const before = u.count;
-      const ok = S.putBack();
-      await window.__go({ pos: [-6.3, 0, -6.2], yaw: 1.4, pitch: -0.3 }, 0.7);
-      return { ok, before, after: u.count, ...window.__state() };
-    }, (r) => r.ok && r.after === r.before + 1 && r.held.length === 1);
-    await step('07-strong-nine', async () => {
-      const S = window.__store.shop;
-      const sp = window.__spot('chuhi'), c = sp.box.getCenter(new window.__scene.THREE.Vector3());
-      const o = window.__look(c.x + 0.2, c.z + 1.25, c);
-      const data = await window.__go(o, 0.1, 'spot');
-      const t = S.pick(window.__scene.camera);
-      const label = t?.label;
-      t?.action();
-      await window.__go(o, 1.0);
-      return { label, ...window.__state(), data };
-    }, (r) => /Strong Nine/.test(r.label) && r.held.length === 2 && r.held.some((h) => h.startsWith('strong_nine')));
-    await step('08-ice-spot', async () => {
-      const S = window.__store.shop;
-      const sp = window.__spot('ice'), c = sp.box.getCenter(new window.__scene.THREE.Vector3());
-      const o = window.__look(c.x - 0.1, c.z + 1.0, c);
-      const data = await window.__go(o, 0.1, 'spot');
-      return { label: S.pick(window.__scene.camera)?.label, data };
-    }, (r) => /hands are full/.test(r.label));
-    await step('09-door-refuses', async () => {
-      window.__toasts.length = 0;
-      await window.__go({ pos: [-2.3, 0, -0.9], yaw: 0, pitch: 0 }, 0.3);
-      const door = window.__scene.world.lawson.door;
-      return { hold: door.hold({ x: -2.3, z: -0.9 }), toasts: window.__toasts.slice() };
-    }, (r) => r.hold === true && r.toasts.some((t) => /Pay at the till first/.test(t)) && r.toasts.every(english));
-    await step('10-checkout', async () => {
-      const S = window.__store.shop, T = S.debug.TILL;
-      window.__said.length = 0;
-      const o = window.__look(T.stand.x, T.stand.z, T.look);
-      await window.__go(o, 0.05);
-      const t = S.pick(window.__scene.camera);
-      const label = t?.label;
-      t?.action();
-      const mid = await window.__go(o, 1.5, 'scan');
-      const pay = await window.__go(o, 2.9, 'pay');
-      await window.__go(o, 3.5);
-      return { label, said: window.__said.slice(), ...window.__state(), mid, pay };
-    }, (r) => r.label === 'Pay ¥348 at the till' && r.phase === 'paid' && r.wallet === 652 && r.said.join('|') === "I'll take those.|That comes to ¥348.|Thank you very much." && r.held.every((h) => h.endsWith(':paid')));
-    await step('11-cashier-1.5m', async () => {
-      const o = window.__look(5.82, -4.5, { x: 7.32, y: 1.42, z: -4.5 });
-      const data = await window.__go(o, 0.4, 'cashier');
-      return { data };
-    });
-    await step('12-leave-eat', async () => {
-      const S = window.__store.shop;
-      window.__said.length = 0;
-      const at = { pos: [-2.3, 0, 3.0], yaw: 0, pitch: 0.12 };
-      await window.__go({ pos: [-2.3, 0, -0.7], yaw: 0, pitch: 0 }, 0.1);
-      await window.__go({ pos: [-2.3, 0, 0.8], yaw: 0, pitch: 0.05 }, 0.2);
-      const farewell = window.__said.slice();
-      await window.__go(at, 0.1);
-      const phaseOut = S.phase;
-      const e1 = await window.__go(at, 1.05, 'eat-a');
-      const e2 = await window.__go(at, 0.75, 'eat-b');
-      const e3 = await window.__go(at, 2.3, 'eat-c');
-      const e4 = await window.__go(at, 1.2, 'eat-d');
-      await window.__go(at, 3.0);
-      return { farewell, phaseOut, ...window.__state(), toasts: window.__toasts.slice(-1), e1, e2, e3, e4 };
-    }, (r) => r.farewell.includes('Thank you, come again!') && r.phaseOut === 'eat' && r.phase === 'out' && r.held.length === 0 && r.up === 0);
-    await step('13-again', async () => {
-      // a second visit: a fresh ¥1,000; the egg sando and the ice this time
-      const S = window.__store.shop;
-      await window.__go({ pos: [-2.3, 0, -1.4], yaw: 0, pitch: 0 }, 0.9);
-      const wallet = S.wallet;
-      for (const id of ['sando_egg', 'choco_wafer_jumbo']) {
-        const u = S.debug.pickable.find((x) => x.id === id && x.count > 0);
-        const o = id === 'sando_egg' ? window.__look(u.centre.x + 1.1, u.centre.z, u.centre) : window.__look(u.centre.x - 0.2, u.centre.z + 1.0, u.centre);
-        await window.__go(o, 0.05);
-        S.pick(window.__scene.camera)?.action();
-        await window.__go(o, 0.6);
+      window.__said.length = 0; window.__toasts.length = 0;
+      let tipsy = false;
+      const t0 = S.onTipsy;
+      S.onTipsy = () => { tipsy = true; t0?.(); };
+      await window.__go({ pos: [-2.3, 0, 5], yaw: 0, pitch: 0 }, 0.1);
+      await window.__go({ pos: [-2.3, 0, 2.3], yaw: 0, pitch: 0 }, 0.3);
+      const atSpot = S.atSpot;
+      const ok = S.play(id);
+      const shots = {}, phases = [];
+      let t = 0, inside = false, took = false, eatT = 0;
+      while (S.visiting && t < 120) {
+        await window.__go({ stepWorld: true }, 0.5);
+        t += 0.5;
+        const ph = S.phase;
+        if (phases[phases.length - 1] !== ph) phases.push(ph);
+        if (frames) {
+          const cam = window.__scene.camera.position;
+          if (!inside && cam.z < -0.5) { inside = true; shots.door = (await window.__go({}, 0, 'x')); }
+          if (!took && S.held.some((h) => h.where === 'hand')) { took = true; shots.take = (await window.__go({}, 0, 'x')); }
+          if (ph === 'till' && !shots.till && S.debug.checkout?.t > 2.2) shots.till = (await window.__go({}, 0, 'x'));
+          if (ph === 'eat' && !shots.eat && (eatT += 0.5) >= 1.5) shots.eat = (await window.__go({}, 0, 'x'));
+        }
       }
-      const T = S.debug.TILL, o = window.__look(T.stand.x, T.stand.z, T.look);
-      await window.__go(o, 0.05);
-      S.pick(window.__scene.camera)?.action();
-      await window.__go(o, 8);
-      const paid = window.__state();
-      const at = { pos: [-2.3, 0, 3.0], yaw: 0, pitch: 0.12 };
-      await window.__go({ pos: [-2.3, 0, -0.7], yaw: 0, pitch: 0 }, 0.1);
-      await window.__go(at, 0.2);
-      const e1 = await window.__go(at, 1.7, 'eat-sando');
-      await window.__go(at, 2.3);
-      const e2 = await window.__go(at, 1.35, 'eat-ice');
-      await window.__go(at, 4);
-      return { wallet, paid, end: window.__state(), e1, e2 };
-    }, (r) => r.wallet === 1000 && r.paid.phase === 'paid' && r.paid.wallet === 1000 - 298 - 190 && r.end.phase === 'out');
-    await step('14-unpaid-out', async () => {
-      // walked out with something unpaid (a famous-view key): it goes back on its shelf
+      S.onTipsy = t0;
+      const p = window.__scene.player.pos;
+      return { ok, atSpot, secs: t, phases, said: window.__said.slice(), toasts: window.__toasts.slice(), tipsy, end: [+p.x.toFixed(2), +p.z.toFixed(2)], scripted: !!window.__scene.player.scripted, ...shots };
+    }, { id, frames });
+    const sayAll = (r) => ['Welcome!', 'Thank you very much.', 'Thank you, come again!'].every((l) => r.said.includes(l)) && r.said.some((l) => /comes to/.test(l));
+    const done = (r) => r.ok && r.atSpot && !r.scripted && r.secs < 120 && Math.hypot(r.end[0] + 2.3, r.end[1] - 2.4) < 0.5 && r.phases.includes('eat') && sayAll(r);
+    let prev = null;
+    for (const [i, id] of ['onigiri_tuna', 'sando_egg', 'fruit_sando', 'strong_nine', 'choco_wafer_jumbo'].entries()) {
+      const r = await play(id, i === 0 || id === 'strong_nine' || id === 'choco_wafer_jumbo');
+      for (const k of ['door', 'take', 'till', 'eat']) if (r[k]) { fs.writeFileSync(path.join(out, `${id}-${k}.png`), Buffer.from(r[k].split(',')[1], 'base64')); delete r[k]; }
+      const ok = done(r) && (id !== 'strong_nine' || r.tipsy) && r.toasts.every(english);
+      if (!ok) bad++;
+      console.log(ok ? 'pass' : 'FAIL', id, JSON.stringify(r));
+      prev = r;
+    }
+    await step('06-no-roaming', async () => {
+      const S = window.__store.shop, door = window.__scene.world.lawson.door;
+      await window.__go({ pos: [-2.3, 0, 0.9], yaw: 0, pitch: 0, stepWorld: true }, 2.5);
+      return { held: S.holdDoor({ x: -2.3, z: 0.9 }), open: +door.open.toFixed(2), visiting: S.visiting };
+    }, (r) => r.held && r.open === 0 && !r.visiting);
+    await step('07-spot-again', async () => {
       const S = window.__store.shop;
-      await window.__go({ pos: [-2.3, 0, -1.4], yaw: 0, pitch: 0 }, 0.9);
-      const u = S.debug.pickable.find((x) => x.id === 'onigiri_tuna' && x.count > 0);
-      const o = window.__look(u.centre.x + 1.1, u.centre.z, u.centre);
-      await window.__go(o, 0.05);
-      const before = u.count;
-      S.pick(window.__scene.camera)?.action();
-      await window.__go(o, 0.6);
-      window.__toasts.length = 0;
-      await window.__go({ pos: [0, 0, 16.5], yaw: 0, pitch: 0 }, 0.2);
-      return { before, after: u.count, ...window.__state(), toasts: window.__toasts.slice() };
-    }, (r) => r.after === r.before && r.held.length === 0 && r.phase === 'out' && r.toasts.some((t) => /Pay at the till/.test(t)));
+      await window.__go({ pos: [-2.3, 0, 5], yaw: 0, pitch: 0 }, 0.1);
+      await window.__go({ pos: [-2.3, 0, 2.3], yaw: 0, pitch: 0 }, 0.2);
+      return { atSpot: S.atSpot };
+    }, (r) => r.atSpot);
     await step('15-stock-inside', () => window.__stockCheck(), (r) => r.total === 0);
   }
 } finally {

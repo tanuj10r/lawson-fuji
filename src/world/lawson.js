@@ -3,7 +3,7 @@ import { cel, flat } from '../core/toon.js';
 import { hullOutlineTree } from '../core/outline.js';
 import { tactileTex } from '../core/textures.js';
 import { bake, trs, shadowify } from '../core/util.js';
-import { LAWSON, STREET, TOWN, ROADS, DRIVEWAYS, mainRoadGaps } from '../config.js';
+import { LAWSON, STREET, TOWN, ROADS, DRIVEWAYS, HERO_VIEWS, mainRoadGaps } from '../config.js';
 import { droppedKerb, slopeQuad } from './streetprops.js';
 import {
   signBand, sideBand, logoPlate, nobori, tileTex,
@@ -12,9 +12,8 @@ import {
 import { dressLawson, wearLawson } from './lawson-dress.js';
 import { buildInterior, buildDoor } from './store/interior.js';
 import { buildFridgeDoors } from './store/doors.js';
-import { makeShop } from './store/shop.js';
+import { makeShop, SPOT } from './store/shop.js';
 import { makeExperiences } from './experiences.js';
-import { STRINGS } from '../data/strings.js';
 import { asphaltTex, ASPHALT_TILE } from './kit/tex.js';
 import { chipTex, CHIP_TILE } from './kit/paint.js';
 
@@ -186,7 +185,7 @@ export function buildLawson(parent) {
     const coolGlass = flat({ color: 0xd8ecf8, transparent: true, opacity: 0.18, depthWrite: false, cache: false });
     const fridge = buildFridgeDoors(inside, inside.userData.doors, { glassMat: coolGlass, lit });
     // the konbini (Tan's experience): the hands, the four glowing things, the cashier, the till
-    const shop = makeShop(inside, { doors: fridge, lit });
+    const shop = makeShop(inside, { doors: fridge, lit, colliders, entrance: root.userData.door });
     root.userData.shop = shop;
     // the automatic door stays shut on anyone carrying something unpaid
     root.userData.door.hold = (p) => shop.holdDoor(p);
@@ -200,7 +199,10 @@ export function buildLawson(parent) {
       interact: (item) => root.userData.interactables.push(item),
       update: (fn) => spotUpd.push(fn),
     });
-    shop.spot = exp.add({ id: 'konbini', name: 'The konbini', jp: 'ニッポン', x: L.doorX, z: 2.3, r: 1.2, h: 2.2, action: () => shop.flash?.(STRINGS.store.spot, 4200) });
+    shop.spot = exp.add({ id: 'konbini', name: 'Nippon Mart', jp: 'ニッポン', x: SPOT.x, z: SPOT.z, r: SPOT.r, h: 2.2 });
+    // the famous view itself (Tan): where the photo was taken; stepping on it frames the shot (main.js)
+    const hv = HERO_VIEWS.morning.play.pos;
+    exp.add({ id: 'view', name: 'The Nippon Fuji view', jp: 'ニッポン富士', x: hv[0], z: hv[2], r: 1.0, h: 1.6 });
     root.userData.spot = { list: exp.list, update(dt, p) {
       for (const fn of spotUpd) fn(dt, p);
       if (shop.quietView()) for (const o of spotObjs) if (o.material?.visible !== false) o.visible = false;

@@ -27,5 +27,7 @@ export const soundBus = {
   },
   /** A placed one-off; dropped if the engine isn't running yet (before the first click). */
   oneShot(name, o) { engine?.oneShot(name, o); },
+  /** Fetch and decode files ahead of need (resolves false before the first click). */
+  preload(names) { return engine?.preload ? engine.preload(names) : Promise.resolve(false); },
   get ready() { return !!engine?.ready; },
 };

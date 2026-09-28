@@ -18,7 +18,8 @@ import { buildKitTest } from './world/kit-test.js';
 import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
 import { PRODUCT } from './data/catalog.js';
-import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain } from './config.js';
+import { hanShow } from './world/han/index.js';
+import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain, HAN_WATCH } from './config.js';
 
 /* ------------------------------------------------------------------ *
  * Lawson Fuji -- entry point.  Rendering is inherited from Sakura Crossing (MIT).
@@ -355,6 +356,43 @@ function viewSpot(dt) {
   }
 }
 
+/* Han's drive (Tan 2026-09-28: "pan the view of the player, focusing on the
+ * car, until the entire drift experience is completed").  From the moment
+ * you step into his glow until he leans on the car again, you stand where
+ * you are (held like the prayer and the seat hold you: `suspended`, so no
+ * walking and the mouse is not read) and your head turns to follow the car:
+ * a damped turn toward it, a little ahead of it, capped to a head's speed,
+ * the pitch kept near level.  The car's path is continuous, so the view never
+ * jumps when a building hides it.  Then the view is yours again, where it is. */
+const watch = { on: false, mine: false, gone: false, t: new THREE.Vector3(), at: { x: 0, z: 0 } };
+function watchCar(dt) {
+  // moved from outside (a teleport, a famous view): let go for the rest of the show
+  if (watch.on && Math.hypot(player.pos.x - watch.at.x, player.pos.z - watch.at.z) > 1) watch.gone = true;
+  if (!hanShow.running) watch.gone = false;
+  const on = hanShow.running && !watch.gone && !player.scripted && !player.seat && !hero && !famousView && !gliding;
+  if (on && !watch.on) {
+    watch.on = true;
+    watch.mine = !player.suspended;        // (anything else holding the player keeps its hold)
+    player.suspended = true;
+    player.vel.set(0, 0, 0);
+    watch.at.x = player.pos.x; watch.at.z = player.pos.z;
+  } else if (!on && watch.on) {
+    watch.on = false;
+    if (watch.mine) player.suspended = false;
+    watch.mine = false;
+  }
+  if (!on || dt <= 0) return;
+  const W = HAN_WATCH, t = hanShow.target(watch.t), c = camera.position;
+  const dx = t.x - c.x, dz = t.z - c.z;
+  const yaw = Math.atan2(-dx, -dz);
+  const pitch = THREE.MathUtils.clamp(Math.atan2(t.y - c.y, Math.hypot(dx, dz)), W.pitch[0], W.pitch[1]);
+  const k = 1 - Math.exp(-W.follow * dt);
+  const dy = Math.atan2(Math.sin(yaw - player.yaw), Math.cos(yaw - player.yaw));
+  player.yaw += THREE.MathUtils.clamp(dy * k, -W.maxTurn * dt, W.maxTurn * dt);
+  player.pitch += THREE.MathUtils.clamp((pitch - player.pitch) * k, -W.maxTurn * 0.6 * dt, W.maxTurn * 0.6 * dt);
+}
+if (import.meta.env?.DEV) window.__watch = watch;
+
 /* The Strong Nine (Tan: "just a fun add-on"): ten seconds of a soft blur
  * and a slow sway after you drink it.  A CSS filter on the canvas, so it
  * costs nothing when it's over. */
@@ -524,7 +562,12 @@ function frame(now = 0) {
   if (import.meta.env?.DEV) window.__drawn = (window.__drawn ?? 0) + 1;
   const dt = FROZEN ? 0 : Math.min(clock.getDelta(), 1 / 20);
 
+  watchCar(dt);
   if (!player.scripted) player.update(dt);
+  /* watching the drive you stay put: the car's collider is a box round the
+   * turned car, bigger than it as it swings out of the bay, and would shove
+   * you (the car itself stops for anyone really in its way) */
+  if (watch.on) { player.pos.x = watch.at.x; player.pos.z = watch.at.z; player.applyCamera(0); }
   viewSpot(dt);
   tipsyStep(dt);
   timeFade(dt);
@@ -641,7 +684,12 @@ if (import.meta.env?.DEV) {
     // the shop: `opts.shop` seconds pass (flights land, doors swing), and what you carry follows the camera
     if (shop) {
       const steps = Math.round((opts.shop ?? 0) * 60);
-      for (let k = 0; k < steps; k++) { if (opts.stepWorld) world.update(1 / 60, camera); viewSpot(1 / 60); tipsyStep(1 / 60); shop.update(1 / 60, camera, 0); }
+      for (let k = 0; k < steps; k++) {
+        if (opts.stepWorld) world.update(1 / 60, camera);
+        viewSpot(1 / 60); tipsyStep(1 / 60); shop.update(1 / 60, camera, 0);
+        // the listener goes where the camera goes, so a stepped scene is heard from where it is seen
+        if (opts.stepWorld) sound.update(0, { camera, inside: shop.inside(camera), look: lookName, cooler: shop.coolerAt });
+      }
       shop.update(0, camera, 0);
     }
     seatLights();

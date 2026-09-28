@@ -3,21 +3,22 @@
   "files": {
     "kiosk-scan": {
       "src": "cashier-checkout",
-      "start": 3.3,
-      "len": 7.6,
+      "start": 16.05,
+      "len": 1.5,
       "peak": 0.75,
       "kbps": 32,
-      "fadeOut": 0.3,
-      "_": "Tan's self-checkout recording, its start and the scan (its beep at 3.45 s: config STORE.kiosk)"
+      "fadeOut": 0.15,
+      "_": "Tan's self-checkout recording, 16.05-17.55 s: a hush, the scanner's beep (a pure 2.45 kHz tone at 16.2 s, 0.15 s into the cut: config STORE.kiosk.scanBeep), a second tone near 1.94 kHz, then the machine's short follow-up (voice-like, about 1 s)"
     },
     "kiosk-pay": {
       "src": "cashier-checkout",
-      "start": 24.0,
-      "len": 5.2,
+      "start": 26.55,
+      "len": 3.95,
+      "keep": [[26.55, 29.0], [29.65, 30.5]],
       "peak": 0.75,
       "kbps": 32,
-      "fadeOut": 0.4,
-      "_": "Tan's self-checkout recording, the IC card and the thanks (its beep at 0.65 s)"
+      "fadeOut": 0.25,
+      "_": "Tan's self-checkout recording, 26.55-30.5 s, its 0.65 s pause (29.0-29.65 s) silenced: the card reader's beep (2.93 kHz at 26.8 s, 0.25 s in: STORE.kiosk.payCard), a short voice, the paid beeps (2.63 and 3.04 kHz at 27.7 s, 1.15 s in: STORE.kiosk.payDone), the voice again (the thanks, 28.1-28.9 s) and the closing two-tone (1.57 then 1.31 kHz, 29.8-30.5 s)"
     },
     "lawson-chime": {
       "start": 0.0,

@@ -37,6 +37,15 @@ export const HAN_SPOT = { x: HAN_BAY.x - 2.45, z: 4.2, r: 0.85 };
 /** The show, for whoever must keep out of the car's way (the guide shiba): is it running, where is the car (world). */
 export const HAN_SHOW = { running: () => false, car: () => null };
 
+/** The show, for the player's eyes (main.js, Tan 2026-09-28: "pan the view
+ * of the player, focusing on the car, until the entire drift experience is
+ * completed"): whether it is on, and where to look (world terms). */
+export const hanShow = {
+  running: false,
+  /** The car, a little ahead of where it is (so the view leads it), at its roof line: into `out`. */
+  target: (out) => out,
+};
+
 const SONG = 17.74;            // han-drift's length
 const T_IN = 2.8;              // Han is in and the door shut: the drive starts
 const T_END = T_IN + T_DRIVE + 2.3;
@@ -382,6 +391,19 @@ export function buildHan(ctx) {
       }
     }
   }
+
+  /* where the eyes go: the car LEAD s ahead on its route, blended with where
+   * it is (the drive is a fixed path, so the lead never jumps) */
+  const LEAD = 0.35, ahead = {};
+  hanShow.target = (out) => {
+    const e = S.run ? S.t - S.held : -1;
+    const dtm = e < T_IN ? 0 : Math.min(e - T_IN, T_DRIVE);
+    driveAt(D, Math.min(T_DRIVE, dtm + (dtm > 0 && dtm < T_DRIVE ? LEAD * S.rate : 0)), ahead);
+    const w = ctx.toWorld({ x: (ahead.x + cp.x) / 2, z: (ahead.z + cp.z) / 2 });
+    out.x = w.x; out.y = S.groundY + 1.0; out.z = w.z;
+    return out;
+  };
+  Object.defineProperty(hanShow, 'running', { get: () => S.run && !S.frozen, configurable: true });
 
   placeCar(0);
   S.groundY = groundAt(HAN_BAY.x, HAN_BAY.z);

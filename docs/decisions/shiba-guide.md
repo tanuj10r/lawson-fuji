@@ -82,3 +82,79 @@ main.js `__shot` stages the dog for a spot's `guide:` pose; shots.mjs passes it.
   deeper red edges and backs; the bob 4 cm at two beats a stride. The
   respawn (H: enterHero, a jump onto the view) was already the jump rule:
   the dog is home, out of the frame, the same frame; _guide.mjs checks it.
+
+## The pup (Tan, 2026-09-28 evening: "this dog is everything but cute"; "if I walk away, the dog should prioritise my interest")
+- **Started over as a puppy, not a fourth pass.** Three passes had left a
+  lean faceted adult. The new model is a 3-4-month pup at ~24 cm at the
+  shoulder (about 70% of the old dog): head near half the body's length,
+  very full cream cheeks, a button muzzle, big dark eyes with two
+  catch-lights each, brow dots, small soft ears leaning forward, a round
+  barrel, short sturdy legs with big cream paws, a fluffy tail curl. 11.6k
+  triangles (from 9.4k), still one draw, 4 cel bands (the softer ramp reads
+  as fur; 3 read as armour).
+- **The "faceting" was a maths bug, not a segment count.** `subdivide` in
+  shapes.js ran Catmull-Rom through the section radii, which overshoots:
+  the radius rippled ring to ring, the normals wobbled (0.76, 0.75, 0.85,
+  0.91, 0.74 along one spine) and a cel band flipped at every ripple, so
+  every loft wore stripes. shapes.js now has `smooth()`: monotone PCHIP
+  resampling, evenly along the spine, with a quarter-ellipse dome at any
+  end whose radius is 0. Only the pup uses it; the other animals still use
+  `subdivide` (their lofts are short and shaded darker), left alone.
+- **The tail's cream is by position, not by normal.** The underside test
+  `n.y > 0.25` striped the curl from above (the same wobble); it is now
+  "inside the curl's circle, or below the base".
+- **Player-led guiding.** The pup *suggests*: it proposes the nearest
+  engagement not done and trots 2.5-5 m ahead. "Not interested" is any of:
+  your heading > 100° off its way (the field's downhill from where you
+  stand) for 1.7 s, your distance to the spot grown > 6 m while it waits,
+  or you > 10 m off. The proposal is *skipped* (not done; skipped spots
+  come back after the others). Then a chase: a gallop after you (yip, an
+  "awoo" if you are far), once round your legs at 0.9 m when it catches
+  up, and a re-plan from your heading (your walk, or the lens when you
+  stand): the nearest spot within 80° of it by path metres + 12 m × (1 −
+  cos angle), skipped ones last; none that way → company: it stays 2-4 m
+  off, plays, and every ≥ 20 s invites toward the nearest one (a play bow
+  + yip + 3 m that way, 3 s of waiting) without insisting. Two walk-aways
+  in a row and it stops re-planning at once: the next suggestion waits for
+  the 20 s timer (else a random wanderer would be chased every 5 s); the
+  count resets after you follow for 8 s or at the next invitation.
+- **The store, the views and Han's show** keep their rules: in the store
+  nothing is dropped and it waits outside by the door; on a famous view it
+  goes home out of the frame (that overrides even a whistle: it comes and
+  waits behind you); on the RX-7's route during the show it sits aside.
+- **Acts, by mood.** `energy` (0-1: back at 0.02/s at rest, spent by the
+  acts) and nearness pick an idle act every 2-6 s while it waits or keeps
+  you company, never the same twice running: play bow (posture −1 in the
+  rig: the body tips 0.5 rad about the hips, forelegs stretched flat),
+  roll over (lie morph + the instance rolled π about a centre at the
+  body's height, paws wiggling by the gait channel, happy snorts),
+  chasing its tail (a 0.11 m circle, head round), zoomies (a 1.5 m circle
+  at 4.6 m/s where there is room for one, leaning in, ears back, tongue
+  out, a skid and a shake; also round you when you arrive at a spot), a
+  hop/pounce (nose down at the top), a sneeze (head back, snap, shake), a
+  head tilt with the upper ear perked and the lower drooping (the rig
+  reads the tilt's sign), lying chin on paws, and a trip over its paws
+  about once in 45 s at a trot. No new pose channel was needed: the bow
+  is the posture channel below 0; the roll is the instance.
+- **The whistle (F).** A two-note human whistle at you (procedural,
+  near 4 far 30). The pup yips where it is (local: you hear it only if
+  it is near) and gallops to you; from > 80 m it turns up from a street
+  cell 25-40 m off that is not in front of the lens, rather than crossing
+  the whole town. Arrived (2.2 m): a hop and it guides on from where you
+  are, player-led. Not while the konbini's scene plays (main.js gates it).
+- **Pursuit never "thinks".** Chase, come and company used to re-grow the
+  follow field every 2 s or 2 m and a field of 80 m never finished while
+  you walked, so the pup stood blank (catch-up 10.9 s). `pursue()` goes
+  straight at you when you are in plain sight within 14 m, and otherwise
+  re-grows only once the last field is ready (limit 2 × distance + 20 m).
+  Catch-up 2.3 s.
+- **Voice.** The dog-* recipes pitched up and softened for a puppy; new
+  dog-awoo (zoomies), dog-snort (the roll), dog-sneeze, and the whistle.
+  All procedural, all local, none more often than 1.2 s apart.
+- **Checks** (scripts/_guide.mjs): voice (11 recipes audible), follow (4/4
+  engagements, 188 s, stuck 0, viol 0, wall 0), turn-away (drop 1.5 s,
+  catch-up 2.3 s, next suggestion 75° off the heading), wander (max 10 m
+  off after catching up, invite gaps 20/20 s), whistle (from the bench
+  115 m away: appears 22 m off at 99° from the lens, reaches you in 4.2 s;
+  from 35 m up the road: runs it in 10.6 s). Cost: 0.06-0.75 ms a step
+  headless (the field growth), hero-1 733 calls / 9.0 ms unchanged.

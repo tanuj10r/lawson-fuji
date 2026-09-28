@@ -21,6 +21,7 @@ const CONTROLS = {
   interact: { keys: ['E'], what: 'Interact' },
   views: { keys: ['1', '2', '3'], what: 'Time of day' },
   home: { keys: ['R'], what: 'Back to the start' },
+  whistle: { keys: ['F'], what: 'Whistle for the pup' },
   map: { keys: ['M'], what: 'Map' },
   sound: { keys: ['N'], what: 'Sound' },
   pause: { keys: ['Space'], what: 'Pause' },

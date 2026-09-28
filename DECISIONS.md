@@ -1722,3 +1722,7 @@ where below the bar, merged; builders' own calls in docs/decisions/*.md.
 
 ## Placed sounds follow you for as long as they play (2026-09-28, Tan: the next-stop announcement stayed loud as he ran off)
 - core/sound.js followed a placed one-shot's level for a fixed 8 s; a longer one (the train's announcement, Han's song) then froze at that level wherever the player went. It is now followed until its source ends (recipes: 4 s), and a not-yet-decoded placeholder no longer lingers in the list. _play step 25-announce-fades: full in the ring after 9 s, silent 40 m off.
+
+## No tree through a building (2026-09-28, Tan found one by the shrine)
+- An audit found 40 trees whose crowns cut into buildings (sakura, pine, maple, camphor, zelkova). kit/canopy.js now grows each tree dry first (a tree is its seed's alone, so the dry crown is the real one), tests its cushions against every building-sized collider, and slides it away from what it hits (up to ~9 m), or makes it smaller if there's no room. After: 0. _play step 03-trees-clear keeps it so.
+- Moving the famous views' framing sakura changes hero-1 to 0.61% (hero-2 0.36, hero-3 0.32): to be looked at and re-baselined.

@@ -1,9 +1,10 @@
 import { STRINGS } from '../data/strings.js';
 import { VOLUME_STEPS } from '../config.js';
+import { TOWN_NAME } from '../data/town.js';
 
 /* ------------------------------------------------------------------ *
- * Minimal HUD: a start card, a small crosshair and an interaction
- * prompt.  Nothing else -- the frame is the point.
+ * Minimal HUD: the start and pause card, a small crosshair and an
+ * interaction prompt.  Nothing else -- the frame is the point.
  * ------------------------------------------------------------------ */
 
 export function createHud({ volume = 50 } = {}) {
@@ -28,32 +29,49 @@ export function createHud({ volume = 50 } = {}) {
   const coords = el('div', 'coords', root, '');
   let lastLine = '';
 
+  /* The start and pause cards (Tan, 2026-09-28): one card, two modes.  The
+   * key art (public/keyart.webp, baked from the game by scripts/keyart.mjs)
+   * with the name over its sky; below it every key, and Start or, paused,
+   * the volume and Resume.  The list of keys is STRINGS.controls, the same
+   * one the corner panel reads.  UI in English; Japanese marked lang="ja". */
   const overlay = el('div', 'overlay', root);
   overlay.dataset.mode = 'start';
+  const caps = (keys) => keys.map((k) => `<kbd class="${k.length > 1 ? 'wide' : ''}">${k}</kbd>`).join('');
   const controls = STRINGS.controls
-    .map(([key, what]) => `<span><b>${key}</b>${what}</span>`).join('');
+    .map(({ keys, what }) => `<li><span class="caps">${caps(keys)}</span><span class="what">${what}</span></li>`).join('');
   overlay.innerHTML = `
-    <section class="menu-panel" role="dialog" aria-labelledby="menu-title">
-      <h1 id="menu-title">${STRINGS.title}</h1>
-      <div class="menu-jp">${STRINGS.titleJp}</div>
-      <p class="menu-description">
-        <span class="start-only">${STRINGS.intro}</span>
-        <span class="pause-only">${STRINGS.paused}</span>
-      </p>
-      <div class="control-strip">${controls}</div>
-      <label class="audio-control pause-only pause-stack">
-        <span class="audio-head">
-          <span>${STRINGS.volume}</span>
-          <output for="music-volume">50%</output>
-        </span>
-        <input id="music-volume" class="volume-slider" type="range"
-          min="0" max="100" step="25" value="50" list="volume-steps" aria-label="${STRINGS.volumeAria}" />
-      <datalist id="volume-steps">${VOLUME_STEPS.map((v) => `<option value="${v}"></option>`).join('')}</datalist>
-      </label>
-      <button class="menu-action" type="button">
-        <span class="start-only">${STRINGS.start}</span>
-        <span class="pause-only">${STRINGS.resume}</span>
-      </button>
+    <section class="menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
+      <figure class="menu-art">
+        <img src="keyart.webp" width="1600" height="900" alt="${STRINGS.artAlt}" decoding="async" fetchpriority="high" />
+        <figcaption class="menu-name">
+          <p class="menu-place">${TOWN_NAME.en}<span class="dot">·</span><span lang="ja">${TOWN_NAME.jp}</span></p>
+          <h1 id="menu-title">${STRINGS.title}</h1>
+          <p class="menu-jp" lang="ja">${STRINGS.titleJp}</p>
+        </figcaption>
+        <span class="menu-paused pause-only">${STRINGS.paused}</span>
+      </figure>
+      <div class="menu-body">
+        <div class="menu-left">
+          <p class="menu-tagline">${STRINGS.tagline}</p>
+          <ul class="menu-keys" aria-label="${STRINGS.controlsTitle}">${controls}</ul>
+        </div>
+        <div class="menu-right">
+          <label class="audio-control pause-only">
+            <span class="audio-head">
+              <span>${STRINGS.volume}</span>
+              <output for="music-volume">50%</output>
+            </span>
+            <input id="music-volume" class="volume-slider" type="range"
+              min="0" max="100" step="25" value="50" list="volume-steps" aria-label="${STRINGS.volumeAria}" />
+            <datalist id="volume-steps">${VOLUME_STEPS.map((v) => `<option value="${v}"></option>`).join('')}</datalist>
+          </label>
+          <button class="menu-action" type="button">
+            <span class="start-only">${STRINGS.start}</span>
+            <span class="pause-only">${STRINGS.resume}</span>
+          </button>
+          <p class="menu-url">${STRINGS.url}<span class="menu-credit">${STRINGS.credit}</span></p>
+        </div>
+      </div>
     </section>`;
 
   const actionButton = overlay.querySelector('.menu-action');

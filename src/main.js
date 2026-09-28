@@ -251,7 +251,7 @@ function applyLook(name) {
  * size (FUJI.gameplaySize), so the view reads as the photo and walking off
  * it changes nothing but where you stand: no lens change, no zoom.
  *
- * Dev only: with the R overlay on, the view uses the exact photo camera
+ * Dev only: with the ` overlay on, the view uses the exact photo camera
  * instead (narrow, shifted lens, true-size Fuji) so the composition can be
  * checked against the photo.  Moving off it eases back to the gameplay lens. */
 const HERO_DAY = HERO_VIEWS.morning;
@@ -419,7 +419,7 @@ function tipsyStep(dt) {
   camera.rotation.x += Math.sin(tipsyT * 0.8 + 1) * 0.02 * k;
 }
 
-/* Dev only: R lays the matching reference photo over the frame at 50%,
+/* Dev only: ` (Backquote) lays the matching reference photo over the frame at 50%,
  * fitted by height like the photo lens, and switches to that lens.  Photos load from reference/ through
  * the dev server and never reach the build. */
 let refOn = false;
@@ -511,8 +511,9 @@ window.addEventListener('keydown', (e) => {
   if (shop?.visiting && !/^Digit[1-3]$/.test(e.code) && e.code !== 'KeyN') return;
   // M: the full town map (M2f); it holds your walking and looking while open (not while you pay)
   // (not opened while something else holds the player, e.g. the konbini's scene)
-  // H: back to the Nippon Fuji view, from anywhere, at the time of day you're in (Tan: a respawn)
-  if (e.code === 'KeyH' && player.locked && !shop?.visiting && !gliding && !minimap?.fullOpen && !hero) {
+  // R: back to the start (the famous view), from anywhere, at the time of day you're in
+  // (Tan: a respawn; R for restart, 2026-09-28, was H)
+  if (e.code === 'KeyR' && player.locked && !shop?.visiting && !gliding && !minimap?.fullOpen && !hero) {
     player.suspended = false;
     enterHero(lastView);
     return;
@@ -537,29 +538,32 @@ window.addEventListener('keydown', (e) => {
   for (const [name, v] of Object.entries(HERO_VIEWS)) {
     if (e.code === v.key && name !== lastView) setTime(name);
   }
-  if (e.code === 'KeyR' && refOverlay) {
+  // dev only: ` lays the reference photo over the famous view (was R, now the player's restart)
+  if (e.code === 'Backquote' && refOverlay) {
     refOn = !refOn;
     enterHero(lastView);   // on: the exact photo camera; off: back to the view in play
     hud.flash(refOn ? STRINGS.refOn : STRINGS.refOff, 900);
   }
 });
 
-/** Which keys do something where the player is standing (ui/controls.js). */
+/** Which keys do something where the player is standing (ui/controls.js).
+ * The keys and their words are the cards' own (data/strings.js). */
 const K = STRINGS.keys;
+const C = STRINGS.control;
 function controlRows(hovered) {
   if (!player.locked || FROZEN) return [];
-  if (minimap?.fullOpen) return [['M', K.closeMap]];
+  if (minimap?.fullOpen) return [[['M'], K.closeMap]];
   // standing on a famous view the shot is the point (the minimap keeps off
-  // it too): only how to take the camera back
-  if (shop?.visiting) return [['1 2 3', K.views]];
-  if (hero || famousView) return [['WASD', K.leaveView], ['1 2 3', K.views]];
-  if (player.seat) return [['Any key', K.standUp]];
-  const rows = [['WASD', K.move], ['Mouse', K.look]];
-  if (handsHud?.open) rows.push([`1–${shop.menu.length}`, K.choose]);
-  rows.push(['Shift', K.run]);
-  if (hovered) rows.push(['E', K.interact]);
-  rows.push(['F', K.whistle], ['M', K.map], ['H', K.home], ['1 2 3', K.views]);
-  rows.push(['N', K.sound], ['Space', K.pause]);
+  // it too): only how to walk off it, and the light
+  if (shop?.visiting) return [C('views')];
+  if (hero || famousView) return [C('move'), C('views')];
+  if (player.seat) return [[['Any key'], K.standUp]];
+  const rows = [C('move'), C('look')];
+  if (handsHud?.open) rows.push([[`1–${shop.menu.length}`], K.choose]);
+  rows.push(C('run'));
+  if (hovered) rows.push(C('interact'));
+  rows.push(C('whistle'), C('map'), C('home'), C('views'));
+  rows.push(C('sound'), C('pause'));
   return rows;
 }
 
@@ -693,10 +697,15 @@ if (import.meta.env?.DEV) {
 
     camera.aspect = W / H;
     updateProjection();
+    // a staged lens (scripts/keyart.mjs); the next updateProjection puts the play lens back
+    if (opts.vfov) { camera.fov = opts.vfov; camera.updateProjectionMatrix(); }
     pipeline.setSize(W, H);
     setOutlineResolution(pipeline.size.x, pipeline.size.y);
     world.update(0, camera);
-    if (opts.guide) window.__guide?.stage(opts.guide, player);   // the guide shiba in a pose in front of the lens
+    // the guide shiba in a pose in front of the lens (or of `guideFrom`: { pos: {x, z}, yaw }, `guideD` m out)
+    if (opts.guide) window.__guide?.stage(opts.guide, opts.guideFrom ?? player, opts.guideD);
+    // staged art (scripts/keyart.mjs): no engagement highlights in the frame
+    if (opts.clean) scene.traverse((o) => { if (o.name === 'exp-highlight') o.visible = false; });
     renderer.shadowMap.needsUpdate = true;      // this one frame draws its own shadows
     // the shop: `opts.shop` seconds pass (flights land, doors swing), and what you carry follows the camera
     if (shop) {
@@ -744,7 +753,7 @@ if (import.meta.env?.DEV) {
     const ctx = off.getContext('2d');
     ctx.drawImage(canvas, 0, 0, off.width, off.height);
     if (opts.overlay) {
-      // the reference photo at 50%, fitted by height as the R overlay is
+      // the reference photo at 50%, fitted by height as the ` overlay is
       const img = new Image();
       img.src = opts.overlay;
       await img.decode();

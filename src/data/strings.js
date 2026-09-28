@@ -1,46 +1,55 @@
 /* All player-facing UI text (AGENTS.md). */
 
+/* The game's name (Tan, 2026-09-28: it lives at takemebacktojapan.com).  The
+ * town keeps its own name (data/town.js TOWN_NAME), shown as the place line;
+ * the store stays NIPPON.  docs/decisions/start-screens.md. */
+export const GAME = {
+  title: 'Take Me Back to Japan',
+  titleJp: '日本へ、もう一度',
+  url: 'takemebacktojapan.com',
+};
+
+/* Every key the game answers to, once: the start and pause cards list them
+ * all in this order (core/hud.js) and the corner panel shows the ones that
+ * belong where you stand (main.js controlRows, ui/controls.js), from here.
+ * `keys` are drawn as key caps.  WASD still walks, unadvertised (Tan: the
+ * arrow keys are the ones shown). */
+const CONTROLS = {
+  move: { keys: ['↑', '↓', '←', '→'], what: 'Move' },
+  look: { keys: ['Mouse'], what: 'Look around' },
+  run: { keys: ['Shift'], what: 'Run' },
+  interact: { keys: ['E'], what: 'Interact' },
+  views: { keys: ['1', '2', '3'], what: 'Time of day' },
+  home: { keys: ['R'], what: 'Back to the start' },
+  whistle: { keys: ['F'], what: 'Whistle for the pup' },
+  map: { keys: ['M'], what: 'Map' },
+  sound: { keys: ['N'], what: 'Sound' },
+  pause: { keys: ['Space'], what: 'Pause' },
+};
+
 export const STRINGS = {
-  title: 'Nippon Fuji',
-  titleJp: 'ニッポン富士',
-  intro: 'Work in progress.',
-  paused: 'Paused.',
+  title: GAME.title,
+  titleJp: GAME.titleJp,
+  url: GAME.url,
+  tagline: 'A small town under Mt. Fuji. Take your time.',
+  paused: 'Paused',
   start: 'Start',
   resume: 'Resume',
   volume: 'Volume',
   volumeAria: 'Volume',
   controlsTitle: 'Controls',
-  /* What each key does, for the on-screen list (M4).  Only the ones that
-   * belong where the player is are shown (ui/controls.js). */
+  credit: 'Built on Sakura Crossing (MIT)',
+  artAlt: 'Golden hour under Mt. Fuji: Han leans on his orange RX-7 with a shiba beside him, across the road from the NIPPON konbini, cherry trees in bloom.',
+  /* The cards' list, in order (every key). */
+  controls: Object.values(CONTROLS),
+  /* The corner panel's rows, by name: [key caps, what it does]. */
+  control: (id) => [CONTROLS[id].keys, CONTROLS[id].what],
+  /* Rows only the corner panel shows, where they apply. */
   keys: {
-    move: 'Move',
-    run: 'Run',
-    look: 'Look around',
-    interact: 'Take / open',
-    shop: 'Take / pay',
-    map: 'Town map',
-    sound: 'Sound',
-    views: 'Time of day',
-    home: 'Back to the Nippon view',
-    whistle: 'Whistle for the pup',
     choose: 'Choose',
-    pause: 'Pause',
     closeMap: 'Close the map',
-    leaveView: 'Look around',
     standUp: 'Stand up',
   },
-  controls: [
-    ['WASD', 'Move'],
-    ['Mouse', 'Look'],
-    ['Shift', 'Run'],
-    ['E', 'Interact'],
-    ['1 2 3', 'Time of day'],
-    ['H', 'Back to the Nippon view'],
-    ['F', 'Whistle for the pup'],
-    ['M', 'Map'],
-    ['N', 'Sound'],
-    ['Space', 'Pause'],
-  ],
   soundOn: 'Sound on',
   soundOff: 'Sound off',
   coordsOn: 'coordinates on',

@@ -1,9 +1,26 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en" translate="no">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Nippon Fuji</title>
+<!-- English UI with Japanese in it: never machine-translated (Chrome took the
+     page for Japanese and "translated" the start card) -->
+<meta name="google" content="notranslate" />
+<title>Take Me Back to Japan</title>
+<meta name="description" content="A first-person stroll through Fujikawaguchikko, a small Japanese town under Mt. Fuji: a konbini at golden hour, cherry blossom, a shrine, a local train. In your browser, on a desktop." />
+<link rel="canonical" href="https://takemebacktojapan.com/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Take Me Back to Japan" />
+<meta property="og:title" content="Take Me Back to Japan" />
+<meta property="og:description" content="A small town under Mt. Fuji. Walk it at golden hour, in your browser." />
+<meta property="og:url" content="https://takemebacktojapan.com/" />
+<meta property="og:image" content="https://takemebacktojapan.com/keyart.webp" />
+<meta property="og:image:width" content="1600" />
+<meta property="og:image:height" content="900" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Take Me Back to Japan" />
+<meta name="twitter:image" content="https://takemebacktojapan.com/keyart.webp" />
+<link rel="preload" as="image" href="keyart.webp" type="image/webp" fetchpriority="high" />
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   html, body {
@@ -74,7 +91,7 @@
   .coords .d { color: #8f88a8; }
   .coords .s { color: #5d6f96; font-size: 11px; }
 
-  /* ---------- reference overlay (dev only, R) ----------
+  /* ---------- reference overlay (dev only, ` key) ----------
    * Fitted by height and centred, like the hero lens. */
   .ref-overlay {
     position: fixed; top: 0; left: 50%; height: 100vh; width: auto;
@@ -84,62 +101,131 @@
   .ref-overlay.on { opacity: .5; }
 
   /* ---------- start / pause card ----------
-   * A plain placeholder until the real title screen (SPEC M7). */
+   * One card for both (core/hud.js): the key art with the name over its sky,
+   * then the keys and Start (paused: the volume and Resume).  Sized to the
+   * window, never scrolled; the type scales with the card (cqw). */
   .overlay {
     position: absolute; inset: 0; pointer-events: auto;
     display: grid; place-items: center;
-    background: rgba(28,32,52,.38);
-    backdrop-filter: blur(6px);
-    transition: opacity .35s ease, visibility .35s ease;
+    background: radial-gradient(ellipse at 50% 40%, rgba(40,30,62,.42), rgba(18,14,32,.72));
+    backdrop-filter: blur(10px) saturate(.9);
+    transition: opacity .4s ease, visibility .4s ease;
+    cursor: pointer;
   }
   .overlay.hidden { opacity: 0; visibility: hidden; }
   .pause-only { display: none; }
   .overlay[data-mode='paused'] .start-only { display: none; }
-  .overlay[data-mode='paused'] .pause-only { display: initial; }
-  .overlay[data-mode='paused'] .pause-stack { display: grid; }
+  .overlay[data-mode='paused'] .pause-only { display: revert; }
+  .overlay[data-mode='paused'] .audio-control { display: block; }
 
-  .menu-panel {
-    --ink: #2c3048;
-    width: min(440px, calc(100vw - 48px));
-    padding: 32px 34px 28px;
+  .menu {
+    --ink: #2b2542;
+    --ink-soft: #6c6482;
+    --paper: #fbf6f0;
+    --sakura: #e59bb0;
+    --action: #3b3263;
+    container-type: inline-size;
+    width: min(66vw, calc((100vh - 236px) * 16 / 9), 1500px);
+    min-width: 760px;
+    border-radius: 18px; overflow: hidden;
+    background: var(--paper); color: var(--ink);
+    box-shadow: 0 40px 110px -30px rgba(8,4,24,.75), 0 0 0 1px rgba(255,255,255,.08);
+    cursor: default;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+  .menu [lang='ja'] { font-family: 'NF Round', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', Meiryo, sans-serif; }
+
+  .menu-art { position: relative; margin: 0; aspect-ratio: 16 / 9; background: #b98ab4; }
+  .menu-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  /* the name sits in the clear sky right of Fuji's peak */
+  .menu-name {
+    position: absolute; right: 4cqw; top: 4cqw;
+    text-align: right; color: var(--ink);
+  }
+  .menu-place {
+    margin: 0 0 .9cqw; font-size: max(10.5px, 1.05cqw); font-weight: 700;
+    letter-spacing: .24em; text-transform: uppercase; color: rgba(43,37,66,.72);
+  }
+  .menu-place [lang='ja'] { letter-spacing: .12em; text-transform: none; }
+  .menu-place .dot { margin: 0 .7em; color: rgba(43,37,66,.45); }
+  .menu h1 {
+    margin: 0; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    font-size: 4.1cqw; line-height: 1.05; font-weight: 600; letter-spacing: -.005em; white-space: nowrap;
+    color: #2a2140; text-shadow: 0 1px 0 rgba(255,236,230,.35);
+  }
+  .menu-jp {
+    margin: 1.1cqw 0 0; font-size: max(14px, 1.7cqw); font-weight: 700; letter-spacing: .32em;
+    color: rgba(43,37,66,.8);
+  }
+  .menu-jp::before {
+    content: ''; display: inline-block; width: 3.2cqw; height: 2px; margin: 0 1.1cqw .45cqw 0;
+    vertical-align: middle; background: linear-gradient(90deg, transparent, var(--sakura));
+  }
+  .menu-paused {
+    position: absolute; left: 2.4cqw; top: 2.4cqw;
+    padding: .55cqw 1.3cqw; border-radius: 999px;
+    background: rgba(251,246,240,.9); color: var(--ink);
+    font-size: max(11px, 1.05cqw); font-weight: 700; letter-spacing: .22em; text-transform: uppercase;
+    box-shadow: 0 6px 18px -8px rgba(20,10,40,.5);
+  }
+
+  .menu-body {
+    display: grid; grid-template-columns: 1fr 24cqw; gap: 3.2cqw;
+    padding: 2.3cqw 3cqw 2.2cqw;
+    border-top: 3px solid var(--sakura);
+    background: linear-gradient(180deg, #fffaf5, var(--paper));
+  }
+  .menu-tagline { margin: 0 0 1.5cqw; font-size: max(13px, 1.3cqw); line-height: 1.4; color: var(--ink-soft); }
+  .menu-keys {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(4, auto); justify-content: start;
+    gap: 1.05cqw 2.4cqw;
+  }
+  .menu-keys li { display: flex; align-items: center; gap: .9cqw; white-space: nowrap; }
+  .menu-keys .caps { display: flex; gap: .3cqw; }
+  .menu-keys .what { font-size: max(12.5px, 1.12cqw); font-weight: 600; color: var(--ink); }
+  .menu kbd {
+    display: inline-grid; place-items: center;
+    min-width: max(22px, 2.05cqw); height: max(22px, 2.05cqw); padding: 0 .5cqw;
+    border-radius: .45cqw;
+    background: linear-gradient(#ffffff, #f4eef0);
+    border: 1px solid #d9cfd8; border-bottom: .22cqw solid #c7bac8;
+    font: 700 max(11px, 1cqw)/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     color: var(--ink);
-    background: rgba(250,250,252,.94);
-    border-radius: 12px;
-    box-shadow: 0 24px 60px -24px rgba(20,22,40,.6);
   }
-  .menu-panel h1 { margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
-  .menu-jp { margin: 4px 0 20px; font-size: 15px; letter-spacing: .2em; color: #6a6e86; }
-  .menu-description { margin: 0 0 18px; font-size: 13px; line-height: 1.6; color: #5a5e76; }
-  .control-strip { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 20px; font-size: 12px; color: #5a5e76; }
-  .control-strip b {
-    display: inline-block; min-width: 20px; padding: 1px 5px; margin-right: 4px;
-    border: 1px solid #c4c6d4; border-radius: 4px; background: #fff;
-    font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace; font-size: 11px;
-    text-align: center; color: var(--ink);
-  }
-  .audio-control { margin: 0 0 18px; }
+  .menu kbd.wide { padding: 0 max(7px, .75cqw); font-size: max(10px, .88cqw); letter-spacing: .02em; }
+
+  .menu-right { display: flex; flex-direction: column; justify-content: flex-end; gap: 1.1cqw; }
+  .audio-control { cursor: default; }
   .audio-head {
-    display: flex; justify-content: space-between; margin-bottom: 6px;
-    font-size: 12px; font-weight: 700;
+    display: flex; justify-content: space-between; margin-bottom: .6cqw;
+    font-size: max(12px, 1.05cqw); font-weight: 700; color: var(--ink);
   }
-  .audio-head output { font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace; color: #6a6e86; }
-  .audio-control.muted .audio-head span::after { content: ' (muted)'; color: #8a8ea6; font-weight: 400; }
-  .volume-slider { display: block; width: 100%; margin: 0; accent-color: var(--ink); }
+  .audio-head output { font-variant-numeric: tabular-nums; color: var(--ink-soft); font-weight: 600; }
+  .audio-control.muted .audio-head span::after { content: ' (muted)'; color: var(--ink-soft); font-weight: 400; }
+  .volume-slider { display: block; width: 100%; margin: 0; accent-color: var(--action); cursor: pointer; }
   .menu-action {
-    width: 100%; padding: 11px 14px;
-    border: 0; border-radius: 8px;
-    color: #fff; background: var(--ink);
-    font: inherit; font-size: 14px; font-weight: 700; letter-spacing: .04em;
+    width: 100%; padding: 1.05cqw 1.4cqw;
+    border: 0; border-radius: .8cqw;
+    color: #fff; background: var(--action);
+    font: inherit; font-size: max(14px, 1.35cqw); font-weight: 700; letter-spacing: .08em;
     cursor: pointer;
+    box-shadow: 0 .5cqw 1.4cqw -.6cqw rgba(40,24,80,.6);
+    transition: background .15s ease, transform .15s ease;
   }
-  .menu-action:hover { background: #3c4262; }
-  .menu-action:focus-visible { outline: 3px solid #9aa0c8; outline-offset: 2px; }
+  .menu-action:hover { background: #4b3f7c; transform: translateY(-1px); }
+  .menu-action:focus-visible { outline: 3px solid var(--sakura); outline-offset: 3px; }
+  .menu-url {
+    margin: 0; text-align: center;
+    font-size: max(11px, .95cqw); font-weight: 600; letter-spacing: .08em; color: var(--ink-soft);
+  }
+  .menu-credit { display: block; margin-top: .3cqw; font-size: max(10px, .78cqw); font-weight: 500; letter-spacing: .02em; opacity: .75; }
   @media (prefers-reduced-motion: reduce) {
-    .overlay { transition: none; }
+    .overlay, .menu-action { transition: none; }
   }
 </style>
 </head>
-<body>
+<body class="notranslate">
   <canvas id="view"></canvas>
   <script type="module" src="./src/main.js"></script>
 </body>

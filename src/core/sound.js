@@ -121,24 +121,38 @@ export function createSound({ volume = 0.5 } = {}) {
     o.start(t); o.stop(t + dur + 0.05);
     if (breath) burst(dest, t, dur, { freq: formants[0][0], q: 1.2, level: breath });
   }
-  const yip = (d, t, k = 1) => voice(d, t, 0.11, [[0, 780 * k], [0.3, 1250 * k], [1, 820 * k]], { level: 0.55, formants: [[1600, 3], [3000, 5]], breath: 0.02 });
+  // a puppy's yip: small, high and soft, a quick rise and fall
+  const yip = (d, t, k = 1) => voice(d, t, 0.1, [[0, 980 * k], [0.3, 1520 * k], [1, 1050 * k]], { level: 0.42, formants: [[1900, 3], [3400, 5]], breath: 0.02 });
   const RECIPES = {
-    /* the Shiba guide (Tan: "very cute, adorable sounds"): all small, soft and rare */
-    'dog-yip'(d, t) { yip(d, t); yip(d, t + 0.17, 1.08); },                                    // happy: you've arrived
-    'dog-boof'(d, t) { voice(d, t, 0.16, [[0, 420], [0.25, 560], [1, 380]], { level: 0.6, formants: [[900, 3], [1800, 4]], breath: 0.06 }); },   // a cheek-puffed little woof, looking back
+    /* the Shiba pup (Tan: "very cute, adorable sounds"): all small, soft, high and rare */
+    'dog-yip'(d, t) { yip(d, t); yip(d, t + 0.16, 1.1); },                                     // happy: you've arrived, or off after you
+    'dog-boof'(d, t) { voice(d, t, 0.14, [[0, 520], [0.25, 680], [1, 470]], { level: 0.45, formants: [[1100, 3], [2100, 4]], breath: 0.05 }); },   // a cheek-puffed little woof, looking back
     'dog-whine'(d, t) {                                                                            // you've kept it waiting
-      voice(d, t, 0.75, [[0, 950], [0.35, 1350], [0.7, 1220], [1, 900]], { level: 0.35, formants: [[1500, 6], [2800, 8]], breath: 0.015, vib: 18 });
-      voice(d, t + 0.9, 0.45, [[0, 1100], [0.5, 1400], [1, 1000]], { level: 0.28, formants: [[1500, 6], [2800, 8]], breath: 0.01, vib: 14 });
+      voice(d, t, 0.7, [[0, 1150], [0.35, 1600], [0.7, 1450], [1, 1100]], { level: 0.28, formants: [[1800, 6], [3200, 8]], breath: 0.012, vib: 20 });
+      voice(d, t + 0.85, 0.4, [[0, 1300], [0.5, 1650], [1, 1200]], { level: 0.22, formants: [[1800, 6], [3200, 8]], breath: 0.01, vib: 16 });
     },
-    'dog-hmm'(d, t) { voice(d, t, 0.28, [[0, 700], [1, 1050]], { level: 0.3, formants: [[1200, 5], [2400, 6]], breath: 0.01 }); },   // the head tilt: "hm?"
-    'dog-pant'(d, t) { for (let i = 0; i < 6; i++) burst(d, t + i * 0.17, 0.09, { freq: i % 2 ? 1500 : 1150, q: 1.1, level: 0.16 }); },
+    'dog-hmm'(d, t) { voice(d, t, 0.26, [[0, 850], [1, 1250]], { level: 0.26, formants: [[1400, 5], [2700, 6]], breath: 0.01 }); },   // the head tilt: "hm?"
+    'dog-pant'(d, t) { for (let i = 0; i < 6; i++) burst(d, t + i * 0.15, 0.08, { freq: i % 2 ? 1700 : 1300, q: 1.1, level: 0.13 }); },
     'dog-shake'(d, t) {                                                                            // the collar tag jingling as it shakes off
       for (let i = 0; i < 7; i++) {
-        tone(d, 3000 + Math.random() * 1600, t + i * 0.055 + Math.random() * 0.02, 0.2, { level: 0.07 });
-        burst(d, t + i * 0.06, 0.05, { freq: 700, q: 0.8, level: 0.05 });
+        tone(d, 3200 + Math.random() * 1600, t + i * 0.055 + Math.random() * 0.02, 0.2, { level: 0.06 });
+        burst(d, t + i * 0.06, 0.05, { freq: 800, q: 0.8, level: 0.04 });
       }
     },
-    'dog-snore'(d, t) { burst(d, t, 0.8, { freq: 600, q: 0.7, level: 0.3, type: 'lowpass' }); tone(d, 1700, t + 0.72, 0.16, { level: 0.04 }); },   // a puppy's snuffly breath asleep
+    'dog-snore'(d, t) { burst(d, t, 0.8, { freq: 700, q: 0.7, level: 0.26, type: 'lowpass' }); tone(d, 1900, t + 0.72, 0.16, { level: 0.04 }); },   // a puppy's snuffly breath asleep
+    'dog-awoo'(d, t) { voice(d, t, 0.55, [[0, 700], [0.3, 1150], [0.75, 1250], [1, 900]], { level: 0.34, formants: [[1300, 4], [2600, 6]], breath: 0.02, vib: 10 }); },   // zoomies: a little "awoo"
+    'dog-snort'(d, t) { burst(d, t, 0.09, { freq: 900, q: 0.9, level: 0.3, type: 'lowpass' }); burst(d, t + 0.13, 0.07, { freq: 1100, q: 0.9, level: 0.22, type: 'lowpass' }); },   // happy snorts, rolling on its back
+    'dog-sneeze'(d, t) { burst(d, t, 0.03, { freq: 2600, q: 0.6, level: 0.22 }); voice(d, t + 0.02, 0.11, [[0, 1500], [1, 700]], { level: 0.3, formants: [[1800, 2], [3000, 3]], breath: 0.12 }); },   // a big little sneeze
+    // your whistle for the pup (F): two clear notes, breathy, the second higher
+    'whistle'(d, t) {
+      for (const [dt, f0, f1, dur] of [[0, 1420, 1560, 0.2], [0.24, 1780, 2080, 0.28]]) {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(f0, t + dt); o.frequency.linearRampToValueAtTime(f1, t + dt + dur);
+        g.gain.setValueAtTime(0.0001, t + dt); g.gain.exponentialRampToValueAtTime(0.28, t + dt + 0.03); g.gain.setValueAtTime(0.28, t + dt + dur * 0.7); g.gain.exponentialRampToValueAtTime(0.0008, t + dt + dur);
+        o.connect(g).connect(d); o.start(t + dt); o.stop(t + dt + dur + 0.02);
+        burst(d, t + dt, dur, { freq: (f0 + f1) / 2, q: 6, level: 0.05 });
+      }
+    },
     // an original phrase on a soft electric piano (SPEC 9), if the file is missing
     'store-chime'(d, t) { [659.3, 554.4, 440, 493.9, 659.3, 880].forEach((f, i) => { tone(d, f, t + i * 0.28, 1.2, { level: 0.22 }); tone(d, f * 2, t + i * 0.28, 0.6, { level: 0.06 }); }); },
     'auto-door'(d, t) { burst(d, t, 0.6, { freq: 900, q: 0.6, level: 0.12 }); tone(d, 60, t, 0.6, { level: 0.08 }); },

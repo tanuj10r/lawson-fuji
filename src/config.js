@@ -573,17 +573,28 @@ export const SHOT_SPOTS = [
   { name: 'han-out', scene: 'town', pos: [20.5, 0, 4.2], yaw: -1.26, pitch: -0.05, looks: ['day'], train: 'han:6.46' },         // out of the car park's mouth onto the bridge road
   { name: 'han-flick', scene: 'town', pos: [20.5, 0, 4.2], yaw: 2.23, pitch: -0.02, looks: ['day'], train: 'han:9.32' },        // the handbrake 180 on NIPPON's forecourt
   { name: 'han-getin', scene: 'town', pos: [20.2, 0, 6.2], yaw: -1.0, pitch: -0.1, looks: ['day'], train: 'han:2.0' },              // the door open, Han getting in
-  // the guide shiba (animals/guide.js), staged in a pose 2.4 m in front of the lens on the far pavement (world frame)
-  { name: 'guide-trot', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.5, looks: ['day', 'golden'], guide: 'trot' },
-  { name: 'guide-look', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.5, looks: ['day'], guide: 'look' },
-  { name: 'guide-sit', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.55, looks: ['day', 'blue'], guide: 'sit' },
-  { name: 'guide-tilt', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.55, looks: ['golden'], guide: 'tilt' },
-  { name: 'guide-nap', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.6, looks: ['day'], guide: 'nap' },
-  { name: 'guide-low', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.0, lift: -1.15, looks: ['day', 'golden'], guide: 'stand' },   // at dog height
-  { name: 'guide-low-sit', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.02, lift: -1.1, looks: ['day', 'blue'], guide: 'sit' },
-  { name: 'guide-low-side', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.0, lift: -1.15, looks: ['day', 'golden'], guide: 'side' },     // mid-stride, from the side
-  { name: 'guide-low-behind', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.0, lift: -1.05, looks: ['day'], guide: 'behind' },          // trotting away
-  { name: 'guide-side', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.5, looks: ['golden'], guide: 'side' },
+  // the guide pup (animals/guide.js), staged in a pose `kind@metres` in front of the lens on the far pavement (world frame):
+  // at eye height looking down (how you see it beside you), following it from behind, and at pup height
+  { name: 'guide-trot', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.72, looks: ['day', 'golden'], guide: 'trot@1.7' },
+  { name: 'guide-look', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.72, looks: ['day'], guide: 'look@1.7' },
+  { name: 'guide-sit', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.8, looks: ['day', 'blue'], guide: 'sit@1.5' },
+  { name: 'guide-tilt', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.84, looks: ['golden'], guide: 'tilt@1.4' },
+  { name: 'guide-lie', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.86, looks: ['day'], guide: 'lie@1.5' },
+  { name: 'guide-nap', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.86, looks: ['day'], guide: 'nap@1.5' },
+  { name: 'guide-bow', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.82, looks: ['day', 'golden'], guide: 'bow@1.5' },
+  { name: 'guide-roll', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.88, looks: ['day', 'golden'], guide: 'roll@1.4' },
+  { name: 'guide-hop', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.7, looks: ['day'], guide: 'hop@1.6' },
+  { name: 'guide-zoom', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.6, looks: ['golden'], guide: 'zoom@2.2' },
+  { name: 'guide-chase', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.54, looks: ['day'], guide: 'chase@2.6' },
+  { name: 'guide-follow', scene: 'town', frame: 'world', pos: [7.5, 0, 19.0], yaw: 1.5708, pitch: -0.44, looks: ['day', 'golden'], guide: 'behind@3.2' },        // following it, as you mostly do
+  { name: 'guide-low', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.02, lift: -1.32, looks: ['day', 'golden'], guide: 'stand@1.4' },   // at pup height
+  { name: 'guide-low-sit', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.04, lift: -1.3, looks: ['day', 'blue'], guide: 'sit@1.3' },
+  { name: 'guide-low-side', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.02, lift: -1.32, looks: ['day', 'golden'], guide: 'side@1.6' },     // mid-stride, from the side
+  { name: 'guide-low-behind', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.0, lift: -1.25, looks: ['day'], guide: 'behind@1.6' },          // trotting away
+  { name: 'guide-low-bow', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.06, lift: -1.34, looks: ['golden'], guide: 'bow@1.4' },
+  { name: 'guide-low-roll', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.12, lift: -1.3, looks: ['day'], guide: 'roll@1.9' },
+  { name: 'guide-low-tail', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.04, lift: -1.32, looks: ['day'], guide: 'tail@1.5' },
+  { name: 'guide-low-lie', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.1, lift: -1.34, looks: ['blue'], guide: 'lie@1.9' },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },
@@ -717,12 +728,21 @@ export const ANIMALS = {
   shiba: { near: [30, 79], inset: 0.8 },
   /* the guide (animals/guide.js): the shiba that leads you to the engagements one at a time */
   guide: {
-    size: 1.0,
+    size: 1.0,                                // (the pup is built at its own size: ~24 cm at the shoulder)
     home: [4.6, 19.3],                        // world: the far pavement behind the famous view, out of every hero frame
-    lead: [3, 6],                             // trots this far ahead of you along the way (m)
-    trot: 2.6, run: 5.2,                      // m/s (you walk at 2.55, run at 5.1)
-    waitSit: 2.5,                             // stands waiting this long, then sits
-    lost: 14,                                 // farther off than this for a while: it comes back to you
+    lead: [2.5, 5],                           // trots this far ahead of you along the way (m)
+    trot: 2.4, run: 5.4,                      // m/s (you walk at 2.55, run at 5.1: it can always catch you)
+    waitSit: 3,                               // stands waiting this long, then sits
+    /* "not interested" (the pup suggests, you decide): your heading more than `angle` degrees off its way for
+     * `angleT` s, your distance to the spot grown by `grow` m while it waits, or you `away` m off: it drops the
+     * suggestion and comes after you.  `way`: a spot counts as "your way" within this many degrees of your heading. */
+    drop: { angle: 100, angleT: 1.7, grow: 6, away: 10, way: 80 },
+    company: [2, 4],                          // keeping you company: follows to stay within this band (m)
+    invite: { every: 20, wait: 3, steps: 3 }, // an invitation (play bow + a few steps) at most this often; it waits this long for you to come
+    circle: 0.9,                              // the radius of its lap round your legs when it catches up (m)
+    zoom: { r: 1.5, speed: 4.6 },             // zoomies: the circle's radius and speed
+    tripEvery: 45,                            // trips over its own paws about once in this many seconds at a trot
+    whistle: { far: 80, near: 2.2 },          // F: beyond `far` m it comes from the nearest corner out of view; it stops `near` m from you
     engage: { konbini: 1.2, view: 1.0, han: 0.85, train: 1.1, slowlife: 1.1 },   // the engagements' ring radii (and which ids count until the list says `kind`)
     cell: 0.4, radius: 0.25,                  // its map of the town: cell size, and clearance from anything solid (its own half-width and a little)
     step: 0.45,                               // the biggest step between neighbouring cells it will take: kerbs yes, the channel no

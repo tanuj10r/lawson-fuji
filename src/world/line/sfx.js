@@ -12,7 +12,6 @@ import { falloff } from '../../core/sound.js';
  *   rolling   wheel-on-rail rumble with speed, and the joints' ta-tan
  *   squeal    the brakes' squeal in the last metres, and the air let out
  *             once it stands
- *   whistle   the station master's pea whistle
  *
  * Everything is local to where it happens (config SOUND-style near/far).
  *
@@ -25,7 +24,6 @@ import { falloff } from '../../core/sound.js';
  * ------------------------------------------------------------------ */
 
 export const TRAIN_SOUND = { near: 14, far: 80 };
-export const WHISTLE_SOUND = { near: 6, far: 40 };
 
 let ac = null, out = null, noise = null;
 const listener = { x: 0, z: 0 };
@@ -177,34 +175,4 @@ export function trainVoice() {
     },
     stop: drop,
   };
-}
-
-/** The station master's whistle: one long trilling blast, at `at` (world). */
-export function whistle(at) {
-  if (!ensure()) return;
-  const d = Math.hypot(at.x - listener.x, at.z - listener.z);
-  if (d >= WHISTLE_SOUND.far) return;
-  const t = ac.currentTime + 0.02, dur = 1.25;
-  const k = falloff(d, WHISTLE_SOUND);
-  const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = 2950;
-  const trill = ac.createOscillator(); trill.frequency.value = 27;
-  const tg = ac.createGain(); tg.gain.value = 140;
-  trill.connect(tg).connect(o.frequency);
-  const am = ac.createGain(); am.gain.value = 0.75;
-  const amG = ac.createGain(); amG.gain.value = 0.25;
-  trill.connect(amG).connect(am.gain);
-  const e = ac.createGain();
-  e.gain.setValueAtTime(0, t);
-  e.gain.linearRampToValueAtTime(0.16 * k, t + 0.04);
-  e.gain.setValueAtTime(0.16 * k, t + dur - 0.2);
-  e.gain.exponentialRampToValueAtTime(0.0005, t + dur);
-  o.connect(am).connect(e).connect(out);
-  // breath
-  const s = ac.createBufferSource(); s.buffer = noise;
-  const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 3000; f.Q.value = 3;
-  const n = ac.createGain();
-  n.gain.setValueAtTime(0, t); n.gain.linearRampToValueAtTime(0.03 * k, t + 0.04); n.gain.exponentialRampToValueAtTime(0.0005, t + dur);
-  s.connect(f).connect(n).connect(out);
-  for (const x of [o, trill]) { x.start(t); x.stop(t + dur + 0.05); }
-  s.start(t, Math.random()); s.stop(t + dur + 0.05);
 }

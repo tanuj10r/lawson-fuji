@@ -122,7 +122,7 @@ export const poster = (variant = 0) =>
       const sets = [
         { bg: '#fdf7e8', bar: PAL.red, t: 'さくら祭', s: '四月五日' },
         { bg: '#eef6fd', bar: PAL.blue, t: '町内会', s: 'そうじ当番' },
-        { bg: '#fdeef1', bar: PAL.purple, t: '春の便り', s: 'さくら富士' },
+        { bg: '#fdeef1', bar: PAL.purple, t: '春の便り', s: '富士川口湖' },
         { bg: '#f4fbef', bar: PAL.leafDeep, t: '野菜市', s: '毎週日曜' },
       ];
       const st = sets[variant % sets.length];
@@ -1310,8 +1310,8 @@ export const busStopPlate = (variant = 0) =>
     make(384, 384, (c, w) => {
       /* Lawson Fuji: our own stops and service (none of Sakura Crossing's). */
       const sets = [
-        { t: 'さくら富士駅', foot: '１日 ２０便' },
-        { t: '富士見町', foot: '終点  ・  ここで折返し' },
+        { t: '富士川口湖駅', foot: '１日 ２０便' },
+        { t: '富士川口湖町', foot: '終点  ・  ここで折返し' },
       ];
       const st = sets[variant % sets.length];
       c.fillStyle = '#fbfaf6';
@@ -1321,12 +1321,12 @@ export const busStopPlate = (variant = 0) =>
       c.strokeStyle = hex(PAL.blueDeep);
       c.lineWidth = 14;
       c.stroke();
-      centered(c, '富士見町', w / 2, 92, w - 130, 40, hex(PAL.blueDeep), '600');
+      centered(c, '富士川口湖町', w / 2, 92, w - 130, 40, hex(PAL.blueDeep), '600');
       centered(c, st.t, w / 2, 168, w - 90, 62, '#3b3846', 'bold', 2);
       c.globalAlpha = 0.45;
       rule(c, 96, 226, w - 192, 3, '#8a84a0');
       c.globalAlpha = 1;
-      centered(c, '富士見コミュニティバス', w / 2, 268, w - 120, 34, hex(PAL.teal), '600');
+      centered(c, '富士川口湖町 コミュニティバス', w / 2, 268, w - 120, 34, hex(PAL.teal), '600');
       centered(c, st.foot, w / 2, 316, w - 130, 26, '#6f6a80', '600');
     })
   );

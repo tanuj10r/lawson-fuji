@@ -255,7 +255,8 @@ export function createSound({ volume = 0.5 } = {}) {
   if (import.meta.env?.DEV) window.__soundZones = zones;   // dev: the final QA's sound audit
   function zoneTick(z) {
     const d = Math.hypot(z.x - listener.x, z.z - listener.z);
-    const want = !muted && d < z.far ? z.level * falloff(d, z) * (z.indoor && !state.inside ? 0.35 : 1) : 0;
+    const shape = z.core ? Math.max((z.edge ?? 1) * falloff(d, z), falloff(d, z.core)) : falloff(d, z);
+    const want = !muted && d < z.far ? z.level * shape * (z.indoor && !state.inside ? 0.35 : 1) : 0;
     if (want > 0 && !z.node) {
       z.g = ac.createGain(); z.g.gain.value = 0;
       z.p = ac.createPanner(); z.p.panningModel = 'HRTF'; z.p.rolloffFactor = 0;
@@ -295,7 +296,8 @@ export function createSound({ volume = 0.5 } = {}) {
     /**
      * A looping track that belongs to a place (Tan's experiences): heard from
      * `far` in, full from `near`, nowhere else.  { x, z, y, near, far,
-     * level, indoor }.  Returns a handle: { set(opts) } to move or retune it.
+     * level, indoor }; with `core: { near, far }` it is full only in the
+     * core and `edge` (0..1) of that out to `far` (the station).  Returns a handle: { set(opts) } to move or retune it.
      */
     zone(name, o) {
       const z = { name, x: 0, z: 0, y: 2, near: 8, far: 30, level: 0.6, indoor: false, ...o, node: null };

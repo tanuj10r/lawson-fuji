@@ -57,13 +57,6 @@
       "kbps": 40,
       "fadeOut": 0.03
     },
-    "coins": {
-      "start": 0.0,
-      "len": 1.45,
-      "peak": 0.7,
-      "kbps": 40,
-      "fadeOut": 0.1
-    },
     "stamp": {
       "event": 2,
       "len": 0.4,
@@ -184,24 +177,6 @@
       "kbps": 40,
       "_": "the shrine's wind chimes, heard in its grounds"
     },
-    "shrine-bell": {
-      "ext": ".wav",
-      "start": 0.0,
-      "len": 2.3,
-      "peak": 0.7,
-      "kbps": 40,
-      "fadeOut": 0.3,
-      "_": "the bell cluster shaken on its rope (made by scripts/make-shrine-sounds.mjs)"
-    },
-    "shrine-clap": {
-      "ext": ".wav",
-      "start": 0.0,
-      "len": 0.5,
-      "peak": 0.8,
-      "kbps": 40,
-      "fadeOut": 0.1,
-      "_": "one hand clap in the shrine's courtyard (made by scripts/make-shrine-sounds.mjs)"
-    },
     "rural-flute": {
       "src": "Rural-japan-flute",
       "start": 0.0,
@@ -218,7 +193,7 @@
       "loop": 1.5,
       "peak": 0.6,
       "kbps": 40,
-      "_": "the station's announcements and bustle, heard at the station"
+      "_": "the station's announcements and bustle: full at the station, mild over the plaza (config SOUND.station)"
     },
     "train-nextstop": {
       "src": "nextstop-shibuya(play inside train)",
@@ -226,7 +201,7 @@
       "len": 0,
       "peak": 0.8,
       "kbps": 48,
-      "_": "the in-train announcement, played inside the train"
+      "_": "the in-train announcement, played at the train's listening spot on platform 1 (nobody boards)"
     },
     "bite": { "src": "bite", "ext": ".wav", "start": 0.0, "len": 0, "peak": 0.8, "kbps": 40, "fadeOut": 0.02, "_": "the konbini, synthesised (scripts/gen-sfx.mjs)" },
     "munch": { "src": "munch", "ext": ".wav", "start": 0.0, "len": 0, "peak": 0.8, "kbps": 40, "fadeOut": 0.02, "_": "the konbini, synthesised (scripts/gen-sfx.mjs)" },

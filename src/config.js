@@ -553,6 +553,7 @@ export const SHOT_SPOTS = [
   { name: 'han-car', scene: 'town', pos: [19.0, 0, 6.8], yaw: -0.93, pitch: -0.12, looks: ['day', 'golden'] },          // the car and Han at 3 m
   { name: 'han-close', scene: 'town', pos: [20.7, 0, 3.2], yaw: -2.24, pitch: -0.06, looks: ['day'] },                  // Han at 1.5 m
   { name: 'han-face', scene: 'town', pos: [21.15, 0, 3.55], yaw: -2.17, pitch: -0.1, looks: ['day'] },                  // his face, close
+  { name: 'han-head', scene: 'town', pos: [22.25, 0, 3.96], yaw: -1.5, pitch: -0.05, looks: ['day', 'golden', 'blue'] },   // head and shoulders at 0.8 m (the portrait check)
   { name: 'han-front', scene: 'town', pos: [25, 0, 11], yaw: 0.315, pitch: -0.1, looks: ['day'] },                      // the car's nose, from the walk
   { name: 'han-side', scene: 'town', pos: [17.6, 0, 4.7], yaw: -1.5708, pitch: -0.06, looks: ['day'] },                // the profile at 5 m
   { name: 'han-front34', scene: 'town', pos: [19.4, 0, 9.0], yaw: -0.72, pitch: -0.1, looks: ['day'] },                 // front three-quarter at 5.5 m

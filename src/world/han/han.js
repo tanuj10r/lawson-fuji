@@ -158,6 +158,7 @@ function features(fx, fy, z) {
   h += 0.0045 * G(fy - F.brow + 0.003, 0.011) * sm(0.064 - ax, 0, 0.02) * (0.72 + 0.28 * sm(ax, 0.004, 0.02)) * fr;
   // the sockets the eyes sit in
   h -= 0.0075 * G2(ax - F.eyeX, 0.019, fy - F.eye + 0.001, 0.011) * fr;
+  h -= 0.0035 * G2(ax - F.eyeX, 0.016, fy - F.eye + 0.009, 0.006) * fr;
   // the nose: a bridge widening down to the tip, the wings, the underside cut back to the lip
   const nb = sm(fy, F.noseBase - 0.005, F.noseBase + 0.005);
   const along = 1 - sm(fy, F.noseTip, F.brow - 0.004);
@@ -421,7 +422,7 @@ function ramp(stops) {
  * elevation angles on the eyeball (rad).  Narrow: the upper lid heavy and low, the outer corner a touch higher. */
 const AZ_HALF = 1.36;   // the corners' azimuth on the eyeball
 const lidUp = (s) => 0.29 * (1 - s * s) ** 0.5 + 0.06 * (1 - s * s) * (0.4 - s) + 0.05 * s;
-const lidLo = (s) => -0.2 * (1 - s * s) ** 0.7 + 0.05 * s;
+const lidLo = (s) => -0.16 * (1 - s * s) ** 0.7 + 0.05 * s;
 
 /** Eyeballs, lids and the catch lights, in the head's frame.  Returns { parts: [{geo, color|colored}], lights: [geo] }. */
 function eyeParts() {
@@ -450,6 +451,7 @@ function eyeParts() {
           cc.lerp(pupil, 0.5 * (1 - sm(ang, 0.19, 0.26)));
         } else {
           cc.copy(sc).lerp(top, sm(el, 0.15, 0.7));                       // under the upper lid
+          cc.lerp(top, 0.5 * sm(-el, 0.1, 0.5));                           // and toward the lower
           cc.lerp(pink, 0.7 * sm(-s * v.x / EYE_R, 0.55, 0.95));         // the inner corner
           cc.lerp(top, 0.35 * sm(ang, 0.9, 1.6));
         }
@@ -461,7 +463,7 @@ function eyeParts() {
     // the lids: strips from the margin outward, on a sphere just over the eyeball, thick over the top
     const lid = (upper) => {
       const NS = 22, NV = 5, pos = [], col = [], idx = [];
-      const skin = new THREE.Color(C.skin), lash = new THREE.Color(upper ? 0x2a1814 : 0x6a4438), deep = new THREE.Color(C.skinShade);
+      const skin = new THREE.Color(C.skin), lash = new THREE.Color(upper ? 0x2a1814 : 0x5a3a30), deep = new THREE.Color(upper ? C.skinShade : 0x7a5240);
       const cc = new THREE.Color();
       for (let j = 0; j <= NV; j++) {
         const v = j / NV;
@@ -469,11 +471,11 @@ function eyeParts() {
           const sgn = (i / NS) * 2 - 1;                     // -1 inner .. 1 outer
           const az = -s * sgn * AZ_HALF;                    // inner corner toward the nose
           const e0 = upper ? lidUp(sgn) : lidLo(sgn);
-          const span = (upper ? 0.62 : -0.3) * (0.55 + 0.45 * (1 - sgn * sgn));
+          const span = (upper ? 0.62 : -0.62) * (0.55 + 0.45 * (1 - sgn * sgn));   // both reach the socket floor
           const el = e0 + span * v;
-          const r = EYE_R + 0.0012 + (upper ? 0.0038 : 0.0014) * Math.sin(Math.PI * v) ** 0.9 * (0.5 + 0.5 * (1 - sgn * sgn));
+          const r = EYE_R + 0.0012 + (upper ? 0.0038 : 0.0009) * Math.sin(Math.PI * v) ** 0.9 * (0.5 + 0.5 * (1 - sgn * sgn));
           pos.push(r * Math.sin(az) * Math.cos(el), r * Math.sin(el), r * Math.cos(az) * Math.cos(el));
-          cc.copy(skin).lerp(deep, upper ? 0.35 * sm(v, 0.5, 1) : 0.45 * (1 - sm(v, 0.3, 1)));
+          cc.copy(skin).lerp(deep, upper ? 0.35 * sm(v, 0.5, 1) : 0.9 - 0.4 * sm(v, 0.4, 1));   // the lower lid in the eye's shadow
           cc.lerp(lash, upper ? 1 - sm(v, 0.06, 0.34) : 0.85 * (1 - sm(v, 0.0, 0.35)));
           col.push(cc.r, cc.g, cc.b);
         }
@@ -493,6 +495,8 @@ function eyeParts() {
       let dot = 0;
       for (let i = 0; i < nn.count; i++) dot += nn.getX(i) * pp.getX(i) + nn.getY(i) * pp.getY(i) + nn.getZ(i) * pp.getZ(i);
       if (dot < 0) { const ix = g.index.array; for (let i = 0; i < ix.length; i += 3) { const t = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = t; } g.computeVertexNormals(); }
+      // the lower lid sits in the eye's shadow: its normals bent down so the sun (2.2, which clips lit skin to paper) doesn't light it as a shelf
+      if (!upper) { const v = new THREE.Vector3(); for (let i = 0; i < nn.count; i++) { v.set(nn.getX(i), nn.getY(i) - 0.9, nn.getZ(i)).normalize(); nn.setXYZ(i, v.x, v.y, v.z); } }
       return place(g);
     };
     parts.push({ geo: lid(true), colored: true });
@@ -971,7 +975,8 @@ export function makeHan() {
       ax = clamp(H.a.x, -30, 30); az = clamp(H.a.z, -30, 30);
     }
     H.lastVel.copy(H.vel);
-    const kx = -0.006 * clamp(wy, -8, 8) - 0.0015 * ax, kz = 0.006 * clamp(wx, -8, 8) - 0.0015 * az;
+    const f = dt * 60;   // the kicks are impulses per 60 Hz frame
+    const kx = (-0.003 * clamp(wy, -8, 8) - 0.0008 * ax) * f, kz = (0.003 * clamp(wx, -8, 8) - 0.0008 * az) * f;
     const K = 140, Cd = 9;
     H.v.x += (-K * H.s.x - Cd * H.v.x) * dt + kx;
     H.v.y += (-K * H.s.y - Cd * H.v.y) * dt + kz;

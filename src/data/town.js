@@ -213,7 +213,7 @@ export const RIDE = {
     stepOff: 'The doors are closing. You step back onto the platform.',
     board: 'Board the train',
     boardHint: 'The doors are open: step aboard',
-    noTrain: 'No train at the platform yet: the next one is due shortly',
+    noTrain: 'No train yet — the next is due shortly',
     ride: 'Ride the train (next one due shortly)',
     station: 'The station',
   },

@@ -48,8 +48,9 @@
     padding: 7px 16px; border-radius: 999px;
     background: rgba(252,250,252,.8);
     border: 1.5px solid rgba(58,51,80,.3);
-    font-size: 13px; font-weight: 600; letter-spacing: .02em;
+    font-size: 15px; font-weight: 600; letter-spacing: .02em;
     white-space: nowrap; color: #4c4568;
+    z-index: 7;   /* above the pause card: blurred under it, "Sound off" read as "comm off" (Tan) */
     opacity: 0; transition: opacity .25s ease, transform .25s ease;
   }
   .toast.on { opacity: 1; transform: translate(-50%, 0); }

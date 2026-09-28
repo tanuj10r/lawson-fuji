@@ -3,7 +3,6 @@ import { cel, flat } from '../../core/toon.js';
 import { rngKit } from '../../core/util.js';
 import { soundBus } from '../../core/soundBus.js';
 import { TOWN, SLOWLIFE } from '../../config.js';
-import { STRINGS } from '../../data/strings.js';
 import { makeParts } from './geo.js';
 import { pondShore } from './pond.js';
 
@@ -276,8 +275,7 @@ export function buildSlowLife(ctx, scatter) {
         x: seatAt.x, z: seatAt.z, yaw: ctx.yawToWorld(S.view.yaw), pitch: S.view.pitch, eyeY: S.view.eye,
         onStand: () => { seated = false; flute.set({ level: S.sound.level }); },
       });
-      hud?.flash(STRINGS.slowlife.sit, 6000);
-      spot.done();
+      spot.done();                          // no narration toast (quality pass, Tan: text only where required)
     },
   });
 

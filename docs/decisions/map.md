@@ -44,3 +44,16 @@ upscale map that stays light.
   back to the system gothic).  The corner map copies it with
   `imageSmoothingQuality = 'high'` so the fine lines don't shimmer; measured
   0.2 to 2 ms per redraw, as before.  The full map is drawn when it opens.
+  The one-time paint at load: about 20 ms.  hero-1 frame 8.64 ms before,
+  8.62 ms after (the map draws nothing in the 3D frame).
+- **Download: +6.7 KB of code (gzip), over the ~5 KB asked.**  Measured by a
+  fresh build of main against this branch (530,086 B to 536,827 B of JS,
+  gzipped).  What it buys: the pictograms (about 1.5 KB, as SVG path data),
+  the palette (1.5 KB), the paddies, pond, river and roof drawing.  Already
+  cut to get here: pictograms as Path2D data instead of drawing code, the
+  full map's furniture drawn in CSS px, shared hatching.  If it must be 5 KB,
+  the next cuts, least missed first: the river's current marks and stepping
+  stones, the platforms' tactile lines, the crossing's barrier stripes, the
+  bridge's shadow and parapets, the tree crowns' lit tops.
+- **No look tint**: the map is paper at every hour; it does not follow the
+  day, golden and blue looks.

@@ -166,7 +166,7 @@ export function cel(opts = {}) {
   const mat = new THREE.MeshToonMaterial({
     color,
     gradientMap: gradientMap(bands),
-    flatShading: flat,
+    // (no flatShading: MeshToonMaterial has none in r180; passing it only logged a warning per material)
     map,
     alphaMap,
     transparent,

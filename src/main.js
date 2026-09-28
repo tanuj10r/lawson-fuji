@@ -685,6 +685,7 @@ if (import.meta.env?.DEV) {
     pipeline.setSize(W, H);
     setOutlineResolution(pipeline.size.x, pipeline.size.y);
     world.update(0, camera);
+    if (opts.guide) window.__guide?.stage(opts.guide, player);   // the guide shiba in a pose in front of the lens
     renderer.shadowMap.needsUpdate = true;      // this one frame draws its own shadows
     // the shop: `opts.shop` seconds pass (flights land, doors swing), and what you carry follows the camera
     if (shop) {

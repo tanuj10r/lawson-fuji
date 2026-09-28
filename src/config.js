@@ -51,12 +51,15 @@ export const STORE = {
   slide: 0.25,         // seconds for the next unit to come forward
   door: { open: 1.66, ease: 0.3, away: 2.5 },   // fridge doors: radians, s, m (shut when you walk off)
   /* Tan's konbini (store/shop.js) */
-  till: { x: 7.32, z: -4.5 },                 // the cashier's spot behind the register (store frame)
-  voice: { near: 6, far: 20 },                // her voice: across the store to the door, not beyond the forecourt
-  tillSound: { near: 3, far: 14 },            // the beep, the drawer, the coins
+  till: { x: 7.32, z: -4.5 },                 // the self-checkout's line on the counter (store frame; no cashier: Tan)
+  tillSound: { near: 3, far: 14 },            // the self-checkout's voice and beeps: the counter and the aisles near it
   eatGain: { bite: 0.9, munch: 0.7, gulp: 0.8, 'can-open': 0.8, wrapper: 0.6 },
   recommended: 'strong_nine',   // the choice card's stamp (Tan)
-  checkoutGain: 0.7,  // the checkout's own sounds under her lines (Tan's cashier-checkout recording)
+  checkoutGain: 0.9,  // the self-checkout (Tan's recording)
+  /* Tan's self-checkout recording, in two cuts (scripts/audio-cuts.json
+   * kiosk-scan, kiosk-pay): how long each is and where its beep falls, so
+   * the item meets the scanner and the card the reader on them. */
+  kiosk: { scanLen: 7.6, scanBeep: 3.45, payLen: 5.2, payBeep: 0.65 },
 };
 
 /* Ground plan in front of the store, as z lines (the store glass is z = 0). */

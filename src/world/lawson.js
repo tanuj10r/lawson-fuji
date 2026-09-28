@@ -185,7 +185,7 @@ export function buildLawson(parent) {
     // clear, barely tinted: at 0.18 the open leaves laid a milky glare over the drinks (Tan)
     const coolGlass = flat({ color: 0xcfe0ec, transparent: true, opacity: 0.08, depthWrite: false, cache: false });
     const fridge = buildFridgeDoors(inside, inside.userData.doors, { glassMat: coolGlass, lit });
-    // the konbini (Tan's experience): the hands, the four glowing things, the cashier, the till
+    // the konbini (Tan's experience): the hand, the featured things, the self-checkout
     const shop = makeShop(inside, { doors: fridge, lit, colliders, entrance: root.userData.door });
     root.userData.shop = shop;
     // the automatic door stays shut on anyone carrying something unpaid
@@ -469,7 +469,7 @@ export function buildLawson(parent) {
     platforms,
     /** The door, each frame: `p` the player's position. */
     update(dt, p) { root.userData.door.update(dt, p); root.userData.spot.update(dt, p); },
-    /** The konbini inside (Tan's experience): the hands, the featured things, the cashier. */
+    /** The konbini inside (Tan's experience): the hand, the featured things, the self-checkout. */
     get shop() { return root.userData.shop; },
     /** What the player can aim at outside (the konbini's spot), and the spot for a map. */
     get interactables() { return root.userData.interactables; },

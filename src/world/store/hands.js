@@ -8,7 +8,7 @@ import { figureMaterial, onTopClamped, parts, mirrorX, ellipsoid, easeBack, ease
  * left hand, the note tucked under its thumb, so two full hands read as
  * "that's your two".  After paying, the change sits in the left palm.
  *
- * Painted like the cashier (store/figure.js), drawn on top of the world
+ * Painted in store/figure.js's style, drawn on top of the world
  * and near-clamped.  They live in the camera's frame: `view` (shop.js)
  * follows the camera, and each hand is a pivot at the wrist whose offset
  * and turn the choreography (rise, pay, eat) drives.

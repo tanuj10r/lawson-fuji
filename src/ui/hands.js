@@ -6,8 +6,9 @@ import { STORE } from '../config.js';
  * The konbini on screen (Tan's experience, made a scene: 2026-09-28).
  *
  * The choice: standing on the highlighted spot at the door, a small card lists
- * what you can have, one number key each.  And the subtitles: what the
- * cashier says, in English, with the Japanese she said small above it.
+ * what you can have, one number key each.  (And subtitles, { jp, en },
+ * for anything said: kept for later; the self-checkout's voice is Tan's
+ * recording, unsubtitled.)
  * ------------------------------------------------------------------ */
 
 const yen = (n) => '¥' + n.toLocaleString('en');

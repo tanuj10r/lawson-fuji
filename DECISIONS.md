@@ -1691,3 +1691,10 @@ where below the bar, merged; builders' own calls in docs/decisions/*.md.
 - The choice card: a red "Recommended" stamp on the Strong Nine, "Lemon beer · 9%" beside it (Tan).
 - Open: hero-2 is 0.510% against its baseline (the sando packs, seen through the glass, shift ink edges; it was already 0.487%); the download is 5.03 MB. Both are Tan's calls (re-baseline; budget).
 - Sandos, corrected (Tan's photos, same day): every sando is a wedge, a square cut corner to corner. On the shelf a right-triangle pack (back upright, base flat), the slanted cut face to the front showing the filling between the two slices, the label band at its foot; eaten as the same wedge, turned so the cut face shows, bitten from the top corner.
+
+## Self-checkout, no cashier (2026-09-28, Tan)
+- Tan removed the cashier ("the conversation during checkout seems very fake"): the counter's two registers are now self-checkouts (セルフレジ), each a white terminal with a leaned-back touchscreen (drawn by shop.js, redrawn only on change), the scanner glass, a lit IC reader, a receipt slot and a bagging shelf; a hanging セルフレジ sign.
+- The checkout plays Tan's self-checkout recording in two cuts (kiosk-scan 3.3-10.9 s, kiosk-pay 24.0-29.2 s of cashier-checkout.mp3; STORE.kiosk says where their beeps fall): the item goes onto the scanner on the first beep, the screen shows it and the total, then the right hand brings up the IC card and touches the reader on the second. The hand homes in on the pad each frame, so the card lands on it whatever the stance.
+- The card is ours: "Fujica" (フジカ), a mint-green transit IC card with Fuji on it (Tan asked for Suica; a real brand, so a homage).
+- Gone: the cashier (store/cashier.js), her voice clips (scripts/gen-voices.mjs, 24 v-* cuts), the till beep and drawer cuts, the entering "irasshaimase" and every subtitle. Download 5.03 -> 4.75 MB.
+- Visits run 46-54 s (the kiosk keeps the recording's own pace).

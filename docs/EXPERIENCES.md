@@ -5,9 +5,9 @@ compact town. Read AGENTS.md and docs/BUILDERS.md first; this adds to them.
 
 ## The seven experiences, and two teasers
 1. **Nippon Konbini**: the famous view, then in: four glowing hotspots (sando,
-   onigiri, "Strong Nine" chu-hi, "Choco Wafer Jumbo" ice), first-person hands
-   (one with ¥1,000, one takes up to two items), a cashier at the till,
-   eating animations outside.
+   onigiri, "Strong Nine" chu-hi, "Choco Wafer Jumbo" ice), a scene: choose one
+   of five at the door, walk in, the right hand takes it, pay at a
+   self-checkout with an IC card (no cashier), eat it outside.
 2. **Han and the RX-7**: the actual Mazda RX-7 (FD, VeilSide Fortune kit) from
    The Fast and the Furious: Tokyo Drift, orange with the black side sweep; a
    stylised racer (not the actor's likeness) leaning on it; `E` plays the
@@ -24,8 +24,8 @@ compact town. Read AGENTS.md and docs/BUILDERS.md first; this adds to them.
 9. **Deer Park, coming soon**: the gate at the bridge road's end (exists).
 
 ## Rules that changed tonight
-- **People:** only the player's own hands, Han, the station master and the
-  cashier. No one else.
+- **People:** only the player's own hand, Han and the station master. No
+  one else (the cashier was replaced by self-checkouts, 2026-09-28).
 - **Names:** close homages for brands (ドンペン堂, Strong Nine, Choco Wafer
   Jumbo). Tan's one exception: the car is the real Mazda RX-7 from the film.
 - **Look:** today's cartoon cel look (the pond pass is the quality bar: Tan

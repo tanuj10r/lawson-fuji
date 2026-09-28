@@ -173,7 +173,7 @@ try {
     // the scene, played through: frames at its moments, what was said, where it ends
     const play = (id, frames) => page.evaluate(async ({ id, frames }) => {
       const S = window.__store.shop;
-      window.__said.length = 0; window.__toasts.length = 0;
+      window.__said.length = 0; window.__toasts.length = 0; S.debug.heard.length = 0;
       let tipsy = false;
       const t0 = S.onTipsy;
       S.onTipsy = () => { tipsy = true; t0?.(); };
@@ -193,20 +193,22 @@ try {
           if (!inside && cam.z < -0.5) { inside = true; shots.door = (await window.__go({}, 0, 'x')); }
           if (frames && inside && S.phase !== 'eat' && Math.round(t * 2) % 8 === 0) shots['walk' + Math.round(t)] = (await window.__go({}, 0, 'x'));
           if (!took && S.held.some((h) => h.where === 'hand')) { took = true; shots.take = (await window.__go({}, 0, 'x')); }
-          if (ph === 'till' && !shots.till && S.debug.checkout?.t > 2.2) shots.till = (await window.__go({}, 0, 'x'));
+          if (ph === 'till' && !shots.till && S.debug.checkout?.t > 3.6) shots.till = (await window.__go({}, 0, 'x'));
+          if (ph === 'till' && !shots.pay && S.debug.checkout?.t > 8.45 && S.debug.checkout?.t < 9.0) shots.pay = (await window.__go({}, 0, 'x'));
           if (ph === 'eat' && !shots.eat && (eatT += 0.5) >= 1.5) shots.eat = (await window.__go({}, 0, 'x'));
         }
       }
       S.onTipsy = t0;
       const p = window.__scene.player.pos;
-      return { ok, atSpot, secs: t, phases, said: window.__said.slice(), toasts: window.__toasts.slice(), tipsy, end: [+p.x.toFixed(2), +p.z.toFixed(2)], scripted: !!window.__scene.player.scripted, ...shots };
+      return { ok, atSpot, secs: t, phases, heard: S.debug.heard.slice(), said: window.__said.slice(), toasts: window.__toasts.slice(), tipsy, end: [+p.x.toFixed(2), +p.z.toFixed(2)], scripted: !!window.__scene.player.scripted, ...shots };
     }, { id, frames });
-    const sayAll = (r) => ['Welcome!', 'Thank you very much.', 'Thank you, come again!'].every((l) => r.said.includes(l)) && r.said.some((l) => /comes to/.test(l));
+    // the self-checkout (no cashier: Tan): its two cuts of Tan's recording, and nobody speaks
+    const sayAll = (r) => r.heard.join() === 'kiosk-scan,kiosk-pay' && r.said.length === 0;
     const done = (r) => r.ok && r.atSpot && !r.scripted && r.secs < 120 && Math.hypot(r.end[0] + 2.3, r.end[1] - 2.4) < 0.5 && r.phases.includes('eat') && sayAll(r);
     let prev = null;
     for (const [i, id] of ['onigiri_tuna', 'sando_egg', 'fruit_sando', 'strong_nine', 'choco_wafer_jumbo'].entries()) {
-      const r = await play(id, true);
-      for (const k of Object.keys(r).filter((k) => /^(door|take|till|eat|walk\d+)$/.test(k))) if (r[k]) { fs.writeFileSync(path.join(out, `${id}-${k}.png`), Buffer.from(r[k].split(',')[1], 'base64')); delete r[k]; }
+      const r = await play(id, i === 0);
+      for (const k of Object.keys(r).filter((k) => /^(door|take|till|pay|eat|walk\d+)$/.test(k))) if (r[k]) { fs.writeFileSync(path.join(out, `${id}-${k}.png`), Buffer.from(r[k].split(',')[1], 'base64')); delete r[k]; }
       const ok = done(r) && (id !== 'strong_nine' || r.tipsy) && r.toasts.every(english);
       if (!ok) bad++;
       console.log(ok ? 'pass' : 'FAIL', id, JSON.stringify(r));

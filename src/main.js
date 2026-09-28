@@ -117,14 +117,13 @@ if (shadowOnly.length) {
 const player = new Player(camera, canvas, world);
 
 /* The konbini (Tan's experience, store/shop.js): your hands in view, the
- * four glowing things, the cashier and the till; the card and subtitles. */
+ * self-checkout and the choice card. */
 const shop = world.lawson?.shop ?? null;
 const handsHud = shop ? createHandsHud() : null;
 const controls = createControls();
 if (shop) {
   scene.add(shop.view, shop.fx);
   shop.onChange = (s) => handsHud.update(s);
-  shop.onSay = (line) => handsHud.say(line);
   shop.player = player;
   world.interactables.push(...(world.lawson.interactables ?? []));
 }

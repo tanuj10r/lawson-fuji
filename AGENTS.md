@@ -27,7 +27,7 @@ SPEC.md; read only the sections the current work needs.
   melodies. The one chain jingle is Tan's call: the door chime uses their
   assets/audio/lawson-chime.mp3 (the FamilyMart melody; rights noted in
   DECISIONS.md M3d).
-- People: only the player's hands, Han, the station master, the cashier.
+- People: only the player's hand, Han, the station master (no cashier).
 - Names: close homages for brands (ドンペン堂, Strong Nine, Choco Wafer
   Jumbo); Tan's one exception is the real Mazda RX-7 from the film.
 - The store is NIPPON / ニッポン (config.js STORE_NAME), a generic konbini

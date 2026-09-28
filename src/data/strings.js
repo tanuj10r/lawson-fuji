@@ -84,13 +84,6 @@ export const STRINGS = {
     notOut: 'Pay at the till first',
     ate: 'Delicious. Step back onto the highlight for another',
     tipsy: 'That Strong Nine is living up to its name',
-    lines: {
-      irasshaimase: { jp: 'いらっしゃいませ！', en: 'Welcome!', dur: 1.3 },
-      oazukari: { jp: 'お預かりします', en: "I'll take those.", dur: 1.2 },
-      total: (n) => ({ jp: `${n}円になります`, en: `That comes to ¥${n.toLocaleString('en')}.`, dur: 1.7 }),
-      arigatou: { jp: 'ありがとうございます', en: 'Thank you very much.', dur: 1.5 },
-      farewell: { jp: 'ありがとうございました！', en: 'Thank you, come again!', dur: 1.7 },
-    },
   },
   refOn: 'reference overlay on',
   refOff: 'reference overlay off',

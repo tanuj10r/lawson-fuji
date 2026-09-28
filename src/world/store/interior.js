@@ -6,7 +6,7 @@ import { paintBasketStack } from './basket.js';
 import { stockStore, CHILLED_SECTIONS, DOOR_SIGNS, AISLES } from './planogram.js';
 import {
   floorTex, FLOOR_TILE, ceilingTex, CEIL_TILE, hangingSign, popCard, cigaretteTex, magazineTex,
-  machineFace, doorSign, registerScreen, counterLabel, batteryFace, stripSign, smallSign,
+  machineFace, doorSign, counterLabel, batteryFace, stripSign, smallSign,
 } from './tex.js';
 
 /* ------------------------------------------------------------------ *
@@ -328,13 +328,22 @@ export function buildInterior(group, { lit, colliders }) {
       slots.push({ zone: 'hot', id: 'nikuman', x: xf + 0.35, y: 1.08 + k * 0.17, z0: zb - 1.62, z1: zb - 1.12 });
     }
     p.quad(counterLabel('steam'), xf + 0.02, 1.55, zb - 1.38, 0.5, 0.18, { ry: -Math.PI / 2 });
-    // two registers, each with its customer display and card reader
+    /* two self-checkouts (セルフレジ: no cashier, Tan), facing the shop: a
+     * white terminal on the counter, its touchscreen leaned back (shop.js
+     * draws the screen), the scanner's glass in front of it with its red
+     * line, the IC reader's lit pad to the right, the receipt slot, and the
+     * bagging shelf to the left */
     for (const z of [-3.3, -4.5]) {
-      p.box(xf + 0.35, xb - 0.02, 0.97, 1.2, z - 0.25, z + 0.25, C.black);
-      p.box(xf + 0.05, xf + 0.1, 1.05, 1.35, z - 0.14, z + 0.14, C.black);
-      p.quad(registerScreen(), xf + 0.045, 1.22, z, 0.26, 0.13, { ry: -Math.PI / 2 });
-      p.box(xf + 0.12, xf + 0.26, 0.97, 1.02, z + 0.3, z + 0.42, 0x3a3e4a);        // the card reader
-      p.box(xf + 0.06, xf + 0.3, 0.97, 0.99, z - 0.45, z - 0.3, 0x9aa0aa);        // the coin tray
+      p.box(xf + 0.18, xf + 0.55, 0.97, 1.12, z - 0.28, z + 0.28, 0xe9ecf0);            // the cabinet
+      p.box(xf + 0.24, xf + 0.32, 1.12, 1.52, z - 0.19, z + 0.19, 0xdfe3e8);            // the screen's back
+      p.box(xf + 0.03, xf + 0.17, 0.97, 0.985, z - 0.14, z + 0.1, 0x1a1d24);            // the scanner glass
+      p.box(xf + 0.095, xf + 0.105, 0.985, 0.987, z - 0.12, z + 0.08, 0xd83a3a);         // its red line
+      p.box(xf + 0.06, xf + 0.2, 0.97, 1.04, z + 0.22, z + 0.38, 0x2a2e36);             // the IC reader
+      p.box(xf + 0.08, xf + 0.18, 1.04, 1.046, z + 0.24, z + 0.36, 0x6ac4f0);            // its lit pad
+      p.box(xf + 0.33, xf + 0.5, 1.12, 1.2, z + 0.1, z + 0.26, 0xdfe3e8);               // the receipt printer
+      p.box(xf + 0.329, xf + 0.331, 1.15, 1.16, z + 0.12, z + 0.24, 0x2a2e36);           // its slot
+      p.box(xf + 0.03, xf + 0.45, 0.97, 0.99, z - 0.64, z - 0.32, 0xcfd4da);            // the bagging shelf
+      p.quad(stripSign('セルフレジ', 'Self checkout', '#1f5fae'), xf + 0.02, 2.0, z, 0.62, 0.17, { ry: -Math.PI / 2 });
     }
     // oden and the coffee machine at the back end
     p.box(xf + 0.1, xb - 0.1, 0.97, 1.2, -5.5, -5.0, C.steel);

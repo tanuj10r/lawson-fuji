@@ -1,13 +1,23 @@
 {
   "_": "How each file in assets/audio/ is cut for the web (scripts/encode-audio.mjs). start/len in seconds; loop: crossfade the tail into the head so it repeats seamlessly; peak: normalise to this peak (0..1); kbps: AAC bitrate. Everything is mono: sounds in a konbini come from a place or a ceiling speaker.",
   "files": {
-    "cashier-checkout": {
+    "kiosk-scan": {
+      "src": "cashier-checkout",
       "start": 3.3,
-      "len": 7.2,
-      "peak": 0.7,
+      "len": 7.6,
+      "peak": 0.75,
       "kbps": 32,
-      "fadeOut": 0.9,
-      "_": "Tan's self-checkout recording: the scans and the machine's lines, under the cashier's own (the till, 2026-09-28)"
+      "fadeOut": 0.3,
+      "_": "Tan's self-checkout recording, its start and the scan (its beep at 3.45 s: config STORE.kiosk)"
+    },
+    "kiosk-pay": {
+      "src": "cashier-checkout",
+      "start": 24.0,
+      "len": 5.2,
+      "peak": 0.75,
+      "kbps": 32,
+      "fadeOut": 0.4,
+      "_": "Tan's self-checkout recording, the IC card and the thanks (its beep at 0.65 s)"
     },
     "lawson-chime": {
       "start": 0.0,
@@ -52,13 +62,6 @@
       "peak": 0.7,
       "kbps": 40,
       "fadeOut": 0.1
-    },
-    "register-drawer": {
-      "start": 0.0,
-      "len": 1.0,
-      "peak": 0.7,
-      "kbps": 40,
-      "fadeOut": 0.08
     },
     "stamp": {
       "event": 2,
@@ -224,31 +227,6 @@
       "kbps": 48,
       "_": "the in-train announcement, played inside the train"
     },
-    "v-irasshaimase": { "src": "v-irasshaimase", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): いらっしゃいませ" },
-    "v-oazukari": { "src": "v-oazukari", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): お預かりします" },
-    "v-total": { "src": "v-total", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): お会計、こちらになります" },
-    "v-arigatou": { "src": "v-arigatou", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): ありがとうございます" },
-    "v-arigatou-mashita": { "src": "v-arigatou-mashita", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): ありがとうございました" },
-    "v-total-150": { "src": "v-total-150", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 150円になります" },
-    "v-total-190": { "src": "v-total-190", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 190円になります" },
-    "v-total-198": { "src": "v-total-198", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 198円になります" },
-    "v-total-298": { "src": "v-total-298", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 298円になります" },
-    "v-total-300": { "src": "v-total-300", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 300円になります" },
-    "v-total-340": { "src": "v-total-340", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 340円になります" },
-    "v-total-348": { "src": "v-total-348", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 348円になります" },
-    "v-total-380": { "src": "v-total-380", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 380円になります" },
-    "v-total-388": { "src": "v-total-388", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 388円になります" },
-    "v-total-396": { "src": "v-total-396", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 396円になります" },
-    "v-total-398": { "src": "v-total-398", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 398円になります" },
-    "v-total-448": { "src": "v-total-448", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 448円になります" },
-    "v-total-488": { "src": "v-total-488", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 488円になります" },
-    "v-total-496": { "src": "v-total-496", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 496円になります" },
-    "v-total-548": { "src": "v-total-548", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 548円になります" },
-    "v-total-588": { "src": "v-total-588", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 588円になります" },
-    "v-total-596": { "src": "v-total-596", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 596円になります" },
-    "v-total-696": { "src": "v-total-696", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 696円になります" },
-    "v-total-796": { "src": "v-total-796", "ext": ".aiff", "start": 0.0, "len": 0, "peak": 0.9, "kbps": 32, "fadeOut": 0.05, "_": "the cashier (scripts/gen-voices.mjs): 796円になります" },
-    "till-beep": { "src": "till-beep", "ext": ".wav", "start": 0.0, "len": 0, "peak": 0.8, "kbps": 40, "fadeOut": 0.02, "_": "the konbini, synthesised (scripts/gen-sfx.mjs)" },
     "bite": { "src": "bite", "ext": ".wav", "start": 0.0, "len": 0, "peak": 0.8, "kbps": 40, "fadeOut": 0.02, "_": "the konbini, synthesised (scripts/gen-sfx.mjs)" },
     "munch": { "src": "munch", "ext": ".wav", "start": 0.0, "len": 0, "peak": 0.8, "kbps": 40, "fadeOut": 0.02, "_": "the konbini, synthesised (scripts/gen-sfx.mjs)" },
     "gulp": { "src": "gulp", "ext": ".wav", "start": 0.0, "len": 0, "peak": 0.8, "kbps": 40, "fadeOut": 0.02, "_": "the konbini, synthesised (scripts/gen-sfx.mjs)" },

@@ -383,8 +383,9 @@ export function createSound({ volume = 0.5 } = {}) {
         outLow.frequency.setTargetAtTime(inside ? 900 : 20000, t, 0.15);
         state.lowpassTarget = inside ? 900 : 20000;      // Firefox does not report a ramping value
         outGain.gain.setTargetAtTime(inside ? 0.3 : 1, t, 0.15);
-        inGain.gain.setTargetAtTime(inside ? 1 : 0, t, 0.4);
-        hum.gain.setTargetAtTime(inside ? 1 : 0, t, 0.4);
+        // the store's own sound: its bed, music and hum, 15% up on the first mix (Tan, 2026-09-28)
+        inGain.gain.setTargetAtTime(inside ? SOUND.storeInside : 0, t, 0.4);
+        hum.gain.setTargetAtTime(inside ? SOUND.storeInside : 0, t, 0.4);
         wet.gain.setTargetAtTime(inside ? 0.22 : 0.05, t, 0.3);
         music.set(inside, 1.5);
         state.music = inside;

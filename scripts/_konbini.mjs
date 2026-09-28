@@ -16,6 +16,7 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const args = process.argv.slice(2);
 const out = path.resolve(args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--tune') ?? path.join(ROOT, '.shots', 'konbini'));
 const MEASURE = args.includes('--measure');
+const PATHS = args.includes('--paths');        // the walkable floor and each walk, as text
 const FULL = args.includes('--full');          // frames at 1920x1080 (the report's)
 fs.mkdirSync(out, { recursive: true });
 
@@ -129,6 +130,8 @@ try {
     await (await page.context().newCDPSession(page)).send("HeapProfiler.collectGarbage");
     res.heapMB = await page.evaluate(() => +(performance.memory.usedJSHeapSize / 1048576).toFixed(0));
     console.log(JSON.stringify(res, null, 1));
+  } else if (PATHS) {
+    for (const id of ['onigiri_tuna', 'sando_egg', 'strong_nine', 'choco_wafer_jumbo']) console.log(id + '\n' + await page.evaluate((id) => window.__store.shop.debug.pathMap(id), id));
   } else {
     await loop();
   }
@@ -188,6 +191,7 @@ try {
         if (frames) {
           const cam = window.__scene.camera.position;
           if (!inside && cam.z < -0.5) { inside = true; shots.door = (await window.__go({}, 0, 'x')); }
+          if (frames && inside && S.phase !== 'eat' && Math.round(t * 2) % 8 === 0) shots['walk' + Math.round(t)] = (await window.__go({}, 0, 'x'));
           if (!took && S.held.some((h) => h.where === 'hand')) { took = true; shots.take = (await window.__go({}, 0, 'x')); }
           if (ph === 'till' && !shots.till && S.debug.checkout?.t > 2.2) shots.till = (await window.__go({}, 0, 'x'));
           if (ph === 'eat' && !shots.eat && (eatT += 0.5) >= 1.5) shots.eat = (await window.__go({}, 0, 'x'));
@@ -202,7 +206,7 @@ try {
     let prev = null;
     for (const [i, id] of ['onigiri_tuna', 'sando_egg', 'fruit_sando', 'strong_nine', 'choco_wafer_jumbo'].entries()) {
       const r = await play(id, i === 0 || id === 'strong_nine' || id === 'choco_wafer_jumbo');
-      for (const k of ['door', 'take', 'till', 'eat']) if (r[k]) { fs.writeFileSync(path.join(out, `${id}-${k}.png`), Buffer.from(r[k].split(',')[1], 'base64')); delete r[k]; }
+      for (const k of Object.keys(r).filter((k) => /^(door|take|till|eat|walk\d+)$/.test(k))) if (r[k]) { fs.writeFileSync(path.join(out, `${id}-${k}.png`), Buffer.from(r[k].split(',')[1], 'base64')); delete r[k]; }
       const ok = done(r) && (id !== 'strong_nine' || r.tipsy) && r.toasts.every(english);
       if (!ok) bad++;
       console.log(ok ? 'pass' : 'FAIL', id, JSON.stringify(r));

@@ -117,14 +117,16 @@ const BREAD = { face: 0xfbf5e6, rim: 0xe0b476, inner: 0xfff8ea };
 /* Each recipe: its bite stages (circles cut from the outline, cumulative). */
 const RECIPE = {
   sando(filling, extra) {
-    const out = roundTri(0.125, 0.105, 0.01);
-    const stages = [[], [[-0.006, 0.106, 0.026], [0.016, 0.1, 0.02]], [[-0.006, 0.106, 0.026], [0.016, 0.1, 0.02], [-0.02, 0.074, 0.024], [0.014, 0.07, 0.026], [0.0, 0.062, 0.022]]];
+    /* one half of the pack (Tan: sandos are squares cut in two, not
+     * triangles): crustless, standing, bitten from the top */
+    const out = rect(0.058, 0.1);
+    const stages = [[], [[-0.004, 0.102, 0.022], [0.018, 0.098, 0.016]], [[-0.004, 0.102, 0.022], [0.018, 0.098, 0.016], [-0.016, 0.074, 0.022], [0.014, 0.07, 0.022]]];
     return stages.map((bites) => {
       const pts = bitten(out, bites);
       const g = [
-        layer(pts, -0.026, -0.009, BREAD, bites),
+        layer(pts, -0.024, -0.009, BREAD, bites),
         layer(pts, -0.009, 0.009, { face: filling, rim: filling, inner: filling }, bites),
-        layer(pts, 0.009, 0.026, BREAD, bites),
+        layer(pts, 0.009, 0.024, BREAD, bites),
       ];
       for (const e of extra) if (inPoly(pts, new V2(e[0], e[1]))) g.push(piece(new THREE.SphereGeometry(e[2], 8, 6), e[3], new THREE.Matrix4().makeScale(1, 1, 0.6).setPosition(e[0], e[1], e[4] ?? 0)));
       return bakeAll(g);
@@ -178,10 +180,10 @@ export function eatStages(id) {
   if (cache.has(id)) return cache.get(id);
   let st = null;
   if (id === 'sando_egg') st = RECIPE.sando(0xf6d45c, []);
-  else if (id === 'fruit_sando') st = RECIPE.sando(0xfffaf0, [[-0.024, 0.024, 0.011, 0xe8455a, 0.009], [0.018, 0.02, 0.011, 0xe8455a, 0.009], [0.0, 0.05, 0.009, 0xf2a030, 0.009], [-0.024, 0.024, 0.011, 0xe8455a, -0.009], [0.018, 0.02, 0.011, 0xe8455a, -0.009], [0.004, 0.012, 0.008, 0x7ac04a, 0.009]]);
+  else if (id === 'fruit_sando') st = RECIPE.sando(0xfffaf0, [[-0.01, 0.03, 0.011, 0xe8455a, 0.009], [0.012, 0.055, 0.011, 0xe8455a, 0.009], [0.0, 0.08, 0.009, 0xf2a030, 0.009], [-0.01, 0.03, 0.011, 0xe8455a, -0.009], [0.012, 0.055, 0.011, 0xe8455a, -0.009], [0.004, 0.015, 0.008, 0x7ac04a, 0.009]]);
   else if (id === 'onigiri_tuna') st = RECIPE.onigiri();
   else if (id === 'choco_wafer_jumbo') st = RECIPE.wafer();
-  if (st) for (const g of st) g.translate(0, id === 'choco_wafer_jumbo' ? -0.034 : id === 'onigiri_tuna' ? -0.046 : -0.052, 0);   // held about its middle
+  if (st) for (const g of st) g.translate(0, id === 'choco_wafer_jumbo' ? -0.034 : id === 'onigiri_tuna' ? -0.046 : -0.05, 0);   // held about its middle
   cache.set(id, st);
   return st;
 }

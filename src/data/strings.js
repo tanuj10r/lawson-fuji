@@ -78,6 +78,9 @@ export const STRINGS = {
   store: {
     menuTitle: 'What would you like?',
     menuHint: 'Press a number',
+    recommended: 'Recommended',
+    menuNames: { strong_nine: 'Strong Nine' },
+    menuNotes: { strong_nine: 'Lemon beer · 9%' },
     notOut: 'Pay at the till first',
     ate: 'Delicious. Step back onto the highlight for another',
     tipsy: 'That Strong Nine is living up to its name',

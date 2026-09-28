@@ -275,6 +275,7 @@ export function makeHands(lit) {
   let t = 0;
   const api = {
     view, R, L, note, coins, skinMat,
+    left: false,
     get up() { return up; },
     get raised() { return want === 1; },
     /** Raise (true) or lower (false) both hands. */
@@ -311,7 +312,7 @@ export function makeHands(lit) {
         // camera's own terms (x tips the top toward you)
         api.grip(h, _qr);
         h.pivot.quaternion.setFromEuler(_te.set(h.turn.x, h.turn.y, h.turn.z, 'XYZ')).multiply(_qr);
-        h.pivot.visible = up > 0.001;
+        h.pivot.visible = up > 0.001 && (h === R || api.left);      // the right hand only (Tan): the left, and the note, stay out of view
         // what the hand holds faces you, turned only by `turn`
         h.anchor.quaternion.copy(_qr).invert().multiply(_face);
       }
@@ -323,6 +324,7 @@ export function makeHands(lit) {
     },
   };
   L.pivot.add(note);
+  note.visible = false;
   return api;
 }
 const _face = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.12, 0, 0));

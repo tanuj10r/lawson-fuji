@@ -185,7 +185,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   function prime() {
     if (primed || !soundBus.ready) return;
     primed = true;
-    for (const n of ['v-irasshaimase', 'v-oazukari', 'v-arigatou', 'v-arigatou-mashita', 'v-total', 'till-beep', 'coins', 'register-drawer', 'bite', 'munch', 'gulp', 'can-open', 'wrapper']) soundBus.oneShot(n, { gain: 0 });
+    for (const n of ['v-irasshaimase', 'v-oazukari', 'v-arigatou', 'v-arigatou-mashita', 'v-total', 'till-beep', 'cashier-checkout', 'register-drawer', 'bite', 'munch', 'gulp', 'can-open', 'wrapper']) soundBus.oneShot(n, { gain: 0 });
   }
 
   /* ----------------------------- flights ----------------------------- */
@@ -275,13 +275,14 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     const from = p ? { yaw: p.yaw, pitch: p.pitch } : null;
     // face the till
     if (p) p.suspended = true;
-    T(0, () => { cashier.lookAt = null; say('oazukari'); cashier.pose({ headX: 0.2, headY: 0 }); });
+    T(0, () => { cashier.lookAt = null; say('oazukari'); cashier.pose({ headX: 0.2, headY: 0 }); tillSound('cashier-checkout', 'ui-tap', STORE.checkoutGain); });
     items.forEach((h, i) => {
       // each goes onto the counter
       T(0.1 + i * 0.15, () => {
         const f = worldOf(h.mesh).clone();
         h.mesh.removeFromParent();
         hands[h.hand ? 'L' : 'R'].item = null;
+        hands.raise(false);                    // an empty hand has nothing to do in view
         h.where = 'flying';
         fly(h.mesh, f, () => counterMatrix(TILL.put[i]), { dur: 0.42, done: () => { h.where = 'counter'; } });
       });
@@ -300,41 +301,23 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     });
     const tn = 0.7 + items.length * 0.85 + 0.05;
     T(tn, () => { cashier.rest(); cashier.lookAt = lookTarget; say('total', totalFile, S.lines.total(sum)); display.show('合計', sum); });
-    // the left hand pays: forward to the tray, the note left in it
-    T(tn + 1.0, () => { hands.L.off.set(0, 0, 0); payReach = 0; });
-    T(tn + 1.3, () => {
-      hands.showNote(false);
-      const note = hands.note.clone();
-      note.traverse((o) => { o.frustumCulled = false; });
-      trayNote = note;
-      fly(note, worldOf(hands.note).clone(), () => new THREE.Matrix4().makeRotationX(-Q).setPosition(at(TILL.tray)), { dur: 0.4, arc: 0.05 });
-    });
-    T(tn + 1.7, () => { payReach = -1; });
-    T(tn + 1.8, () => { cashier.pose({ lShX: -0.95, lShZ: 0.05, lElX: -0.5, twist: 0.1 }); });
-    T(tn + 2.1, () => { trayNote?.removeFromParent(); trayNote = null; tillSound('register-drawer', 'box'); display.show('お預り', STORE.wallet); cashier.pose({ lShX: -0.3, lElX: -1.2 }); });
-    change = STORE.wallet - sum;
-    T(tn + 2.55, () => {
-      display.show('おつり', change);
-      if (change <= 0) return;
-      const coins = new THREE.Mesh(coinGeometry(change), hands.skinMat);
-      coins.frustumCulled = false; coins.renderOrder = 11;
-      fly(coins, new THREE.Matrix4().setPosition(at(TILL.tray)), () => worldOf(hands.coins).clone(), { dur: 0.45, arc: 0.1, done: () => { fx.remove(coins); hands.setChange(change); tillSound('coins', 'can', 0.7); } });
-      cashier.pose({ lShX: -1.1, lElX: -0.3 });
-    });
-    // your things come back to you, and her thanks with a bow
-    T(tn + 3.05, () => {
+    // paying is out of view (no wallet, no note: Tan); the drawer, and the receipt on the display
+    T(tn + 2.2, () => { tillSound('register-drawer', 'box'); display.show('お預り', sum); cashier.pose({ lShX: -0.95, lShZ: 0.05, lElX: -0.5, twist: 0.1 }); });
+    T(tn + 2.9, () => { cashier.pose({ lShX: -0.3, lElX: -1.2 }); display.show('ありがとう', sum); });
+    // your thing comes back to your hand, and her thanks with a bow
+    T(tn + 3.4, () => {
       cashier.rest();
+      hands.raise(true);
       items.forEach((h, i) => {
         h.paid = true;
-        const hand = i;
-        h.hand = hand;
-        fly(h.mesh, counterMatrix(TILL.bag[i], -Q), anchorMatrix(hand, h.mesh), { dur: 0.45, done: () => { h.where = 'hand'; holdIn(h.mesh, hands.anchor(hand)); hands[hand ? 'L' : 'R'].item = h; changed(); } });
+        h.hand = i;
+        fly(h.mesh, counterMatrix(TILL.bag[i], -Q), anchorMatrix(i, h.mesh), { dur: 0.45, done: () => { h.where = 'hand'; holdIn(h.mesh, hands.anchor(i)); hands[i ? 'L' : 'R'].item = h; changed(); } });
       });
     });
-    T(tn + 3.3, () => { say('arigatou'); cashier.bow(1, 0.9); });
-    T(tn + 4.2, () => {
+    T(tn + 3.7, () => { say('arigatou'); cashier.bow(1, 0.9); });
+    T(tn + 4.7, () => {
       phase = 'paid';
-      wallet = change;
+      wallet = STORE.wallet - sum;
       if (api.player) api.player.suspended = false;
       cashier.lookAt = lookTarget;
       changed();
@@ -342,16 +325,15 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     checkout = { ev, t: 0, from, sum };
     changed();
   }
-  let payReach = null, trayNote = null;
+  let reachR = null;               // the right hand's reach to the shelf (0..1 out, -1 back)
   function abortCheckout() {
     checkout = null;
-    for (const f of [...flights]) { flights.splice(flights.indexOf(f), 1); if (f.mesh !== trayNote) f.mesh.removeFromParent(); }
-    trayNote?.removeFromParent(); trayNote = null;
+    for (const f of [...flights]) { flights.splice(flights.indexOf(f), 1); f.mesh.removeFromParent(); }
     for (const h of held) { h.mesh.removeFromParent(); h.u.count++; refreshSlot(h.u); }
     held.length = 0;
     hands.R.item = hands.L.item = null;
-    hands.L.off.set(0, 0, 0); payReach = null;
-    hands.showNote(true); hands.setChange(0); change = 0;
+    hands.R.off.set(0, 0, 0); reachR = null;
+    hands.setChange(0); change = 0;
     display.mesh.visible = false;
     cashier.rest(); cashier.lookAt = lookTarget;
     if (api.player) api.player.suspended = false;
@@ -387,12 +369,15 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   const visit = { active: false, id: null, eat: false, queue: [], cur: null, armed: true };
   const WALK = 1.5;                         // m/s, an easy stroll
 
-  /* Where you can stand: the store's floor and the forecourt on a 15 cm
-   * grid, clear of every collider by the player's radius (the entrance's
-   * own leaves excepted: they open for you). */
-  let grid = null;
-  function makeGrid() {
-    const C = 0.15, R = 0.4;
+  /* Where you can stand: the store's floor and the forecourt on a 10 cm
+   * grid, clear of every collider (the entrance's own leaves excepted: they
+   * open for you).  Two clearances: the walk is planned keeping a good
+   * half metre off every shelf (a shopper, not a ghost brushing the
+   * stock), and only where an aisle is narrower than that does it fall back
+   * to the body's own width. */
+  let grids = null;
+  function makeGrid(R) {
+    const C = 0.1;
     const X0 = -hw + 0.1, X1 = hw - 0.1, Z0 = -LAWSON.depth + 0.1, Z1 = 3.4;
     const nx = Math.ceil((X1 - X0) / C), nz = Math.ceil((Z1 - Z0) / C);
     const solid = colliders.filter((c) => !(c.top !== undefined && c.top <= 0.38)
@@ -402,15 +387,18 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
       const x = X0 + (ix + 0.5) * C, z = Z0 + (iz + 0.5) * C;
       free[iz * nx + ix] = solid.some((c) => x > c.x0 - R && x < c.x1 + R && z > c.z0 - R && z < c.z1 + R) ? 0 : 1;
     }
-    return { C, X0, Z0, nx, nz, free,
+    const ok = (x, z) => { const ix = Math.floor((x - X0) / C), iz = Math.floor((z - Z0) / C); return ix >= 0 && iz >= 0 && ix < nx && iz < nz && free[iz * nx + ix] === 1; };
+    return { C, X0, Z0, nx, nz, free, ok,
       cell: (x, z) => [Math.floor((x - X0) / C), Math.floor((z - Z0) / C)],
       at: (ix, iz) => new THREE.Vector2(X0 + (ix + 0.5) * C, Z0 + (iz + 0.5) * C),
-      ok: (x, z) => { const ix = Math.floor((x - X0) / C), iz = Math.floor((z - Z0) / C); return ix >= 0 && iz >= 0 && ix < nx && iz < nz && free[iz * nx + ix] === 1; } };
+      /** Nothing in the way along a straight line from p to q. */
+      sight: (p, q) => { const n = Math.ceil(p.distanceTo(q) / 0.04); for (let i = 1; i < n; i++) { const t2 = i / n; if (!ok(p.x + (q.x - p.x) * t2, p.y + (q.y - p.y) * t2)) return false; } return true; } };
   }
+  const getGrids = () => (grids ??= { wide: makeGrid(0.55), body: makeGrid(0.38) });
   /** The free cell nearest (x, z). */
   function nearestFree(g, x, z) {
     let [cx, cz] = g.cell(x, z), best = null, bd = Infinity;
-    for (let r = 0; r < 20 && !best; r++) for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+    for (let r = 0; r < 30 && !best; r++) for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
       const ix = cx + dx, iz = cz + dz;
       if (ix < 0 || iz < 0 || ix >= g.nx || iz >= g.nz || !g.free[iz * g.nx + ix]) continue;
       const d = dx * dx + dz * dz;
@@ -418,51 +406,69 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     }
     return best;
   }
-  /** A smooth walk from (x, z) to `to` through free floor: breadth-first on the grid, pulled taut, corners rounded. */
-  function plan(from, to) {
-    grid ??= makeGrid();
-    const g = grid;
-    const a = nearestFree(g, from.x, from.y), b = nearestFree(g, to.x, to.y);
-    if (!a || !b) return [from.clone(), to.clone()];
-    const N = g.nx * g.nz, prev = new Int32Array(N).fill(-1);
+  /** The shortest way on grid `g` (A*, eight ways, true distances), as cell centres; null if none. */
+  function search(g, a, b) {
+    const N = g.nx * g.nz, cost = new Float32Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), shut = new Uint8Array(N);
     const start = a[1] * g.nx + a[0], goal = b[1] * g.nx + b[0];
-    const q = [start]; prev[start] = start;
-    for (let h = 0; h < q.length && prev[goal] < 0; h++) {
-      const c = q[h], cx = c % g.nx, cz = (c / g.nx) | 0;
+    const hx = (c) => Math.hypot((c % g.nx) - b[0], ((c / g.nx) | 0) - b[1]);
+    // a small binary heap of [f, cell]
+    const heap = [];
+    const push = (f, c) => { heap.push([f, c]); let i = heap.length - 1; while (i > 0) { const p2 = (i - 1) >> 1; if (heap[p2][0] <= heap[i][0]) break; [heap[p2], heap[i]] = [heap[i], heap[p2]]; i = p2; } };
+    const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } } return top; };
+    cost[start] = 0; push(hx(start), start);
+    while (heap.length) {
+      const [, c] = pop();
+      if (shut[c]) continue;
+      shut[c] = 1;
+      if (c === goal) break;
+      const cx = c % g.nx, cz = (c / g.nx) | 0;
       for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
         const ix = cx + dx, iz = cz + dz, n = iz * g.nx + ix;
-        if ((!dx && !dz) || ix < 0 || iz < 0 || ix >= g.nx || iz >= g.nz || !g.free[n] || prev[n] >= 0) continue;
+        if ((!dx && !dz) || ix < 0 || iz < 0 || ix >= g.nx || iz >= g.nz || !g.free[n] || shut[n]) continue;
         if (dx && dz && (!g.free[cz * g.nx + ix] || !g.free[iz * g.nx + cx])) continue;    // no corner cutting
-        prev[n] = c; q.push(n);
+        const nc = cost[c] + (dx && dz ? Math.SQRT2 : 1);
+        if (nc < cost[n]) { cost[n] = nc; prev[n] = c; push(nc + hx(n), n); }
       }
     }
-    if (prev[goal] < 0) return [from.clone(), to.clone()];
+    if (prev[goal] < 0 && goal !== start) return null;
     const cells = [];
     for (let c = goal; ; c = prev[c]) { cells.push(g.at(c % g.nx, (c / g.nx) | 0)); if (c === start) break; }
-    cells.reverse();
+    return cells.reverse();
+  }
+  /** A walk from `from` to `to`: the shortest way, pulled taut, its corners rounded where that stays clear. */
+  function plan(from, to) {
+    const { wide, body } = getGrids();
+    let g = wide, cells = null;
+    for (const gg of [wide, body]) {
+      const a = nearestFree(gg, from.x, from.y), b = nearestFree(gg, to.x, to.y);
+      if (a && b && (cells = search(gg, a, b))) { g = gg; break; }
+    }
+    if (!cells) return [from.clone(), to.clone()];
     // pulled taut: from each point, the farthest one still in plain sight
-    const sight = (p, q2) => { const n = Math.ceil(p.distanceTo(q2) / 0.07); for (let i = 1; i < n; i++) { const t2 = i / n; if (!g.ok(p.x + (q2.x - p.x) * t2, p.y + (q2.y - p.y) * t2)) return false; } return true; };
-    let pts = [from.clone()];
-    let i = 0;
     const all = [from.clone(), ...cells, to.clone()];
-    while (i < all.length - 1) {
+    let pts = [all[0]];
+    for (let i = 0; i < all.length - 1;) {
       let j = all.length - 1;
-      while (j > i + 1 && !sight(all[i], all[j])) j--;
+      while (j > i + 1 && !g.sight(all[i], all[j])) j--;
       pts.push(all[j].clone());
       i = j;
     }
-    // corners rounded (Chaikin, twice), the ends kept
-    for (let k = 0; k < 2; k++) {
-      const out = [pts[0]];
-      for (let m = 0; m < pts.length - 1; m++) {
-        const p = pts[m], q2 = pts[m + 1];
-        if (m > 0) out.push(p.clone().lerp(q2, 0.25));
-        if (m < pts.length - 2) out.push(p.clone().lerp(q2, 0.75));
+    // each corner rounded (a short curve from 0.6 m before it to 0.6 m after), if that curve is clear
+    const out = [pts[0]];
+    for (let i = 1; i < pts.length - 1; i++) {
+      const a = pts[i - 1], c = pts[i], b = pts[i + 1];
+      const ra = Math.min(0.6, a.distanceTo(c) / 2), rb = Math.min(0.6, b.distanceTo(c) / 2);
+      const p0 = c.clone().add(a.clone().sub(c).setLength(ra)), p1 = c.clone().add(b.clone().sub(c).setLength(rb));
+      const curve = [];
+      for (let k = 0; k <= 6; k++) {
+        const t2 = k / 6;
+        curve.push(p0.clone().multiplyScalar((1 - t2) * (1 - t2)).add(c.clone().multiplyScalar(2 * t2 * (1 - t2))).add(p1.clone().multiplyScalar(t2 * t2)));
       }
-      out.push(pts[pts.length - 1]);
-      pts = out;
+      if (curve.every((q, k) => k === 0 || body.sight(curve[k - 1], q))) out.push(...curve);
+      else out.push(c);
     }
-    return pts;
+    out.push(pts[pts.length - 1]);
+    return out;
   }
 
   const P2 = (x, z) => new THREE.Vector2(x, z);
@@ -500,9 +506,11 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     visit.queue = [
       walkTo(standFor(u)),
       face(u.centre.clone(), 0.8),
-      pause(0.25),
+      act(() => { hands.raise(true); reachR = 0; }),
+      pause(0.35),
       act(() => take(u)),
       until(() => held.some((h) => h.where === 'hand') && !flights.length && !pendingTakes.length),
+      act(() => { reachR = -1; }),
       pause(0.5),
       walkTo(P2(TILL.stand.x, TILL.stand.z)),
       face(TILL.look, 0.6),
@@ -626,9 +634,8 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
 
     /* coming in, going out */
     if (inNow && !wasInside) {
-      if (phase === 'out') { phase = 'shop'; wallet = STORE.wallet; change = 0; hands.setChange(0); hands.showNote(true); }
-      if (phase === 'eat') { eating.stop(); finishEating(); phase = 'shop'; wallet = STORE.wallet; hands.showNote(true); }
-      hands.raise(true);
+      if (phase === 'out') { phase = 'shop'; wallet = STORE.wallet; change = 0; hands.setChange(0); }
+      if (phase === 'eat') { eating.stop(); finishEating(); phase = 'shop'; wallet = STORE.wallet; }
       if (phase === 'shop') { say('irasshaimase'); cashier.bow(0.7, 0.6); }
       api.onEnter?.();
     }
@@ -667,10 +674,10 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
       }
       if (checkout.ev.every((e) => e.done)) checkout = null;
     }
-    // the left hand's reach to the tray and back
-    if (payReach !== null) {
-      if (payReach >= 0) { payReach = Math.min(1, payReach + dt / 0.35); hands.L.off.set(0.16, 0.07, -0.16).multiplyScalar(easeOut(payReach)); }
-      else { hands.L.off.multiplyScalar(Math.max(0, 1 - dt * 6)); if (hands.L.off.length() < 0.002) { hands.L.off.set(0, 0, 0); payReach = null; } }
+    // the right hand's reach to the shelf and back
+    if (reachR !== null) {
+      if (reachR >= 0) { reachR = Math.min(1, reachR + dt / 0.4); hands.R.off.set(-0.03, 0.09, -0.22).multiplyScalar(easeOut(reachR)); }
+      else { hands.R.off.multiplyScalar(Math.max(0, 1 - dt * 5)); if (hands.R.off.length() < 0.002) { hands.R.off.set(0, 0, 0); reachR = null; } }
     }
     if (pendingTakes.length) {
       for (let k = pendingTakes.length - 1; k >= 0; k--) {
@@ -726,6 +733,26 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   if (import.meta.env?.DEV) {
     api.debug = {
       pickable, take, startCheckout, visit: () => visit,
+      /** The walkable floor and the walk for `id`, as text (dev): '#' blocked, '.' free, '*' the path. */
+      pathMap(id) {
+        const g = getGrids().wide, u = pickable.find((x) => x.id === id);
+        const legs = [plan(P2(SPOT.x, SPOT.z), standFor(u)), plan(standFor(u), P2(TILL.stand.x, TILL.stand.z)), plan(P2(TILL.stand.x, TILL.stand.z), P2(SPOT.x, SPOT.z + 0.1))];
+        const rows = [];
+        for (let iz = 0; iz < g.nz; iz += 2) {
+          let r = '';
+          for (let ix = 0; ix < g.nx; ix++) r += g.free[iz * g.nx + ix] ? '.' : '#';
+          rows.push(r.split(''));
+        }
+        for (const leg of legs) for (let i = 1; i < leg.length; i++) {
+          const a = leg[i - 1], b = leg[i], n = Math.ceil(a.distanceTo(b) / 0.1);
+          for (let k = 0; k <= n; k++) {
+            const x = a.x + (b.x - a.x) * k / n, z = a.y + (b.y - a.y) * k / n;
+            const [ix, iz] = g.cell(x, z);
+            if (rows[iz >> 1]?.[ix] !== undefined) rows[iz >> 1][ix] = rows[iz >> 1][ix] === '#' ? 'X' : '*';
+          }
+        }
+        return rows.map((r) => r.join('')).join('\n');
+      },
       /** Stop the scene where it is (dev tests): everything put back, the player freed. */
       cancel() {
         if (!visit.active) return;

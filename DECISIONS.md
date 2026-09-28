@@ -1681,3 +1681,12 @@ where below the bar, merged; builders' own calls in docs/decisions/*.md.
 - The highlight (experiences.js): Tan found the first ring and diamond lame and the paper lanterns not evident. Now a crisp painted ring with a gold edge, a ripple running out from its middle, a column of warm light (the finder from afar, gone as you step in) and rising motes. 4 draws a spot when near, 2 far; no download.
 - Nippon Mart is a scene, not a store to roam: stand on its spot, pick one of five (egg sando, fruit sando, onigiri, Strong Nine, Choco Wafer Jumbo) with 1-5; the walk in, the take, the till, the walk out and eating play by themselves, no skipping (Tan). The walk is planned on the store's colliders (a grid search, pulled taut, corners rounded), so it follows any planogram. The door opens only for the scene; anyone inside is let out. Gone: the wallet card, the shelf glows, X to put back, E at the shelves. About 45-49 s a visit.
 - The Strong Nine: ten seconds of a CSS blur on the canvas and a slow sway after you drink it (Tan's add-on); nothing is left running after.
+
+## Konbini, second pass (2026-09-28, Tan's review)
+- Hands: no note, no wallet, no left hand. The right hand comes up only to take the item (a short reach toward the shelf), drops while the item is on the counter, and comes back with it.
+- The walk: A* on a 10 cm grid of the store's colliders, planned with 0.55 m clearance (0.38 m where an aisle is narrower), pulled taut, corners rounded only where the curve stays clear. The old pass cut corners through the gondolas. `node scripts/_konbini.mjs --paths` prints the floor and each walk.
+- The checkout: Tan's cashier-checkout recording (a self-checkout, 7.2 s cut from 3.3 s, 32 kbps) plays at the till under the cashier's lines; paying happens out of view (the drawer, the display). The store's bed, music and hum are up 15% (SOUND.storeInside).
+- Sandos: a clear rectangular pack standing upright, two crustless halves with their cut faces to the front, a label band (Tan's photo); eaten as a rectangular half, not a triangle.
+- The cooler's glass leaves: 0.08 opacity, barely tinted (the milky film at 0.18 read as glare).
+- The choice card: a red "Recommended" stamp on the Strong Nine, "Lemon beer · 9%" beside it (Tan).
+- Open: hero-2 is 0.510% against its baseline (the sando packs, seen through the glass, shift ink edges; it was already 0.487%); the download is 5.03 MB. Both are Tan's calls (re-baseline; budget).

@@ -35,6 +35,18 @@ function vfit(c, str, x, y0, y1, size, color) {
 }
 
 /* What each shape's label shows, in a 256 cell (u right, v down as drawn). */
+/* What each sando's cut face shows: the filling's colour and what is set in it (x, y, r across the filling column; `cut` halves shine). */
+const SANDO_FILL = {
+  sando_egg: { base: '#f5d24a', bits: [[0.3, 0.25, 0.22, '#fbf3d8'], [0.7, 0.5, 0.2, '#fbf3d8'], [0.35, 0.72, 0.2, '#fbf3d8']] },
+  fruit_sando: { base: '#fffdf6', cut: true, bits: [[0.5, 0.2, 0.42, '#e8455a'], [0.5, 0.45, 0.4, '#f2a030'], [0.5, 0.7, 0.42, '#e8455a']] },
+  fruit_sando_ichigo: { base: '#fffdf6', cut: true, bits: [[0.5, 0.2, 0.42, '#e8455a'], [0.5, 0.45, 0.44, '#e8455a'], [0.5, 0.72, 0.42, '#e8455a']] },
+  ham_sando: { base: '#f0a0a0', bits: [[0.5, 0.3, 0.35, '#7ac04a'], [0.5, 0.65, 0.3, '#fbf3d8']] },
+  sando_katsu: { base: '#b8743a', bits: [[0.5, 0.5, 0.35, '#8a4a2a']] },
+  sando_tuna: { base: '#efe2c4', bits: [[0.4, 0.35, 0.2, '#d8c49a'], [0.6, 0.65, 0.2, '#d8c49a']] },
+  sando_mix: { base: '#f5d24a', bits: [[0.5, 0.3, 0.35, '#f0a0a0'], [0.5, 0.7, 0.3, '#7ac04a']] },
+  sando_blt: { base: '#f0a0a0', bits: [[0.5, 0.3, 0.35, '#d8342f'], [0.5, 0.68, 0.32, '#7ac04a']] },
+  default: { base: '#efe2c4', bits: [] },
+};
 const PAINT = {
   onigiri(c, p, m) {
     // the clear wrapper: rice with its grains, nori at the foot, the name strip on top
@@ -55,11 +67,40 @@ const PAINT = {
     c.fillStyle = '#ffe24a'; c.beginPath(); c.arc(CELL * 0.84, CELL * 0.82, 30, 0, 7); c.fill();
     fit(c, '¥' + p.priceYen, CELL * 0.84, CELL * 0.82, 52, 22, '#c8342f');
   },
-  sandwich(c, p, m) {
-    c.fillStyle = '#eef2f6'; c.fillRect(0, 0, CELL, CELL);
-    FOOD.sandwich(c, CELL / 2, CELL * 0.58, CELL * 0.95);
-    c.fillStyle = hex(m.band); c.fillRect(0, 0, CELL, CELL * 0.2);
-    fit(c, p.nameJa, CELL / 2, CELL * 0.1, CELL * 0.9, 40, '#3a2a1a');
+  sandwich(c, p, m) { PAINT.sandoPack(c, p, m); },
+  /* The sando pack's front (Tan's photo of the real thing): through the
+   * clear film, two crustless halves standing side by side, each cut face
+   * a column of filling between two white slices; the shop's label band
+   * across the lower half; a highlight down the film. */
+  sandoPack(c, p, m) {
+    c.fillStyle = '#e9eef3'; c.fillRect(0, 0, CELL, CELL);
+    const F = SANDO_FILL[p.id] ?? SANDO_FILL.default;
+    const pad = CELL * 0.05, gap = CELL * 0.03, w = (CELL - pad * 2 - gap) / 2, top = CELL * 0.07, h = CELL * 0.88;
+    for (let k = 0; k < 2; k++) {
+      const x = pad + k * (w + gap);
+      // the two slices: soft white bread, a faint crumb
+      c.fillStyle = '#fbf6ea'; c.beginPath(); c.roundRect(x, top, w, h, 10); c.fill();
+      c.fillStyle = 'rgba(214,190,150,0.35)';
+      for (let i = 0; i < 40; i++) { c.fillRect(x + ((i * 37) % 97) / 97 * w, top + ((i * 53) % 89) / 89 * h, 2, 2); }
+      // the filling between them
+      const fx = x + w * 0.3, fw = w * 0.4;
+      c.fillStyle = F.base; c.beginPath(); c.roundRect(fx, top + 6, fw, h - 12, 8); c.fill();
+      for (const [dx, dy, r, col] of F.bits) {
+        c.fillStyle = col; c.beginPath(); c.ellipse(fx + fw * dx, top + h * dy, fw * r, fw * r * 0.85, 0, 0, 7); c.fill();
+        if (F.cut) { c.fillStyle = 'rgba(255,255,255,0.7)'; c.beginPath(); c.ellipse(fx + fw * dx, top + h * dy, fw * r * 0.35, fw * r * 0.3, 0, 0, 7); c.fill(); }
+      }
+    }
+    // the label band across the lower half: the name, the price
+    const by = CELL * 0.6, bh = CELL * 0.24;
+    c.fillStyle = hex(m.band); c.fillRect(0, by, CELL, bh);
+    c.fillStyle = 'rgba(255,255,255,0.9)'; c.fillRect(0, by + bh - 6, CELL, 3);
+    fit(c, p.nameJa, CELL / 2, by + bh * 0.42, CELL * 0.86, 36, '#ffffff');
+    fit(c, '¥' + p.priceYen, CELL / 2, by + bh * 0.8, CELL * 0.4, 20, '#ffffff');
+    // the film: a soft highlight down one side, and its crimped edge at the top
+    const g = c.createLinearGradient(0, 0, CELL, 0);
+    g.addColorStop(0.08, 'rgba(255,255,255,0)'); g.addColorStop(0.14, 'rgba(255,255,255,0.45)'); g.addColorStop(0.22, 'rgba(255,255,255,0)');
+    c.fillStyle = g; c.fillRect(0, 0, CELL, CELL);
+    c.fillStyle = 'rgba(200,212,224,0.8)'; c.fillRect(0, 0, CELL, CELL * 0.04);
   },
   wrap(c, p, m, { liquid = null } = {}) {
     // a bottle or cup's wrap: the liquid above and below, the label round the middle
@@ -176,17 +217,7 @@ const PAINT = {
     c.restore();
     c.fillStyle = hex(m.band); c.fillRect(0, 0, CELL, CELL * 0.08); c.fillRect(0, CELL * 0.92, CELL, CELL * 0.08);
   },
-  fruitsando(c, p, m) {
-    // the cut face: white bread, whipped cream, strawberries halved, kiwi
-    c.fillStyle = '#f6ecd6'; c.fillRect(0, 0, CELL, CELL);
-    c.fillStyle = '#fffdf6'; c.fillRect(0, CELL * 0.18, CELL, CELL * 0.64);
-    for (const [x, y, col, r] of [[0.3, 0.5, '#e8455a', 30], [0.62, 0.42, '#e8455a', 26], [0.46, 0.66, '#7ac04a', 24], [0.8, 0.62, '#f2a030', 22]]) {
-      c.fillStyle = col; c.beginPath(); c.ellipse(CELL * x, CELL * y, r, r * 0.8, 0, 0, 7); c.fill();
-      c.fillStyle = 'rgba(255,255,255,0.6)'; c.beginPath(); c.ellipse(CELL * x, CELL * y, r * 0.35, r * 0.25, 0, 0, 7); c.fill();
-    }
-    c.fillStyle = hex(m.band); c.fillRect(0, 0, CELL, CELL * 0.16);
-    fit(c, p.nameJa, CELL / 2, CELL * 0.08, CELL * 0.9, 30, '#ffffff');
-  },
+  fruitsando(c, p, m) { PAINT.sandoPack(c, p, m); },
   sweets(c, p, m) {
     // a clear lid over the cake, a gold band with the name
     c.fillStyle = hex(m.body); c.fillRect(0, 0, CELL, CELL);

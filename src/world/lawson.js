@@ -182,7 +182,8 @@ export function buildLawson(parent) {
     root.add(inside);
     buildInterior(inside, { lit, colliders });
     // the cooler's and the freezers' glass doors, hung on their hinges (M3c)
-    const coolGlass = flat({ color: 0xd8ecf8, transparent: true, opacity: 0.18, depthWrite: false, cache: false });
+    // clear, barely tinted: at 0.18 the open leaves laid a milky glare over the drinks (Tan)
+    const coolGlass = flat({ color: 0xcfe0ec, transparent: true, opacity: 0.08, depthWrite: false, cache: false });
     const fridge = buildFridgeDoors(inside, inside.userData.doors, { glassMat: coolGlass, lit });
     // the konbini (Tan's experience): the hands, the four glowing things, the cashier, the till
     const shop = makeShop(inside, { doors: fridge, lit, colliders, entrance: root.userData.door });

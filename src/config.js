@@ -55,6 +55,8 @@ export const STORE = {
   voice: { near: 6, far: 20 },                // her voice: across the store to the door, not beyond the forecourt
   tillSound: { near: 3, far: 14 },            // the beep, the drawer, the coins
   eatGain: { bite: 0.9, munch: 0.7, gulp: 0.8, 'can-open': 0.8, wrapper: 0.6 },
+  recommended: 'strong_nine',   // the choice card's stamp (Tan)
+  checkoutGain: 0.7,  // the checkout's own sounds under her lines (Tan's cashier-checkout recording)
 };
 
 /* Ground plan in front of the store, as z lines (the store glass is z = 0). */
@@ -627,6 +629,7 @@ export const SLOWLIFE = {
  * The fade between is an ease, so a sound arrives as you approach rather
  * than switching on. */
 export const SOUND = {
+  storeInside: 1.15,   // the store's bed, music and hum while you are in it (Tan: +15%, 2026-09-28)
   crossingBells: { near: 10, far: 45 },    // the crossing, the plaza's south edge, the platforms' west end
   doorChime: { near: 5, far: 28 },         // the platform, the gates
   // the store (M4): its chime and door carry across the forecourt to the famous view, no further

@@ -82,8 +82,15 @@ export function productGeometry(id) {
   switch (m.shape) {
     case 'onigiri':
       P.push(part(prism(tri(0.1, 0.092), 0.036), null, body, 'front', cell)); break;
-    case 'sandwich':
-      P.push(part(prism(tri(0.125, 0.105, 0.01), 0.055), null, 0xf7ecd2, 'front', cell)); break;
+    case 'sandwich': case 'fruitsando':
+      /* the sando pack (Tan: they read as onigiri): a clear box standing
+       * upright, two crustless halves inside with their cut faces to the
+       * front, the film crimped over the top.  The front is the picture of
+       * the cut faces and the label band (labels.js); the sides are bread
+       * seen through the film. */
+      P.push(part(new THREE.BoxGeometry(0.112, 0.118, 0.056), trs(0, 0.059, 0), 0xf4ecda, 'front', cell));
+      P.push(part(new THREE.BoxGeometry(0.118, 0.008, 0.06), trs(0, 0.121, 0), 0xe6ecf2));
+      break;
     case 'bento':
       P.push(part(new THREE.BoxGeometry(0.2, 0.035, 0.15), trs(0, 0.0175, 0), body));
       P.push(part(new THREE.BoxGeometry(0.196, 0.018, 0.146), trs(0, 0.044, 0), 0xffffff, 'top', cell)); break;
@@ -185,8 +192,6 @@ export function productGeometry(id) {
       P.push(part(cylG(0.037, 0.037, 0.2), trs(0, 0.1, 0), body, 'front', cell));
       P.push(part(cylG(0.014, 0.037, 0.05), trs(0, 0.225, 0), body));
       P.push(part(cylG(0.014, 0.014, 0.07), trs(0, 0.285, 0), 0x8a1a2a)); break;
-    case 'fruitsando':
-      P.push(part(prism(tri(0.12, 0.1, 0.01), 0.06), null, 0xfbf6ec, 'front', cell)); break;
     case 'rollcake':
       P.push(part(new THREE.BoxGeometry(0.09, 0.06, 0.09), trs(0, 0.03, 0), 0xf6f2ea, 'front', cell));
       P.push(part(cylG(0.035, 0.035, 0.07, 14), trs(0, 0.035, 0.005, 0, 0, Q), body)); break;

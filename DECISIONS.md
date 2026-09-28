@@ -1698,3 +1698,4 @@ where below the bar, merged; builders' own calls in docs/decisions/*.md.
 - The card is ours: "Fujica" (フジカ), a mint-green transit IC card with Fuji on it (Tan asked for Suica; a real brand, so a homage).
 - Gone: the cashier (store/cashier.js), her voice clips (scripts/gen-voices.mjs, 24 v-* cuts), the till beep and drawer cuts, the entering "irasshaimase" and every subtitle. Download 5.03 -> 4.75 MB.
 - Visits run 46-54 s (the kiosk keeps the recording's own pace).
+- Famous views re-baselined (Tan's OK, 2026-09-28): hero-1/2/3 had drifted to 0.374/0.570/0.272% from the town's growth and the store's new inside (no cashier, self-checkouts, wedge sandos) seen through the glass. All three checked by eye first; the guard now reads 0.000%. The baseline lives in screenshots/baseline/ (not committed); the old one is kept outside the repo.

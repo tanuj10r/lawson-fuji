@@ -30,6 +30,7 @@ export { drawIcon, drawGem, ICON } from './map/icons.js';
 const PPM = 7;                 // pixels per metre
 const PAD = 14;                // metres of margin round the world bounds
 export const JP = `'NF Round', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif`;
+const TAU = Math.PI * 2;
 
 export function paintMap(world) {
   const t0 = performance.now();
@@ -40,26 +41,26 @@ export function paintMap(world) {
   cv.width = W; cv.height = H;
   const c = cv.getContext('2d');
   const F = world.frame;
-  const toPx = (x, z) => [(x - x0) * PPM, (z - z0) * PPM];
   const r = rngKit(2610);
+  const L = TOWN.land, R = TOWN.rail;
 
   /* ---- helpers, all in world metres ---- */
   const tw = (x, z) => { const p = F.toWorld({ x, z }); return [p.x, p.z]; };
+  const wz = (z) => tw(0, z)[1];
   /** A town-frame rect [x0, z0, x1, z1] as a world one. */
   const trect = (q) => { const [ax, az] = tw(q[0], q[1]), [bx, bz] = tw(q[2], q[3]); return [Math.min(ax, bx), Math.min(az, bz), Math.max(ax, bx), Math.max(az, bz)]; };
-  const box = (q, fill, rad = 0) => {
-    c.fillStyle = fill;
-    if (rad) { c.beginPath(); c.roundRect(q[0], q[1], q[2] - q[0], q[3] - q[1], rad); c.fill(); } else c.fillRect(q[0], q[1], q[2] - q[0], q[3] - q[1]);
-  };
-  const edge = (q, stroke, w, rad = 0) => {
-    c.strokeStyle = stroke; c.lineWidth = w;
-    c.beginPath(); c.roundRect(q[0] + w / 2, q[1] + w / 2, q[2] - q[0] - w, q[3] - q[1] - w, rad); c.stroke();
-  };
+  const ink = (col, w) => { c.strokeStyle = col; c.lineWidth = w; };
+  const rr = (q, rad) => { c.beginPath(); c.roundRect(q[0], q[1], q[2] - q[0], q[3] - q[1], rad); };
+  const box = (q, fill, rad = 0) => { c.fillStyle = fill; rr(q, rad); c.fill(); };
+  const edge = (q, col, w, rad = 0) => { ink(col, w); rr([q[0] + w / 2, q[1] + w / 2, q[2] - w / 2, q[3] - w / 2], rad); c.stroke(); };
   const poly = (pts) => { c.beginPath(); pts.forEach(([x, z], i) => (i ? c.lineTo(x, z) : c.moveTo(x, z))); c.closePath(); };
   const line = (ax, az, bx, bz) => { c.beginPath(); c.moveTo(ax, az); c.lineTo(bx, bz); c.stroke(); };
+  const X0 = x0 - 2, X1 = x1 + 2;
+  /** A band right across the sheet, between two town-frame z. */
+  const band = (za, zb, fill) => { const q = trect([0, za, 1, zb]); q[0] = X0; q[2] = X1; box(q, fill); return q; };
   /** Little grass marks (the map sign for meadow), scattered in a world rect. */
   const tufts = (q, n, col) => {
-    c.strokeStyle = col; c.lineWidth = 0.22; c.lineCap = 'round';
+    ink(col, 0.22); c.lineCap = 'round';
     c.beginPath();
     for (let i = 0; i < n; i++) {
       const x = r.range(q[0] + 1, q[2] - 1), z = r.range(q[1] + 1, q[3] - 1);
@@ -67,15 +68,17 @@ export function paintMap(world) {
     }
     c.stroke(); c.lineCap = 'butt';
   };
-  /** Parking bays: rows of white ticks along both long sides of a world rect. */
-  const bays = (q, depth = 5, width = 2.5) => {
-    c.strokeStyle = M.bayLine; c.lineWidth = 0.18;
-    const along = q[2] - q[0] >= q[3] - q[1];
-    if (along) {
-      for (let x = q[0] + 1.5; x <= q[2] - 1.5; x += width) { line(x, q[1] + 0.5, x, q[1] + depth); line(x, q[3] - depth, x, q[3] - 0.5); }
-    } else {
-      for (let z = q[1] + 1.5; z <= q[3] - 1.5; z += width) { line(q[0] + 0.5, z, q[0] + depth, z); line(q[2] - depth, z, q[2] - 0.5, z); }
-    }
+  /** Parallel lines across a world rect every `step` (along z if `v`, else along x), on multiples of `step` from `at`. */
+  const hatch = (q, step, v, col, w, at = 0) => {
+    ink(col, w); c.beginPath();
+    const [a, b, p, s] = v ? [q[0], q[2], q[1], q[3]] : [q[1], q[3], q[0], q[2]];
+    for (let t = at + Math.ceil((a - at) / step) * step; t <= b; t += step) v ? (c.moveTo(t, p), c.lineTo(t, s)) : (c.moveTo(p, t), c.lineTo(s, t));
+    c.stroke();
+  };
+  /** A car park: asphalt, rows of white bays along both long sides. */
+  const park = (q) => {
+    box(q, M.lot); edge(q, M.lotEdge, 0.2);
+    for (const z of [q[1] + 0.5, q[3] - 5]) hatch([q[0] + 1.5, z, q[2] - 1.5, z + 4.5], 2.5, 1, M.bayLine, 0.18, q[0] + 1.5);
   };
 
   /* ---- paper, with a faint, even grain ---- */
@@ -86,486 +89,345 @@ export function paintMap(world) {
   }
   c.setTransform(PPM, 0, 0, PPM, -x0 * PPM, -z0 * PPM);
 
-  const L = TOWN.land;
-  /* ---- beyond the river: the far verge, the tree line, and the Deer Park's meadow ---- */
+  /* ---- beyond the river: the far verge and the Deer Park's meadow, fading off the sheet ---- */
   {
     const far = trect(L.far);
     const g = c.createLinearGradient(0, far[3], 0, z1);
     g.addColorStop(0, M.meadow); g.addColorStop(1, M.meadowFade);
-    c.fillStyle = g; c.fillRect(far[0], far[1], far[2] - far[0], z1 - far[1]);
+    box([far[0], far[1], far[2], z1], g);
     tufts([far[0], far[3] + 2, far[2], z1 - 2], 70, M.tuft);
   }
 
-  /* ---- the town's ground: every lot a pale garden or yard, the core's edge a hairline ---- */
-  {
-    const core = trect([TOWN.core.x0, TOWN.core.z0, TOWN.core.x1, TOWN.core.z1]);
-    box(core, M.ground);
-  }
+  /* ---- the town's ground: every lot a pale garden or yard ---- */
+  box(trect([TOWN.core.x0, TOWN.core.z0, TOWN.core.x1, TOWN.core.z1]), M.ground);
   const lots = world.core?.lots ?? [];
   const built = world.core?.built ?? [];
   for (const lot of lots) box(trect(lot.rect), lot.kind === 'shop' ? M.yard : M.garden);
 
   /* ---- the special lots ---- */
-  const spec = (k) => SPECIALS.find((s) => s.kind === k);
+  const spec = (k) => SPECIALS.find((s) => s.kind === k) ?? { x0: 0, z0: 0, x1: 0, z1: 0 };
   const sRect = (s) => trect([s.x0, s.z0, s.x1, s.z1]);
-  if (spec('park')) {
-    const q = sRect(spec('park'));
-    box(q, M.park, 0.8); edge(q, M.parkEdge, 0.25, 0.8);
-    // the sandpit and a path round
-    const cx = (q[0] + q[2]) / 2, cz = (q[1] + q[3]) / 2;
-    c.fillStyle = M.sand; c.beginPath(); c.ellipse(cx + 3, cz + 2, 2.4, 1.8, 0, 0, Math.PI * 2); c.fill();
-  }
-  if (spec('vacant')) { const q = sRect(spec('vacant')); box(q, M.vacant); tufts(q, 16, M.tuftDry); }
-  if (spec('shrine')) {
-    const q = sRect(spec('shrine'));
-    box(q, M.gravel, 0.6);
-    // the approach (参道): a stone path from the lane to the halls, under the torii
+  { const q = sRect(spec('park')); box(q, M.park, 0.8); edge(q, M.parkEdge, 0.25, 0.8); }
+  { const q = sRect(spec('vacant')); box(q, M.vacant); tufts(q, 16, M.tuftDry); }
+  {
     const s = spec('shrine');
-    const [ax, az] = tw((s.x0 + s.x1) / 2, s.z0), [bx, bz] = tw((s.x0 + s.x1) / 2, s.z1 - 6);
-    c.strokeStyle = M.sando; c.lineWidth = 1.6; line(ax, az, bx, bz);
-    c.strokeStyle = M.torii; c.lineWidth = 0.35;
-    for (let t = 0.12; t < 0.8; t += 0.07) { const z = az + (bz - az) * t; line(ax - 1.2, z, ax + 1.2, z); }
+    box(sRect(s), M.gravel, 0.6);
+    // the approach (参道) from the lane to the halls, under its tunnel of torii
+    const [ax, az] = tw((s.x0 + s.x1) / 2, s.z0), [, bz] = tw(0, s.z1 - 6);
+    ink(M.sando, 1.6); line(ax, az, ax, bz);
+    hatch([ax - 1.2, bz + (az - bz) * 0.2, ax + 1.2, az - (az - bz) * 0.12], 0.72, 0, M.torii, 0.35);
   }
-  if (spec('plaza')) {
+  {
     const q = sRect(spec('plaza'));
     box(q, M.plaza);
-    c.strokeStyle = M.plazaGrid; c.lineWidth = 0.08;
-    for (let x = Math.ceil(q[0] / 3) * 3; x < q[2]; x += 3) line(x, q[1], x, q[3]);
-    for (let z = Math.ceil(q[1] / 3) * 3; z < q[3]; z += 3) line(q[0], z, q[2], z);
+    for (const v of [0, 1]) hatch(q, 3, v, M.plazaGrid, 0.08);
   }
-  if (spec('coinParking')) { const q = sRect(spec('coinParking')); box(q, M.lot); bays(q); }
+  park(sRect(spec('coinParking')));
+  park(trect(L.parking));                          // the photographers' lot, a car park now
 
-  /* ---- the river (桜川): banks, walks, water, stairs, stepping stones, the bridge ---- */
+  /* ---- the river (桜川): banks, walks, water, stairs, stepping stones ---- */
   {
-    const X0 = x0 - 2, X1 = x1 + 2;
-    const band = (za, zb, fill) => { const q = trect([0, za, 1, zb]); c.fillStyle = fill; c.fillRect(X0, q[1], X1 - X0, q[3] - q[1]); return q; };
     band(L.farTop.z0, L.farTop.z1, M.walk);
     band(L.top.z0, L.top.z1, M.walk);
-    // the stone revetments: hatched as a map draws a bank
-    for (const [za, zb, down] of [[L.walks.town[1], L.sunk.z1, -1], [L.sunk.z0, L.walks.far[0], 1]]) {
-      const q = band(za, zb, M.revet);
-      c.strokeStyle = M.revetHatch; c.lineWidth = 0.14;
-      c.beginPath();
-      for (let x = X0; x < X1; x += 0.9) {
-        const long = (Math.round(x / 0.9) % 2) === 0;
-        const top = down < 0 ? q[1] : q[3], d = (q[3] - q[1]) * (long ? 0.85 : 0.5) * (down < 0 ? 1 : -1);
-        c.moveTo(x, top); c.lineTo(x, top + d);
-      }
-      c.stroke();
-    }
-    const tw1 = band(L.walks.town[0], L.walks.town[1], M.lowWalk);
-    const tw2 = band(L.walks.far[0], L.walks.far[1], M.lowWalk);
+    // the stone revetments, hatched as a map draws a bank
+    for (const [za, zb] of [[L.walks.town[1], L.sunk.z1], [L.sunk.z0, L.walks.far[0]]]) hatch(band(za, zb, M.revet), 0.9, 1, M.revetHatch, 0.14);
+    const a = band(L.walks.town[0], L.walks.town[1], M.lowWalk);
+    const b = band(L.walks.far[0], L.walks.far[1], M.lowWalk);
     // a strip of grass along each lower walk, on the water's side
-    c.fillStyle = M.bankGrass;
-    c.fillRect(X0, tw1[1], X1 - X0, 1.0); c.fillRect(X0, tw2[3] - 1.0, X1 - X0, 1.0);
-    const wq = band(L.river.z0, L.river.z1, M.water);
-    const g = c.createLinearGradient(0, wq[1], 0, wq[3]);
+    box([X0, a[1], X1, a[1] + 1], M.bankGrass); box([X0, b[3] - 1, X1, b[3]], M.bankGrass);
+    const q = trect([0, L.river.z0, 1, L.river.z1]);
+    const g = c.createLinearGradient(0, q[1], 0, q[3]);
     g.addColorStop(0, M.waterDeep); g.addColorStop(0.18, M.water); g.addColorStop(0.82, M.water); g.addColorStop(1, M.waterDeep);
-    c.fillStyle = g; c.fillRect(X0, wq[1], X1 - X0, wq[3] - wq[1]);
-    c.strokeStyle = M.waterEdge; c.lineWidth = 0.3;
-    line(X0, wq[1] + 0.15, X1, wq[1] + 0.15); line(X0, wq[3] - 0.15, X1, wq[3] - 0.15);
-    // a few gentle current marks
-    c.strokeStyle = M.waterLine; c.lineWidth = 0.22; c.lineCap = 'round';
+    box([X0, q[1], X1, q[3]], g);
+    ink(M.waterEdge, 0.3); line(X0, q[1] + 0.15, X1, q[1] + 0.15); line(X0, q[3] - 0.15, X1, q[3] - 0.15);
+    // gentle current marks
+    ink(M.waterLine, 0.22); c.lineCap = 'round';
     c.beginPath();
     for (let i = 0; i < 46; i++) {
-      const x = r.range(X0, X1), z = r.range(wq[1] + 2.2, wq[3] - 2.2), w = r.range(2.2, 4.2);
+      const x = r.range(X0, X1), z = r.range(q[1] + 2.2, q[3] - 2.2), w = r.range(2.2, 4.2);
       c.moveTo(x - w, z); c.quadraticCurveTo(x - w / 2, z - 0.5, x, z); c.quadraticCurveTo(x + w / 2, z + 0.5, x + w, z);
     }
     c.stroke(); c.lineCap = 'butt';
     // the railings along the top walks
-    c.strokeStyle = M.rail2; c.lineWidth = 0.14;
-    const [, rz1] = tw(0, L.top.z0), [, rz2] = tw(0, L.farTop.z1);
-    line(X0, rz1, X1, rz1); line(X0, rz2, X1, rz2);
+    ink(M.rail2, 0.14);
+    for (const z of [wz(L.top.z0), wz(L.farTop.z1)]) line(X0, z, X1, z);
     // the stone stairs down to the lower walks
     for (const s of L.stairs) {
       const [za, zb] = s.side === 'town' ? [L.walks.town[1], L.top.z0] : [L.farTop.z1, L.walks.far[0]];
-      const q = trect([s.x - s.w / 2, za, s.x + s.w / 2, zb]);
-      box(q, M.stair);
-      c.strokeStyle = M.stairLine; c.lineWidth = 0.08;
-      for (let z = q[1] + 0.3; z < q[3]; z += 0.32) line(q[0], z, q[2], z);
-      edge(q, M.stairLine, 0.12);
+      const sq = trect([s.x - s.w / 2, za, s.x + s.w / 2, zb]);
+      box(sq, M.stair);
+      hatch(sq, 0.32, 0, M.stairLine, 0.08);
     }
     // 飛び石: the stepping stones across the water
-    c.fillStyle = M.stone; c.strokeStyle = M.stoneEdge; c.lineWidth = 0.1;
+    c.fillStyle = M.stone; ink(M.stoneEdge, 0.1);
     const [sx] = tw(L.stones.x, 0);
-    for (let z = wq[1] + 0.9, i = 0; z < wq[3] - 0.5; z += 1.35, i++) {
-      c.beginPath(); c.ellipse(sx + (i % 2 ? 0.35 : -0.35), z, 0.62, 0.45, 0.3 * (i % 2 ? 1 : -1), 0, Math.PI * 2); c.fill(); c.stroke();
+    for (let z = q[1] + 0.9, i = 1; z < q[3] - 0.5; z += 1.35, i = -i) {
+      c.beginPath(); c.ellipse(sx + 0.35 * i, z, 0.62, 0.45, 0.3 * i, 0, TAU); c.fill(); c.stroke();
     }
-    // the bridge's shadow on the channel (the deck itself is the bridge road, drawn with the roads)
-    const bq = trect([L.bridge.x - L.bridge.w / 2, L.bridge.z0, L.bridge.x + L.bridge.w / 2, L.bridge.z1]);
-    c.fillStyle = M.shadow; c.fillRect(bq[0] + 0.9, bq[1], bq[2] - bq[0], bq[3] - bq[1]);
   }
-
-  /* ---- the photographers' lot (a car park now) and the bridge road ---- */
-  { const q = trect(L.parking); box(q, M.lot); bays(q); edge(q, M.lotEdge, 0.2); }
+  // the bridge's shadow on the channel (its deck is the bridge road, drawn with the roads)
+  const bq = trect([L.bridge.x - L.bridge.w / 2, L.bridge.z0, L.bridge.x + L.bridge.w / 2, L.bridge.z1]);
+  box([bq[0] + 0.9, bq[1], bq[2] + 0.9, bq[3]], M.shadow);
 
   /* ---- the paddies (田んぼ): each plot as planned, its earth paths between ---- */
   {
     const plan = planPaddies();
-    const pb = trect(L.paddies.box);
-    box(pb, M.levee);
-    // a plot's outline, in the town's frame: along its south curve, back along its north
-    const outline = (p) => {
-      const pts = [];
-      const n = 8;
-      for (let i = 0; i <= n; i++) { const x = p.sw + ((p.se - p.sw) * i) / n; pts.push(tw(x, p.S(x))); }
-      for (let i = 0; i <= n; i++) { const x = p.ne + ((p.nw - p.ne) * i) / n; pts.push(tw(x, p.N(x))); }
-      return pts;
-    };
+    box(trect(L.paddies.box), M.levee);
     for (const p of plan.plots) {
-      const pts = outline(p);
+      // along its south curve, back along its north (the town's frame)
+      const pts = [];
+      for (let i = 0; i <= 8; i++) { const x = p.sw + ((p.se - p.sw) * i) / 8; pts.push(tw(x, p.S(x))); }
+      for (let i = 0; i <= 8; i++) { const x = p.ne + ((p.nw - p.ne) * i) / 8; pts.push(tw(x, p.N(x))); }
       const k = M.plot[p.kind] ?? M.plot.fallow;
+      const xs = pts.map((v) => v[0]), zs = pts.map((v) => v[1]);
+      const bx0 = Math.min(...xs), bx1 = Math.max(...xs), bz0 = Math.min(...zs), bz1 = Math.max(...zs);
       c.save();
       poly(pts); c.fillStyle = k.fill; c.fill(); c.clip();
-      let bx0 = Infinity, bz0 = Infinity, bx1 = -Infinity, bz1 = -Infinity;
-      for (const [x, z] of pts) { bx0 = Math.min(bx0, x); bz0 = Math.min(bz0, z); bx1 = Math.max(bx1, x); bz1 = Math.max(bz1, z); }
-      if (p.kind === 'flood' || p.kind === 'seed') {
+      if (k.sky) {
         // the sky in the water: a soft light band across it
         const g = c.createLinearGradient(bx0, bz0, bx1, bz1);
-        g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.45, 'rgba(255,255,255,0.38)'); g.addColorStop(0.6, 'rgba(255,255,255,0)');
-        c.fillStyle = g; c.fillRect(bx0, bz0, bx1 - bx0, bz1 - bz0);
+        g.addColorStop(0, M.clear); g.addColorStop(0.45, M.sky); g.addColorStop(0.6, M.clear);
+        box([bx0, bz0, bx1, bz1], g);
       }
-      if (p.kind === 'seed') {
-        // rows of new seedlings
+      if (k.rows) {
+        // furrows, or rows of seedlings or flowers
         c.fillStyle = k.mark;
-        for (let x = bx0 + 0.6; x < bx1; x += 1.1) for (let z = bz0 + 0.5; z < bz1; z += 0.8) c.fillRect(x - 0.12, z - 0.12, 0.24, 0.24);
-      } else if (p.kind === 'plough') {
-        // furrows
-        c.strokeStyle = k.mark; c.lineWidth = 0.18;
-        c.beginPath();
-        for (let x = bx0 + 0.4; x < bx1; x += 0.75) { c.moveTo(x, bz0); c.lineTo(x, bz1); }
-        c.stroke();
-      } else if (p.kind === 'renge') {
-        // green manure in flower
-        for (let i = 0; i < (bx1 - bx0) * (bz1 - bz0) * 0.5; i++) {
-          c.fillStyle = i % 3 ? k.mark : M.rengeLeaf;
-          c.beginPath(); c.arc(r.range(bx0, bx1), r.range(bz0, bz1), 0.2, 0, Math.PI * 2); c.fill();
-        }
-      } else if (p.kind === 'fallow') {
-        c.restore(); c.save(); poly(pts); c.clip();
-        tufts([bx0, bz0, bx1, bz1], 10, M.tuft);
+        for (let x = bx0 + 0.5; x < bx1; x += k.rows[0]) for (let z = bz0 + 0.5; z < bz1; z += k.rows[1]) c.fillRect(x - 0.12, z - 0.12, k.rows[2], k.rows[3]);
       }
+      if (p.kind === 'fallow') tufts([bx0, bz0, bx1, bz1], 10, M.tuft);
       c.restore();
-      poly(pts); c.strokeStyle = k.edge; c.lineWidth = 0.14; c.stroke();
     }
     // the earth paths (畦道): a grass shoulder and a trodden top
-    const path = (w, col) => {
-      c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'round'; c.lineJoin = 'round';
+    c.lineCap = c.lineJoin = 'round';
+    for (const [w, col] of [[RIDGE.w, M.ridge], [RIDGE.path, M.ridgeTop]]) {
+      ink(col, w);
       c.beginPath();
       for (const l of plan.lines) {
-        if (l.kind === 'curve') {
-          for (let i = 0; i <= 16; i++) { const x = l.x0 + ((l.x1 - l.x0) * i) / 16; const [wx, wz] = tw(x, l.f(x)); i ? c.lineTo(wx, wz) : c.moveTo(wx, wz); }
-        } else { const [ax, az] = tw(...l.a), [bx, bz] = tw(...l.b); c.moveTo(ax, az); c.lineTo(bx, bz); }
+        const pts = l.kind === 'curve' ? Array.from({ length: 17 }, (_, i) => { const x = l.x0 + ((l.x1 - l.x0) * i) / 16; return tw(x, l.f(x)); }) : [tw(...l.a), tw(...l.b)];
+        pts.forEach(([x, z], i) => (i ? c.lineTo(x, z) : c.moveTo(x, z)));
       }
-      c.stroke(); c.lineCap = 'butt';
-    };
-    path(RIDGE.w, M.ridge);
-    path(RIDGE.path, M.ridgeTop);
+      c.stroke();
+    }
+    c.lineCap = 'butt';
     // the feeder channel (用水路) down the lane side, and the pump shed's apron
     for (const ch of plan.channels) { const q = trect([ch.x0, ch.z0, ch.x1, ch.z1]); box(q, M.waterDeep); edge(q, M.concreteEdge, 0.12); }
     if (plan.apron) box(trect(plan.apron), M.concrete, 0.3);
   }
 
-  /* ---- 鏡池: its grounds, the granite promenade, the water with its lilies ---- */
+  /* ---- 鏡池: its grounds, the granite promenade, the water ---- */
   {
-    const P = L.pond;
-    const gq = trect(P.box);
-    box(gq, M.lawn, 1.2);
+    box(trect(L.pond.box), M.lawn, 1.2);
     const shore = pondShore().map((v) => tw(v.x, v.y));
-    const n = shore.length;
-    let area = 0;
-    for (let i = 0; i < n; i++) { const a = shore[i], b = shore[(i + 1) % n]; area += a[0] * b[1] - b[0] * a[1]; }
-    const s = area > 0 ? 1 : -1;
-    const off = (d) => shore.map((p, i) => {
-      const a = shore[(i + n - 1) % n], b = shore[(i + 1) % n];
-      const tx = b[0] - a[0], tz = b[1] - a[1], l = Math.hypot(tx, tz) || 1;
-      return [p[0] + (tz / l) * d * s, p[1] - (tx / l) * d * s];
-    });
     // the promenade: the shore stroked wide with round joins, so its outer edge stays smooth
-    const pw = Math.min(3.2, P.promenade);
-    c.lineJoin = 'round';
-    poly(shore); c.strokeStyle = M.promEdge; c.lineWidth = pw * 2 + 0.4; c.stroke();
-    poly(shore); c.strokeStyle = M.promenade; c.lineWidth = pw * 2; c.stroke();
+    const pw = Math.min(3.2, L.pond.promenade) * 2;
+    for (const [w, col] of [[pw + 0.4, M.promEdge], [pw, M.promenade]]) { ink(col, w); poly(shore); c.stroke(); }
     c.lineJoin = 'miter';
     // the water: deeper at the stone lip, light in the middle
-    let cx = 0, cz = 0; for (const [x, z] of shore) { cx += x; cz += z; } cx /= n; cz /= n;
+    const cx = shore.reduce((s, v) => s + v[0], 0) / shore.length, cz = shore.reduce((s, v) => s + v[1], 0) / shore.length;
     const g = c.createRadialGradient(cx, cz - 3, 2, cx, cz, 22);
     g.addColorStop(0, M.pondLight); g.addColorStop(1, M.pond);
     poly(shore); c.fillStyle = g; c.fill();
-    c.save(); poly(shore); c.clip();
-    poly(off(-1.1)); c.strokeStyle = M.pondRing; c.lineWidth = 0.25; c.stroke();
-    c.restore();
-    poly(shore); c.strokeStyle = M.waterEdge; c.lineWidth = 0.35; c.stroke();
+    ink(M.waterEdge, 0.35); c.stroke();
   }
 
-  /* ---- the railway: ballast, sleepers, two tracks; the platforms ---- */
+  /* ---- the railway: ballast and sleepers (its rails go down after the roads); the platforms ---- */
+  const tracks = [R.z - R.spacing / 2, R.z + R.spacing / 2].map(wz);
   {
-    const R = TOWN.rail, S = TOWN.station.platforms;
-    const bq = trect([-200, R.z - R.spacing / 2 - 1.7, 200, R.z + R.spacing / 2 + 1.7]);
-    bq[0] = x0 - 2; bq[2] = x1 + 2;
-    box(bq, M.ballast);
-    c.strokeStyle = M.ballastEdge; c.lineWidth = 0.15; line(bq[0], bq[1], bq[2], bq[1]); line(bq[0], bq[3], bq[2], bq[3]);
-    for (const tz of [R.z - R.spacing / 2, R.z + R.spacing / 2]) {
-      const [, z] = tw(0, tz);
-      c.strokeStyle = M.sleeper; c.lineWidth = 0.24;
-      c.beginPath();
-      for (let x = bq[0]; x < bq[2]; x += 0.65) { c.moveTo(x, z - 1.05); c.lineTo(x, z + 1.05); }
-      c.stroke();
-      c.strokeStyle = M.railSteel; c.lineWidth = 0.16;
-      line(bq[0], z - R.gauge / 2, bq[2], z - R.gauge / 2); line(bq[0], z + R.gauge / 2, bq[2], z + R.gauge / 2);
-    }
-    for (const q of [
-      trect([S.x0, TOWN.station.building.z1, S.x1, TOWN.station.building.z1 + S.depth]),
-      trect([S.x0, R.z + R.spacing / 2 + 1.0, S.x1, R.z + R.spacing / 2 + 1.0 + S.depth]),
-    ]) {
-      box(q, M.platform, 0.3); edge(q, M.platformEdge, 0.14, 0.3);
+    const q = band(R.z - R.spacing / 2 - 1.7, R.z + R.spacing / 2 + 1.7, M.ballast);
+    ink(M.ballastEdge, 0.15); line(X0, q[1], X1, q[1]); line(X0, q[3], X1, q[3]);
+    for (const z of tracks) hatch([X0, z - 1.05, X1, z + 1.05], 0.65, 1, M.sleeper, 0.24);
+    const S = TOWN.station.platforms, bz = TOWN.station.building.z1, fz = R.z + R.spacing / 2 + 1;
+    for (const [za, zb] of [[bz, bz + S.depth], [fz, fz + S.depth]]) {
+      const p = trect([S.x0, za, S.x1, zb]);
+      box(p, M.platform, 0.3); edge(p, M.platformEdge, 0.14, 0.3);
       // the yellow tactile line along the track edge
-      const trackSide = Math.abs(q[1] - tw(0, R.z)[1]) < Math.abs(q[3] - tw(0, R.z)[1]) ? q[1] + 0.6 : q[3] - 0.6;
-      c.strokeStyle = M.tactile; c.lineWidth = 0.28; line(q[0] + 0.5, trackSide, q[2] - 0.5, trackSide);
+      const t = Math.abs(p[1] - wz(R.z)) < Math.abs(p[3] - wz(R.z)) ? p[1] + 0.6 : p[3] - 0.6;
+      ink(M.tactile, 0.28); line(p[0] + 0.5, t, p[2] - 0.5, t);
     }
   }
 
   /* ---- roads: kerbs, pavements, asphalt, ranked main > shopping > lane ---- */
   const net = world.core?.kit?.net ?? world.core?.net;
   const segs = [];
-  if (net) {
-    for (const e of net.edges) {
-      if (e.cls === 'hero') continue;
-      const [ax, az] = tw(net.at(e, e.s0, 0).x, net.at(e, e.s0, 0).z), [bx, bz] = tw(net.at(e, e.s1, 0).x, net.at(e, e.s1, 0).z);
-      segs.push({ ax, az, bx, bz, a: e.a, t: e.t, cls: e.cls });
-    }
+  for (const e of net?.edges ?? []) {
+    if (e.cls === 'hero') continue;
+    const a = net.at(e, e.s0), b = net.at(e, e.s1);
+    segs.push([...tw(a.x, a.z), ...tw(b.x, b.z), e.a, e.t, e.cls]);
   }
   // the bridge road, from the master junction to the gate
-  { const [ax, az] = tw(L.track.x, L.track.z0), [bx, bz] = tw(L.track.x, L.track.z1); segs.push({ ax, az, bx, bz, a: L.track.w / 2, t: L.track.w / 2, cls: 'lane' }); }
-  // the main road, the width of the town (world frame): its far walk to the lot, its near walk to the forecourt
-  const mainA = (STREET.roadZ - STREET.forecourtZ) / 2, mainZ = (STREET.roadZ + STREET.forecourtZ) / 2;
-  segs.push({ ax: STREET.roadX0, az: mainZ, bx: STREET.roadX1, bz: mainZ, a: mainA, t: mainA + (STREET.sidewalkZ - STREET.roadZ), cls: 'main' });
-  const stroke = (s, w, col, cap = 'square') => { c.strokeStyle = col; c.lineWidth = w; c.lineCap = cap; line(s.ax, s.az, s.bx, s.bz); };
-  for (const s of segs) if (s.t > s.a) stroke(s, s.t * 2 + 0.5, M.kerb);
-  for (const s of segs) if (s.t > s.a) stroke(s, s.t * 2, M.pavement);
-  for (const s of segs) stroke(s, s.a * 2 + 0.45, M.roadCase[s.cls] ?? M.roadCase.lane);
-  for (const rank of ['lane', 'shopping', 'main']) for (const s of segs) if (s.cls === rank) stroke(s, s.a * 2, M.roadFill[rank]);
+  segs.push([...tw(L.track.x, L.track.z0), ...tw(L.track.x, L.track.z1), L.track.w / 2, L.track.w / 2, 'lane']);
+  // the main road the width of the town (the world's frame), its far walk to the lot
+  const mainA = (STREET.roadZ - STREET.forecourtZ) / 2, mainZ = STREET.forecourtZ + mainA;
+  segs.push([STREET.roadX0, mainZ, STREET.roadX1, mainZ, mainA, mainA + STREET.sidewalkZ - STREET.roadZ, 'main']);
+  c.lineCap = 'square';
+  const pass = (col, w, only) => { for (const s of segs) if (!only || only(s)) { ink(col(s), w(s)); line(s[0], s[1], s[2], s[3]); } };
+  const walked = (s) => s[5] > s[4];
+  pass(() => M.kerb, (s) => s[5] * 2 + 0.5, walked);
+  pass(() => M.pavement, (s) => s[5] * 2, walked);
+  pass((s) => M.roadCase[s[6]] ?? M.roadCase.lane, (s) => s[4] * 2 + 0.45);
+  for (const k of ['lane', 'shopping', 'main']) pass(() => M.roadFill[k], (s) => s[4] * 2, (s) => s[6] === k);
   c.lineCap = 'butt';
   // the main road's centre line
-  c.strokeStyle = M.centre; c.lineWidth = 0.18; c.setLineDash([3, 3]);
-  line(STREET.roadX0, mainZ, STREET.roadX1, mainZ);
-  c.setLineDash([]);
+  ink(M.centre, 0.18); c.setLineDash([3, 3]); line(STREET.roadX0, mainZ, STREET.roadX1, mainZ); c.setLineDash([]);
+  // the rails, on across the level crossing's boards
+  ink(M.railSteel, 0.16);
+  for (const z of tracks) for (const d of [-R.gauge / 2, R.gauge / 2]) line(X0, z + d, X1, z + d);
+  // the crossing's barriers, black and yellow either side of the tracks
+  {
+    const [lx] = tw(R.crossX, 0);
+    for (const z of [Math.min(...tracks) - 2.3, Math.max(...tracks) + 2.3]) for (let i = 0; i < 6; i++) box([lx - 2.4 + i * 0.8, z - 0.25, lx - 1.6 + i * 0.8, z + 0.25], i % 2 ? M.gateBlack : M.gateYellow);
+  }
+  // the bridge's parapets
+  ink(M.parapet, 0.35);
+  for (const x of [bq[0] + 0.18, bq[2] - 0.18]) line(x, bq[1], x, bq[3]);
 
   /* ---- the zebras: their own bars, as on the road ---- */
   const zebra = (ax, az, bx, bz, width) => {
     const len = Math.hypot(bx - ax, bz - az);
     c.save();
     c.translate(ax, az); c.rotate(Math.atan2(bz - az, bx - ax));
-    c.fillStyle = M.zebraBack; c.fillRect(0, -width / 2, len, width);
+    box([0, -width / 2, len, width / 2], M.zebraBack);
     c.fillStyle = M.zebraBar;
     for (let t = 0.25; t < len - 0.3; t += 0.9) c.fillRect(t, -width / 2 + 0.15, 0.45, width - 0.3);
     c.restore();
   };
-  if (net) {
-    const cw = TOWN.crosswalk;
-    zebra(-cw.x, STREET.forecourtZ, -cw.x, STREET.roadZ, cw.width);
-    for (const cr of world.core?.kit?.features?.crossings ?? []) {
-      const a = net.at(cr.e, cr.s, -cr.e.a), b = net.at(cr.e, cr.s, cr.e.a);
-      zebra(...tw(a.x, a.z), ...tw(b.x, b.z), cr.L);
-    }
-  }
-  // the level crossing: the barriers' black and yellow either side of the tracks
-  {
-    const R = TOWN.rail;
-    const [lx] = tw(R.crossX, 0);
-    for (const tz of [R.z - R.spacing / 2 - 2.3, R.z + R.spacing / 2 + 2.3]) {
-      const [, z] = tw(0, tz);
-      for (let i = 0; i < 6; i++) { c.fillStyle = i % 2 ? M.gateBlack : M.gateYellow; c.fillRect(lx - 2.4 + i * 0.8, z - 0.25, 0.8, 0.5); }
-    }
-    // the rails run on across the road's boards
-    c.strokeStyle = M.railSteel; c.lineWidth = 0.16;
-    for (const tz of [R.z - R.spacing / 2, R.z + R.spacing / 2]) {
-      const [, z] = tw(0, tz);
-      line(lx - 2.6, z - R.gauge / 2, lx + 2.6, z - R.gauge / 2); line(lx - 2.6, z + R.gauge / 2, lx + 2.6, z + R.gauge / 2);
-    }
-  }
-  // the bridge: its parapets over the channel
-  {
-    const q = trect([L.bridge.x - L.bridge.w / 2, L.bridge.z0, L.bridge.x + L.bridge.w / 2, L.bridge.z1]);
-    c.strokeStyle = M.parapet; c.lineWidth = 0.35;
-    line(q[0] + 0.18, q[1], q[0] + 0.18, q[3]); line(q[2] - 0.18, q[1], q[2] - 0.18, q[3]);
+  zebra(-TOWN.crosswalk.x, STREET.forecourtZ, -TOWN.crosswalk.x, STREET.roadZ, TOWN.crosswalk.width);
+  for (const cr of world.core?.kit?.features?.crossings ?? []) {
+    const a = net.at(cr.e, cr.s, -cr.e.a), b = net.at(cr.e, cr.s, cr.e.a);
+    zebra(...tw(a.x, a.z), ...tw(b.x, b.z), cr.L);
   }
 
   /* ---- the Nippon's forecourt: paving and its painted bays ---- */
-  {
-    const q = [STREET.x0, 0, STREET.x1, STREET.forecourtZ];
-    box(q, M.forecourt);
-    c.strokeStyle = M.bayLine; c.lineWidth = 0.14;
-    for (let x = STREET.bayFirstX; x <= STREET.bayX1; x += STREET.bayWidth) line(x, STREET.bayZ0, x, STREET.bayZ1);
-    for (let x = STREET.bayFirstX - STREET.bayWidth; x >= STREET.bayX0; x -= STREET.bayWidth) line(x, STREET.bayZ0, x, STREET.bayZ1);
-  }
+  box([STREET.x0, 0, STREET.x1, STREET.forecourtZ], M.forecourt);
+  hatch([STREET.bayX0, STREET.bayZ0, STREET.bayX1, STREET.bayZ1], STREET.bayWidth, 1, M.bayLine, 0.14, STREET.bayFirstX);
 
   /* ---- buildings: every footprint roofed by what it is ---- */
   const inRect = (x, z, q) => x >= q[0] && x <= q[2] && z >= q[1] && z <= q[3];
   const lawsonW = [-LAWSON.width / 2, -LAWSON.depth, LAWSON.width / 2 + LAWSON.wingWidth, 0];
-  const megaT = spec('megastore'), stationB = TOWN.station.building;
+  const mega = spec('megastore'), stB = TOWN.station.building;
   const roofs = [];
   for (const g of world.registry ?? []) {
     if (g.kind !== 'building' || !g.rect) continue;
     const q = trect(g.rect);
-    const cx = (q[0] + q[2]) / 2, cz = (q[1] + q[3]) / 2;
-    if (inRect(cx, cz, lawsonW)) continue;
     const mx = (g.rect[0] + g.rect[2]) / 2, mz = (g.rect[1] + g.rect[3]) / 2;
-    if (megaT && inRect(mx, mz, [megaT.x0, megaT.z0, megaT.x1, megaT.z1])) continue;
-    if (inRect(mx, mz, [stationB.x0, stationB.z0, stationB.x1, stationB.z1])) continue;
-    const i = lots.findIndex((l) => inRect(mx, mz, l.rect));
-    const sp = SPECIALS.find((s) => inRect(mx, mz, [s.x0, s.z0, s.x1, s.z1]));
-    let kind = 'house', lot = null;
-    if (i >= 0) { lot = lots[i]; kind = lot.kind === 'shop' ? 'shop' : (built[i]?.type ?? 'house'); } else if (sp) kind = sp.kind === 'apartment' ? 'apartment' : sp.kind === 'shrine' ? 'hall' : 'house';
-    // the frontage a shop's awning faces, in the world
-    let face = null;
-    if (lot?.face) { const f = lot.face; face = [-f.x, -f.z]; }
-    roofs.push({ q, kind, seed: lot?.seed ?? Math.round(cx * 13 + cz * 7), face });
+    // the Nippon, ドンペン堂 and the station are drawn whole, below
+    if (inRect((q[0] + q[2]) / 2, (q[1] + q[3]) / 2, lawsonW) || [mega, stB].some((s) => inRect(mx, mz, [s.x0, s.z0, s.x1, s.z1]))) continue;
+    const i = lots.findIndex((l) => inRect(mx, mz, l.rect)), lot = lots[i];
+    const sp = SPECIALS.find((s) => inRect(mx, mz, [s.x0, s.z0, s.x1, s.z1]))?.kind;
+    const kind = lot ? (lot.kind === 'shop' ? 'shop' : built[i]?.type) : sp === 'apartment' ? sp : sp === 'shrine' ? 'hall' : 'house';
+    // a shop's awning faces the street it stands on (the lot's face, turned into the world)
+    roofs.push({ q, kind, seed: lot?.seed ?? Math.round(mx * 13 + mz * 7), face: lot && [-lot.face.x, -lot.face.z] });
   }
-  // buildings the land builds without a registry entry (the pond's tea house and houses)
-  const reg = roofs.map((b) => b.q);
-  const pondW = trect(L.pond.box);
+  // what the land builds without a registry entry: the pond's tea house and houses
+  const reg = roofs.map((b) => b.q), pondW = trect(L.pond.box);
   for (const k of world.colliders ?? []) {
-    if (k.top < 2.5 || k.x1 - k.x0 < 3 || k.z1 - k.z0 < 3) continue;
     const cx = (k.x0 + k.x1) / 2, cz = (k.z0 + k.z1) / 2;
-    if (!inRect(cx, cz, pondW)) continue;
-    if (reg.some((q) => inRect(cx, cz, q))) continue;
-    roofs.push({ q: [k.x0, k.z0, k.x1, k.z1], kind: 'old', seed: Math.round(cx * 31), face: null });
+    if (k.top > 2.5 && k.x1 - k.x0 > 3 && k.z1 - k.z0 > 3 && inRect(cx, cz, pondW) && !reg.some((q) => inRect(cx, cz, q))) roofs.push({ q: [k.x0, k.z0, k.x1, k.z1], kind: 'old', seed: Math.round(cx * 31) });
   }
-  if (megaT) roofs.push({ q: sRect(megaT), kind: 'mega', seed: 1, face: [1, 0] });
-  roofs.push({ q: trect([stationB.x0, stationB.z0, stationB.x1, stationB.z1]), kind: 'station', seed: 2, face: null });
-  roofs.push({ q: lawsonW, kind: 'konbini', seed: 3, face: [0, 1] });
+  roofs.push({ q: sRect(mega), kind: 'mega', face: [-1, 0] }, { q: sRect(stB), kind: 'station' }, { q: lawsonW, kind: 'konbini', face: [0, 1] });
   // shadows first, all together, so no roof's shadow falls on its neighbour's roof
   c.fillStyle = M.shadow;
-  for (const b of roofs) { const q = b.q; c.beginPath(); c.roundRect(q[0] + 0.7, q[1] + 0.9, q[2] - q[0], q[3] - q[1], 0.6); c.fill(); }
+  for (const { q } of roofs) { rr([q[0] + 0.7, q[1] + 0.9, q[2] + 0.7, q[3] + 0.9], 0.6); c.fill(); }
   for (const b of roofs) roof(c, b);
 
-  /* ---- trees, where their crowns stand: each crown's cushions as dots ---- */
+  /* ---- trees, where their crowns stand ---- */
   paintTrees(c, world);
 
   // the edge of the sheet: a soft warm vignette
   c.setTransform(1, 0, 0, 1, 0, 0);
   const g = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.42, W / 2, H / 2, Math.max(W, H) * 0.75);
-  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(150,130,100,0.2)');
+  g.addColorStop(0, M.clear); g.addColorStop(1, M.vignette);
   c.fillStyle = g; c.fillRect(0, 0, W, H);
 
   /* ---- the places, and where each stands ---- */
   const hv = HERO_VIEWS.morning.play.pos;
-  const places = PLACES.map((p) => {
-    let w = placeAt(p);
-    if (p.id === 'start') w = { x: hv[0], z: hv[2] };
-    const label = STRINGS.map.places[p.id] ?? { en: p.id, jp: '' };
-    return { ...p, ...label, w };
-  });
+  const places = PLACES.map((p) => ({ ...p, ...STRINGS.map.places[p.id], w: p.id === 'start' ? { x: hv[0], z: hv[2] } : placeAt(p) }));
 
-  return { canvas: cv, ppm: PPM, toPx, places, bounds: { x0, x1, z0, z1 }, paintMs: +(performance.now() - t0).toFixed(1) };
+  return { canvas: cv, ppm: PPM, toPx: (x, z) => [(x - x0) * PPM, (z - z0) * PPM], places, bounds: { x0, x1, z0, z1 }, paintMs: +(performance.now() - t0).toFixed(1) };
 }
 
 /** A roof, drawn by kind: pitched ones light and shade either side of the
- * ridge, flat ones with a parapet line, shops with their awning's colour
- * along the frontage.  `q` is a world rect. */
-function roof(c, { q, kind, seed, face }) {
+ * ridge (hipped ones with their hips), flat ones with a parapet line,
+ * shops with their awning's colour along the frontage.  Drawn about its
+ * centre with the long side along x.  `q` is a world rect. */
+function roof(c, { q, kind, seed = 1, face }) {
   const S = roofStyle(kind, seed);
-  const w = q[2] - q[0], d = q[3] - q[1];
-  const rad = Math.min(0.6, w / 6, d / 6);
-  c.beginPath(); c.roundRect(q[0], q[1], w, d, rad);
-  c.fillStyle = S.fill; c.fill();
+  const W = q[2] - q[0], D = q[3] - q[1];
+  const rad = Math.min(0.6, W / 6, D / 6);
+  const outline = () => { c.beginPath(); c.roundRect(-W / 2, -D / 2, W, D, rad); };
+  c.save();
+  c.translate((q[0] + q[2]) / 2, (q[1] + q[3]) / 2);
+  outline(); c.fillStyle = S.fill; c.fill();
+  c.save(); c.clip();
+  c.save();
+  // the detail with the long side along x
+  let w = W, d = D;
+  if (d > w) { c.rotate(-Math.PI / 2); [w, d] = [d, w]; }   // (its +y, the shaded side, turns to the east)
   if (S.pitched) {
-    // the shaded slope: the half away from the light (south or east)
-    c.save(); c.clip();
-    c.fillStyle = S.shade;
-    if (w >= d) c.fillRect(q[0], q[1] + d / 2, w, d / 2); else c.fillRect(q[0] + w / 2, q[1], w / 2, d);
+    // the shaded slope (the half away from the light), the ridge, the hips
+    c.fillStyle = S.shade; c.fillRect(-w / 2, 0, w, d / 2);
     c.strokeStyle = S.ridge; c.lineWidth = 0.22;
-    c.beginPath();
-    if (w >= d) { c.moveTo(q[0] + Math.min(d / 2, w / 3), q[1] + d / 2); c.lineTo(q[2] - Math.min(d / 2, w / 3), q[1] + d / 2); } else { c.moveTo(q[0] + w / 2, q[1] + Math.min(w / 2, d / 3)); c.lineTo(q[0] + w / 2, q[3] - Math.min(w / 2, d / 3)); }
-    // the hips
-    if (S.hip) {
-      const h = w >= d ? Math.min(d / 2, w / 3) : Math.min(w / 2, d / 3);
-      if (w >= d) {
-        c.moveTo(q[0], q[1]); c.lineTo(q[0] + h, q[1] + d / 2); c.lineTo(q[0], q[3]);
-        c.moveTo(q[2], q[1]); c.lineTo(q[2] - h, q[1] + d / 2); c.lineTo(q[2], q[3]);
-      } else {
-        c.moveTo(q[0], q[1]); c.lineTo(q[0] + w / 2, q[1] + h); c.lineTo(q[2], q[1]);
-        c.moveTo(q[0], q[3]); c.lineTo(q[0] + w / 2, q[3] - h); c.lineTo(q[2], q[3]);
-      }
-    }
+    const h = Math.min(d / 2, w / 3);
+    c.beginPath(); c.moveTo(-w / 2 + h, 0); c.lineTo(w / 2 - h, 0);
+    if (S.hip) for (const s of [-1, 1]) { c.moveTo(s * w / 2, -d / 2); c.lineTo(s * (w / 2 - h), 0); c.lineTo(s * w / 2, d / 2); }
     c.stroke();
-    c.restore();
   } else {
-    // a flat roof's parapet, and what stands on it
-    const i = Math.min(0.7, w / 6, d / 6);
+    // a flat roof's parapet, and an apartment block's balconies
+    const i = Math.min(0.7, d / 6);
     c.strokeStyle = S.ridge; c.lineWidth = 0.14;
-    c.beginPath(); c.roundRect(q[0] + i, q[1] + i, w - 2 * i, d - 2 * i, rad * 0.5); c.stroke();
+    c.beginPath(); c.roundRect(-w / 2 + i, -d / 2 + i, w - 2 * i, d - 2 * i, rad / 2); c.stroke();
     if (S.stripes) {
       c.strokeStyle = S.shade; c.lineWidth = 0.12; c.beginPath();
-      if (w >= d) for (let z = q[1] + 1.6; z < q[3] - 1; z += 1.6) { c.moveTo(q[0] + i + 0.3, z); c.lineTo(q[2] - i - 0.3, z); }
-      else for (let x = q[0] + 1.6; x < q[2] - 1; x += 1.6) { c.moveTo(x, q[1] + i + 0.3); c.lineTo(x, q[3] - i - 0.3); }
+      for (let z = -d / 2 + 1.6; z < d / 2 - 1; z += 1.6) { c.moveTo(-w / 2 + i + 0.3, z); c.lineTo(w / 2 - i - 0.3, z); }
       c.stroke();
     }
   }
-  // the frontage: an awning, a sign band
+  c.restore();
+  // the frontage: an awning or a sign band along the edge that faces the street
   if (S.front && face) {
+    const t = S.frontT;
     c.fillStyle = S.front;
-    const t = S.frontT ?? 0.9;
-    const [fx, fz] = face;
-    c.save(); c.beginPath(); c.roundRect(q[0], q[1], w, d, rad); c.clip();
-    if (fz > 0.5) c.fillRect(q[0], q[3] - t, w, t);
-    else if (fz < -0.5) c.fillRect(q[0], q[1], w, t);
-    else if (fx > 0.5) c.fillRect(q[2] - t, q[1], t, d);
-    else c.fillRect(q[0], q[1], t, d);
-    c.restore();
+    if (Math.abs(face[1]) > 0.5) c.fillRect(-W / 2, face[1] > 0 ? D / 2 - t : -D / 2, W, t);
+    else c.fillRect(face[0] > 0 ? W / 2 - t : -W / 2, -D / 2, t, D);
   }
-  c.beginPath(); c.roundRect(q[0], q[1], w, d, rad);
-  c.strokeStyle = S.edge; c.lineWidth = 0.2; c.stroke();
+  c.restore();
+  outline(); c.strokeStyle = S.edge; c.lineWidth = 0.2; c.stroke();
+  c.restore();
 }
 
-/** The trees: read where the town's canopies put their cushions (each
- * species' instanced crowns, as built: every tree in view at load), drawn
- * as small clustered dots with a shadow and a lit side. */
+/** The trees: where the town's canopies put their cushions (each species'
+ * instanced crowns, as built: every one is in its set at load), each
+ * cushion a circle; in one path they merge into a crown's scalloped
+ * outline.  A shadow under every crown, the crowns, their lit tops. */
 function paintTrees(c, world) {
-  const root = world.root;
-  if (!root) return;
   const buckets = new Map();
-  root.traverse((o) => {
-    if (!o.isInstancedMesh || !o.count) return;
-    const nm = o.name || '';
-    let sp = null;
-    if (/^townSakura(Kept)?(Near|Far)\d$/.test(nm)) sp = 'sakura';
-    else if (/^(zelkova|camphor|maple|pine)(Near|Far)\d$/.test(nm)) sp = nm.replace(/(Near|Far)\d$/, '');
-    else if (/^mapleRed(Near|Far)\d$/.test(nm)) sp = 'mapleRed';
-    else if (/^grove.*(Near|Far)/i.test(nm)) sp = 'grove';
-    else if (nm === 'land-pad') sp = 'pad';
-    if (!sp) return;
+  world.root?.traverse((o) => {
+    const m = o.isInstancedMesh && o.count && /^(townSakura(?:Kept)?|zelkova|camphor|mapleRed|maple|pine|grove\w*?)(Near|Far)\d?$|^land-pad$/.exec(o.name);
+    if (!m) return;
+    const sp = o.name === 'land-pad' ? 'pad' : m[1].replace(/^townSakura\w*/, 'sakura').replace(/^grove\w*/, 'grove');
     o.updateWorldMatrix(true, false);
-    const W = o.matrixWorld.elements;
+    const E = o.matrixWorld.elements, A = o.instanceMatrix.array, ws = Math.hypot(E[0], E[1], E[2]);
     const arr = buckets.get(sp) ?? [];
-    const A = o.instanceMatrix.array, ws = Math.hypot(W[0], W[1], W[2]);
-    for (let i = 0; i < o.count; i++) {
-      const b = i * 16, lx = A[b + 12], ly = A[b + 13], lz = A[b + 14];
-      const x = W[0] * lx + W[4] * ly + W[8] * lz + W[12];
-      const z = W[2] * lx + W[6] * ly + W[10] * lz + W[14];
-      arr.push(x, z, Math.hypot(A[b], A[b + 1], A[b + 2]) * ws);
+    for (let b = 0; b < o.count * 16; b += 16) {
+      const lx = A[b + 12], ly = A[b + 13], lz = A[b + 14];
+      arr.push(E[0] * lx + E[4] * ly + E[8] * lz + E[12], E[2] * lx + E[6] * ly + E[10] * lz + E[14], Math.hypot(A[b], A[b + 1], A[b + 2]) * ws);
     }
     buckets.set(sp, arr);
   });
-  const draw = (arr, rad, dx, dz, col) => {
+  const draw = (arr, k, dx, dz, col, lo = 0.7, hi = 1.7) => {
     c.fillStyle = col; c.beginPath();
     for (let i = 0; i < arr.length; i += 3) {
-      const rr = rad(arr[i + 2]);
-      c.moveTo(arr[i] + dx + rr, arr[i + 1] + dz);
-      c.arc(arr[i] + dx, arr[i + 1] + dz, rr, 0, Math.PI * 2);
+      const rad = Math.max(lo, Math.min(hi, arr[i + 2] * 1.25)) * k;
+      c.moveTo(arr[i] + dx + rad, arr[i + 1] + dz);
+      c.arc(arr[i] + dx, arr[i + 1] + dz, rad, 0, TAU);
     }
     c.fill();
   };
-  // each cushion a circle; together (one path) they merge into a crown's scalloped outline
-  const crown = (s) => Math.max(0.7, Math.min(1.7, s * 1.25));
-  // shadows under every crown, then each species' crowns, then their lit tops
-  for (const [sp, arr] of buckets) if (sp !== 'pad') draw(arr, crown, 0.55, 0.7, M.treeShadow);
+  for (const [sp, arr] of buckets) if (sp !== 'pad') draw(arr, 1, 0.55, 0.7, M.treeShadow);
   for (const [sp, arr] of buckets) {
     const T = M.tree[sp];
-    if (!T) continue;
-    if (sp === 'pad') { draw(arr, (s) => Math.max(0.25, Math.min(0.5, s * 0.45)), 0, 0, T.fill); continue; }
-    draw(arr, crown, 0, 0, T.fill);
-    draw(arr, (s) => crown(s) * 0.62, -0.32, -0.4, T.lit);
+    if (sp === 'pad') { draw(arr, 1, 0, 0, T[0], 0.25, 0.5); continue; }
+    draw(arr, 1, 0, 0, T[0]);
+    draw(arr, 0.62, -0.32, -0.4, T[1]);
   }
 }

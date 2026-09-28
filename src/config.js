@@ -540,6 +540,7 @@ export const SHOT_SPOTS = [
   { name: 'han-front34', scene: 'town', pos: [19.4, 0, 9.0], yaw: -0.72, pitch: -0.1, looks: ['day'] },                 // front three-quarter at 5.5 m
   { name: 'han-rear', scene: 'town', pos: [20.0, 0, -1.0], yaw: -2.66, pitch: -0.08, looks: ['day'] },                  // its tail, from the aisle
   { name: 'han-drift-mid', scene: 'town', pos: [20.5, 0, 4.2], yaw: -2.35, pitch: -0.08, looks: ['day'], train: 'han:10.05' },   // mid-slide in the master junction, from the spot
+  { name: 'han-getin', scene: 'town', pos: [20.2, 0, 6.2], yaw: -1.0, pitch: -0.1, looks: ['day'], train: 'han:2.0' },              // the door open, Han getting in
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },

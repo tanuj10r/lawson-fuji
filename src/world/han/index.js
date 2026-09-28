@@ -10,12 +10,14 @@ import { makeHan, POSES, blendPose } from './han.js';
  *
  * In the car park across the road from the spawn, in the bay nearest the
  * main road and the bridge road, Han leans on the orange-and-black RX-7.
- * Walk toward him and the Tokyo Drift track rises out of nothing (a sound
- * zone at the spot).  Step into the glow in front of him and he nods,
- * gets in, pulls out onto the main road, runs east, flicks the car round,
- * comes back and drifts it round through the master junction in a cloud
- * of cartoon smoke, reverses into the bay, gets out and leans again: all
- * of it on the song's 17.7 s.  The camera is never taken.
+ * Nothing plays as you walk up (Tan, 2026-09-28: the glow ring says where
+ * the engagement is).  Step into the glow in front of him and the Tokyo
+ * Drift track starts with the show: he nods, gets in, pulls out onto the
+ * main road, runs east, flicks the car round, comes back and drifts it
+ * round through the master junction in a cloud of smoke, reverses into
+ * the bay, gets out and leans again: all of it on the song's 17.7 s.  The
+ * camera is never taken.  The track is a placed one-shot (near 6 m, far
+ * 24 m): heard at the car park, not across town.
  *
  * Town frame (TOWN.land; world = (-x, 2*main - z)).  The car park's road
  * row is z 2.2-7.2; the main road z 10.5-17.2; the master junction x 30.
@@ -199,7 +201,7 @@ export function buildHan(ctx) {
 
   // where Han stands, car frame (the car's right side, +z, is the driver's)
   const HW = car.halfW(-0.55);
-  const LEAN = new THREE.Vector3(-0.55, 0, HW + 0.11);   // his hips on the belt of the rear quarter
+  const LEAN = new THREE.Vector3(-0.6, 0, HW + 0.05);    // his hips against the rear quarter, just ahead of the wheel
   const STAND = new THREE.Vector3(-0.42, 0, HW + 0.34);
   const DOOR = new THREE.Vector3(-0.08, 0, HW + 0.32);
   const SEAT = new THREE.Vector3(-0.38, 0.2, 0.37);
@@ -209,12 +211,9 @@ export function buildHan(ctx) {
   const hanCol = { x0: 1e6, x1: 1e6, z0: 1e6, z1: 1e6, top: 1.8 };
   ctx.colliders.push(carCol, hanCol);
 
-  /* the spot and the song */
+  /* the spot and the song: the track plays only with the show (no zone on approach) */
   const spotW = ctx.toWorld({ x: HAN_SPOT.x, z: HAN_SPOT.z });
-  const zoneLevel = 0.5;
-  // far 20: it rises as you cross toward him, and stays out of the famous view (22.8 m off,
-  // the opening shot's own soundscape) and the store's door (29.7 m) (final QA)
-  const zone = soundBus.zone('han-drift', { x: spotW.x, z: spotW.z, y: 1.2, near: 3, far: 20, level: zoneLevel });
+  const songLevel = 0.5;
   let trigger = () => {};
   const spot = ctx.experiences?.add({
     id: 'han', name: "Han's RX-7", jp: 'ハン', x: HAN_SPOT.x, z: HAN_SPOT.z, r: HAN_SPOT.r, h: 1.9,
@@ -349,18 +348,26 @@ export function buildHan(ctx) {
   function start() {
     if (S.run) return;
     S.run = true; S.t = 0; S.held = 0; S.rate = 1; S.songT = 0; S.armed = false;
-    zone.set({ level: 0 });
-    soundBus.oneShot('han-drift', { x: spotW.x, z: spotW.z, y: 1.2, near: 30, far: 90, gain: zoneLevel });
+    // from the top, with the animation; local: full to 6 m, gone by 24 m (the famous view is 22.8 m off)
+    soundBus.oneShot('han-drift', { x: spotW.x, z: spotW.z, y: 1.2, near: 6, far: 24, gain: songLevel });
     spot?.done();
   }
   trigger = start;
 
+  // the paint's sky reflections follow the light: the scene's sun (the one shadow-casting directional)
+  let sun = null;
+  ctx.scene?.traverse((o) => { if (!sun && o.isDirectionalLight && o.castShadow) sun = o; });
+  let envK = -1;
   const pl = new THREE.Vector3(), hv = new THREE.Vector3();
   ctx.update((dt, cam) => {
     if (!cam) return;
     const p = ctx.toLocal({ x: cam.x, z: cam.z });
     const dCar = Math.hypot(p.x - cg.position.x, p.z - cg.position.z);
     if (!S.run && dCar > NEAR) return;
+    if (sun) {
+      const k = THREE.MathUtils.clamp(sun.intensity / 2.2, 0.22, 1.1);
+      if (Math.abs(k - envK) > 0.01) { envK = k; car.setEnv(k); }
+    }
     /* The show keeps the song's time, not the game's: the game slows its
      * clock when paused (10 frames a second, each capped at 1/20 s), the
      * music plays on.  A frozen capture (dt 0) stays frozen. */
@@ -384,11 +391,7 @@ export function buildHan(ctx) {
       if (!want && S.rate < 0.03) S.rate = 0;
       S.held += dt * (1 - S.rate);
       S.t += dt;
-      if (S.songT >= SONG && S.songT - dt < SONG) zone.set({ level: zoneLevel });
-      if (S.t - S.held >= T_END) {
-        S.run = false;
-        if (S.songT < SONG) zone.set({ level: zoneLevel });
-      }
+      if (S.t - S.held >= T_END) S.run = false;
     }
     const e = S.run ? S.t - S.held : -1;
     const dtm = e < T_IN ? 0 : Math.min(e - T_IN, T_DRIVE);

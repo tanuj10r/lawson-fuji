@@ -21,7 +21,7 @@ const CONTROLS = {
   interact: { keys: ['E'], what: 'Interact' },
   views: { keys: ['1', '2', '3'], what: 'Time of day' },
   home: { keys: ['R'], what: 'Back to the start' },
-  whistle: { keys: ['F'], what: 'Whistle for the pup' },
+  whistle: { keys: ['F'], what: 'Whistle for Hachi' },
   map: { keys: ['M'], what: 'Map' },
   sound: { keys: ['N'], what: 'Sound' },
   pause: { keys: ['Space'], what: 'Pause' },
@@ -55,6 +55,8 @@ export const STRINGS = {
   coordsOn: 'coordinates on',
   coordsOff: 'coordinates off',
   copied: 'copied',
+  /* Hachi's hello (the guide pup, animals/guide.js): a caption the first time you look at it, off the famous view */
+  hachi: { hi: "Hi, I'm Hachi!", line: "I'll show you around town. Or wander off on your own, I'll keep up." },
   map: {
     titleJp: '富士川口湖町 マップ',
     title: 'Fujikawaguchikko',

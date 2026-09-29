@@ -66,6 +66,7 @@ page.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) e
 const SIM = async (kind) => {
   const g = window.__guide, W = g.walk, world = window.__scene.world, camera = window.__scene.camera;
   g.reset();
+  if (kind === 'intro') g.introReset(); else g.introMark();   // the hello is its own check; elsewhere it has been said
   const dt = 1 / 30;
   const P = { x: 0, y: 1.6, z: 16.5, yaw: 0 };
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -105,6 +106,13 @@ const SIM = async (kind) => {
   const cone = (() => { const dx = S.x - P.x, dz = S.z - P.z; return Math.acos(-dz / Math.hypot(dx, dz)) * 180 / Math.PI; })();
   sync();
   const home0 = { x: S.x, z: S.z, state: S.state };
+  /* the tour's books: how near the player passed each sound place and the gate; the pup's cells on water, in
+   * alleys and on paddy plots; flights entered from the side; its feet against the real ground */
+  const A = window.__guide.A;
+  const hear = Object.fromEntries(Object.entries(A.hear).map(([k, v]) => [k, { need: v[2], min: 999 }]));
+  const gateW = A.tour.find((l) => l.id === 'gate');
+  let gateMin = 999, waterCells = 0, alleyCells = 0, plotCells = 0, sideEntries = 0, feetLow = 0, feetWorst = 0, lastCell = -1;
+  const KC = A.costs;
   const step = () => {
     const t0 = performance.now();
     g.step(dt, P);
@@ -114,6 +122,21 @@ const SIM = async (kind) => {
     if (Math.round(t * 30) % 6 === 0) trail.push([+S.x.toFixed(2), +S.z.toFixed(2)]);
     if (!W.free(S.x, S.z) && !(S.act?.name === 'circle')) viol++;
     if (hit(S.x, S.z)) wall++;
+    for (const k in hear) { const v = A.hear[k], d = Math.hypot(P.x - v[0], P.z - v[1]); if (d < hear[k].min) hear[k].min = +d.toFixed(1); }
+    if (gateW) gateMin = Math.min(gateMin, Math.hypot(P.x - gateW.x, P.z - gateW.z));
+    const c = W.cell(S.x, S.z);
+    if (c >= 0) {
+      if (W.water[c]) waterCells++;
+      if (W.cost[c] === KC.alley) alleyCells++;
+      if (W.cost[c] === KC.plot) plotCells++;
+      if (c !== lastCell && lastCell >= 0) {
+        const s = W.stair[c] || W.stair[lastCell];
+        if (s) { const dx = (c % W.nx) - (lastCell % W.nx), dz = ((c / W.nx) | 0) - ((lastCell / W.nx) | 0); if ((s === 1 && dz !== 0) || (s === 2 && dx !== 0)) sideEntries++; }
+      }
+      lastCell = c;
+    }
+    const gy = world.heightAt(S.x, S.z), low = S.y - gy;
+    if (low < -0.035) { feetLow++; feetWorst = Math.min(feetWorst, low); }
     if (S.state !== state) { events.push({ t: +t.toFixed(1), from: state, to: S.state, target: S.target?.id ?? null, dP: +dist(P, S).toFixed(1) }); state = S.state; states.add(state); }
     if (S.act?.name && S.act.name !== act) acts.add(S.act.name);
     act = S.act?.name ?? null;
@@ -148,9 +171,13 @@ const SIM = async (kind) => {
   };
   const res = { kind, cone: +cone.toFixed(0), home0 };
 
-  if (kind === 'follow') {
-    while (t < 900) { follow(); step(); if (S.state === 'nap' && S.posture > 1.9) break; }
-    res.rows = rows; res.secs = +t.toFixed(0); res.end = g.state(); res.pstuck = +pstuck.toFixed(1); res.stuck = +stuck.toFixed(1);
+  if (kind === 'tour') {
+    // the follower goes wherever Hachi leads: the whole tour, to the nap
+    while (t < 1500) { follow(); step(); if (S.state === 'nap' && S.posture > 1.9) break; }
+    res.rows = rows; res.secs = +t.toFixed(0); res.tourM = +S.moved.toFixed(0); res.end = g.state(); res.pstuck = +pstuck.toFixed(1); res.stuck = +stuck.toFixed(1);
+    res.hear = hear; res.gateMin = +gateMin.toFixed(1); res.waterCells = waterCells; res.alleyCells = alleyCells; res.plotCells = plotCells; res.sideEntries = sideEntries;
+    res.feetLow = feetLow; res.feetWorst = +feetWorst.toFixed(3); res.legs = A.tour.length; res.lastLeg = S.leg;
+    const heard = Object.values(hear).every((h) => h.min <= h.need);
     // the respawn (H, or anything that puts you back on the view in a jump): the pup is home, out of the frame, at once
     {
       g.reset();
@@ -170,14 +197,45 @@ const SIM = async (kind) => {
     const ctx = c.getContext('2d');
     for (let iz = 0; iz < W.nz; iz++) for (let ix = 0; ix < W.nx; ix++) {
       const k = W.cost[iz * W.nx + ix];
-      ctx.fillStyle = k === 0 ? '#111' : k >= 50 ? '#777' : k >= 20 ? '#9a9' : k <= 10 ? '#eee' : '#cdc';
+      ctx.fillStyle = k === 0 ? (W.water[iz * W.nx + ix] ? '#235' : '#111') : k === KC.alley ? '#555' : k === KC.plot ? '#8a7' : k >= 50 ? '#777' : k >= 20 ? '#9a9' : k <= 12 ? '#eee' : '#cdc';
       ctx.fillRect(ix * sc, (W.nz - 1 - iz) * sc, sc, sc);
     }
     ctx.strokeStyle = '#e02020'; ctx.lineWidth = 2; ctx.beginPath();
     trail.forEach(([x, z], i) => { const px = ((x - W.X0) / W.C) * sc, pz = (W.nz - (z - W.Z0) / W.C) * sc; i ? ctx.lineTo(px, pz) : ctx.moveTo(px, pz); });
     ctx.stroke();
     res.map = c.toDataURL('image/png');
-    res.ok = rows.length === 4 && viol === 0 && wall === 0 && stuck < 5 && res.end.state === 'nap' && res.respawn.ok && cone > 60;
+    res.ok = rows.length === 4 && viol === 0 && wall === 0 && stuck < 5 && res.end.state === 'nap' && res.respawn.ok && cone > 60
+      && heard && gateMin <= 8 && waterCells === 0 && alleyCells === 0 && sideEntries === 0 && feetLow === 0 && t < 900;
+  } else if (kind === 'intro') {
+    // the hello: never on the famous view (even looking straight at it), once when you look at it off the view, never after a reload that remembers
+    const introCount = { onView: 0, off: 0, again: 0 };
+    const look = (secs, at) => { for (let k = 0; k < secs * 30; k++) { if (at) lookAt(at.x, at.z); sync(); step(); } };
+    g.introReset();
+    // on the view, turned round to look at it where it waits behind you
+    look(4, S);
+    introCount.onView = g.intro();
+    // off the view, looking at it as it comes: once
+    for (let k = 0; k < 60; k++) { lookAt(P.x, P.z - 2); walk({ x: P.x, z: P.z - 1 }, 2.3); sync(); step(); }
+    let fired = null, saidAt = null;
+    for (let k = 0; k < 20 * 30; k++) {
+      lookAt(S.x, S.z); sync(); step();
+      if (fired === null && g.intro() === 1) fired = +t.toFixed(1);
+      if (fired !== null && S.state === 'intro' && S.posture > 0.8 && saidAt === null) saidAt = { t: +t.toFixed(1), d: +dist(P, S).toFixed(1), posture: +S.posture.toFixed(2) };
+    }
+    introCount.off = g.intro();
+    const card = typeof document !== 'undefined' && document.getElementById('hachi-card');
+    const cardText = card ? card.textContent : null;
+    // wander on 20 s, looking at it: still once; then a "reload" with the flag kept: never
+    look(20, S);
+    const stillOnce = g.intro() === 2;
+    g.reset(); g.introReset(); g.introMark();
+    P.x = 0; P.z = 16.5;
+    for (let k = 0; k < 60; k++) { lookAt(P.x, P.z - 2); walk({ x: P.x, z: P.z - 1 }, 2.3); sync(); step(); }
+    look(12, S);
+    introCount.again = g.intro();
+    g.introReset();
+    res.introCount = introCount; res.fired = fired; res.sat = saidAt; res.card = cardText; res.stillOnce = stillOnce;
+    res.ok = introCount.onView === 0 && fired !== null && introCount.off >= 1 && stillOnce && introCount.again === 0 && !!saidAt && saidAt.d < 3.5 && !!cardText;
   } else if (kind === 'turnaway') {
     // off the view until the pup suggests something; then the other way
     while (t < 20 && !(S.state === 'lead' && S.target)) { lookAt(P.x, P.z - 2); if (t < 3) walk({ x: P.x, z: P.z - 1 }, 2.3); else { if (dist(P, S) > 3.2) { lookAt(S.x, S.z); walk(S, 2.3); } } step(); }
@@ -248,18 +306,26 @@ const SIM = async (kind) => {
       P.x = 0; P.z = 11; P.yaw = 0; sync();          // (off the famous view: standing on one, the hero-frame rule wins and it waits behind you)
       for (let k = 0; k < 15; k++) g.step(dt, P);
       const d0 = +dist(P, S).toFixed(1), from = { x: +S.x.toFixed(1), z: +S.z.toFixed(1) };
-      g.whistle();
-      const at = { x: +S.x.toFixed(1), z: +S.z.toFixed(1) }, d1 = +dist(P, S).toFixed(1);
-      // out of the lens (looking -z)?
-      const dx = S.x - P.x, dz = S.z - P.z, angle = +(Math.acos(-dz / Math.hypot(dx, dz)) * 180 / Math.PI).toFixed(0);
-      let tt = 0, reached = null, resumed = null, states = [];
+      // the sound log, in game time (the sim runs faster than the clock, so the log's own times mean nothing here)
+      const log = window.__scene.sound.debug.log; log.length = 0;
+      let seen = 0, tWhistle = null, tYip = null, whistles = 0, yips = 0;
+      const readLog = (tt) => { for (; seen < log.length; seen++) { const n = log[seen].name; if (n === 'whistle') { whistles++; tWhistle ??= tt; } if (n === 'dog-yip') { yips++; tYip ??= tt; } } };
+      g.whistle(); g.whistle();                          // a double press: one whistle, one answer
+      readLog(0);
+      let tt = 0, reached = null, resumed = null, states = [], at = null, d1 = null, angle = null, perkUp = 0;
       while (tt < 60) {
         g.step(dt, P); tt += dt;
+        readLog(tt);
+        if (tt < 0.8 && S.perk > 1.05) perkUp++;
+        if (at === null && tt >= 1.0) {
+          at = { x: +S.x.toFixed(1), z: +S.z.toFixed(1) }; d1 = +dist(P, S).toFixed(1);
+          const dx = S.x - P.x, dz = S.z - P.z; angle = +(Math.acos(-dz / Math.hypot(dx, dz)) * 180 / Math.PI).toFixed(0);   // out of the lens (looking -z)?
+        }
         if (!states.includes(S.state)) states.push(S.state);
         if (reached === null && dist(P, S) < 3) reached = +tt.toFixed(1);
-        if (reached !== null && resumed === null && ['lead', 'company', 'invite', 'nap'].includes(S.state)) { resumed = { t: +tt.toFixed(1), state: S.state, target: S.target?.id ?? null }; break; }
+        if (reached !== null && resumed === null && tt > 1.2 && ['lead', 'company', 'invite', 'nap'].includes(S.state)) { resumed = { t: +tt.toFixed(1), state: S.state, target: S.target?.id ?? null }; break; }
       }
-      return { label, from, d0, at, d1, angle, reached, resumed, states };
+      return { label, from, d0, at, d1, angle, reached, resumed, states, whistles, yips, tWhistle, tYip: tYip === null ? null : +tYip.toFixed(2), earsUpFrames: perkUp };
     };
     const bench = window.__scene.world.frame.toWorld({ x: 75.6, z: 103.6 });
     const far = run(bench, 'bench, 100+ m');
@@ -267,9 +333,30 @@ const SIM = async (kind) => {
     let mid = null;
     for (const cand of [{ x: 0, z: -24 }, { x: 4.6, z: -22 }, { x: -3, z: -22 }]) { const c = W.nearest(cand.x, cand.z, 4); if (c >= 0) { mid = W.at(c); break; } }
     const near = mid ? run(mid, 'main road, ~40 m') : null;
-    res.far = far; res.near = near;
-    res.ok = far.reached !== null && far.reached <= 15 && far.d1 <= 42 && far.angle > 60 && !!far.resumed
-      && (!near || (near.reached !== null && near.reached <= near.d0 / 4 + 8 && Math.abs(near.d1 - near.d0) < 0.5 && !!near.resumed));
+    // and beside you already (2 m): no run, just the answer once the whistle is over
+    const here = (() => {
+      g.reset();
+      P.x = 0; P.z = 11; P.yaw = 0; sync();
+      for (let k = 0; k < 90; k++) g.step(1 / 30, P);        // it comes and starts leading
+      const c = W.nearest(P.x, P.z - 2, 2); const q = c >= 0 ? W.at(c) : { x: P.x, z: P.z - 2 };
+      Object.assign(S, { x: q.x, z: q.z, state: 'company', field: null, act: null, sinceInvite: 0 });   // (no invitation due, so what it does next is the answer alone)
+      const log = window.__scene.sound.debug.log; log.length = 0;
+      const d0 = +dist(P, S).toFixed(1);
+      g.whistle(); g.whistle();
+      let tt = 0, seen = 0, tWhistle = null, tYip = null, whistles = 0, yips = 0, hopped = false, ran = false;
+      while (tt < 4) {
+        g.step(1 / 30, P); tt += 1 / 30;
+        for (; seen < log.length; seen++) { const n = log[seen].name; if (n === 'whistle') { whistles++; tWhistle ??= +tt.toFixed(2); } if (n === 'dog-yip') { yips++; tYip ??= +tt.toFixed(2); } }
+        if (S.act?.name === 'hop') hopped = true;
+        if (S.state === 'come' || S.state === 'chase' || (tt < 2 && dist(P, S) > 3.5)) ran = true;   // (it may play after answering; it must not run off)
+      }
+      return { d0, whistles, yips, tWhistle, tYip, hopped, ran, d1: +dist(P, S).toFixed(1) };
+    })();
+    res.far = far; res.near = near; res.here = here;
+    const timing = (r) => r.whistles === 1 && (r.yips === 0 || (r.yips === 1 && r.tYip !== null && r.tYip - (r.tWhistle ?? 0) >= 0.52));
+    res.ok = far.reached !== null && far.reached <= 15 && far.d1 <= 42 && far.angle > 60 && !!far.resumed && timing(far)
+      && (!near || (near.reached !== null && near.reached <= near.d0 / 4 + 8 && Math.abs(near.d1 - near.d0) < 0.5 && !!near.resumed && timing(near) && near.earsUpFrames > 5))
+      && here.whistles === 1 && here.yips === 1 && here.tYip - here.tWhistle >= 0.52 && here.hopped && !here.ran;
   }
   res.viol = viol; res.wall = wall; res.gridMs = +W.ms.toFixed(0); res.cells = W.N; res.msPerStep = +(fieldMs / Math.max(1, Math.round(t * 30))).toFixed(3);
   return res;
@@ -327,12 +414,12 @@ try {
     if (!loud) bad++;
     console.log(loud ? 'pass' : 'FAIL', 'voice', JSON.stringify(voice));
 
-    for (const kind of ['follow', 'turnaway', 'wander', 'whistle'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
+    for (const kind of ['tour', 'intro', 'turnaway', 'wander', 'whistle'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
       const r = await page.evaluate(SIM, kind);
       if (r.map) { fs.writeFileSync(path.join(out, 'trail.png'), Buffer.from(r.map.split(',')[1], 'base64')); delete r.map; }
       const said = await page.evaluate(() => { const l = [...new Set(window.__scene.sound.debug.log.map((e) => e.name).filter((n) => /^dog-|^whistle/.test(n ?? '')))]; window.__scene.sound.debug.log.length = 0; return l; });
       r.said = said;
-      if (kind === 'follow' && said.length < 2) r.ok = false;
+      if (kind === 'tour' && said.length < 2) r.ok = false;
       if (!r.ok) bad++;
       console.log(r.ok ? 'pass' : 'FAIL', kind, JSON.stringify(r, null, 1));
     }

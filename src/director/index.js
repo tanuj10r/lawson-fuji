@@ -342,24 +342,26 @@ export function startDirector(G) {
     setSize(w, h, 1);
     const list = shotsOf();
     const total = list.reduce((a, s) => a + s.dur, 0);
+    const heard = [];
+    let i = -1, at = 0;
+    // (what the real-time take plays of a shot's list: after its first frame, up to its end)
+    const take = () => pup.sounds().filter((v) => v.t > 0 && v.t <= list[i].dur).map((v) => ({ ...v, t: v.t + at }));
     try {
       await renderDeterministic({
         name: S.version === 'C' ? 'hachi-C-4k' : `hachi-${S.version}-det`, w, h, fps: 60, total, canvas: out, sound,
         version: VERSIONS[S.version],
-        // the pup's voice, rendered offline at the times its reactions ask (the same schedule the real-time take plays)
-        voices: () => pup.sounds(),
-        seek: (() => {
-          let i = -1, acc = 0;
-          return (t) => {
+        // the pup's voice, rendered offline at the times its reactions ask (the same schedule the real-time take plays):
+        // each shot's list is taken as it ends (shots add to it as they run), at the shot's place in the version
+        voices: () => [...heard, ...take()],
+        seek: (t) => {
             // the shot that owns time t, begun fresh when entered; stepped 1/60 s at a time
             let k = 0, a = 0;
             while (k < list.length - 1 && t >= a + list[k].dur) { a += list[k].dur; k++; }
-            if (k !== i) { end(); i = k; acc = a; begin(list[k]); }
-            const want = t - acc;
+            if (k !== i) { if (i >= 0) heard.push(...take()); end(); i = k; at = a; begin(list[k]); }
+            const want = t - at;
             while (shot.t < want - 1e-6) step(Math.min(1 / 60, want - shot.t));
             render();
-          };
-        })(),
+        },
         progress: (f, n) => panel.note(`rendering ${f}/${n}`),
       });
     } finally {

@@ -63,17 +63,18 @@ const A = [
     id: 'A2', name: 'Stripe hops at the crossings', dur: 1.5, look: 'day',
     setup({ pup }) {
       // the side street's zebra (piyo) then the main road's (kakko); a hop on each white stripe
-      pup.reset({ x: -32.8, z: 1.5, yaw: -Math.PI / 2 });
-      pup.go(0, { x: -27.4, z: 1.5 }, 'hop', { straight: true, v: 2.6 });
-      pup.say(0.05, 'walk-piyo', 0.0);
-      for (let t = 0.12; t < 0.75; t += 0.35) pup.say(t, 'dog-tip', 0.55);
+      // the lane's zebra runs x -32.2..-27.8 at z 3.1-6.1 (measured from above); already hopping at the cut
+      pup.reset({ x: -32.7, z: 4.6, yaw: Math.PI / 2 });
+      pup.stripeHop(-0.55, { x: -27.4, z: 4.6 });
       return {
         rig: cut([
-          [0, follow(() => pup.state, { back: 0.2, side: -1.5, h: 0.35, lookUp: 0.05, ahead: 0.3, fov: 45 })],
-          [0.75, (t) => { const s = pup.state; return { p: V(-35, 3.2, 17.4), l: V(-35, 0, 13.6), fov: 50 }; }],
+          // side-on and low from the lane south of the zebra, panning with him, Fuji up the lane behind (its corners
+          // have a fence and the signal cabinet, so a camera riding beside him would go through them)
+          [0, () => { const s = pup.state; return { p: V(-29.9, 0.34, 7.5), l: V(s.x + 0.35, 0.3, s.z), fov: 45 }; }],
+          [0.75, () => ({ p: V(-35, 3.0, 18.9), l: V(-35, 0, 14.4), fov: 50 })],   // his whole way across inside the safe frame
         ]),
         update(t, dt, env) {
-          if (t >= 0.75 && !this.moved) { this.moved = true; pup.reset({ x: -35, z: 16.8, yaw: Math.PI }); pup.go(0.75, { x: -35, z: 10.2 }, 'hop', { straight: true, v: 3.0 }); for (let k = 0.85; k < 1.5; k += 0.3) pup.say(k, 'dog-tip', 0.55); }
+          if (t >= 0.75 && !this.moved) { this.moved = true; pup.reset({ x: -35, z: 16.0, yaw: Math.PI }); pup.stripeHop(0.75, { x: -35, z: 10.2 }, { v: 3.0 }); }
         },
       };
     },
@@ -125,11 +126,12 @@ const A = [
   {
     id: 'A6', name: 'Zoomies at ドンペン堂', dur: 1.5, look: 'golden',
     setup({ pup }) {
-      const p = { x: MASCOT.x - 2.2, z: MASCOT.z + 0.3 };
+      // out in the street, 6 m off the front: close and low on him, the mascot 4.3 m up still in frame above
+      const p = { x: MASCOT.x - 6.3, z: MASCOT.z + 0.3 };
       pup.reset({ x: p.x, z: p.z, yaw: Math.PI / 2 });
       pup.react('zoomies', -0.2, { dur: 1.0 });
       pup.react('playBow', 0.85, { dur: 0.65 });
-      return { rig: tripod(V(p.x - 3.8, 0.5, p.z - 0.4), V(MASCOT.x - 1, 2.0, MASCOT.z), { fov: 70 }) };
+      return { rig: tripod(V(p.x - 3.0, 0.3, p.z + 0.6), V(MASCOT.x, 1.75, p.z + 0.6), { fov: 65 }) };   // (on the zoomies' circle)
     },
   },
   {
@@ -145,9 +147,16 @@ const A = [
   {
     id: 'A8', name: 'Night falls: to the konbini', dur: 1.0, look: 'blue',
     setup({ pup }) {
-      pup.reset({ x: -4, z: 13.8, yaw: Math.PI });
-      pup.go(0, { x: -4, z: 9.6 }, 'trot', { straight: true });
-      return { rig: drone(V(-4, 9, 22), V(-4, 1.6, 17), V(-1, 3.6, -6), { dur: 1.0, fov: 55 }) };
+      pup.reset({ x: -4, z: 12.8, yaw: Math.PI });
+      pup.go(0, { x: -4, z: 8.8 }, 'trot', { straight: true });
+      // high to low; the aim travels from him down on the road to the store and Fuji, so he is in frame all the way
+      return {
+        rig: (t) => {
+          const u = ease(Math.min(1, Math.max(0, t / 1.0)));
+          const w = u * u;                                          // (the aim leaves him late: he stays above the bottom 20%)
+          return { p: V(-4, lerp(7.5, 1.3, u), lerp(21.5, 17, u)), l: V(lerp(-3.6, -1, w), lerp(-1.5, 2.2, w), lerp(7, -6, w)), fov: 60 };
+        },
+      };
     },
   },
   {
@@ -168,8 +177,8 @@ const A = [
     id: 'A10', name: 'Han gets out; Hachi peeks', dur: 1.5, look: 'blue',
     setup({ pup, han }) {
       han.reset({ car: { x: HAN_BAY_K.x, z: HAN_BAY_K.z, a: -Math.PI / 2 }, han: 'seat' });
-      han.exitCar(-1.2);
-      han.walk(0.35, [{ x: -3.7, z: 4.1 }, { x: -2.4, z: 0.4 }], 'cool', 1.9);
+      han.exitCar(-2.8);
+      han.walk(-0.9, [{ x: -3.7, z: 4.1 }, { x: -2.4, z: 0.4 }], 'cool', 1.9);   // (in frame past the machine from 0, at the door 1.3)
       han.doorFor(0.9, 3);
       han.say(1.3, 'chime');
       // behind the machine from Han's side of it; the head slides out past its edge
@@ -221,9 +230,9 @@ const A = [
       han.doorFor(-1, 0.3);
       han.drink(-0.3);
       han.say(0.0, 'chime');
-      pup.reset({ x: -1.4, z: 2.4, yaw: -2.6, posture: 0 });
+      pup.reset({ x: -1.6, z: 2.15, yaw: -2.6, posture: 0 });
       pup.react('tippyTaps', -0.1, { dur: 1.1 });
-      return { rig: tripod(V(-0.6, 0.45, 3.7), V(-1.9, 0.95, 1.3), { fov: 50 }) };
+      return { rig: tripod(V(-0.6, 0.3, 3.7), V(-1.9, 0.75, 1.3), { fov: 55 }) };   // (him above the bottom 20%, Han's head under the top 15%)
     },
   },
   {
@@ -253,11 +262,10 @@ const A = [
       // across the open lawn before the tea house, toward the bench; the camera leads, low in front of him looking
       // back, so Han weaves along behind him in the background
       pup.reset({ x: -61.2, z: -91.5, yaw: -0.55 });
-      pup.go(0, { x: -63.6, z: -87.4 }, 'trot', { straight: true, v: 2.0 });
-      pup.react('lookBack', 1.3, { dur: 0.9, away: true });
-      pup.look(1.3, 2.15, () => { const c = han.position; return c ? V(c.x, 1.4, c.z) : null; });   // back over his shoulder at Han
-      pup.say(2.2, 'dog-yip', 0.7);                               // (the boof is the look back's own)
-      pup.go(2.1, { x: -64.4, z: -86.0 }, 'trot', { straight: true, v: 2.0 });
+      // leadOn: ahead, a stop, back over his shoulder at Han (the boof is the look back's own), on again
+      const t1 = pup.leadOn(-0.05, [{ x: -63.6, z: -87.4 }], () => { const c = han.position; return c ? V(c.x, 1.4, c.z) : null; }, { v: 2.0, wait: 0.75 });
+      pup.say(t1 + 0.05, 'dog-yip', 0.7);
+      pup.go(t1, { x: -64.4, z: -86.0 }, 'trot', { straight: true, v: 2.0 });
       han.walk(-1.5, [{ x: -57.2, z: -99.2 }, { x: -60.4, z: -93.8 }], 'drunk', 0.9);
       han.lookAt(0, 2.5, () => { const s = pup.state; return V(s.x, 0.3, s.z); });
       return { rig: follow(() => pup.state, { back: -1.9, side: -0.25, h: 0.34, ahead: -1.2, lookH: 0.3, lookUp: 0.12, fov: 50 }) };
@@ -271,7 +279,8 @@ const A = [
       pup.reset({ x: BENCH.x + 0.95, z: BENCH.z - 0.35, yaw: 2.4 });
       pup.react('fallAsleep', -2.2, { dur: 3.2 });
       return {
-        rig: drone(V(BENCH.x + 1.2, 1.2, BENCH.z - 2.6), V(BENCH.x + 3.5, 5.2, BENCH.z - 9.5), V(BENCH.x, 0.6, BENCH.z), { dur: 1.5, fov: 50 }),
+        // from behind the bench, pulling back and up: the two asleep in the foreground, the paddies and Fuji beyond
+        rig: drone(V(BENCH.x + 1.3, 1.1, BENCH.z + 2.3), V(BENCH.x + 2.6, 4.2, BENCH.z + 8.5), V(BENCH.x, 1.0, BENCH.z - 4), { dur: 1.5, fov: 50 }),
         update(t) { if (!this.song && t >= 0) { this.song = true; env.soundBus.oneShot('theme', { gain: 0.35 }); } },
       };
     },
@@ -303,11 +312,12 @@ const B = [
   {
     id: 'B3', name: 'The mascot', dur: 1.5, look: 'golden',
     setup({ pup }) {
-      const p = { x: MASCOT.x - 3.3, z: MASCOT.z + 0.4 };
+      // out in the street (as A6), close on him backing away, the mascot rocking up on the front above
+      const p = { x: MASCOT.x - 5.8, z: MASCOT.z + 0.4 };
       pup.reset({ x: p.x, z: p.z, yaw: Math.PI / 2 });
       pup.look(0, 1.5, V(MASCOT.x, 4.3, MASCOT.z), 0.8);
       pup.react('scared', 0.1, { dur: 1.4 });
-      return { rig: tripod(V(p.x - 2.6, 0.4, p.z - 0.5), V(MASCOT.x - 0.5, 1.3, MASCOT.z), { fov: 68 }) };
+      return { rig: tripod(V(p.x - 1.7, 0.35, p.z - 0.2), V(MASCOT.x, 1.55, p.z), { fov: 68 }) };
     },
   },
   {
@@ -378,7 +388,7 @@ const B = [
     setup({ pup, env }) {
       pup.reset({ x: -3.0, z: 3.0, yaw: -0.05, posture: 1 });
       pup.react('munch', 0.55, { dur: 0.8 });
-      pup.react('happyWiggle', 1.3, { dur: 0.7 });
+      pup.react('happyWiggle', 1.3, { dur: 0.7, seated: true });   // (the bounce, not the spin: his face stays ours)
       return {
         rig: cut([
           [0, (t) => ({ p: V(-3.0, 1.55, 3.95), l: V(-3.0, 0.1, 3.0), fov: 55 })],
@@ -394,7 +404,11 @@ const B = [
       pup.reset({ x: -3.2, z: 3.4, yaw: 2.0 });
       pup.react('fallAsleep', -1.8, { dur: 3.0 });
       return {
-        rig: drone(V(-3.1, 0.9, 5.2), V(-2.2, 4.5, 13.5), V(-2.4, 1.6, 0.8), { dur: 2.0, fov: 50 }),
+        // from close on him asleep, back and up; the aim leaves him late for the store and Fuji
+        rig: (t) => {
+          const u = ease(Math.min(1, Math.max(0, t / 2.0))), w = u * u;
+          return { p: V(lerp(-3.3, -2.6, u), lerp(0.75, 4.2, u), lerp(5.0, 13.5, u)), l: V(lerp(-3.2, -2.4, w), lerp(0.15, 1.9, w), lerp(3.4, -2, w)), fov: 50 };
+        },
         update(t) { if (!this.c && t >= 1.1) { this.c = true; env.G.sound.storeChime({ x: -2.3, y: 2.3, z: 0.1 }); } },
       };
     },

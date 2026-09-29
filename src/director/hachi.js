@@ -223,7 +223,7 @@ export const REACTIONS = {
       R.hips = 0.38 * k * wave(t, 3.6);
       // a spin on the spot; seated, a bounce on the front paws instead
       if (o.seated) R.paws = 0.35 * k * Math.max(0, wave(t, 3.6));
-      else R.dyaw = 2 * Math.PI * seg(u, 0.12, 0.45);
+      else R.dyaw = u < 0.45 ? 2 * Math.PI * seg(u, 0.12, 0.45) : 0;   // (once round it is 0 again: the blend-out has nothing to unwind)
       R.mouth = 0.4; R.lids = 0.62; R.blink = 0; R.perk = 1.3; R.wagAmp = 1; R.wagRate = 22; R.eye = seg(u, 0.45, 0.55);
       R.dy = 0.02 * Math.abs(wave(t, 3.6)) * k;
       R.amp = 0.4 * bell(u, 0.12, 0.45, 0.05, 0.05);
@@ -326,6 +326,26 @@ export function makePuppet({ camera }, { index = 0, seed = 1 } = {}) {
       const T = line.total < 2 * da ? 2 * Math.sqrt(line.total * ta / speed) : 2 * ta + tc;
       segs.push({ kind: 'path', t0, T, line, gait, speed, ta: line.total < 2 * da ? T / 2 : ta, tc });
       return t0 + T;
+    },
+    /** stripeHop: hops across a zebra to `to`, a bounce and a soft paw pat (dog-tip) on each white stripe (0.9 m apart). */
+    stripeHop(t0, to, { v = 2.6, spacing = 0.9, gain = 0.55 } = {}) {
+      const from = api.where(t0), L = Math.hypot(to.x - from.x, to.z - from.z);
+      const t1 = api.go(t0, to, 'hop', { straight: true, v });
+      segs[segs.length - 1].hopSpacing = spacing;
+      for (let d = spacing; d < L; d += spacing) sounds.push({ t: t0 + (t1 - t0) * d / L, name: 'dog-tip', gain });   // (on each landing)
+      return t1;
+    },
+    /** leadOn: trots ahead through `stops`, and at each one stops, looks back at `back` (a point or a function of t)
+     * and waits with a wag, then goes on; returns when the last wait ends. */
+    leadOn(t0, stops, back, { gait = 'trot', v = null, wait = 0.8 } = {}) {
+      let t = t0;
+      for (const q of stops) {
+        t = api.go(t, q, gait, { straight: true, v });
+        api.react('lookBack', t, { dur: wait + 0.2, away: true });
+        api.look(t, t + wait, back);
+        t += wait;
+      }
+      return t;
     },
     /** Stand, sit (1), lie (2) or bow (-1) from t, over d seconds. */
     pose(t, v, d = 0.35) { postures.push({ t, v, d }); postures.sort((a, b) => a.t - b.t); return api; },

@@ -142,7 +142,9 @@ const SIM = async (kind) => {
     act = S.act?.name ?? null;
   };
   // the follower: stands a moment after each engagement, else follows the pup, stepping into the ring once the pup waits by it
+  const crumbs = [];
   const follow = () => {
+    { const l = crumbs[crumbs.length - 1]; if (!l || dist(l, S) > 0.5) crumbs.push({ x: S.x, z: S.z }); if (crumbs.length > 400) crumbs.shift(); }
     if (rest > 0) { rest -= dt; }
     else if (away && dist(P, away) < 5) {
       const dx = P.x - away.x, dz = P.z - away.z, d = Math.hypot(dx, dz) || 1;
@@ -154,7 +156,17 @@ const SIM = async (kind) => {
       let goal = null;
       if (tgt && (S.state === 'atSpot' || (S.state === 'lead' && dist(S, tgt) < 2.5))) goal = tgt;
       else if (tgt && S.state === 'invite') goal = tgt;
-      else if (dist(P, S) > 3.2 && S.state !== 'home') goal = S;
+      else if (dist(P, S) > 3.2 && S.state !== 'home') {
+        // follow its trail, as a player would (not a beeline at it: it leads from up to 9 m ahead, round corners)
+        while (crumbs.length > 1 && dist(P, crumbs[0]) < 1.0) crumbs.shift();
+        // off the trail (a corner cut, a stair's side): back onto it at the nearest crumb in sight
+        if (crumbs.length && !W.sight(P.x, P.z, crumbs[0].x, crumbs[0].z)) {
+          let bi = -1, bd = 1e9;
+          for (let i = 0; i < crumbs.length; i++) { const d = dist(P, crumbs[i]); if (d < bd && W.sight(P.x, P.z, crumbs[i].x, crumbs[i].z)) { bd = d; bi = i; } }
+          if (bi > 0) crumbs.splice(0, bi);
+        }
+        goal = crumbs.length && W.sight(P.x, P.z, crumbs[0].x, crumbs[0].z) ? crumbs[0] : S;
+      }
       else if (S.state === 'home' && t < 3) goal = { x: P.x, z: P.z - 1 };      // walk off the view toward the store
       if (goal) { lookAt(goal.x, goal.z); if (!walk(goal, 2.3, goal === tgt)) pstuck += dt; }
     }
@@ -173,7 +185,9 @@ const SIM = async (kind) => {
 
   if (kind === 'tour') {
     // the follower goes wherever Hachi leads: the whole tour, to the nap
-    while (t < 1500) { follow(); step(); if (S.state === 'nap' && S.posture > 1.9) break; }
+    let jogSum = 0, jogN = 0;
+    while (t < 1500) { follow(); step(); if (S.state === 'lead' && S.speed > 0.5) { jogSum += S.speed; jogN++; } if (S.state === 'nap' && S.posture > 1.9) break; }
+    res.jog = +(jogSum / Math.max(1, jogN)).toFixed(2);
     res.rows = rows; res.secs = +t.toFixed(0); res.tourM = +S.moved.toFixed(0); res.end = g.state(); res.pstuck = +pstuck.toFixed(1); res.stuck = +stuck.toFixed(1);
     res.hear = hear; res.gateMin = +gateMin.toFixed(1); res.waterCells = waterCells; res.alleyCells = alleyCells; res.plotCells = plotCells; res.sideEntries = sideEntries;
     res.feetLow = feetLow; res.feetWorst = +feetWorst.toFixed(3); res.legs = A.tour.length; res.lastLeg = S.leg;
@@ -205,7 +219,7 @@ const SIM = async (kind) => {
     ctx.stroke();
     res.map = c.toDataURL('image/png');
     res.ok = rows.length === 4 && viol === 0 && wall === 0 && stuck < 5 && res.end.state === 'nap' && res.respawn.ok && cone > 60
-      && heard && gateMin <= 8 && waterCells === 0 && alleyCells === 0 && sideEntries === 0 && feetLow === 0 && t < 900;
+      && heard && res.jog >= 2.7 && gateMin <= 8 && waterCells === 0 && alleyCells === 0 && sideEntries === 0 && feetLow === 0 && t < 900;
   } else if (kind === 'intro') {
     // the hello: never on the famous view (even looking straight at it), once when you look at it off the view, never after a reload that remembers
     const introCount = { onView: 0, off: 0, again: 0 };
@@ -237,71 +251,69 @@ const SIM = async (kind) => {
     res.introCount = introCount; res.fired = fired; res.sat = saidAt; res.card = cardText; res.stillOnce = stillOnce;
     res.ok = introCount.onView === 0 && fired !== null && introCount.off >= 1 && stillOnce && introCount.again === 0 && !!saidAt && saidAt.d < 3.5 && !!cardText;
   } else if (kind === 'turnaway') {
-    // off the view until the pup suggests something; then the other way
+    // Tan (2026-09-29): a guide, not a follower.  Off the view until the pup leads; follow 2 s; then turn away and
+    // walk: it stops and waits where it is (never after you).  Walk back to it: it takes you on.  Away again, then F:
+    // it comes, greets you, and rushes you to the nearest place you haven't been.
     while (t < 20 && !(S.state === 'lead' && S.target)) { lookAt(P.x, P.z - 2); if (t < 3) walk({ x: P.x, z: P.z - 1 }, 2.3); else { if (dist(P, S) > 3.2) { lookAt(S.x, S.z); walk(S, 2.3); } } step(); }
     const first = S.target?.id ?? null;
-    // follow it for 2 s (so the suggestion is real), then turn 150-180 degrees from its way and walk
     for (let k = 0; k < 60 && S.state === 'lead'; k++) { lookAt(S.x, S.z); if (dist(P, S) > 2.5) walk(S, 2.3); step(); }
-    const tTurn = t;
-    let yaw = Math.atan2(P.x - S.x, P.z - S.z);       // away from the pup
-    // (a heading that has room: try a few turns off "straight away")
-    for (const d of [0, 0.5, -0.5, 1.0, -1.0, 1.5, -1.5]) { const y = yaw + d; if (W.free(P.x + Math.sin(y) * 4, P.z + Math.cos(y) * 4) && W.free(P.x + Math.sin(y) * 8, P.z + Math.cos(y) * 8)) { yaw = y; break; } }
-    let tDrop = null, tCatch = null, next = null, nextAngle = null, dropDist = null, maxAfter = 0;
-    let hx = Math.sin(yaw), hz = Math.cos(yaw), candidates = null;
-    const hist = [];   // where the walker really was, for its true heading (the pup reads a smoothed velocity, not the commanded yaw)
-    const heading = () => { const o = hist[Math.max(0, hist.length - 20)]; const dx = P.x - o[0], dz = P.z - o[1], l = Math.hypot(dx, dz); return l > 0.3 ? [dx / l, dz / l] : [Math.sin(yaw), Math.cos(yaw)]; };
-    // what could be picked: engagements not done and the tour's waypoints (a leg the player's way counts as much as a spot)
-    const options = () => [...spots().filter((e) => !S.done.has(e.id)).map((e) => ({ id: e.id, x: e.x, z: e.z, skipped: S.skipped.has(e.id) })), ...A.tour.map((l, k) => ({ id: l.id ?? `leg${k}`, x: l.x, z: l.z, leg: k })).filter((o) => !S.done.has(o.id))];
-    while (t - tTurn < 30) {
-      lookAt(P.x + hx * 3, P.z + hz * 3);
-      hist.push([P.x, P.z]);
-      if (!stride(yaw, 2.3)) { yaw += 0.6; }
-      step();
-      if (tDrop === null && S.state === 'chase') { tDrop = t - tTurn; dropDist = +dist(P, S).toFixed(1); }
-      if (tDrop !== null && tCatch === null && (S.state === 'caught' || S.state === 'lead' || S.state === 'company')) tCatch = t - tTurn - tDrop;
-      if (tCatch !== null && next === null && (S.state === 'lead' || S.state === 'company' || S.state === 'invite')) {
-        next = S.state === 'lead' ? (S.target?.id ?? `leg${S.target?.k}`) : S.state;
-        [hx, hz] = heading();
-        candidates = options().map((o) => ({ ...o, angle: +angleTo(o, hx, hz).toFixed(0) }));
-        if (S.state === 'lead') nextAngle = +angleTo(S.target, hx, hz).toFixed(0);
+    const awayFrom = (secs) => {
+      let yaw = Math.atan2(P.x - S.x, P.z - S.z);
+      for (const d of [0, 0.5, -0.5, 1.0, -1.0, 1.5, -1.5]) { const y = yaw + d; if (W.free(P.x + Math.sin(y) * 4, P.z + Math.cos(y) * 4) && W.free(P.x + Math.sin(y) * 8, P.z + Math.cos(y) * 8)) { yaw = y; break; } }
+      const t0 = t, seen = new Set();
+      let tWait = null, at = null, moved = 0;
+      while (t - t0 < secs) {
+        lookAt(P.x + Math.sin(yaw) * 3, P.z + Math.cos(yaw) * 3);
+        if (!stride(yaw, 2.3)) yaw += 0.6;
+        step();
+        seen.add(S.state);
+        if (tWait === null && S.state === 'wait') { tWait = +(t - t0).toFixed(1); at = { x: S.x, z: S.z }; }
+        if (at) moved = Math.max(moved, dist(at, S));
       }
-      if (tCatch !== null) maxAfter = Math.max(maxAfter, dist(P, S));
-      if (next !== null && t - tTurn > 12) break;
+      return { tWait, moved: +moved.toFixed(1), states: [...seen], d: +dist(P, S).toFixed(1) };
+    };
+    const a = awayFrom(14);
+    // back to it: within a few metres it takes you on
+    let rejoined = null;
+    { const t0 = t; while (t - t0 < 25) { lookAt(S.x, S.z); walk(S, 2.3); step(); if (S.state === 'lead' && S.target) { rejoined = { t: +(t - t0).toFixed(1), target: S.target.id ?? `leg${S.target.k}`, d: +dist(P, S).toFixed(1) }; break; } } }
+    const b = awayFrom(12);
+    // F: it comes (seen), greets, then rushes you to the nearest place not done
+    g.whistle();
+    let came = false, greeted = false, rush = null, fast = 0, t0 = t;
+    const nearestLeft = () => { let best = null, bd = 1e9; for (const e of spots()) { if (S.done.has(e.id)) continue; const d = dist(P, e) + (S.skipped.has(e.id) ? A.drop.skipped : 0); if (d < bd) { bd = d; best = e.id; } } return best; };
+    let expect = null;
+    while (t - t0 < 30) {
+      step();
+      if (S.state === 'come') came = true;
+      if (S.act?.name === 'greet') { greeted = true; expect ??= nearestLeft(); }
+      if (greeted && S.state === 'lead' && rush === null) rush = { t: +(t - t0).toFixed(1), target: S.target?.id ?? null };
+      if (rush && S.speed > fast) fast = S.speed;
+      if (rush && t - t0 > rush.t + 3) break;
     }
-    // did anything lie the player's way (within 80 degrees, not done)?
-    candidates ??= options().map((o) => ({ ...o, angle: +angleTo(o, hx, hz).toFixed(0) }));
-    const anyThatWay = candidates.some((c) => c.angle < 70 && c.id !== first);    // (clearly the player's way, by the walker's own heading)
-    res.first = first; res.tDrop = tDrop === null ? null : +tDrop.toFixed(1); res.dropDist = dropDist; res.tCatch = tCatch === null ? null : +tCatch.toFixed(1);
-    res.next = next; res.nextAngle = nextAngle; res.candidates = candidates; res.maxAfter = +maxAfter.toFixed(1); res.skipped = [...S.skipped]; res.events = events.slice(0, 14);
-    res.ok = !!first && tDrop !== null && tDrop <= 3 && tCatch !== null && tCatch <= 6 && S.skipped.has(first) && !S.done.has(first)
-      && (anyThatWay ? (next !== null && next !== first && nextAngle !== null && nextAngle <= 100) : (next === 'company' || next === 'invite' || (nextAngle !== null && nextAngle <= 100)));
+    res.first = first; res.away = a; res.rejoined = rejoined; res.away2 = b; res.whistle = { came, greeted, rush, expect, fast: +fast.toFixed(1) };
+    res.skipped = [...S.skipped]; res.events = events.slice(0, 14);
+    const stays = (r) => r.tWait !== null && r.tWait <= 3.5 && r.moved <= 3.5 && !r.states.includes('come') && !r.states.includes('chase');
+    res.ok = !!first && stays(a) && !!rejoined && rejoined.d <= 5 && stays(b) && came && greeted && !!rush && rush.target === expect && fast >= 3.2;
   } else if (kind === 'wander') {
-    // off the view, then a new heading every 4-6 s for 60 s
+    // wandering about on your own for a minute, never going back to it: it stays where it stopped (it never trails you)
     for (let k = 0; k < 90; k++) { lookAt(P.x, P.z - 2); walk({ x: P.x, z: P.z - 1 }, 2.3); step(); }
     const t0 = t;
-    let yaw = Math.PI * 0.5, until = t, caught = null, maxD = 0, farT = 0;
-    const invites = [];
-    let prevState = S.state, lastChase = -99;
+    let yaw = Math.PI * 0.5, until = t, at = null, moved = 0, closest = 1e9, tWait = null;
+    const seen = new Set();
     let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
     while (t - t0 < 60) {
       if (t >= until) { yaw += (rnd() < 0.5 ? -1 : 1) * (Math.PI / 2 + rnd() * Math.PI / 2); until = t + 4 + rnd() * 2; }
+      // (keep clear of it: walking back to it would take it up again)
+      if (at && dist(P, S) < 8) yaw = Math.atan2(P.x - S.x, P.z - S.z);
       lookAt(P.x + Math.sin(yaw) * 3, P.z + Math.cos(yaw) * 3);
       if (!stride(yaw, 2.3)) yaw += 0.7;
       step();
-      if (S.state === 'chase') lastChase = t;
-      if (caught === null && (S.state === 'caught' || (S.state === 'company'))) caught = t - t0;
-      if (caught !== null && S.state !== 'chase' && S.state !== 'come') { const d = dist(P, S); if (d > maxD) maxD = d; if (d > 12) farT += dt; }
-      if (S.state !== prevState) {
-        if ((S.state === 'lead' || S.state === 'invite') && caught !== null) invites.push({ t: +(t - t0).toFixed(1), kind: S.state, target: S.target?.id ?? S.inviteE?.id ?? null, afterChase: t - lastChase < 1.5 });
-        prevState = S.state;
-      }
+      if (at) { seen.add(S.state); moved = Math.max(moved, dist(at, S)); closest = Math.min(closest, dist(P, S)); }
+      if (!at && S.state === 'wait') { at = { x: S.x, z: S.z }; tWait = +(t - t0).toFixed(1); }
     }
-    const gaps = [];
-    for (let i = 1; i < invites.length; i++) if (!invites[i].afterChase) gaps.push(+(invites[i].t - invites[i - 1].t).toFixed(1));
-    const replans = invites.filter((i) => i.afterChase).length;
-    res.caught = caught === null ? null : +caught.toFixed(1); res.maxAfter = +maxD.toFixed(1); res.farSecs = +farT.toFixed(1); res.invites = invites; res.gaps = gaps; res.replans = replans;
-    res.states = [...states]; res.acts = [...acts]; res.energy = +S.energy.toFixed(2); res.end = S.state;
-    res.ok = caught !== null && maxD <= 12 && gaps.every((x) => x >= 19.5) && replans <= 4;
+    res.tWait = tWait; res.moved = +moved.toFixed(1); res.after = [...seen]; res.closest = +closest.toFixed(1); res.end = S.state;
+    res.states = [...states]; res.acts = [...acts];
+    res.ok = tWait !== null && tWait <= 12 && moved <= 3.5 && [...seen].every((q) => q === 'wait');
   } else if (kind === 'whistle') {
     // the pup left napping by the bench, the player at the view (about 100 m by the way): F
     const run = (place, label, yaw = 0) => {

@@ -25,11 +25,8 @@ const VARIANTS = [
 ];
 
 /**
- * Place a machine in the world and wire up its interaction.
- *
- * The corner shop drives its two machines through `shopState`; everything
- * else in the district just wants a machine that works, so the dispense
- * animation gets its own little updater here.
+ * Place a machine in the world: drawn and solid.  Buying a drink is not
+ * switched on yet (Tan, 2026-09-29), so it has no prompt.
  */
 export function addVending(ctx, o = {}) {
   const v = makeVendingMachine(o.variant ?? 0, o.seed ?? 1);
@@ -40,15 +37,7 @@ export function addVending(ctx, o = {}) {
   ctx.add(v);
   const half = 0.56;
   ctx.collide(o.x - half, o.z - half, o.x + half, o.z + half, (o.y ?? 0) + BODY_H);
-  const anims = [];
-  ctx.interact({
-    hitbox: v.userData.hitbox,
-    label: o.label ?? '自動販売機  ·  buy a drink',
-    action: () => anims.push(v.userData.dispense()),
-  });
-  ctx.update((dt) => {
-    for (let i = anims.length - 1; i >= 0; i--) if (anims[i](dt)) anims.splice(i, 1);
-  });
+  // not for sale yet (Tan, 2026-09-29): no prompt, no E; `v.userData.dispense()` is kept for when they are
   return v;
 }
 

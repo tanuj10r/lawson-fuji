@@ -56,7 +56,7 @@ export const STRINGS = {
   coordsOff: 'coordinates off',
   copied: 'copied',
   /* Hachi's hello (the guide pup, animals/guide.js): a caption the first time you look at it, off the famous view */
-  hachi: { hi: "Hi, I'm Hachi!", line: "I'll show you around town. Or wander off on your own, I'll keep up." },
+  hachi: { hi: "Hi, I'm Hachi!", line: "Follow me, I'll show you around town. Wander off whenever you like: press F to whistle and I'll come running." },
   map: {
     titleJp: '富士川口湖町 マップ',
     title: 'Fujikawaguchikko',

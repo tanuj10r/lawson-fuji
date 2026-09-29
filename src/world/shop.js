@@ -413,11 +413,7 @@ export function buildShop(ctx) {
       g.add(v);
       vends.push(v);
       ctx.collide(xFront - 0.85, s.z - 0.6, xFront + 0.02, s.z + 0.6, walkY + 2.0);
-      ctx.interact({
-        hitbox: v.userData.hitbox,
-        label: '自動販売機  ·  buy a drink',
-        action: () => shopState.dispense(v),
-      });
+      // (not for sale yet, Tan 2026-09-29: no prompt)
     }
   }
 

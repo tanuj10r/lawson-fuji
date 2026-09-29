@@ -302,8 +302,19 @@ try {
     const audiblePlaza = window.__audible();
     let people = 0;
     scene.traverse((o) => { if (/master/i.test(o.name)) people++; });
-    return { concourse: level(spot.x, spot.z), plaza: level(plaza.x, plaza.z), far: z.far, audiblePlaza, people, frame: await window.__frame() };
-  }, (r) => r.concourse >= 0.4 && r.plaza > 0.05 && r.plaza < r.concourse * 0.5 && r.audiblePlaza.some((a) => a.startsWith('station-ambience')) && r.people === 0);
+    // the plaza's far corners too (Tan: louder over the whole plaza than before)
+    const F = world.frame, corners = [F.toWorld({ x: -78, z: 126 }), F.toWorld({ x: -27, z: 126 })].map((c) => level(c.x, c.z));
+    // in the train's listening spot the station dims under the next-stop announcement, and comes back as you leave
+    const listen = window.__spotOf('train');
+    window.__standBy(listen.x, listen.z, 0, 0);
+    await window.__wait(600);
+    const ducked = +z.level.toFixed(3);
+    window.__standBy(plaza.x, plaza.z, 0.5, 1.2);
+    await window.__wait(600);
+    const back = +z.level.toFixed(3);
+    return { concourse: level(spot.x, spot.z), plaza: level(plaza.x, plaza.z), corners, far: z.far, audiblePlaza, people, ducked, back, frame: await window.__frame() };
+  }, (r) => r.concourse >= 0.4 && r.plaza >= 0.25 && r.plaza <= r.concourse && r.corners.every((c) => c >= 0.12) && r.audiblePlaza.some((a) => a.startsWith('station-ambience')) && r.people === 0
+    && r.ducked <= 0.45 * 0.35 && r.back >= 0.44);
 
   // the train: nobody boards; stepping into the spot by its door plays the next-stop announcement there, no text
   await step('24-train', async () => {

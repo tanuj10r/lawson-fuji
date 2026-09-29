@@ -325,7 +325,7 @@ facing Fuji: sit, look around with the mouse, and hear the flute theme.
 | --- | --- |
 | Every zebra | Its walk-signal tune while green: the main road's cuckoo (kakko), the side streets' chick (piyo) |
 | ドンペン堂 | Its theme as you pass |
-| The station | Station ambience and announcements, mild over the plaza |
+| The station | Station ambience and announcements, clearly heard over the plaza, dimmed while you stand in the train's listening spot |
 | The level crossing | Its bells while closed |
 | The shrine | Wind chimes in the grounds |
 
@@ -333,12 +333,15 @@ facing Fuji: sit, look around with the mouse, and hear the flute theme.
 pup, about 24 cm at the shoulder, with sit, lie, trot, tilt, shake and nap:
 
 - **The hello:** the first time you look at him, "Hi, I'm Hachi!" with a
-  one-line caption, stored so it shows once.
-- **The tour:** he leads a town tour along the main streets. There are no
-  water crossings, no alleys, and he takes stairs like a person.
-- **Following:** he follows your lead if you go your own way, and picks the
-  tour up again later.
-- **The whistle:** F whistles; he answers after the whistle ends and you
+  caption that tells you to follow him and that F whistles for him, stored
+  so it shows once.
+- **The tour:** he leads a town tour along the main streets at a jog, 4-9 m
+  ahead, stopping to look back when you fall behind. There are no water
+  crossings, no alleys, and he takes stairs like a person.
+- **A guide, not a follower:** walk away and he stops where he is and waits.
+  Walk back to him and he carries on the tour where he left off.
+- **The whistle:** F whistles; he answers after the whistle ends, comes to
+  you, and then rushes you to the nearest place you haven't been. You
   always see him come. He never pops up in view: he comes round a corner,
   from behind a car or a building ahead of you, in a bounding gallop across
   the middle of your view. Then he greets you 4 m in front (nearer, he'd be
@@ -478,7 +481,7 @@ Tan's call. **Open**: not built yet, and still wanted or undecided.
 | M6 the blue-hour kei van parking out front | Open (not built) |
 | M6 sit-and-eat | Changed: you eat outside after the konbini scene; the slow-life bench |
 | M6 bins with sorting | Dropped |
-| Usable vending machines | Open (decorative only) |
+| Usable vending machines | Open (decorative only, no prompt) |
 | Stamp card, receipt book | Dropped (no collectables; Tan) |
 | Photo mode | Dropped (the Nippon Fuji view spot does its job) |
 | Settings: sensitivity, invert-Y, FOV, head bob, graphics tier, auto quality | Open: only the volume exists |

@@ -626,7 +626,7 @@ export function buildStation(ctx, { kit, service, sets }) {
    * bustle, full in the concourse and on the platforms, mild over the plaza
    * and the approach (config SOUND.station), no highlight, nobody in it. */
   const hear = { x: cxE, z: (B.z0 + P1.z1) / 2 };
-  soundBus.zone('station-ambience', { ...ctx.toWorld(hear), y: 3, ...SOUND.station });
+  const ambience = soundBus.zone('station-ambience', { ...ctx.toWorld(hear), y: 3, ...SOUND.station });
   ctx.experiences?.add({ kind: 'sound', id: 'station', name: RIDE.say.station, jp: '駅', ...hear });
   /* The train: a place to listen (Tan, 2026-09-28: nobody boards).  The
    * spot on platform 1 by the door nearest the gates keeps its highlight;
@@ -639,7 +639,7 @@ export function buildStation(ctx, { kit, service, sets }) {
   const trainSpot = ctx.experiences?.add({
     id: 'train', name: RIDE.say.listen, jp: '電車', x: listen.x, z: listen.z, y: PH, r: listen.r, h: 2.0, interact: false,
   });
-  let inSpot = false, warmed = false;
+  let inSpot = false, warmed = false, ambLvl = SOUND.station.level;
   return {
     group: g, boards, platforms: PLAT, PH,
     /** Each frame (line/index.js): `me` the camera in this frame. */
@@ -650,6 +650,10 @@ export function buildStation(ctx, { kit, service, sets }) {
         warmed = true;
         soundBus.oneShot('train-nextstop', { x: cam.x, z: cam.z, gain: 0.0001, near: 1, far: 400 });   // silent: it only fetches the file
       }
+      // the station's own announcements dim while you listen at the spot (full dim within 1.5 m, back by 6 m)
+      const k = Math.min(1, Math.max(0, (d - 1.5) / 4.5));
+      const lvl = SOUND.station.level * (SOUND.station.duck + (1 - SOUND.station.duck) * k);
+      if (Math.abs(lvl - ambLvl) > 0.004) { ambLvl = lvl; ambience.set({ level: lvl }); }
       const inside = d < listen.r;
       if (inside && !inSpot) {
         soundBus.oneShot('train-nextstop', { x: listenW.x, z: listenW.z, y: PH + 2.2, ...SOUND.trainListen, gain: 1 });

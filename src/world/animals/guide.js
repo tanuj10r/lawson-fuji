@@ -15,20 +15,18 @@ import { STRINGS } from '../../data/strings.js';
  * engagements one at a time, instead of a dog trailing behind where you
  * would never see it.
  *
- * The pup suggests, you decide (Tan, later: "if I'm not interested and
- * choose to walk away, the dog should prioritise my interest").  It waits
- * on the far pavement behind the famous view (out of every hero frame) and
- * comes trotting when you walk off.  It proposes the nearest engagement
- * you have not done, trotting a few metres ahead along the way and looking
- * back; at the spot it waits beside the ring until you step in.  Not
- * interested (your heading off its way for a couple of seconds, your
- * distance to the spot growing while it waits, or you 10 m off): the
- * proposal is dropped (skipped, to come back last), and it bounds after
- * you with a yip, circles your legs once, and re-plans from where you are
- * heading: the nearest engagement roughly your way, else it simply keeps
- * you company (2-4 m off, playing) and every 20 s or so invites toward the
- * nearest one with a play bow, without insisting.  When every engagement
- * is done it naps beside the slow-life bench.
+ * The pup suggests, you decide; it guides, it doesn't follow (Tan,
+ * 2026-09-29: "it's very difficult to guess whether it wants to follow me or
+ * I need to follow it").  It waits on the far pavement behind the famous
+ * view (out of every hero frame) and comes when you walk off.  It leads along
+ * the town tour at a jog, a few metres ahead, stopping to look back when you
+ * fall behind; at a spot it waits beside the ring until you step in.  Not
+ * interested (you heading off its way, your distance to the spot growing
+ * while it waits, or you 16 m off): it stops where it is and waits, watching
+ * you go.  Walk back to it and it takes you on; whistle (F) and it comes
+ * running wherever you are, greets you, and rushes you to the nearest place
+ * you haven't been.  When every engagement is done it naps beside the
+ * slow-life bench.
  *
  * Between times it is a puppy: a bouncy trot, zoomies, play bows, hops,
  * rolling over belly-up, chasing its tail, a sneeze, a head tilt, the odd
@@ -383,7 +381,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   const heroes = Object.values(HERO_VIEWS).map((v) => ({ x: v.play.pos[0], z: v.play.pos[2] }));
   const storeRect = { x0: -LAWSON.width / 2 - 1, x1: LAWSON.width / 2 + LAWSON.wingWidth + 1, z0: -LAWSON.depth - 1, z1: LAWSON.frontZ + 0.3 };
   const inStore = (p) => p.x > storeRect.x0 && p.x < storeRect.x1 && p.z > storeRect.z0 && p.z < storeRect.z1;
-  const D = A.drop, INV = A.invite;
+  const D = A.drop;
 
   /* the pup: where it is, how it stands, what it is doing */
   const G = {
@@ -391,7 +389,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     ph: 0, amp: 0, look: 0, nod: 0, tilt: 0, wag: 0, wagA: 0, wagPh: 0, posture: 0, perk: 1, hop: 0, hopT: -1, shakeT: -1,
     state: 'home', target: null, done: new Set(['view']), skipped: new Set(), t: 0, waitT: 0, sat: 0, glance: 0, tiltT: -1, tiltNext: 3,
     lostT: 0, offT: 0, waitD0: null, minD: INF, hopped: null, field: null, goal: null, since: 0, resume: null, aside: null, moved: 0, thinkT: 0,
-    drops: 0, sinceInvite: 99, invites: 0, act: null, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 0, introT: 0, last: '', idleT: 0, energy: 0.7, stillT: 0, chaseT: 0, circ: null, inviteE: null,
+    drops: 0, act: null, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 0, introT: 0, last: '', idleT: 0, energy: 0.7, stillT: 0, chaseT: 0, circ: null, inviteE: null,
   };
   const P = { x: VIEW.x, z: VIEW.z, y: 1.6, vx: 0, vz: 0, speed: 0, first: true, hx: 0, hz: -1 };
   /* Its voice (Tan: "very cute, adorable sounds"; core/sound.js dog-* recipes):
@@ -477,42 +475,20 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     return f && f.lengthSq() > 0.5 ? { x: f.x, z: f.z } : { x: P.hx, z: P.hz };
   };
   const angleOff = (dir, e) => { const dx = e.x - P.x, dz = e.z - P.z, d = Math.hypot(dx, dz) || 1; return Math.acos(THREE.MathUtils.clamp((dx * dir.x + dz * dir.z) / d, -1, 1)); };
-  /** The nearest engagement not done (the skipped ones last), or the one that lies your way when `byIntent`: the leftovers after the tour. */
-  const pickTarget = (byIntent = false) => {
+  /** The nearest engagement not done, by the way from you (one you walked away from counts `D.skipped` m further). */
+  const pickTarget = () => {
     refresh();
-    const dir = intent();
     let best = null, bd = INF;
-    for (const pass of [0, 1]) {
-      for (const e of list) {
-        if (G.done.has(e.id) || (pass === 0) === G.skipped.has(e.id)) continue;
-        const ang = angleOff(dir, e);
-        if (byIntent && ang > D.way * Math.PI / 180) continue;
-        const d = wayTo(e) + (byIntent ? 12 * (1 - Math.cos(ang)) : 0);
-        if (d < bd) { bd = d; best = e; }
-      }
-      if (best) break;
-    }
-    return best;
-  };
-  /** The tour leg to pick up from where you are: the nearest sensible one (the way you are heading, when `byIntent`);
-   * the legs of a stretch you already walked count too, so it can take you back the way it meant to. */
-  const pickLeg = (byIntent = false) => {
-    const dir = intent();
-    let best = -1, bd = INF;
-    for (let k = 1; k < TOUR.length; k++) {
-      if (legDone(k) || (TOUR[k].id && G.skipped.has(TOUR[k].id) && G.drops > 0 && k === G.leg)) continue;
-      const t = legTarget(k);
-      if (!t) continue;
-      const ang = angleOff(dir, t);
-      if (byIntent && ang > D.way * Math.PI / 180) continue;
-      const d = wayTo(t) + (byIntent ? 12 * (1 - Math.cos(ang)) : 0) + (k < (G.leg ?? 0) ? 6 : 0);   // a little against going back over old ground
-      if (d < bd - 1e-6) { bd = d; best = k; }
+    for (const e of list) {
+      if (G.done.has(e.id)) continue;
+      const d = wayTo(e) + (G.skipped.has(e.id) ? D.skipped : 0);
+      if (d < bd) { bd = d; best = e; }
     }
     return best;
   };
   const startLead = (t) => {
     G.target = t; G.state = 'lead'; G.hopped = null; G.aside = null; G.since = 0; G.lostT = 0; G.offT = 0; G.waitD0 = null; G.minD = INF;
-    G.sinceInvite = 0; G.invites++; if (t.id) G.skipped.delete(t.id);
+    if (t.id) G.skipped.delete(t.id);
     G.field = fieldOf(t);
   };
   /** Lead along the tour from leg k (skipping what is done). */
@@ -546,13 +522,16 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   const allDone = () => { refresh(); return list.every((e) => G.done.has(e.id)); };
   /** After a stop: the tour goes on; after the tour, the leftovers, then the nap. */
   const nextOrNap = () => advance();
-  /** You went your own way: pick the tour up from the nearest leg that lies your way, else keep you company. */
-  const replan = () => {
-    if (allDone()) { goTo('nap', NAP, 0.3); return; }
-    const k = G.drops < 2 || G.sinceInvite >= INV.every ? pickLeg(true) : -1;
-    if (k >= 0) lead(k); else company();
+  /** Whistled (or you walked back to it): to the nearest place you haven't been, at a run (Tan: "rush me to the next
+   * spot I haven't covered"); the tour goes on from there. */
+  const rushNext = () => {
+    G.drops = 0;
+    const e = pickTarget();
+    if (!e) { goTo('nap', NAP, 0.3); return; }
+    const k = TOUR.findIndex((L) => L.id === e.id);
+    if (k >= 0) { G.leg = k; startLead(legTarget(k) ?? { ...e, k, leg: TOUR[k] }); }
+    else { G.leg = TOUR.length; startLead({ ...e, k: TOUR.length, leg: { id: e.id } }); }
   };
-  const company = () => { G.state = 'company'; G.field = null; G.since = 0; G.waitT = 0; G.thinkT = -9; };
   /** Your whistle (F): the two notes sound at you; Hachi answers once they are over (ears up meanwhile): a yip, and
    * it comes at a gallop, or, already beside you, a happy hop.  From very far it appears from the nearest corner
    * out of view.  A second press while one is pending, or within a second, does nothing (no stacked whistles or yips). */
@@ -650,7 +629,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     const fs0 = frontSpot(A.whistle.near);
     if (fs0 && dist(G, fs0) < 1.2 && G.state !== 'nap' && G.state !== 'home') { greet(); return; }
     G.target = null; G.resume = null; G.drops = 0;
-    G.state = 'come'; G.since = 0; G.thinkT = -9; G.waitT = 0; G.awooed = false; G.cameYip = false;
+    G.state = 'come'; G.since = 0; G.thinkT = -9; G.waitT = 0; G.cameYip = false;
     const pre = fields.whistle;
     G.field = pre && pre.goalAt && dist(pre.goalAt, P) < 3 ? pre : aim('follow', P.x, P.z, 0.6, A.whistle.far * 1.5); G.thinkT = 0;
     const W_ = A.whistle;
@@ -681,13 +660,12 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   };
   GUIDE.tipsy = tipsy;
   GUIDE.whistle = whistle;
-  /** "Not interested": the leg is dropped (an engagement is skipped, not done) and it comes after you. */
+  /** "Not interested": it stops and waits where it is (the leg counts as skipped); a tilt of the head, "okay". */
   const drop = () => {
     if (G.target?.id && G.target.id !== 'gate') G.skipped.add(G.target.id);
     G.drops++; G.dropT = G.t;
-    G.state = 'chase'; G.field = null; G.since = 0; G.chaseT = 0; G.thinkT = -9;
-    G.act = null;
-    say('dog-yip', 0.9, true);
+    G.state = 'wait'; G.field = null; G.since = 0; G.waitT = 0; G.act = null; G.speed = 0;
+    play('tilt');
   };
   /** Somewhere free beside the ring, off the line you come in on. */
   const beside = (e) => {
@@ -851,7 +829,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
    * ones (zoomies, chasing its tail, the circle round your legs) move it too.
    * Which one, and when, comes from its energy and how near you are. */
   const ACTS = {
-    bow: 2.2, roll: 4.2, tail: 2.8, zoom: 3.4, hop: 0.6, sneeze: 1.1, shake: 0.7, tilt: 1.6, trip: 0.8, circle: 2.4, greet: 3.8,
+    bow: 2.2, roll: 4.2, tail: 2.8, zoom: 3.4, hop: 0.6, sneeze: 1.1, shake: 0.7, tilt: 1.6, trip: 0.8, greet: 3.8,
   };
   const play = (name, extra = {}) => {
     if (G.act && G.act.name === name) return false;
@@ -966,18 +944,6 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         }
         return true;
       }
-      case 'circle': {
-        // once round your legs, close, looking up at you
-        const R = A.circle, w = A.trot / R;
-        a.a += a.s * w * dt;
-        const nx = P.x + Math.sin(a.a) * R, nz = P.z + Math.cos(a.a) * R;
-        if (W.free(nx, nz)) { G.moved += dist({ x: nx, z: nz }, G); G.x = nx; G.z = nz; }
-        G.yaw = a.a + a.s * Math.PI / 2;
-        G.speed = A.trot;
-        pose.amp = 0.9; pose.phRate = 12; pose.look = -a.s * 1.0; pose.nod = pose.nodYou; pose.wag = 0.7; pose.perk = 1.3;
-        G.rollTo = a.s * 0.1;
-        return true;
-      }
       case 'greet': {
         // at your whistle, arrived: a skid, a happy spin on the spot, two little bounces up at you, then a sit looking up,
         // head tilted, tongue out, tail going
@@ -1057,7 +1023,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
 
     /* the introduction (Tan): the first time you see Hachi near the middle of your view, within 8 m, off the famous
      * view: it comes up, sits and says hello (a caption); once per visit, and never again once it has been seen */
-    if (!G.intro && !view && !show && dist(P, VIEW) > 1.5 && !inStore(P) && dist(P, G) < 8 && inCone(25) && !['hazard', 'come', 'chase', 'staged', 'party'].includes(G.state) && G.act?.name !== 'greet' && !introSeen()) {
+    if (!G.intro && !view && !show && dist(P, VIEW) > 1.5 && !inStore(P) && dist(P, G) < 8 && inCone(25) && !['hazard', 'come', 'staged', 'party'].includes(G.state) && G.act?.name !== 'greet' && !introSeen()) {
       const f = facing?.();
       const fx = f && f.lengthSq() > 0.5 ? f.x : (G.x - P.x) / (dist(P, G) || 1), fz = f && f.lengthSq() > 0.5 ? f.z : (G.z - P.z) / (dist(P, G) || 1);
       const c = W.nearest(P.x + fx * 2, P.z + fz * 2, 2);
@@ -1082,7 +1048,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     const nodYou = THREE.MathUtils.clamp(-Math.atan2(P.y - headY, Math.max(0.5, dP)) * 0.8, -0.6, 0.35);
     const pose = { posture: 0, wag: 0.15, perk: 1, look: null, nod: null, amp: null, phRate: 0, speedK: 1, bound: 0, toYou, nodYou };
     let wantSpeed = 0, lookAt = 'player';
-    G.sinceInvite += dt; G.rollTo = 0; G.pitchTo = 0; G.dip = 0;
+    G.rollTo = 0; G.pitchTo = 0; G.dip = 0;
     // how far ahead of you it is: along the way, or as the crow flies when you are right here (off the way, your path metres run long)
     const gap = () => (G.field?.ready ? Math.min(G.field.near(P.x, P.z) - G.field.at(G.x, G.z), dP) : 0);
     /* "not interested" (Tan: if I walk away, the pup should follow me, not insist) */
@@ -1129,10 +1095,12 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
           if (G.target.leg?.hear) { G.glance = -1.3; if (Math.random() < 0.5) say('dog-boof', 0.6); }
           advance(); break;
         }
-        if (g < lo) wantSpeed = Math.min(A.run, Math.max(A.trot, P.speed + 1.2));
-        else if (g < hi) wantSpeed = Math.max(1.4, P.speed);
+        // a jog, quicker than your walk (Tan: slowly following it was annoying); you close, it picks up; you run, it runs;
+        // too far ahead, it stops and looks back
+        if (g < lo) wantSpeed = Math.min(A.run, Math.max(A.jog, P.speed + 1.5));
+        else if (g < hi) wantSpeed = Math.min(A.run, Math.max(A.jog, P.speed + 0.5));
         else wantSpeed = 0;
-        if (wantSpeed > 0) { r = steer(dt, wantSpeed); lookAt = 'way'; G.waitT = 0; } else { G.waitT += dt; }
+        if (wantSpeed > 0) { r = steer(dt, wantSpeed); lookAt = 'way'; G.waitT = 0; pose.bound = 0.45; } else { G.waitT += dt; lookAt = 'player'; }
         if (r === 'lost' || r === 'thinking') { G.waitT += dt; lookAt = 'player'; }
         if (r === 'lost' && G.field?.ready) { G.lostFor = (G.lostFor ?? 0) + dt; if (G.lostFor > 1.5) { G.lostFor = 0; const q = nearestReach(G.target); if (q) G.near = q; } } else G.lostFor = 0;
         pose.posture = G.waitT > A.waitSit && G.speed < 0.1 ? 1 : 0;
@@ -1187,59 +1155,20 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         if (G.since > 1.5 && dist(P, G.target) > 4 && !inStore(P) && !view) { G.act = null; nextOrNap(); }
         break;
       }
-      case 'chase': {
-        // you went your own way: it bounds after you, happy, ears back; caught up, once round your legs
-        G.since += dt; G.chaseT += dt;
-        if (dP > 1.5) { r = pursue(dt, A.run); lookAt = 'way'; } else {
-          const a = Math.atan2(G.x - P.x, G.z - P.z);
-          const s = turn(G.yaw, a + Math.PI / 2) > 0 ? 1 : -1;      // the way round it is already turning
-          if (roomFor(P.x, P.z, A.circle)) play('circle', { a, s }); else { G.act = null; }
-          G.state = 'caught'; G.since = 0;
-        }
-        pose.perk = 0.3; pose.wag = 0.4; pose.nod = 0.05;
-        G.pitchTo = 0.05;
-        if (!G.awooed && G.chaseT > 0.8 && G.chaseT < 1.2 && dP > 6) { G.awooed = true; say('dog-awoo', 0.7); }
+      case 'wait': {
+        // you went your own way: it stays put (a guide, not a follower), watching you go, playing a little; walk
+        // back to it and it takes you on where it left off, or whistle (F) and it comes
+        G.since += dt; G.waitT += dt;
+        pose.posture = G.waitT > A.waitSit ? 1 : 0;
+        pose.wag = dP < 6 ? 0.5 : 0.15;
+        if (!G.act && G.speed < 0.1 && (G.idleT += dt) > 3 + Math.random() * 3) idle(dP, G.waitT > 12);
+        if (G.since > 3 && dP < D.rejoin && !inStore(P) && !view) { G.act = null; play('hop'); lead(G.leg ?? 0); }   // on with the tour where it left off
         break;
       }
       case 'caught': {
-        // the circle plays out (or was skipped); then what lies your way
+        // the greeting (or the party) plays out; then off to the nearest place you haven't been
         pose.wag = 0.7; pose.perk = 1.3;
-        if (!G.act) { G.awooed = false; replan(); }
-        break;
-      }
-      case 'company': {
-        // yours to lead: it keeps you company, two to four metres off, playing; every so often an invitation
-        G.since += dt;
-        const far = A.company[1];
-        if (dP > far && !G.act && !inStore(P)) { r = pursue(dt, P.speed > 3 ? A.run : dP > far + 4 ? A.run * 0.8 : A.trot); lookAt = 'way'; G.waitT = 0; G.stillT = 0; }
-        else { G.waitT += dt; G.stillT += dt; }
-        pose.wag = dP < 5 ? 0.45 : 0.25;
-        pose.posture = G.waitT > A.waitSit + 3 && P.speed < 0.3 ? 1 : 0;
-        // idle play when you stand about; a sniff-hop-bow repertoire
-        if (!G.act && G.speed < 0.1 && dP <= far && (G.idleT += dt) > 2 + Math.random() * 3) idle(dP, G.waitT > 12);
-        // the invitation: not too often, and only while you are near enough to see it
-        if (G.sinceInvite >= INV.every && dP < 8 && !inStore(P) && !view) {
-          G.drops = 0;
-          if (allDone()) { goTo('nap', NAP, 0.3); break; }
-          const byWay = pickLeg(true);
-          if (byWay >= 0 && P.speed > 0.5) { lead(byWay); break; }
-          const ek = pickLeg(false), e = ek >= 0 ? legTarget(ek) : pickTarget();
-          if (e) { G.inviteE = e; G.inviteK = ek; G.state = 'invite'; G.since = 0; G.sinceInvite = 0; G.invites++; G.field = fieldOf(e); G.inviteD0 = wayTo(e); G.act = null; play('bow'); G.waitT = 0; }
-        }
-        break;
-      }
-      case 'invite': {
-        // a play bow and a yip, a few steps that way, a look back; you come, or it comes back to you
-        G.since += dt;
-        const e = G.inviteE;
-        const stepsDone = G.since > ACTS.bow && G.field?.ready && (G.moved - (G.inviteM ??= G.moved)) > INV.steps;
-        if (G.since > ACTS.bow && !stepsDone && !G.act) { r = steer(dt, A.trot); lookAt = 'way'; }
-        else if (stepsDone) { lookAt = 'player'; G.waitT += dt; }
-        pose.wag = 0.6; pose.perk = 1.2;
-        const now = wayTo(e);
-        const coming = now < G.inviteD0 - 1.0 || (P.speed > 0.6 && angleOff(intent(), e) < Math.PI / 3);
-        if (coming && G.since > ACTS.bow) { G.inviteM = undefined; if (G.inviteK >= 0) lead(G.inviteK); else startLead({ ...e, k: TOUR.length, leg: { id: e.id } }); G.sinceInvite = 0; break; }
-        if (G.waitT > INV.wait || dP > 10) { G.inviteM = undefined; company(); break; }
+        if (!G.act) rushNext();
         break;
       }
       case 'come': {
@@ -1426,7 +1355,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       intro: () => G.intro,
       introReset() { G.intro = 0; G.introSeenNow = false; try { localStorage.removeItem('hachi-intro'); } catch {} },
       introMark() { markIntro(); },
-      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, sinceInvite: 99, invites: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 0, introT: 0 }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
+      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 0, introT: 0 }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
     };
   }
   return { update, herd, G };

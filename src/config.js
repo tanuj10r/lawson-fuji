@@ -729,10 +729,13 @@ export const SOUND = {
    * you hear the main road's alone, never two at once (M4, Tan). */
   walkSignal: { near: 14, far: 40 },
   /* the station's announcements (a thing to hear): full within the `core`
-   * (the concourse, the gates, the platforms), then an `edge` of about a
-   * third carried over the plaza and the approach, gone by `far` (Tan,
-   * 2026-09-28: "slightly, mildly, outside the station") */
-  station: { near: 14, far: 42, edge: 0.33, core: { near: 8, far: 20 }, level: 0.45 },
+   * (the concourse, the gates, the platforms), then an `edge` carried over
+   * the plaza and the approach, gone by `far`.  Tan, 2026-09-29: "In the
+   * station plaza, announcements can be even louder than earlier" (they
+   * were a third there, and lost under the plaza's own sounds: the plaza
+   * runs 6-36 m from the zone's middle); `duck`: dimmed to this while you
+   * stand in the train's listening spot, for the next-stop announcement */
+  station: { near: 20, far: 62, edge: 0.75, core: { near: 8, far: 20 }, level: 0.45, duck: 0.3 },
   // the train's next-stop announcement, played where you stand on platform 1's listening spot
   trainListen: { near: 4, far: 14 },
   autoDoor: { near: 4, far: 18 },
@@ -756,20 +759,24 @@ export const ANIMALS = {
   guide: {
     size: 1.0,                                // (the pup is built at its own size: ~24 cm at the shoulder)
     home: [4.6, 19.3],                        // world: the far pavement behind the famous view, out of every hero frame
-    lead: [2.5, 5],                           // trots this far ahead of you along the way (m)
+    /* leading (Tan, 2026-09-29: "a little annoying to slowly follow the dog"): it jogs `jog` m/s (quicker than your walk,
+     * 2.55), keeps `lead` [min, max] m ahead of you along the way, and past the max stops and looks back for you;
+     * you running, it runs */
+    lead: [4, 9], jog: 3.6,
     trot: 2.4, run: 5.4,                      // m/s (you walk at 2.55, run at 5.1: it can always catch you)
     waitSit: 3,                               // stands waiting this long, then sits
     /* "not interested" (the pup suggests, you decide): your heading more than `angle` degrees off its way for
-     * `angleT` s, your distance to the spot grown by `grow` m while it waits, or you `away` m off: it drops the
-     * suggestion and comes after you.  `way`: a spot counts as "your way" within this many degrees of your heading. */
-    drop: { angle: 100, angleT: 1.7, grow: 6, away: 10, way: 80 },
-    company: [2, 4],                          // keeping you company: follows to stay within this band (m)
-    invite: { every: 20, wait: 3, steps: 3 }, // an invitation (play bow + a few steps) at most this often; it waits this long for you to come
-    circle: 0.9,                              // the radius of its lap round your legs when it catches up (m)
+     * `angleT` s, your distance to the spot grown by `grow` m while it waits, or you `away` m off (it leads from up to 9
+     * m ahead): it stops and waits
+     * where it is (Tan, 2026-09-29: a guide, not a follower).  Walk back within `rejoin` m and it takes you on where it
+     * left off; F calls
+     * it to you, and it rushes you to the nearest place you haven't been (one you walked away from counts `skipped` m
+     * further off). */
+    drop: { angle: 100, angleT: 1.7, grow: 6, away: 16, rejoin: 4, skipped: 30 },
     zoom: { r: 1.5, speed: 4.6 },             // zoomies: the circle's radius and speed
     tripEvery: 45,                            // trips over its own paws about once in this many seconds at a trot
     fields: 6,                                // distance fields kept grown at once (2.6 MB each)
-    introCard: 4.5,                           // the "Hi, I'm Hachi" caption stays this long (s)
+    introCard: 7,                             // the "Hi, I'm Hachi" caption stays this long (s: two lines, the whistle's key)
     /* F (Tan: it must be seen running to you, wherever you look): it answers `answer` s after the whistle starts (the whistle
      * is 0.52 s long).  If you can see it (within `see` m, `cone` degrees of the lens, nothing between) it runs from there;
      * else it is set out of sight of nothing: on a street `from` m ahead of you, in view, with a clear run to you, and

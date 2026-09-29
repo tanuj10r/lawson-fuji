@@ -210,9 +210,10 @@ export function makeService({ sets, crossing, onEvent }) {
     /** Dev: stand the service in a given moment, for screenshots. */
     stage(kind) {
       for (const r of runs) { r.phase = 'idle'; r.v = 0; r.doors = 0; }
-      if (kind === 'platform') {
+      if (kind === 'platform' || kind === 'platform-shut') {
+        // standing at platform 1: doors open, or shut (the moment before it pulls away)
         const r = runs[0];
-        Object.assign(r, { phase: 'dwell', t: 20, x: STOP_X, doors: 1 });
+        Object.assign(r, kind === 'platform' ? { phase: 'dwell', t: 20, x: STOP_X, doors: 1 } : { phase: 'hold', t: 0, x: STOP_X, doors: 0 });
         r.emu.setDest('east');
       } else if (kind === 'platform2') {
         const r = runs[1];

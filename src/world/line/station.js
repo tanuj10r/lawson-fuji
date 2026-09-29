@@ -225,8 +225,10 @@ export function buildStation(ctx, { kit, service, sets }) {
     push('trim', B.x0 - 0.55, B.x1 + 0.55, y1 - 0.25, y1, B.z0 - 0.55, B.z0 - 0.4);
     push('roof', cxE - entW / 2 - 1.2, cxE + entW / 2 + 1.2, y0 + 2.8, y0 + 2.95, B.z0 - 2.6, B.z0);
     for (const s of [-1, 1]) push('trim', cxE + s * (entW / 2 + 1.0) - 0.08, cxE + s * (entW / 2 + 1.0) + 0.08, 0.17, y0 + 2.8, B.z0 - 2.5, B.z0 - 2.34);
-    // a plinth band along the front
-    push('trim', B.x0, B.x1, y0, y0 + 0.5, B.z0 - 0.04, B.z0);
+    // a plinth band along the front, either side of the entrance (across it,
+    // it stood in the doorway at floor level: Tan's "green strip", 2026-09-29)
+    push('trim', B.x0, cxE - entW / 2, y0, y0 + 0.5, B.z0 - 0.04, B.z0);
+    push('trim', cxE + entW / 2, B.x1, y0, y0 + 0.5, B.z0 - 0.04, B.z0);
     // inside lining and ceiling
     push('wallIn', B.x0 + T, B.x1 - T, y1 - 0.06, y1 - 0.02, B.z0 + T, B.z1 - T);
     for (const [k, list] of Object.entries(parts)) {
@@ -281,8 +283,10 @@ export function buildStation(ctx, { kit, service, sets }) {
     }
     // name over the entrance
     board(g, entranceTex(), 7.2, 1.8, cxE, y0 + 4.0, B.z0 - 0.58, Math.PI, true);   // clear of the canopy (its roof hid the name's lower half)
-    // lit from inside after dark: the open entrance and the two windows
-    ctx.night?.glow(g, entW - 0.2, 2.5, cxE, PH + 1.3, B.z0 + 0.3, Math.PI);
+    // lit from inside after dark: the two windows.  The entrance stands open
+    // and shows the lit concourse itself: no warm panel in the doorway (it was
+    // an additive plane that read as a pale glass layer over the gates from
+    // dusk on: Tan, 2026-09-29).
     for (const x of [B.x0 + 4, B.x1 - 4]) ctx.night?.glow(g, 3.8, 1.4, x, PH + 1.65, B.z0 - 0.03, Math.PI);
     // the light it throws: the concourse, and down the steps
     for (let x = B.x0 + 4; x < B.x1 - 2; x += 6) ctx.night?.pool(x, (B.z0 + B.z1) / 2, 3.4, { y: PH, strength: 0.8 });

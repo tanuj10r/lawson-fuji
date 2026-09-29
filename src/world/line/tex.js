@@ -149,9 +149,18 @@ export function makeDepartureBoard(w = 768, h = 256) {
 /** The car number, stencilled on the body side by the cab. */
 export const carNumberTex = (n = 0) =>
   tex('carNo' + n, 256, 48, (c, w, h) => {
+    // the number alone, painted straight on the stainless (no plate behind it)
     c.clearRect(0, 0, w, h);
-    c.fillStyle = 'rgba(210,214,222,1)'; c.fillRect(0, 0, w, h);
     fit(c, n ? RIDE.car.number2 : RIDE.car.number, w / 2, h / 2 + 1, w - 16, 34, '#2a2c34', { weight: '600' });
+  });
+
+/** 弱冷房車 (mildly air-conditioned car): the blue sticker on the second car's window. */
+export const weakSticker = () =>
+  tex('weak', 192, 64, (c, w, h) => {
+    c.fillStyle = '#2b6fc4'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#ffffff'; c.fillRect(4, 4, w - 8, h - 8);
+    fit(c, RIDE.car.weak, w / 2, h * 0.42, w - 16, 30, '#2b6fc4');
+    fit(c, 'Mildly air-conditioned car', w / 2, h * 0.8, w - 14, 11, '#2b6fc4', { font: SANS });
   });
 
 /** The pair of LCDs over each door inside: next stop, and our own ad. */

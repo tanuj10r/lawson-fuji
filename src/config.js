@@ -454,6 +454,10 @@ export const SHOT_SPOTS = [
   { name: 'train-side', scene: 'town', pos: [-27.4, 0, 157.0], yaw: 1.76, pitch: 0.02, looks: ['day'], train: 'platform', close: true },
   { name: 'train-inside', scene: 'town', pos: [-44.65, 0, 160.75], yaw: 0.62, pitch: -0.04, looks: ['day', 'blue'], train: 'platform', close: true },
   { name: 'train-under', scene: 'town', pos: [-36.5, 0, 157.2], yaw: 2.6, pitch: -0.3, looks: ['day'], train: 'platform', close: true },
+  // the entrance blockers and the train's doors (Tan, 2026-09-29): the approach from the foot of the steps, and beside a car with its doors open and shut
+  { name: 'station-approach', scene: 'town', pos: [-51, 0, 143.2], yaw: 3.1416, pitch: 0.1, looks: ['day', 'golden'], train: 'platform' },
+  { name: 'train-beside-open', scene: 'town', pos: [-45.2, 0, 156.4], yaw: 2.45, pitch: 0.0, looks: ['day', 'blue'], train: 'platform', close: true },
+  { name: 'train-beside-shut', scene: 'town', pos: [-45.2, 0, 156.4], yaw: 2.45, pitch: 0.0, looks: ['day'], train: 'platform-shut', close: true },
   { name: 'poster-station', scene: 'town', pos: [-46.3, 0, 150.9], yaw: -0.12, pitch: 0.05, looks: ['day'], train: 'platform', indoor: true, close: true },
   { name: 'poster-gate', scene: 'town', pos: [27.4, 0, -35.4], yaw: 0.12, pitch: 0.02, looks: ['day'], close: true },
   // M2e: close-ups, at arm's length, where finish shows (no density check)

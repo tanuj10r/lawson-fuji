@@ -85,3 +85,65 @@
   one 192x64 sticker on its end window.
 - **Shots:** `platform-shut` stage (doors shut at the platform) and three
   spots: station-approach (Tan's 17.webp), train-beside-open/shut.
+
+## Three trains (2026-09-29, Tan: "one of the regular box-shaped trains, one of a modern JR commuter train, and one of a Pokémon-themed train")
+
+- **One body plan, three types** (emu.js `TYPES`: `box`, `jr`, `poke`).
+  Car length, the four doors a side, the floor height and the bench runs
+  are the same for all three, so the platform's door marks, the listening
+  spot by door 2, the platform-edge gaps, the chime, the dwell, the
+  crossing and the timetable work unchanged whichever type is in.  The
+  price: the Pokémon train is a four-door 19.4 m car, not the Ōfunato
+  Line's two-door KiHa 100; it keeps the KiHa's yellow cab band, its
+  two-pane windscreen, roof exhaust and engine, and drops the pantograph.
+- **The rotation** is `config.js TOWN.rail.trains` (`['box','jr','poke']`),
+  advanced once per run whichever track: box east, jr west, poke east, box
+  west... (`.shots/rot.mjs` logged 14 minutes of it).  `stage('platform:poke')`
+  stands a chosen type for shots; the `train-jr-*` / `train-poke-*` spots.
+- **The fleet** (emu.js `makeFleet`): a slot per track, forwarding the set
+  API the service and station already used (`group`, `setDoors`, `setDest`,
+  `animate`, `carX`).  Each type is built once (≈60 ms) and hidden; all
+  three are primed at load so no run's first appearance costs a frame.  A
+  hidden set draws nothing; the three together are ~150k triangles of
+  geometry in memory.  Only if a one-type rotation asked both slots for the
+  same type would a second set of it be built.
+- **The JR type is Chūō-orange, not our green:** RIDE's through service
+  runs to the JR line at 大月, where the Chūō Line's E233-0 turns back, so an
+  orange-banded E233 is the train that would actually come through.  Smooth
+  stainless (no beads), the wide band under the sill and the thin line over
+  the windows, rounded roof shoulders (`profileRun` of a quarter-round
+  profile, radius 0.36 m, with end caps), the black mask an extruded
+  rounded rectangle with a bevelled edge so it bulges forward with rounded
+  top corners (`plate`), three panes (the middle one the emergency door),
+  head and tail lamps high in the mask's corners, the LED destination over
+  the middle pane with the run number beside it, a white FRP nose with the
+  band across it, glazed seat partitions, blue seats.
+- **The Pokémon skin is one texture page** (tex.js `pokeArtTex`,
+  4096x1024, ~21 MB with mips): the two cars' sides as two rows mapped by
+  planar projection (`sideUV`; the +z side mirrored so the wordmark reads
+  right from both platforms, and a turned westbound set still reads right),
+  the nose panel with Pikachu's face, the ceiling strip (silhouettes on
+  cream) and the floor strip (paw prints), and a swatch strip so the door
+  leaves' rubber and sticker share the material.  A door leaf's UVs are its
+  shut position: the art rides with the leaf.  2048 wide went soft at 1.5 m
+  (10.6 MB), 3072 was passable (16 MB); Tan chose quality, so 4096.  Every
+  figure is Canvas2D (art.js): Pikachu in five poses, Eevee, Piplup,
+  Bulbasaur, Poké Balls, bolts, paw prints; Tan allowed the likeness, the
+  rule against downloaded images stands.  Lettering is Helvetica-family
+  (the subset fonts hold no Latin).
+- **The parade is full colour on clouds.** The first pass drew Pikachu in
+  the body's own yellow with a thin outline, and it vanished in shade.  Now
+  each figure is a brighter yellow (#ffe14a on a #f5c832 body) with a
+  heavier ink line, stood on a white or pastel cloud, in the solid runs
+  between the doors (the wordmark on a white pill in the middle run), with
+  peeking Pikachus on clouds over the wide windows.  Nothing that matters
+  sits on a door leaf, so an open door splits no figure.  "Big across two
+  window bays" is not possible on this body: above the sill it is nearly
+  all window and door, and a figure that tall loses its head into the
+  glass; sizes vary within the band instead.
+- **Yellow in the canopy's shadow is yellow.** A shadowed face gets ambient
+  light only, so no cel tint can save a saturated yellow from going olive;
+  the poke type's body materials carry a little self-light (`glow`
+  0xffd24a at 0.2, through the art as an emissive map), the tint is a warm
+  0xf0a83a, and the base is a golden 0xf5c832.  The stainless types keep
+  the lavender 0x6e7292 and no glow.

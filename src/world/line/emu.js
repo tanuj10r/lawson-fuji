@@ -6,32 +6,37 @@ import { RAIL_TOP } from '../railway.js';
 import { mergeStatic } from '../merge.js';
 import { CONTACT_Y } from './track.js';
 import { RIDE } from '../../data/town.js';
-import { destTex, runNoTex, carNumberTex, doorLcdTex, carAdsTex, CAR_AD_CELLS, prioritySticker, weakSticker } from './tex.js';
+import { destTex, runNoTex, carNumberTex, doorLcdTex, carAdsTex, CAR_AD_CELLS, prioritySticker, weakSticker, pokeArtTex, POKE_ART } from './tex.js';
 
 /* ------------------------------------------------------------------ *
- * Our train (Tan: "an extremely detailed train, like the real trains of
- * Japan"): a two-car commuter EMU in the stainless-steel manner of the
- * E231/E233 family, in our own livery -- the Fujimi Line's green band with
- * a sakura-pink pinstripe.  Built hollow, so it stops at the platform,
- * opens its doors and can be walked through.
+ * Our trains (Tan: "an extremely detailed train, like the real trains of
+ * Japan"; 2026-09-29: three of them, for variety).  Two-car sets, built
+ * hollow so they stop at the platform, open their doors and can be seen
+ * into.  One body plan, three types (TYPES):
  *
- *   outside   silver skin with bead lines and panel seams, the band, black
- *             rubber round the windows and doors, four doors a side with
- *             their windows, the cab front (black mask, windscreen, the
- *             LED destination 快速 渋谷, run number, head and tail lights,
- *             snowplough, coupler), a single-arm pantograph, the roof
- *             air-conditioner, underfloor boxes and tanks, bogies with
- *             their springs, gangway bellows between the cars
- *   inside    long seats (priority seats at the ends), the tall partitions
- *             by the doors, poles, luggage racks, straps that sway, the
- *             door LCDs, hanging ads and the cards over the windows, the
- *             lit ceiling, the cab behind its partition window
+ *   box   the Fujimi Line's own EMU: stainless with bead lines, the green
+ *         band and the sakura pinstripe, a flat-faced cab, a stepped roof
+ *   jr    a JR commuter EMU in the E233 manner: smooth stainless with the
+ *         Chūō orange band (it runs through to the JR line at 大月), a
+ *         rounded roof, the black glazed mask bulging forward with its
+ *         rounded corners, the lights high in its corners, the LED
+ *         destination over the windscreen
+ *   poke  the Pokémon train: a bright yellow livery covered in Pikachu,
+ *         Poké Balls and bolts (Canvas2D, tex.js pokeArtTex), a rounded
+ *         roof, a yellow cab with Pikachu's face across its front, yellow
+ *         and brown seats, silhouettes on the ceiling, paw prints on the
+ *         floor.  A diesel railcar: no pantograph, an exhaust on the roof,
+ *         an engine underneath.
+ *
+ * Every type shares the plan (car length, door positions, floor height),
+ * so the platform's door marks, the listening spot, the colliders and the
+ * service work for all of them.
  *
  * Cost: everything that doesn't move is baked per material and merged
  * across the set (merge.js folds the plain colours into one batch); the
- * moving parts are the door leaves (one vertex-coloured mesh and its glass
- * per sliding group), one strap InstancedMesh per set, and one mesh for
- * every destination LED on the set.
+ * moving parts are the door leaves (one mesh and its glass per sliding
+ * group), one strap InstancedMesh per set, and one mesh for every
+ * destination LED on the set.  The Pokémon skin is one texture page.
  *
  * Doors are two leaves each that slide into the wall pocket (`setDoors`).
  * They open on the car's local -z side, which is the platform side on both
@@ -46,45 +51,78 @@ export const DOOR_W = 1.32;
 const DOOR_TOP = FLOOR + 1.85;
 const WIN_Y0 = 2.02, WIN_Y1 = 3.12;
 const BAYS = [[-8.55, 1.5], [-4.7, 3.1], [0, 3.3], [4.7, 3.1], [8.55, 1.5]];
-const BAND = [1.72, 2.0], PIN = [1.65, 1.70], TOPLINE = [3.22, 3.28];   // the livery: a broad band under the sill, the pinstripe under it
-const BEADS = [1.22, 1.36, 1.50];             // the bead lines pressed into the stainless below the band
 const DWIN = [2.06, 2.82];                    // the door windows
-const LEAF_TRAVEL = DOOR_W / 2 * 0.96;        // how far a leaf slides into its pocket (setDoors)
 const NUMBER_X = CAR_L / 2 - 0.95;            // the car's number: on the end panel, clear of the last door's pocket
 const BOGIE_X = 6.85;
 const RAIL_Y = TOP - 0.33;                    // the strap rails
 export const SEAT_D = 0.52, SEAT_TOP = FLOOR + 0.44;
 const CAB_WALL = CAR_L / 2 - 1.75;            // the cab's back wall, from the car's centre
+const SHOULDER = ROOF - (TOP - 0.14);         // the rounded roof's radius
 
-const C = {
-  steel: 0xd2d6dc, steelHi: 0xeaedf1, band: new THREE.Color(RIDE.color).getHex(), pink: new THREE.Color(RIDE.pink).getHex(),
+const PLAIN = {
   rubber: 0x24242c, roof: 0x8f939c, gear: 0xaeb2ba, under: 0x3e4049, bogie: 0x33343d, spring: 0x6b6d78,
-  wheel: 0x4a4552, insul: 0xe6e2d8, yellow: 0xf2c23c, console: 0x3a3d48, panel: 0xdfe3e9,
+  wheel: 0x4a4552, insul: 0xe6e2d8, yellow: 0xf2c23c, console: 0x3a3d48,
 };
 
-let M = null;
-function mats() {
-  if (M) return M;
+/**
+ * The three types.  `stripes` are painted on the skin (and the door
+ * leaves) between y0 and y1; `beads` the pressed lines of the box EMU.
+ */
+export const TYPES = {
+  box: {
+    id: 'box', roof: 'step', cab: 'box', skin: 'steel', panto: true,
+    steel: 0xd2d6dc, steelHi: 0xeaedf1, steelTint: 0x6e7292,
+    band: new THREE.Color(RIDE.color).getHex(), bandTint: 0x3f5a6a, pink: new THREE.Color(RIDE.pink).getHex(),
+    stripes: [['band', [1.72, 2.0]], ['pink', [1.65, 1.70]]], topline: ['band', [3.22, 3.28]], beads: [1.22, 1.36, 1.50],
+    lining: 0xeceae4, floor: 0x9c9ca8, seat: 0x3f5f9e, seatPri: 0xb4606e, seatBase: 0xb8bac4, pole: 0xd8dce4, strap: 0xf4f2ec,
+  },
+  jr: {
+    id: 'jr', roof: 'round', cab: 'e233', skin: 'steel', panto: true,
+    steel: 0xd9dce1, steelHi: 0xf0f2f4, steelTint: 0x6e7292,
+    band: 0xf4771c, bandTint: 0x7a3a2a, front: 0xf0f1f2,
+    stripes: [['band', [1.46, 2.0]]], topline: ['band', [3.3, 3.37]], beads: null,
+    lining: 0xf3f2ef, floor: 0xb8b2a4, seat: 0x2c4c9c, seatPri: 0x8c6cbc, seatBase: 0xc8cad0, pole: 0xdadee6, strap: 0xecebe6,
+  },
+  poke: {
+    id: 'poke', roof: 'round', cab: 'kiha', skin: 'art', panto: false, dmu: true,
+    steel: 0xf5c832, steelHi: 0xffe66a, steelTint: 0xf0a83a,     // a golden yellow; its shade a warm orange-yellow
+    glow: 0xffd24a,                                              // a little self-light, so the yellow stays yellow in the canopy's shadow (ambient alone turned it olive)
+    band: 0x8a4a1c, bandTint: 0x4a2a1a, front: 0xf9d83b,
+    stripes: [], topline: null, beads: null,
+    lining: 0xf5efe2, floor: 0xf0c93a, seat: 0xf2c23c, seatPri: 0x8a4a1c, seatBase: 0x6b4a2c, pole: 0xdadee6, strap: 0xf9d83b,
+  },
+};
+
+const MATS = new Map();
+function mats(T) {
+  if (MATS.has(T.id)) return MATS.get(T.id);
   const c = (color, tint = 0x6f6796, bands = 3) => cel({ color, bands, tint });
-  const live = (color, tint = 0x6a6288) => {
-    const m = cel({ color, bands: 3, tint, emissive: color, emissiveIntensity: 0, cache: false });
+  const live = (color, tint = 0x6a6288, extra = {}) => {
+    const m = cel({ color, bands: 3, tint, emissive: color, emissiveIntensity: 0, cache: false, ...extra });
     m.userData.live = true;
     return m;
   };
-  M = {
-    steel: c(C.steel, 0x6e7292), steelHi: c(C.steelHi, 0x6e7292), band: c(C.band, 0x3f5a6a), pink: c(C.pink, 0x8a5a86),
-    rubber: c(C.rubber, 0x4b4560, 2), bellows: c(0x5e606c, 0x4b4560), roof: c(C.roof, 0x60597f), gear: c(C.gear, 0x5c5680), under: c(C.under, 0x4b4560, 2),
-    bogie: c(C.bogie, 0x4b4560, 2), spring: c(C.spring, 0x5c5680), wheel: c(C.wheel, 0x4b4560, 2), insul: c(C.insul, 0x7a7090),
-    yellow: c(C.yellow, 0x8a6a50), console: c(C.console, 0x4b4560, 2),
+  const art = T.skin === 'art' ? pokeArtTex() : null;
+  // the body colour: with `glow`, a little self-light (a saturated yellow goes olive on ambient alone)
+  const glowing = (extra) => (T.glow ? { emissive: T.glow, emissiveIntensity: 0.2, cache: false, ...extra } : extra);
+  const body = (color) => cel({ color, bands: 3, tint: T.steelTint, ...glowing({}) });
+  const M = {
+    steel: body(T.steel), steelHi: body(T.steelHi), band: c(T.band ?? 0x888888, T.bandTint), pink: c(T.pink ?? 0xffffff, 0x8a5a86),
+    front: body(T.front ?? T.steel),
+    rubber: c(PLAIN.rubber, 0x4b4560, 2), bellows: c(0x5e606c, 0x4b4560), roof: c(PLAIN.roof, 0x60597f), gear: c(PLAIN.gear, 0x5c5680), under: c(PLAIN.under, 0x4b4560, 2),
+    bogie: c(PLAIN.bogie, 0x4b4560, 2), spring: c(PLAIN.spring, 0x5c5680), wheel: c(PLAIN.wheel, 0x4b4560, 2), insul: c(PLAIN.insul, 0x7a7090),
+    yellow: c(PLAIN.yellow, 0x8a6a50), console: c(PLAIN.console, 0x4b4560, 2),
     // the interior: its own glow after dark (setNight), so it reads as lit
-    lining: live(0xeceae4, 0x7a7090),
-    floor: live(0x9c9ca8),
-    seat: live(0x3f5f9e, 0x3f4a7a),
-    seatPri: live(0xb4606e, 0x6a4a6a),
-    seatBase: live(0xb8bac4),
-    pole: live(0xd8dce4, 0x666090),
-    strap: live(0xf4f2ec, 0x6f6796),
-    door: cel({ color: 0xffffff, bands: 3, tint: 0x6e7292, vertexColors: true, cache: false }),
+    lining: live(T.lining, 0x7a7090),
+    floor: live(T.floor),
+    seat: live(T.seat, 0x3f4a7a),
+    seatPri: live(T.seatPri, 0x6a4a6a),
+    seatBase: live(T.seatBase),
+    pole: live(T.pole, 0x666090),
+    strap: live(T.strap, 0x6f6796),
+    door: art
+      ? cel({ color: 0xffffff, bands: 3, tint: T.steelTint, map: art, cache: false, ...glowing({ emissiveMap: art }) })
+      : cel({ color: 0xffffff, bands: 3, tint: T.steelTint, vertexColors: true, cache: false }),
     light: flat({ color: 0xfffbea }),
     glass: flat({ color: 0xa8c4e0, transparent: true, opacity: 0.2, depthWrite: false }),
     cabGlass: flat({ color: 0x2c3348 }),
@@ -100,7 +138,14 @@ function mats() {
     priority: flat({ color: 0xffffff, map: prioritySticker() }),
     weak: flat({ color: 0xffffff, map: weakSticker() }),
   };
-  M.interior = [M.lining, M.floor, M.seat, M.seatPri, M.seatBase, M.pole, M.strap];
+  if (art) {
+    // the painted skin, and the lit version for the floor and ceiling inside
+    M.art = cel({ color: 0xffffff, bands: 3, tint: T.steelTint, map: art, cache: false, ...glowing({ emissiveMap: art }) });
+    M.artLit = live(0xffffff, 0x7a7090, { map: art, emissiveMap: art });
+    M.floor = M.artLit;
+  }
+  M.interior = [M.lining, M.floor, M.seat, M.seatPri, M.seatBase, M.pole, M.strap, M.artLit].filter(Boolean);
+  MATS.set(T.id, M);
   return M;
 }
 
@@ -132,6 +177,7 @@ export function benchRuns(cab = 0) {
 }
 
 const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const IDENT = new THREE.Matrix4();
 /** A geometry painted one colour (for the vertex-coloured door leaves). */
 function painted(geo, hex) {
   const n = geo.attributes.position.count, col = new Float32Array(n * 3), c = new THREE.Color(hex);
@@ -147,8 +193,89 @@ function cellPlane(w, h, k, n) {
   return g;
 }
 
-function buildCar({ cab, tail, index, dests, straps, xOff }) {
-  const m = mats();
+/* ---- the art page: planar projections onto the Pokémon skin (tex.js POKE_ART) ---- */
+const A = POKE_ART;
+/** Bake `mx` into the geometry and set every uv from its position with `fn(x, y, z) -> [u, v]`. */
+function mapped(geo, mx, fn) {
+  geo.applyMatrix4(mx);
+  const p = geo.attributes.position, n = p.count;
+  const uv = geo.attributes.uv ?? geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * 2), 2)).attributes.uv;
+  for (let i = 0; i < n; i++) { const [u, v] = fn(p.getX(i), p.getY(i), p.getZ(i)); uv.setXY(i, u, v); }
+  uv.needsUpdate = true;
+  return { geometry: geo, matrix: IDENT };
+}
+/** The car's side art: row `row`, seen unmirrored from either side (`sz` the side's sign). */
+const sideUV = (row, sz) => (x, y) => {
+  const u = (x + CAR_L / 2) / CAR_L;
+  const v = 1 - (row * A.rowH + (A.y1 - THREE.MathUtils.clamp(y, A.y0, A.y1)) / (A.y1 - A.y0) * A.rowH) / A.h;
+  return [sz < 0 ? 1 - u : u, v];
+};
+/** A region of the page across (a0..a1) -> u and (b0..b1) -> v. */
+const regionUV = (R, a0, a1, b0, b1, pick) => (x, y, z) => {
+  const [a, b] = pick(x, y, z);
+  const u = (R.x + THREE.MathUtils.clamp((a - a0) / (a1 - a0), 0, 1) * R.w) / A.w;
+  const v = 1 - (R.y + (1 - THREE.MathUtils.clamp((b - b0) / (b1 - b0), 0, 1)) * R.h) / A.h;
+  return [u, v];
+};
+/** One flat colour of the swatch strip. */
+const swatchUV = (k) => () => [((k + 0.5) * A.swatch.w) / A.w, 1 - (A.swatch.y + A.swatch.h / 2) / A.h];
+const SW = { skin: 0, brown: 1, rubber: 2, hi: 3, caution: 4, dark: 5, white: 6, red: 7 };
+
+/**
+ * A profile [(z, y), ...] across the car, run from x0 to x1 with flat
+ * faces, and capped at both ends: the rounded roof.
+ */
+function profileRun(prof, x0, x1) {
+  const pos = [], nrm = [];
+  const tri = (a, b, c, n) => { pos.push(...a, ...b, ...c); nrm.push(...n, ...n, ...n); };
+  for (let i = 0; i + 1 < prof.length; i++) {
+    const [z0, y0] = prof[i], [z1, y1] = prof[i + 1];
+    const dz = z1 - z0, dy = y1 - y0, l = Math.hypot(dz, dy) || 1;
+    const n = [0, dz / l, -dy / l];
+    tri([x0, y0, z0], [x1, y0, z0], [x1, y1, z1], n);
+    tri([x0, y0, z0], [x1, y1, z1], [x0, y1, z1], n);
+  }
+  // the caps: a fan from the middle of the base line
+  const base = [(prof[0][0] + prof[prof.length - 1][0]) / 2, (prof[0][1] + prof[prof.length - 1][1]) / 2];
+  for (const [x, s] of [[x0, -1], [x1, 1]]) {
+    for (let i = 0; i + 1 < prof.length; i++) {
+      const a = [x, base[1], base[0]], b = [x, prof[i][1], prof[i][0]], c = [x, prof[i + 1][1], prof[i + 1][0]];
+      if (s > 0) tri(a, b, c, [1, 0, 0]); else tri(a, c, b, [-1, 0, 0]);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array((pos.length / 3) * 2), 2));
+  return g;
+}
+/** The rounded roof's profile: a quarter round each side, flat between. */
+function roundRoof() {
+  const R = SHOULDER, y0 = TOP - 0.14, z0 = CAR_W / 2 - R;
+  const prof = [];
+  for (let k = 0; k <= 7; k++) { const a = (k / 7) * (Math.PI / 2); prof.push([-z0 - R * Math.cos(a), y0 + R * Math.sin(a)]); }
+  for (let k = 7; k >= 0; k--) { const a = (k / 7) * (Math.PI / 2); prof.push([z0 + R * Math.cos(a), y0 + R * Math.sin(a)]); }
+  return prof;
+}
+/**
+ * A rounded plate standing across the car (z, y), bulging forward: an
+ * extruded rounded rectangle with a bevelled edge.  `s` the end it faces.
+ */
+function plate(z0, z1, y0, y1, { rTop = 0.12, rBot = 0.12, bevel = 0.08, depth = 0.02 } = {}, s = 1) {
+  const sh = new THREE.Shape();
+  const a0 = -z1 + bevel, a1 = -z0 - bevel, b0 = y0 + bevel, b1 = y1 - bevel;   // shrunk by the bevel, which grows it back
+  sh.moveTo(a0 + rBot, b0);
+  sh.lineTo(a1 - rBot, b0); sh.quadraticCurveTo(a1, b0, a1, b0 + rBot);
+  sh.lineTo(a1, b1 - rTop); sh.quadraticCurveTo(a1, b1, a1 - rTop, b1);
+  sh.lineTo(a0 + rTop, b1); sh.quadraticCurveTo(a0, b1, a0, b1 - rTop);
+  sh.lineTo(a0, b0 + rBot); sh.quadraticCurveTo(a0, b0, a0 + rBot, b0);
+  const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: bevel * 1.1, bevelSize: bevel, bevelSegments: 3, curveSegments: 6 });
+  g.rotateY(s > 0 ? Math.PI / 2 : -Math.PI / 2);      // the shape's +z (its face) toward the end
+  return g;
+}
+
+function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
+  const m = mats(T);
   const car = new THREE.Group();
   const P = {};
   const push = (k, geo, mx) => (P[k] ??= []).push({ geometry: geo, matrix: mx });
@@ -157,20 +284,41 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
     push(k, box(Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0)), trs((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, rx, ry, rz));
   const cabEnd = cab ? 1 : tail ? -1 : 0;
   const face = (sz) => (sz > 0 ? 0 : Math.PI);            // a plane on the side wall facing out
+  const art = T.skin === 'art';
+  const round = T.roof === 'round';
+  /** The outer skin: plain steel, or the painted side. */
+  const skin = (geo, mx, sz) => (art ? push('art', ...Object.values(mapped(geo, mx, sideUV(index % 2, sz)))) : push('steel', geo, mx));
+  const skinTop = round ? TOP - 0.12 : TOP - 0.12;
 
   /* ================================ the shell ================================ */
   // floor, and the underframe's edge under the skin
-  B('floor', -CAR_L / 2 + 0.06, CAR_L / 2 - 0.06, FLOOR - 0.1, FLOOR, -CAR_W / 2 + 0.06, CAR_W / 2 - 0.06);
-  B('steel', -CAR_L / 2, CAR_L / 2, FLOOR - 0.2, FLOOR, -CAR_W / 2, CAR_W / 2);
+  if (art) push('floor', ...Object.values(mapped(box(CAR_L - 0.12, 0.1, CAR_W - 0.12), trs(0, FLOOR - 0.05, 0),
+    regionUV(A.floor, -CAR_L / 2, CAR_L / 2, -CAR_W / 2, CAR_W / 2, (x, y, z) => [x, z]))));
+  else B('floor', -CAR_L / 2 + 0.06, CAR_L / 2 - 0.06, FLOOR - 0.1, FLOOR, -CAR_W / 2 + 0.06, CAR_W / 2 - 0.06);
+  for (const sz of [1, -1]) skin(box(CAR_L, 0.2, CAR_W / 2), trs(0, FLOOR - 0.1, sz * CAR_W / 4), sz);
   B('under', -BOGIE_X + 1.6, BOGIE_X - 1.6, FLOOR - 0.3, FLOOR - 0.2, -CAR_W / 2 + 0.25, CAR_W / 2 - 0.25);
-  // the roof: three shallow steps make its curve; gutters; the cornice
-  B('steel', -CAR_L / 2, CAR_L / 2, TOP - 0.12, TOP, -CAR_W / 2, CAR_W / 2);
-  B('roof', -CAR_L / 2 + 0.02, CAR_L / 2 - 0.02, TOP, TOP + 0.1, -CAR_W / 2 + 0.06, CAR_W / 2 - 0.06);
-  B('roof', -CAR_L / 2 + 0.05, CAR_L / 2 - 0.05, TOP + 0.1, TOP + 0.17, -CAR_W / 2 + 0.3, CAR_W / 2 - 0.3);
-  B('roof', -CAR_L / 2 + 0.08, CAR_L / 2 - 0.08, TOP + 0.17, ROOF, -CAR_W / 2 + 0.7, CAR_W / 2 - 0.7);
-  for (const s of [-1, 1]) B('rubber', -CAR_L / 2, CAR_L / 2, TOP - 0.02, TOP + 0.04, s * (CAR_W / 2 - 0.02) - 0.03, s * (CAR_W / 2 - 0.02) + 0.03);
+  if (round) {
+    // the roof: a quarter round each side, flat between (its ends cap the cab and the end wall)
+    const g = profileRun(roundRoof(), -CAR_L / 2, CAR_L / 2);
+    push('roof', g, IDENT.clone());
+    // the eaves strip where the skin meets the curve
+    for (const sz of [1, -1]) skin(box(CAR_L, 0.06, 0.06), trs(0, TOP - 0.13, sz * (CAR_W / 2 - 0.03)), sz);
+  } else {
+    // the roof: three shallow steps make its curve; gutters; the cornice
+    B('steel', -CAR_L / 2, CAR_L / 2, TOP - 0.12, TOP, -CAR_W / 2, CAR_W / 2);
+    B('roof', -CAR_L / 2 + 0.02, CAR_L / 2 - 0.02, TOP, TOP + 0.1, -CAR_W / 2 + 0.06, CAR_W / 2 - 0.06);
+    B('roof', -CAR_L / 2 + 0.05, CAR_L / 2 - 0.05, TOP + 0.1, TOP + 0.17, -CAR_W / 2 + 0.3, CAR_W / 2 - 0.3);
+    B('roof', -CAR_L / 2 + 0.08, CAR_L / 2 - 0.08, TOP + 0.17, ROOF, -CAR_W / 2 + 0.7, CAR_W / 2 - 0.7);
+    for (const s of [-1, 1]) B('rubber', -CAR_L / 2, CAR_L / 2, TOP - 0.02, TOP + 0.04, s * (CAR_W / 2 - 0.02) - 0.03, s * (CAR_W / 2 - 0.02) + 0.03);
+  }
   // the ceiling, its central duct, the two light strips
-  B('lining', -CAR_L / 2 + 0.1, CAR_L / 2 - 0.1, TOP - 0.16, TOP - 0.12, -CAR_W / 2 + 0.1, CAR_W / 2 - 0.1);
+  if (art) {
+    push('artLit', ...Object.values(mapped(new THREE.PlaneGeometry(CAR_L - 0.2, CAR_W - 0.2), trs(0, TOP - 0.16, 0, Math.PI / 2, 0, 0),
+      regionUV(A.ceiling, -CAR_L / 2, CAR_L / 2, -CAR_W / 2, CAR_W / 2, (x, y, z) => [x, z]))));
+    B('lining', -CAR_L / 2 + 0.1, CAR_L / 2 - 0.1, TOP - 0.155, TOP - 0.12, -CAR_W / 2 + 0.1, CAR_W / 2 - 0.1);
+  } else {
+    B('lining', -CAR_L / 2 + 0.1, CAR_L / 2 - 0.1, TOP - 0.16, TOP - 0.12, -CAR_W / 2 + 0.1, CAR_W / 2 - 0.1);
+  }
   B('lining', -CAR_L / 2 + 0.4, CAR_L / 2 - 0.4, TOP - 0.28, TOP - 0.16, -0.36, 0.36);
   const lights = [];
   for (const z of [-0.52, 0.52]) lights.push({ geometry: box(CAR_L - 1.4, 0.03, 0.16), matrix: trs(0, TOP - 0.19, z) });
@@ -181,19 +329,19 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
     const zSkin = sz * (CAR_W / 2 - 0.03), zLine = sz * (CAR_W / 2 - 0.1), zOut = sz * (CAR_W / 2 + 0.004);
     for (const c of cells) {
       const len = c.b - c.a, cx = (c.a + c.b) / 2;
-      const spans = c.kind === 'door' ? [[DOOR_TOP, TOP - 0.12]]
-        : c.kind === 'window' ? [[FLOOR, WIN_Y0], [WIN_Y1, TOP - 0.12]]
-          : [[FLOOR, TOP - 0.12]];
+      const spans = c.kind === 'door' ? [[DOOR_TOP, skinTop]]
+        : c.kind === 'window' ? [[FLOOR, WIN_Y0], [WIN_Y1, skinTop]]
+          : [[FLOOR, skinTop]];
       for (const [y0, y1] of spans) {
-        push('steel', box(len, y1 - y0, 0.06), trs(cx, (y0 + y1) / 2, zSkin));
+        skin(box(len, y1 - y0, 0.06), trs(cx, (y0 + y1) / 2, zSkin), sz);
         push('lining', box(len, y1 - y0, 0.04), trs(cx, (y0 + y1) / 2, zLine));
       }
       // the band, the pinstripe, the line over the windows, the beads
       if (c.kind !== 'door') {
-        for (const [k, [y0, y1]] of [['band', BAND], ['pink', PIN]]) push(k, box(len, y1 - y0, 0.012), trs(cx, (y0 + y1) / 2, zOut));
-        for (const y of BEADS) push('steelHi', box(len, 0.018, 0.01), trs(cx, y, zOut));
+        for (const [k, [y0, y1]] of T.stripes) push(k, box(len, y1 - y0, 0.012), trs(cx, (y0 + y1) / 2, zOut));
+        for (const y of T.beads ?? []) push('steelHi', box(len, 0.018, 0.01), trs(cx, y, zOut));
       }
-      push('band', box(len, TOPLINE[1] - TOPLINE[0], 0.012), trs(cx, (TOPLINE[0] + TOPLINE[1]) / 2, zOut));
+      if (T.topline) push(T.topline[0], box(len, T.topline[1][1] - T.topline[1][0], 0.012), trs(cx, (T.topline[1][0] + T.topline[1][1]) / 2, zOut));
       if (c.kind === 'window') {
         // black rubber round the glass, and the centre mullion of a wide bay
         for (const y of [WIN_Y0, WIN_Y1]) push('rubber', box(len, 0.05, 0.1), trs(cx, y, zSkin));
@@ -209,7 +357,7 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
         push('rubber', box(0.035, DOOR_TOP - FLOOR, 0.1), trs(d + e * DOOR_W / 2, (FLOOR + DOOR_TOP) / 2, zSkin));
         // the pocket's panel seam, only where it falls on solid skin (next to a window bay it cut through the glass)
         const sxm = d + e * (DOOR_W / 2 + 0.3);
-        if (cells.find((c) => sxm > c.a && sxm < c.b)?.kind === 'solid') push('rubber', box(0.012, TOP - 0.2 - FLOOR + 0.18, 0.01), trs(sxm, (FLOOR - 0.18 + TOP - 0.2) / 2, zOut));
+        if (!art && cells.find((c) => sxm > c.a && sxm < c.b)?.kind === 'solid') push('rubber', box(0.012, TOP - 0.2 - FLOOR + 0.18, 0.01), trs(sxm, (FLOOR - 0.18 + TOP - 0.2) / 2, zOut));
       }
       push('rubber', box(DOOR_W + 0.07, 0.04, 0.1), trs(d, DOOR_TOP, zSkin));
       push('steelHi', box(DOOR_W, 0.04, 0.2), trs(d, FLOOR + 0.02, sz * (CAR_W / 2 - 0.08)));
@@ -218,13 +366,14 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
     }
     // panel seams at the car's corners, and the car's number on the end panel
     // (below the window, past the last door's pocket: nothing sits where a leaf slides)
-    for (const e of [-1, 1]) push('rubber', box(0.014, TOP - FLOOR + 0.15, 0.01), trs(e * (CAR_L / 2 - 0.2), (FLOOR - 0.15 + TOP) / 2, zOut));
-    push('carNo', new THREE.PlaneGeometry(0.62, 0.12), trs(cabEnd ? -cabEnd * NUMBER_X : NUMBER_X, 1.58, zOut + sz * 0.004, 0, face(sz), 0));
+    if (!art) for (const e of [-1, 1]) push('rubber', box(0.014, TOP - FLOOR + 0.15, 0.01), trs(e * (CAR_L / 2 - 0.2), (FLOOR - 0.15 + TOP) / 2, zOut));
+    // (the painted car: at the top of the band, above the end panel's figure)
+    push('carNo', new THREE.PlaneGeometry(0.62, 0.12), trs(cabEnd ? -cabEnd * NUMBER_X : NUMBER_X, art ? 1.95 : 1.58, zOut + sz * 0.004, 0, face(sz), 0));
     // the side destination LED, over the window by door 2
     dests.push({ geometry: new THREE.PlaneGeometry(0.66, 0.165), matrix: trs(xOff - 4.7, 3.44, zOut + sz * 0.006, 0, face(sz), 0) });
     push('rubber', box(0.74, 0.22, 0.02), trs(-4.7, 3.44, zOut));
     // the second car is the 弱冷房車: its sticker on the end window's glass, by the last door
-    if (index % 2) push('weak', new THREE.PlaneGeometry(0.3, 0.1), trs(-cabEnd * 8.2, WIN_Y1 - 0.12, zSkin + sz * 0.004, 0, face(sz), 0));
+    if (index % 2 && !art) push('weak', new THREE.PlaneGeometry(0.3, 0.1), trs(-cabEnd * 8.2, WIN_Y1 - 0.12, zSkin + sz * 0.004, 0, face(sz), 0));
   }
   // the crew doors on a cab's sides (outlines, a handhold)
   if (cabEnd) {
@@ -239,33 +388,38 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
   /* ---- the door leaves: two per door, sliding into the pocket ----
    * Only the platform side (local -z) ever opens, and on it every left leaf
    * slides the same way, as does every right one: so a car has two sliding
-   * groups, each one vertex-coloured mesh and its glass.  The far side's
-   * leaves are plain parts of the body. */
+   * groups, each one mesh and its glass.  The far side's leaves are plain
+   * parts of the body.  Plain types paint the leaf's parts by vertex
+   * colour; the painted skin maps them onto the art page (the art rides
+   * with the leaf). */
   const leaves = { 1: [], [-1]: [] };
   const lw = DOOR_W / 2;
+  const HEX = { skin: T.steel, hi: T.steelHi, rubber: PLAIN.rubber, caution: PLAIN.yellow, band: T.band, pink: T.pink };
   const leafParts = (x, half, z, sz) => {
     const out = [];
-    const add = (hex, x0, x1, y0, y1, dz = 0, t = 0.018) => out.push({
-      geometry: painted(box(x1 - x0, y1 - y0, t), hex), matrix: trs((x0 + x1) / 2, (y0 + y1) / 2, z + sz * dz),
-    });
+    const add = (key, x0, x1, y0, y1, dz = 0, t = 0.018) => {
+      const g = box(x1 - x0, y1 - y0, t), mx = trs((x0 + x1) / 2, (y0 + y1) / 2, z + sz * dz);
+      if (art) out.push(mapped(g, mx, key === 'skin' ? sideUV(index % 2, sz) : swatchUV(SW[key] ?? SW.rubber)));
+      else out.push({ geometry: painted(g, HEX[key]), matrix: mx });
+    };
     const a = x - lw / 2, b = x + lw / 2;
     const wi0 = a + (half > 0 ? 0.1 : 0.14), wi1 = b - (half > 0 ? 0.14 : 0.1);
-    add(C.steel, a, b, FLOOR, DWIN[0]);
-    add(C.steel, a, b, DWIN[1], DOOR_TOP);
-    add(C.steel, a, wi0, DWIN[0], DWIN[1]);
-    add(C.steel, wi1, b, DWIN[0], DWIN[1]);
-    for (const [k, [y0, y1]] of [[C.band, BAND], [C.pink, PIN]]) add(k, a, b, y0, y1, 0.012, 0.008);
-    for (const y of BEADS) add(C.steelHi, a, b, y - 0.009, y + 0.009, 0.012, 0.006);
+    add('skin', a, b, FLOOR, DWIN[0]);
+    add('skin', a, b, DWIN[1], DOOR_TOP);
+    add('skin', a, wi0, DWIN[0], DWIN[1]);
+    add('skin', wi1, b, DWIN[0], DWIN[1]);
+    for (const [k, [y0, y1]] of T.stripes) add(k, a, b, y0, y1, 0.012, 0.008);
+    for (const y of T.beads ?? []) add('hi', a, b, y - 0.009, y + 0.009, 0.012, 0.006);
     // the rubber: the meeting edge, and round the window
     const meet = half > 0 ? a : b;
-    add(C.rubber, meet - 0.018, meet + 0.018, FLOOR, DOOR_TOP, 0.004, 0.03);
+    add('rubber', meet - 0.018, meet + 0.018, FLOOR, DOOR_TOP, 0.004, 0.03);
     // the door-caution sticker on the glass, low by the meeting edge: it rides with the leaf
     const sx = half > 0 ? wi0 + 0.03 : wi1 - 0.03;
-    add(C.yellow, Math.min(sx, sx + half * 0.17), Math.max(sx, sx + half * 0.17), DWIN[0] + 0.04, DWIN[0] + 0.11, 0.012, 0.004);
-    add(C.rubber, wi0 - 0.02, wi1 + 0.02, DWIN[0] - 0.02, DWIN[0] + 0.01, 0.01, 0.01);
-    add(C.rubber, wi0 - 0.02, wi1 + 0.02, DWIN[1] - 0.01, DWIN[1] + 0.02, 0.01, 0.01);
-    add(C.rubber, wi0 - 0.02, wi0 + 0.01, DWIN[0], DWIN[1], 0.01, 0.01);
-    add(C.rubber, wi1 - 0.01, wi1 + 0.02, DWIN[0], DWIN[1], 0.01, 0.01);
+    add('caution', Math.min(sx, sx + half * 0.17), Math.max(sx, sx + half * 0.17), DWIN[0] + 0.04, DWIN[0] + 0.11, 0.012, 0.004);
+    add('rubber', wi0 - 0.02, wi1 + 0.02, DWIN[0] - 0.02, DWIN[0] + 0.01, 0.01, 0.01);
+    add('rubber', wi0 - 0.02, wi1 + 0.02, DWIN[1] - 0.01, DWIN[1] + 0.02, 0.01, 0.01);
+    add('rubber', wi0 - 0.02, wi0 + 0.01, DWIN[0], DWIN[1], 0.01, 0.01);
+    add('rubber', wi1 - 0.01, wi1 + 0.02, DWIN[0], DWIN[1], 0.01, 0.01);
     const pane = { geometry: new THREE.PlaneGeometry(wi1 - wi0, DWIN[1] - DWIN[0]), matrix: trs((wi0 + wi1) / 2, (DWIN[0] + DWIN[1]) / 2, z, 0, face(sz), 0) };
     return { out, pane };
   };
@@ -303,10 +457,10 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
       const len = b - a, cx = (a + b) / 2;
       const pri = cabEnd ? (i === (cabEnd > 0 ? runs.length - 1 : 0)) : (i === 0 || i === runs.length - 1);
       const seat = pri ? 'seatPri' : 'seat';
-      // the base, the cushion, the back
+      // the base, the cushion, the back (the Pokémon car: yellow cushions, brown backs)
       push('seatBase', box(len, 0.3, SEAT_D - 0.08), trs(cx, FLOOR + 0.15, zw - sz * (SEAT_D / 2 + 0.02)));
       push(seat, box(len, 0.12, SEAT_D), trs(cx, SEAT_TOP - 0.06, zw - sz * SEAT_D / 2));
-      push(seat, box(len, 0.5, 0.1), trs(cx, SEAT_TOP + 0.3, zw - sz * 0.07, sz * 0.1, 0, 0));
+      push(art && !pri ? 'seatPri' : seat, box(len, 0.5, 0.1), trs(cx, SEAT_TOP + 0.3, zw - sz * 0.07, sz * 0.1, 0, 0));
       // seat dividers: a seam every 0.46 m
       for (let x = a + 0.46; x < b - 0.2; x += 0.46) push('seatBase', box(0.02, 0.02, SEAT_D - 0.04), trs(x, SEAT_TOP + 0.005, zw - sz * SEAT_D / 2));
       // the luggage rack and its brackets
@@ -317,6 +471,8 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
         const nearDoor = DOORS.some((d) => Math.abs(x - (d - e * (DOOR_W / 2 + 0.12))) < 0.02);
         if (!nearDoor) continue;
         push('lining', box(0.04, 1.62, SEAT_D + 0.04), trs(x + e * 0.02, FLOOR + 0.86, zw - sz * (SEAT_D / 2 + 0.02)));
+        // the JR car's partitions are glazed above the seat back
+        if (T.cab === 'e233') push('glass', new THREE.PlaneGeometry(SEAT_D + 0.2, 0.55), trs(x + e * 0.02, FLOOR + 1.4, zw - sz * (SEAT_D / 2 + 0.02), 0, Math.PI / 2, 0));
         push('pole', new THREE.CylinderGeometry(0.018, 0.018, TOP - 0.2 - FLOOR, 6), trs(x + e * 0.02, (FLOOR + TOP - 0.2) / 2, zw - sz * (SEAT_D + 0.06)));
       }
       // a pole through the middle of a seven-seat run (3 + 4)
@@ -362,11 +518,14 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
     if (s === cabEnd) continue;
     const x = s * (CAR_L / 2 - 0.04), xi = s * (CAR_L / 2 - 0.1);
     const GW = 0.45, GH = FLOOR + 1.95;
+    const endSkin = (x0, x1, y0, y1, z0, z1) => (art
+      ? push('art', ...Object.values(mapped(box(Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0)), trs((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), swatchUV(SW.skin))))
+      : B('steel', x0, x1, y0, y1, z0, z1));
     for (const e of [-1, 1]) {
-      B('steel', x - 0.04, x + 0.04, FLOOR - 0.2, TOP, e * GW, e * CAR_W / 2);
+      endSkin(x - 0.04, x + 0.04, FLOOR - 0.2, TOP, e * GW, e * CAR_W / 2);
       B('lining', xi - 0.02, xi + 0.02, FLOOR, TOP - 0.12, e * GW, e * (CAR_W / 2 - 0.1));
     }
-    B('steel', x - 0.04, x + 0.04, GH, TOP, -GW, GW);
+    endSkin(x - 0.04, x + 0.04, GH, TOP, -GW, GW);
     B('lining', xi - 0.02, xi + 0.02, GH, TOP - 0.12, -GW, GW);
     B('rubber', xi - 0.03, xi + 0.03, FLOOR, GH, -GW - 0.03, -GW);
     B('rubber', xi - 0.03, xi + 0.03, FLOOR, GH, GW, GW + 0.03);
@@ -390,36 +549,92 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
   if (cabEnd) {
     const s = cabEnd, fx = s * (CAR_L / 2);
     const ry = s > 0 ? Math.PI / 2 : -Math.PI / 2;
-    // the silver end below the mask, the band and pinstripe wrapping round
-    B('steel', fx - s * 0.08, fx, FLOOR - 0.2, 2.0, -CAR_W / 2, CAR_W / 2);
-    B('band', fx - s * 0.02, fx + s * 0.012, 1.72, 2.0, -CAR_W / 2 - 0.004, CAR_W / 2 + 0.004);
-    B('pink', fx - s * 0.02, fx + s * 0.012, 1.66, 1.72, -CAR_W / 2 - 0.004, CAR_W / 2 + 0.004);
-    for (const y of BEADS) B('steelHi', fx, fx + s * 0.01, y - 0.009, y + 0.009, -CAR_W / 2 + 0.1, CAR_W / 2 - 0.1);
-    // the emergency door in the middle of the front: its seams down the silver, a handle
-    for (const e of [-1, 1]) B('rubber', fx + s * 0.005, fx + s * 0.015, FLOOR - 0.1, 2.0, e * 0.5 - 0.008, e * 0.5 + 0.008);
-    B('rubber', fx + s * 0.012, fx + s * 0.03, 1.1, 1.18, 0.3, 0.42);
-    // the black mask with the silver pillars at its corners, a rain gutter over the glass
-    B('rubber', fx - s * 0.08, fx + s * 0.02, 2.0, TOP, -CAR_W / 2 + 0.1, CAR_W / 2 - 0.1);
-    for (const e of [-1, 1]) B('steel', fx - s * 0.08, fx + s * 0.03, 2.0, TOP, e * (CAR_W / 2 - 0.1), e * CAR_W / 2);
-    B('steelHi', fx + s * 0.02, fx + s * 0.05, TOP - 0.06, TOP - 0.02, -CAR_W / 2 + 0.12, CAR_W / 2 - 0.12);
-    // the windscreen, two big panes, a glint on each
-    for (const [z0, z1] of [[-1.24, -0.05], [0.05, 1.24]]) {
-      push('cabGlass', new THREE.PlaneGeometry(z1 - z0, 0.98), trs(fx + s * 0.025, 2.82, (z0 + z1) / 2, 0, ry, 0));
-      push('glint', new THREE.PlaneGeometry(0.22, 0.9), trs(fx + s * 0.03, 2.82, z0 + (z1 - z0) * 0.3, 0, ry, 0.26));
-      // a wiper, parked
-      push('rubber', box(0.02, 0.62, 0.03), trs(fx + s * 0.035, 2.52, z0 + 0.2, s * 1.25, 0, 0));
-    }
-    // the destination LED and the run number, lit, in the mask
-    dests.push({ geometry: new THREE.PlaneGeometry(1.36, 0.34), matrix: trs(xOff + fx + s * 0.028, 3.5, 0, 0, ry, 0) });
-    push('runNo', new THREE.PlaneGeometry(0.36, 0.135), trs(fx + s * 0.028, 3.5, s > 0 ? -0.98 : 0.98, 0, ry, 0));
-    // head and tail lights in their housings, low on the corners
     lamps = [];
-    for (const e of [-1, 1]) {
-      B('rubber', fx - s * 0.02, fx + s * 0.06, 1.26, 1.6, e * 0.72, e * 1.3);
-      for (const [dz, r, kind] of [[1.14, 0.1, 'head'], [0.86, 0.075, 'tail']]) {
-        const g = new THREE.CircleGeometry(r, 16);
-        lamps.push({ kind, geometry: g, matrix: trs(fx + s * 0.065, 1.43, e * dz, 0, ry, 0) });
-        push('steelHi', new THREE.RingGeometry(r, r + 0.025, 16), trs(fx + s * 0.064, 1.43, e * dz, 0, ry, 0));
+    const lamp = (kind, r, y, z, x) => {
+      lamps.push({ kind, geometry: new THREE.CircleGeometry(r, 16), matrix: trs(x, y, z, 0, ry, 0) });
+      push('steelHi', new THREE.RingGeometry(r, r + 0.022, 16), trs(x - s * 0.001, y, z, 0, ry, 0));
+    };
+    if (T.cab === 'box') {
+      // the silver end below the mask, the band and pinstripe wrapping round
+      B('steel', fx - s * 0.08, fx, FLOOR - 0.2, 2.0, -CAR_W / 2, CAR_W / 2);
+      B('band', fx - s * 0.02, fx + s * 0.012, 1.72, 2.0, -CAR_W / 2 - 0.004, CAR_W / 2 + 0.004);
+      B('pink', fx - s * 0.02, fx + s * 0.012, 1.66, 1.72, -CAR_W / 2 - 0.004, CAR_W / 2 + 0.004);
+      for (const y of T.beads) B('steelHi', fx, fx + s * 0.01, y - 0.009, y + 0.009, -CAR_W / 2 + 0.1, CAR_W / 2 - 0.1);
+      // the emergency door in the middle of the front: its seams down the silver, a handle
+      for (const e of [-1, 1]) B('rubber', fx + s * 0.005, fx + s * 0.015, FLOOR - 0.1, 2.0, e * 0.5 - 0.008, e * 0.5 + 0.008);
+      B('rubber', fx + s * 0.012, fx + s * 0.03, 1.1, 1.18, 0.3, 0.42);
+      // the black mask with the silver pillars at its corners, a rain gutter over the glass
+      B('rubber', fx - s * 0.08, fx + s * 0.02, 2.0, TOP, -CAR_W / 2 + 0.1, CAR_W / 2 - 0.1);
+      for (const e of [-1, 1]) B('steel', fx - s * 0.08, fx + s * 0.03, 2.0, TOP, e * (CAR_W / 2 - 0.1), e * CAR_W / 2);
+      B('steelHi', fx + s * 0.02, fx + s * 0.05, TOP - 0.06, TOP - 0.02, -CAR_W / 2 + 0.12, CAR_W / 2 - 0.12);
+      // the windscreen, two big panes, a glint on each
+      for (const [z0, z1] of [[-1.24, -0.05], [0.05, 1.24]]) {
+        push('cabGlass', new THREE.PlaneGeometry(z1 - z0, 0.98), trs(fx + s * 0.025, 2.82, (z0 + z1) / 2, 0, ry, 0));
+        push('glint', new THREE.PlaneGeometry(0.22, 0.9), trs(fx + s * 0.03, 2.82, z0 + (z1 - z0) * 0.3, 0, ry, 0.26));
+        // a wiper, parked
+        push('rubber', box(0.02, 0.62, 0.03), trs(fx + s * 0.035, 2.52, z0 + 0.2, s * 1.25, 0, 0));
+      }
+      // the destination LED and the run number, lit, in the mask
+      dests.push({ geometry: new THREE.PlaneGeometry(1.36, 0.34), matrix: trs(xOff + fx + s * 0.028, 3.5, 0, 0, ry, 0) });
+      push('runNo', new THREE.PlaneGeometry(0.36, 0.135), trs(fx + s * 0.028, 3.5, s > 0 ? -0.98 : 0.98, 0, ry, 0));
+      // head and tail lights in their housings, low on the corners
+      for (const e of [-1, 1]) {
+        B('rubber', fx - s * 0.02, fx + s * 0.06, 1.26, 1.6, e * 0.72, e * 1.3);
+        lamp('head', 0.1, 1.43, e * 1.14, fx + s * 0.065);
+        lamp('tail', 0.075, 1.43, e * 0.86, fx + s * 0.065);
+      }
+    } else if (T.cab === 'e233') {
+      /* The E233 face: a white FRP nose with the orange band across it, the
+       * black glazed mask over it bulging forward with rounded top corners,
+       * the head and tail lights high in the mask's corners, the LED
+       * destination over the middle pane, the emergency door's pane between
+       * the two big ones. */
+      const noseD = 0.09, maskD = 0.11;
+      push('front', plate(-CAR_W / 2 + 0.05, CAR_W / 2 - 0.05, FLOOR - 0.2, 2.1, { rTop: 0.05, rBot: 0.16, bevel: noseD - 0.02 }, s), trs(fx - s * 0.03, 0, 0));
+      const nf = fx + s * (noseD + 0.008);          // the nose's face
+      push('band', new THREE.PlaneGeometry(CAR_W - 0.36, 0.5), trs(nf, 1.75, 0, 0, ry, 0));
+      for (const e of [-1, 1]) push('rubber', new THREE.PlaneGeometry(0.012, 1.15), trs(nf + s * 0.002, 1.5, e * 0.44, 0, ry, 0));   // the door's seams
+      push('rubber', new THREE.PlaneGeometry(0.1, 0.05), trs(nf + s * 0.003, 1.28, 0.34, 0, ry, 0));
+      push('rubber', plate(-CAR_W / 2 + 0.07, CAR_W / 2 - 0.07, 2.1, TOP + 0.08, { rTop: 0.42, rBot: 0.06, bevel: maskD - 0.03 }, s), trs(fx - s * 0.03, 0, 0));
+      const mf = fx + s * (maskD + 0.006);          // the mask's face
+      // the windscreen: two big panes and the door's narrow one, a glint on each big one
+      for (const [z0, z1] of [[-1.22, -0.3], [-0.2, 0.2], [0.3, 1.22]]) {
+        push('cabGlass', new THREE.PlaneGeometry(z1 - z0, 1.0), trs(mf, 2.78, (z0 + z1) / 2, 0, ry, 0));
+        if (z1 - z0 > 0.5) {
+          push('glint', new THREE.PlaneGeometry(0.2, 0.92), trs(mf + s * 0.004, 2.78, z0 + (z1 - z0) * 0.3, 0, ry, 0.26));
+          push('rubber', box(0.02, 0.64, 0.03), trs(mf + s * 0.01, 2.48, z0 + 0.18, s * 1.25, 0, 0));    // a wiper
+        }
+      }
+      // the LED destination over the middle, the run number beside it, the lights in the corners
+      dests.push({ geometry: new THREE.PlaneGeometry(1.24, 0.31), matrix: trs(xOff + mf + s * 0.002, 3.5, 0, 0, ry, 0) });
+      push('runNo', new THREE.PlaneGeometry(0.3, 0.115), trs(mf + s * 0.002, 3.5, s > 0 ? -0.8 : 0.8, 0, ry, 0));
+      for (const e of [-1, 1]) {
+        lamp('head', 0.08, 3.48, e * 1.1, mf + s * 0.004);
+        lamp('tail', 0.048, 3.48, e * 1.245, mf + s * 0.004);
+      }
+      // the rounded corner pillars where the mask meets the sides
+      for (const e of [-1, 1]) push('steelHi', new THREE.CylinderGeometry(0.05, 0.05, TOP - 2.1 + 0.08, 8), trs(fx - s * 0.02, (TOP + 2.18) / 2, e * (CAR_W / 2 - 0.06)));
+    } else {
+      /* The railcar's face: Pikachu's face across the yellow nose (the art
+       * page's front panel), the cab band above it with two big panes, the
+       * headlights either side of the LED over them, tail lights low. */
+      const noseD = 0.09;
+      push('art', ...Object.values(mapped(plate(-CAR_W / 2 + 0.05, CAR_W / 2 - 0.05, FLOOR - 0.2, 2.12, { rTop: 0.06, rBot: 0.16, bevel: noseD - 0.02 }, s), trs(fx - s * 0.03, 0, 0),
+        regionUV(A.front, -CAR_W / 2, CAR_W / 2, FLOOR - 0.2, 2.12, (x, y, z) => [-s * z, y]))));
+      push('front', plate(-CAR_W / 2 + 0.07, CAR_W / 2 - 0.07, 2.12, TOP + 0.08, { rTop: 0.4, rBot: 0.06, bevel: noseD - 0.02 }, s), trs(fx - s * 0.03, 0, 0));
+      const mf = fx + s * (noseD + 0.006);
+      for (const [z0, z1] of [[-1.2, -0.16], [0.16, 1.2]]) {
+        push('rubber', new THREE.PlaneGeometry(z1 - z0 + 0.08, 1.06), trs(mf, 2.72, (z0 + z1) / 2, 0, ry, 0));
+        push('cabGlass', new THREE.PlaneGeometry(z1 - z0, 0.98), trs(mf + s * 0.003, 2.72, (z0 + z1) / 2, 0, ry, 0));
+        push('glint', new THREE.PlaneGeometry(0.2, 0.9), trs(mf + s * 0.006, 2.72, z0 + (z1 - z0) * 0.3, 0, ry, 0.26));
+        push('rubber', box(0.02, 0.62, 0.03), trs(mf + s * 0.012, 2.42, z0 + 0.2, s * 1.25, 0, 0));
+      }
+      push('rubber', new THREE.PlaneGeometry(1.3, 0.36), trs(mf, 3.5, 0, 0, ry, 0));
+      dests.push({ geometry: new THREE.PlaneGeometry(1.24, 0.31), matrix: trs(xOff + mf + s * 0.003, 3.5, 0, 0, ry, 0) });
+      for (const e of [-1, 1]) {
+        push('rubber', new THREE.CircleGeometry(0.15, 16), trs(mf + s * 0.001, 3.5, e * 0.92, 0, ry, 0));
+        lamp('head', 0.1, 3.5, e * 0.92, mf + s * 0.004);
+        lamp('tail', 0.06, 1.3, e * 1.18, fx + s * (noseD + 0.012));
       }
     }
     // handrails at the corners, and below them the step
@@ -452,29 +667,33 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
 
   /* ================================ the roof ================================ */
   // the air-conditioner, one big unit mid-car, its grille and two fans
-  B('gear', -1.8, 1.8, ROOF, ROOF + 0.32, -0.95, 0.95);
-  for (let x = -1.6; x <= 1.6; x += 0.2) B('under', x - 0.02, x + 0.02, ROOF + 0.32, ROOF + 0.325, -0.9, -0.2);
+  const acL = T.cab === 'e233' ? 2.2 : 1.8, acW = T.cab === 'e233' ? 1.05 : 0.95;
+  B('gear', -acL, acL, ROOF, ROOF + 0.32, -acW, acW);
+  for (let x = -acL + 0.2; x <= acL - 0.2; x += 0.2) B('under', x - 0.02, x + 0.02, ROOF + 0.32, ROOF + 0.325, -acW + 0.05, -0.2);
   for (const x of [-0.8, 0.8]) push('under', new THREE.CylinderGeometry(0.34, 0.34, 0.02, 16), trs(x, ROOF + 0.33, 0.45));
   for (const x of [-7.0, 7.0]) B('gear', x - 0.4, x + 0.4, ROOF, ROOF + 0.12, -0.5, 0.5);
+  if (T.dmu) {
+    // the railcar: its exhaust stack and radiator on the roof
+    push('under', new THREE.CylinderGeometry(0.14, 0.14, 0.5, 10), trs(-4.6, ROOF + 0.2, 0.55));
+    B('under', -4.75, -4.45, ROOF + 0.44, ROOF + 0.5, 0.35, 0.75);
+    B('gear', -6.2, -4.9, ROOF, ROOF + 0.22, -0.7, 0.7);
+    for (let x = -6.1; x < -4.95; x += 0.12) B('under', x - 0.015, x + 0.015, ROOF + 0.22, ROOF + 0.225, -0.6, 0.6);
+  }
   // the pantograph: a single arm, on the motor car
-  if (tail) {
+  if (tail && T.panto) {
     const px = 5.2, py = ROOF + 0.05;
     B('under', px - 0.7, px + 0.7, py, py + 0.08, -0.55, 0.55);
     for (const dx of [-0.55, 0.55]) for (const dz of [-0.45, 0.45]) push('insul', new THREE.CylinderGeometry(0.05, 0.06, 0.14, 8), trs(px + dx, py + 0.15, dz));
     B('metal', px - 0.8, px + 0.8, py + 0.22, py + 0.28, -0.5, 0.5);
     const top = CONTACT_Y - 0.02;
     const hinge = [px - 0.65, py + 0.32], knee = [px + 0.62, py + 0.62], head = [px - 0.05, top - 0.08];
-    const arm = (a, b, r) => {
-      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-      push('metal', new THREE.CylinderGeometry(r, r, len, 6), trs((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 0, 0, 0, Math.atan2(b[1] - a[1], b[0] - a[0]) - Math.PI / 2));
-    };
-    const arm2 = (a, b, r, dz) => {
+    const arm2 = (a, b, r, dz = 0) => {
       const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
       push('metal', new THREE.CylinderGeometry(r, r, len, 6), trs((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, dz, 0, 0, Math.atan2(b[1] - a[1], b[0] - a[0]) - Math.PI / 2));
     };
     for (const dz of [-0.2, 0.2]) arm2(hinge, knee, 0.04, dz);
-    arm(knee, head, 0.028);
-    arm([hinge[0] + 0.2, hinge[1]], [knee[0] - 0.2, knee[1] - 0.05], 0.012);          // the damper
+    arm2(knee, head, 0.028);
+    arm2([hinge[0] + 0.2, hinge[1]], [knee[0] - 0.2, knee[1] - 0.05], 0.012);          // the damper
     B('metal', head[0] - 0.05, head[0] + 0.05, head[1] - 0.02, head[1] + 0.03, -0.55, 0.55);
     for (const dx of [-0.13, 0.13]) {
       B('metal', head[0] + dx - 0.035, head[0] + dx + 0.035, top - 0.04, top, -0.62, 0.62);
@@ -486,9 +705,11 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
 
   /* ================================ underneath ================================ */
   // the boxes between the bogies: a different set on each car
-  const kit = index % 2
-    ? [[-4.8, -2.2, 0.55, 'L'], [-1.9, 0.6, 0.62, 'R'], [1.0, 2.6, 0.5, 'L'], [3.0, 4.6, 0.45, 'R']]      // the motor car: inverter, reactor
-    : [[-4.6, -3.0, 0.45, 'L'], [-2.6, -0.4, 0.55, 'R'], [0.2, 2.2, 0.48, 'L'], [2.8, 4.6, 0.4, 'R']];     // the trailer: SIV, compressor, battery
+  const kit = T.dmu
+    ? [[-4.4, -1.0, 0.7, 'L'], [-4.4, -1.0, 0.7, 'R'], [0.2, 2.6, 0.55, 'L'], [1.0, 3.2, 0.5, 'R'], [3.6, 4.7, 0.45, 'L']]     // the engine, the transmission, the fuel tank
+    : index % 2
+      ? [[-4.8, -2.2, 0.55, 'L'], [-1.9, 0.6, 0.62, 'R'], [1.0, 2.6, 0.5, 'L'], [3.0, 4.6, 0.45, 'R']]      // the motor car: inverter, reactor
+      : [[-4.6, -3.0, 0.45, 'L'], [-2.6, -0.4, 0.55, 'R'], [0.2, 2.2, 0.48, 'L'], [2.8, 4.6, 0.4, 'R']];     // the trailer: SIV, compressor, battery
   for (const [x0, x1, depth, side] of kit) {
     const z0 = side === 'L' ? -1.2 : 0.05, z1 = side === 'L' ? -0.05 : 1.2;
     B('under', x0, x1, FLOOR - 0.3 - depth * 0.7, FLOOR - 0.3, z0, z1);
@@ -515,18 +736,19 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
     }
     B('bogie', bx - 0.2, bx + 0.2, 0.56, 0.74, -0.92, 0.92);
     for (const wx of [-1.05, 1.05]) push('bogie', new THREE.CylinderGeometry(0.07, 0.07, 1.4, 8), trs(bx + wx, WY, 0, Math.PI / 2, 0, 0));
-    if (index % 2) for (const wx of [-0.55, 0.55]) push('under', new THREE.CylinderGeometry(0.2, 0.2, 0.9, 12), trs(bx + wx * 0.8, 0.62, 0, Math.PI / 2, 0, 0));   // traction motors
+    if (index % 2 && !T.dmu) for (const wx of [-0.55, 0.55]) push('under', new THREE.CylinderGeometry(0.2, 0.2, 0.9, 12), trs(bx + wx * 0.8, 0.62, 0, Math.PI / 2, 0, 0));   // traction motors
   }
 
   /* ---- bake ---- */
   const matFor = {
-    steel: m.steel, steelHi: m.steelHi, band: m.band, pink: m.pink, rubber: m.rubber, roof: m.roof, gear: m.gear,
+    steel: m.steel, steelHi: m.steelHi, band: m.band, pink: m.pink, front: m.front, art: m.art, artLit: m.artLit,
+    rubber: m.rubber, roof: m.roof, gear: m.gear,
     under: m.under, bellows: m.bellows, bogie: m.bogie, spring: m.spring, wheel: m.wheel, insul: m.insul, yellow: m.yellow, console: m.console,
     metal: m.gear, panel: m.lining, floor: m.floor, lining: m.lining, seat: m.seat, seatPri: m.seatPri, seatBase: m.seatBase, pole: m.pole,
     glass: m.glass, glint: m.glint, cabGlass: m.cabGlass, lcd: m.lcd, ads: m.ads, runNo: m.runNo, carNo: m.carNo[index % 2],
     priority: m.priority, weak: m.weak, doorStatic: m.door,
   };
-  const inside = new Set(['lining', 'panel', 'floor', 'seat', 'seatPri', 'seatBase', 'pole', 'lcd', 'ads', 'priority', 'yellow', 'console']);
+  const inside = new Set(['lining', 'panel', 'floor', 'seat', 'seatPri', 'seatBase', 'pole', 'lcd', 'ads', 'priority', 'yellow', 'console', 'artLit']);
   const see = new Set(['glass', 'glint', 'cabGlass', 'lcd', 'ads', 'runNo', 'carNo', 'priority', 'weak']);
   for (const [k, list] of Object.entries(P)) {
     const mesh = new THREE.Mesh(bake(list), matFor[k]);
@@ -534,7 +756,7 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
     mesh.receiveShadow = !see.has(k);
     if (inside.has(k) || see.has(k)) mesh.userData.noOutline = true;
     car.add(mesh);
-    if (k === 'roof' || k === 'steel') hullOutline(mesh, { thickness: 0.003 });
+    if (k === 'roof' || k === 'steel' || k === 'art' || k === 'front') hullOutline(mesh, { thickness: 0.003 });
   }
   const lit = new THREE.Mesh(bake(lights), m.light);
   lit.userData.noOutline = true;
@@ -550,28 +772,33 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
   return { car, leaves };
 }
 
+/** Where the cars stand along a set: [{ x, cab }] (the cab car leads, at +x). Same for every type. */
+export function carLayout(cars = 2) {
+  return Array.from({ length: cars }, (_, i) => ({ x: ((cars - 1) / 2 - i) * PITCH, cab: i === 0 ? 1 : i === cars - 1 ? -1 : 0 }));
+}
+
 /**
- * The two-car set.  Returns the group and its moving parts; line/service.js
- * places it and decides what it does.
+ * A two-car set of one type.  Returns the group and its moving parts;
+ * line/index.js's fleet swaps sets in and out, line/service.js places the
+ * one in service and decides what it does.
  */
-export function buildEmu(ctx, { cars = 2, seed = 2104 } = {}) {
-  const m = mats();
+export function buildEmu(ctx, { cars = 2, seed = 2104, type = 'box' } = {}) {
+  const T = TYPES[type] ?? TYPES.box;
+  const m = mats(T);
   const group = new THREE.Group();
-  group.name = 'train';
+  group.name = 'train-' + T.id;
   group.userData.seed = seed;
   ctx.add(group);
   const leaves = { 1: [], [-1]: [] };
   const dests = [], straps = [];
-  const carX = [];
-  for (let i = 0; i < cars; i++) {
-    const xOff = ((cars - 1) / 2 - i) * PITCH;       // the cab car leads, at +x
-    const c = buildCar({ cab: i === 0, tail: i === cars - 1, index: i, dests, straps, xOff });
+  const carX = carLayout(cars);
+  carX.forEach(({ x: xOff }, i) => {
+    const c = buildCar(T, { cab: i === 0, tail: i === cars - 1, index: i, dests, straps, xOff });
     c.car.position.x = xOff;
     group.add(c.car);
-    carX.push({ x: xOff, cab: i === 0 ? 1 : i === cars - 1 ? -1 : 0 });
     leaves[1].push(...c.leaves[1]);
     leaves[-1].push(...c.leaves[-1]);
-  }
+  });
   // batch the car bodies inside the set; the doors, the LEDs and the straps move or change
   mergeStatic(group);
   group.userData.dynamic = true;
@@ -613,6 +840,7 @@ export function buildEmu(ctx, { cars = 2, seed = 2104 } = {}) {
   let doorT = 0, swayT = 0, lastV = 0, accel = 0, lean = 0;
   return {
     group,
+    type: T.id,
     length: PITCH * cars,
     carX,
     /** 0 shut .. 1 open, on the platform side (local -z) */
@@ -624,7 +852,7 @@ export function buildEmu(ctx, { cars = 2, seed = 2104 } = {}) {
     get doors() { return doorT; },
     /** 0 by day .. 1 at night: the interior lights up. */
     setNight(k) {
-      for (const mm of mats().interior) mm.emissiveIntensity = 0.62 * k;
+      for (const mm of m.interior) mm.emissiveIntensity = 0.62 * k;
     },
     setDest(dir) {
       destMat.map = destTex(dir);
@@ -646,5 +874,68 @@ export function buildEmu(ctx, { cars = 2, seed = 2104 } = {}) {
       const amp = 0.015 + Math.min(1, v / 22) * 0.05;
       placeStraps(swayT, lean, amp);
     },
+  };
+}
+
+/**
+ * The fleet: one slot per track, each showing whichever type its run
+ * needs.  A type's set is built the first time it is called for and kept
+ * (hidden it draws nothing); only the sets in service are visible.  The
+ * slot forwards the set's API, so the service and the station see one
+ * train per track whatever its type.
+ */
+export function makeFleet(ctx, { slots = 2, cars = 2 } = {}) {
+  const built = new Map();          // type -> set
+  const claimed = new Map();        // type -> slot index holding it
+  const get = (type) => {
+    if (!built.has(type)) built.set(type, buildEmu(ctx, { cars, type, seed: 2104 + built.size * 127 }));
+    return built.get(type);
+  };
+  let night = 0;
+  const slotList = Array.from({ length: slots }, (_, i) => {
+    let cur = null, key = null;
+    const slot = {
+      index: i,
+      length: PITCH * cars,
+      carX: carLayout(cars),
+      /** The set on show, or null while the slot has never run. */
+      get group() { return cur?.group ?? null; },
+      get type() { return cur?.type ?? null; },
+      /** Show `type` in this slot (built on first use); the previous set goes dark. */
+      use(type) {
+        if (!TYPES[type]) type = 'box';
+        if (cur?.type === type) return cur;
+        let want = type;
+        const other = claimed.get(type);
+        if (other !== undefined && other !== i) {
+          // the other slot still holds this type (a one-type rotation): a second set of it
+          want = `${type}#${i}`;
+          if (!built.has(want)) built.set(want, buildEmu(ctx, { cars, type, seed: 2300 + i }));
+        }
+        if (cur) { cur.group.visible = false; claimed.delete(key); }
+        cur = get(want); key = want;
+        claimed.set(key, i);
+        cur.group.visible = true;
+        cur.setNight(night);
+        cur.setDoors(0);
+        return cur;
+      },
+      setDoors(t) { cur?.setDoors(t); },
+      get doors() { return cur?.doors ?? 0; },
+      setDest(dir) { cur?.setDest(dir); },
+      spin() {},
+      animate(dt, v, near) { cur?.animate(dt, v, near); },
+      setNight(k) { night = k; for (const s of built.values()) s.setNight(k); },
+    };
+    return slot;
+  });
+  return {
+    slots: slotList,
+    types: Object.keys(TYPES),
+    /** Build these types now (at load), so no run's first appearance costs a frame (~60 ms a type). */
+    prime(types) { for (const t of types) if (TYPES[t]) get(t).group.visible = false; },
+    setNight(k) { night = k; for (const s of built.values()) s.setNight(k); },
+    /** Dev: what is built and what each slot shows. */
+    get state() { return { built: [...built.keys()], showing: slotList.map((s) => s.type) }; },
   };
 }

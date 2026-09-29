@@ -361,7 +361,7 @@ try {
   }, (r) => r.seated && r.standing && r.toasts.every(english));
 
   /* ---- one experience must not break another ---- */
-  // a famous-view key while seated: it only stands you up (the player's rule)
+  // seated (Tan): the mouse looks around, 1 2 3 only change the light, a walking key stands you up
   await step('40-seated-key', async () => {
     const { player } = window.__scene;
     const s = window.__spotOf('slowlife');
@@ -369,10 +369,17 @@ try {
     await window.__wait(300);
     window.__press('KeyE');
     await window.__wait(2000);
+    const yaw0 = player.yaw;
+    document.dispatchEvent(new MouseEvent('mousemove', { movementX: -300, movementY: 0 }));
+    await window.__wait(300);
+    const looked = +(player.yaw - yaw0).toFixed(2);
     window.__press('Digit1');
+    await window.__wait(1200);
+    const stillSeated = !!player.seat;
+    window.__press('ArrowUp');
     await window.__wait(1800);
-    return { seat: !!player.seat, at: [+player.pos.x.toFixed(1), +player.pos.z.toFixed(1)], d: +Math.hypot(player.pos.x - s.x, player.pos.z - s.z).toFixed(1) };
-  }, (r) => !r.seat && r.d < 4);
+    return { looked, stillSeated, seat: !!player.seat, d: +Math.hypot(player.pos.x - s.x, player.pos.z - s.z).toFixed(1) };
+  }, (r) => Math.abs(r.looked) > 0.3 && r.stillSeated && !r.seat && r.d < 4);
   // Han's show, then straight into the store: nothing of his keeps going
   await step('42-han-then-store', async () => {
     const { sound } = window.__scene;

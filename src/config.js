@@ -522,6 +522,9 @@ export const SHOT_SPOTS = [
   { name: 'qp-teahouse-back', scene: 'town', pos: [63, 0, 91.5], yaw: 3.1416, pitch: 0.06, looks: ['day'] },           // from the paddies' path
   { name: 'land-rail', scene: 'town', pos: [4, 0, -9.3], yaw: 0.15, pitch: -0.32, looks: ['day'] },
   { name: 'close-land-stairs', scene: 'town', pos: [0.4, 0, -9.2], yaw: 0, pitch: -0.42, looks: ['day'] },
+  // up the river stairs from the lower walk at golden hour (Tan: "it pixelates and acts up"); a and b half a metre apart show the shimmer
+  { name: 'qa-stairs-a', scene: 'town', pos: [0.6, 0, -14.2], yaw: 3.1416, pitch: 0.12, looks: ['golden'] },
+  { name: 'qa-stairs-b', scene: 'town', pos: [1.1, 0, -14.2], yaw: 3.1416, pitch: 0.12, looks: ['golden'] },
   { name: 'close-land-stones', scene: 'town', pos: [0.3, 0, -13.8], yaw: -0.08, pitch: -0.22, looks: ['day'] },
   { name: 'land-walk', scene: 'town', pos: [-20, 0, -13.6], yaw: -1.5708, pitch: 0.0, looks: ['day', 'golden'] },
   { name: 'close-land-under-bridge', scene: 'town', pos: [21, 0, -13.6], yaw: -1.5708, pitch: 0.04, looks: ['day'] },

@@ -19,6 +19,8 @@ const RADIUS = 0.34;
 const STEP = 0.38;
 /** The walking keys: the arrows (shown), WASD (still works, not shown); Space pauses. */
 const MOVE_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space']);
+/* seated, only a walking key stands you up (Tan: the mouse looks around; the arrows get you up) */
+const STAND_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD']);
 
 export class Player {
   constructor(camera, domElement, world, opts = {}) {
@@ -63,10 +65,12 @@ export class Player {
     const onMove = (e) => {
       if (!this.locked || this.suspended) return;     // suspended: the full map is open
       if (this.seat) {
-        // seated, the view is held; a deliberate move (once settled) stands you up
+        // seated (once settled), the mouse looks around from the bench: a wide
+        // turn either way, up and down; standing is the walking keys' job
         if (this.seat.dir > 0 && this.seat.k > 0.98) {
-          this.seat.slack += Math.abs(e.movementX) + Math.abs(e.movementY);
-          if (this.seat.slack > 90) this.stand();
+          const L = this.seat.look;
+          L.yaw = clamp(L.yaw - e.movementX * this.sensitivity, -1.9, 1.9);
+          L.pitch = clamp(L.pitch - e.movementY * this.sensitivity, -0.9, 0.8);
         }
         return;
       }
@@ -93,8 +97,8 @@ export class Player {
       const c = e.code;
       this.keys.add(c);
       if (this.seat) {
-        // seated: any key stands you up (and does nothing else)
-        if (this.locked && this.seat.dir > 0) this.stand();
+        // seated: a walking key stands you up; the rest do their own thing (main.js)
+        if (STAND_KEYS.has(c) && this.locked && this.seat.dir > 0) this.stand();
         if (MOVE_KEYS.has(c) && this.locked) e.preventDefault();
         return;
       }
@@ -136,7 +140,7 @@ export class Player {
     this.seat = {
       from: { x: this.pos.x, z: this.pos.z, yaw: this.yaw, pitch: this.pitch },
       to: { x, z, yaw: to, pitch },
-      eyeY, onStand, k: 0, dir: 1, slack: 0,
+      eyeY, onStand, k: 0, dir: 1, slack: 0, look: { yaw: 0, pitch: 0 },
     };
   }
 
@@ -145,9 +149,11 @@ export class Player {
     const s = this.seat;
     if (!s || s.dir < 0) return;
     s.dir = -1;
-    // rise facing the way you sat, the look level
-    s.from.yaw = s.to.yaw;
+    // rise facing the way you were looking, the look level
+    s.from.yaw = s.to.yaw + s.look.yaw;
     s.from.pitch = 0;
+    s.to.yaw += s.look.yaw;
+    s.look.yaw = 0; s.look.pitch = 0;
     s.onStand?.();
   }
 
@@ -165,8 +171,8 @@ export class Player {
     this.pos.x = a.x + (b.x - a.x) * e;
     this.pos.z = a.z + (b.z - a.z) * e;
     this.pos.y = this.world.heightAt(this.pos.x, this.pos.z, this.pos.y);
-    this.yaw = a.yaw + (b.yaw - a.yaw) * e;
-    this.pitch = a.pitch + (b.pitch - a.pitch) * e;
+    this.yaw = a.yaw + (b.yaw - a.yaw) * e + s.look.yaw;
+    this.pitch = clamp(a.pitch + (b.pitch - a.pitch) * e + s.look.pitch, -1.15, 1.05);
     this.bob = 0;
     this.vel.set(0, 0, 0);
     const eye = this.pos.y + EYE + (s.eyeY - EYE) * e - settle;

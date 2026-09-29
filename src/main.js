@@ -44,7 +44,7 @@ renderer.setPixelRatio(1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;   // soft-filtered edges: plain PCF drew a low sun's shadows as blocks on steps (Tan)
 // the shadow pass is asked for by seatLights(), not run every frame
 renderer.shadowMap.autoUpdate = false;
 renderer.setClearColor(new THREE.Color(PAL.fog), 1);
@@ -469,11 +469,25 @@ function seatLight(light, dir, origin) {
  * times a second -- 2.5 ms of a 6.6 ms frame -- and made the shadows crawl. */
 const SNAP = 4;
 let shadowAt = null, shadowAge = 1e9;
+/* Snapped to whole shadow-map texels in the sun's own view, too: a 4 m step
+ * is 102.4 texels, so each move re-sampled every shadow edge by a fraction of
+ * a texel and the shadows "acted up" as you walked (Tan, at the river stairs). */
+const _lr = new THREE.Vector3(), _lu = new THREE.Vector3(), _lf = new THREE.Vector3();
+function snapToTexel(p) {
+  const cam = sun.shadow.camera;
+  const texel = (cam.right - cam.left) / sun.shadow.mapSize.x;
+  _lf.copy(SUN_DIR).normalize();
+  _lr.set(0, 1, 0).cross(_lf).normalize();
+  _lu.copy(_lf).cross(_lr).normalize();
+  const r = Math.round(p.dot(_lr) / texel) * texel, u = Math.round(p.dot(_lu) / texel) * texel, f = p.dot(_lf);
+  p.copy(_lr).multiplyScalar(r).addScaledVector(_lu, u).addScaledVector(_lf, f);
+}
 function seatLights(dt = 0) {
   shadowTarget.set(
     player.pos.x - Math.sin(player.yaw) * 16, 0, player.pos.z - Math.cos(player.yaw) * 16);
   shadowTarget.x = Math.round(shadowTarget.x / SNAP) * SNAP;
   shadowTarget.z = Math.round(shadowTarget.z / SNAP) * SNAP;
+  snapToTexel(shadowTarget);
   seatLight(sun, SUN_DIR, shadowTarget);
   seatLight(fill, FILL_DIR, shadowTarget);
   seatLight(bounce, BOUNCE_DIR, shadowTarget);
@@ -499,8 +513,9 @@ window.addEventListener('keydown', (e) => {
   // Tab never moves the page's focus off the game
   if (e.code === 'Tab') { e.preventDefault(); return; }
   if (e.repeat) return;
-  // seated (ひと休み): any key stands you up and does nothing else (core/player.js)
-  if (player.seat) return;
+  // seated (ひと休み): a walking key stands you up (core/player.js); the light, the sound
+  // and pause still work; nothing else (no whistle, map or jump from the bench)
+  if (player.seat && !/^(Digit[1-3]|KeyN)$/.test(e.code)) return;
   // the konbini's choice: on the highlighted spot at its door, a number picks what you'll have
   if (handsHud?.open && player.locked && /^Digit[1-9]$/.test(e.code)) {
     const id = shop.menu[Number(e.code.slice(5)) - 1];
@@ -557,7 +572,7 @@ function controlRows(hovered) {
   // it too): only how to walk off it, and the light
   if (shop?.visiting) return [C('views')];
   if (hero || famousView) return [C('move'), C('views')];
-  if (player.seat) return [[['Any key'], K.standUp]];
+  if (player.seat) return [C('look'), [C('move')[0], K.standUp], C('views')];
   const rows = [C('move'), C('look')];
   if (handsHud?.open) rows.push([[`1–${shop.menu.length}`], K.choose]);
   rows.push(C('run'));

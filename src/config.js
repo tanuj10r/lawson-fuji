@@ -246,7 +246,9 @@ export const TOWN = {
    * stands between the Lawson and Fuji (M2e.3, world/ctx.js `turned`).
    * The line (M2c, world/line/): double track along the south edge, the
    * station at the spine's end, the level crossing on lane x -80. */
-  rail: { crossX: -80, z: 162, gauge: 1.067, spacing: 3.8 },
+  /* `trains`: the types that take turns, run by run (line/emu.js TYPES: `box` the Fujimi
+   * Line's own EMU, `jr` the E233-style JR commuter, `poke` the Pokémon train) */
+  rail: { crossX: -80, z: 162, gauge: 1.067, spacing: 3.8, trains: ['box', 'jr', 'poke'] },
   crosswalk: { x: -35, width: 4 },              // the main road's zebra, by the master junction (lane x 30 = world x -30); its perpendicular partner crosses the lane (town-plan.js)
   petals: { air: 150, trees: 250 },               // SPEC 11: 400 on Ultra -- M2's field, plus the fall from the town's sakura
   /* Grid lines of the core.  `ns` run south from the main road (z = main)
@@ -459,6 +461,16 @@ export const SHOT_SPOTS = [
   { name: 'train-beside-open', scene: 'town', pos: [-45.2, 0, 156.4], yaw: 2.45, pitch: 0.0, looks: ['day', 'blue'], train: 'platform', close: true },
   { name: 'train-beside-shut', scene: 'town', pos: [-45.2, 0, 156.4], yaw: 2.45, pitch: 0.0, looks: ['day'], train: 'platform-shut', close: true },
   { name: 'poster-station', scene: 'town', pos: [-46.3, 0, 150.9], yaw: -0.12, pitch: 0.05, looks: ['day'], train: 'platform', indoor: true, close: true },
+  // the three trains (Tan, 2026-09-29): each beside a car (doors open and shut), the front from the platform end, the side from the crossing, the listening spot
+  ...['jr', 'poke'].flatMap((t) => [
+    { name: `train-${t}-beside-open`, scene: 'town', pos: [-45.2, 0, 156.4], yaw: 2.45, pitch: 0.0, looks: ['day', 'blue'], train: `platform:${t}`, close: true },
+    { name: `train-${t}-beside-shut`, scene: 'town', pos: [-45.2, 0, 156.4], yaw: 2.45, pitch: 0.0, looks: ['day', 'golden'], train: `platform-shut:${t}`, close: true },
+    { name: `train-${t}-front`, scene: 'town', pos: [-26.8, 0, 157.4], yaw: 2.24, pitch: 0.02, looks: ['day', 'blue'], train: `platform:${t}`, close: true },
+    { name: `train-${t}-side`, scene: 'town', pos: [-27.4, 0, 157.0], yaw: 1.76, pitch: 0.02, looks: ['day'], train: `platform:${t}`, close: true },
+    { name: `train-${t}-crossing`, scene: 'town', pos: [-80.6, 0, 150], yaw: 3.1416, pitch: 0.03, looks: ['golden'], train: `crossing:${t}` },
+    { name: `train-${t}-listen`, scene: 'town', pos: [-49.0, 0, 155.2], yaw: 1.67, pitch: -0.1, looks: ['day'], train: `platform:${t}`, close: true },
+    { name: `train-${t}-inside`, scene: 'town', pos: [-44.65, 0, 160.75], yaw: 0.62, pitch: -0.04, looks: ['day', 'blue'], train: `platform:${t}`, close: true },
+  ]),
   { name: 'poster-gate', scene: 'town', pos: [27.4, 0, -35.4], yaw: 0.12, pitch: 0.02, looks: ['day'], close: true },
   // M2e: close-ups, at arm's length, where finish shows (no density check)
   { name: 'close-lawson-front', scene: 'town', pos: [3.5, 0, 2.6], yaw: 0.25, pitch: 0.12, looks: ['day'], close: true },

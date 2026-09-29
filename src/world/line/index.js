@@ -1,7 +1,7 @@
 import { TOWN } from '../../config.js';
 import { buildTrack, LINE_Z } from './track.js';
 import { buildCrossing } from './crossing.js';
-import { buildEmu } from './emu.js';
+import { makeFleet } from './emu.js';
 import { makeService } from './service.js';
 import { buildStation } from './station.js';
 import { buildHouse } from '../kit/houses.js';
@@ -34,7 +34,9 @@ export function buildLine(ctx, { kit }) {
   const crossing = buildCrossing(ctx, { x: R.crossX, kit });
   // its bells are a sound experience (Tan, 2026-09-28): a speaker on the map
   ctx.experiences?.add({ kind: 'sound', id: 'crossing', name: 'Level crossing bells', jp: '踏切', x: R.crossX, z: LINE_Z });
-  const sets = [buildEmu(ctx, { seed: 2104 }), buildEmu(ctx, { seed: 2231 })];
+  // the fleet: a slot per track, showing whichever of the three types its run needs (config TOWN.rail.trains)
+  const fleet = makeFleet(ctx, { slots: 2 });
+  const sets = fleet.slots;
   const listeners = [];
   const service = makeService({ sets, crossing, onEvent: (name, run) => listeners.forEach((f) => f(name, run)) });
   const station = buildStation(ctx, { kit, service, sets });
@@ -61,12 +63,12 @@ export function buildLine(ctx, { kit }) {
     station.update(dt, cam, me);
   });
   return {
-    track, crossing, sets, service, station,
+    track, crossing, sets, fleet, service, station,
     z: LINE_Z,
     /** After dark the trains' interiors light up. */
     setLook(look) {
       const k = Math.max(0, Math.min(1, (look.store.spill - 0.05) / 0.25));
-      for (const s of sets) s.setNight(k);
+      fleet.setNight(k);
     },
     crossingPos: { x: R.crossX, z: LINE_Z },
     onEvent(f) { listeners.push(f); },

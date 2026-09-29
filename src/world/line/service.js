@@ -97,7 +97,7 @@ function approachTime() {
   return (S.appear - brakeDist) / S.cruise + S.cruise / S.brake;
 }
 
-export function makeService({ sets, crossing, onEvent }) {
+export function makeService({ sets, crossing, onEvent, rotation = TOWN.rail.trains ?? ['box'] }) {
   // run state per set: set 0 eastbound on track 1, set 1 westbound on track 2
   const runs = sets.map((emu, i) => ({
     i, emu, dir: i === 0 ? 1 : -1, z: TRACK_Z[i], x: 0, v: 0, doors: 0,
@@ -106,6 +106,9 @@ export function makeService({ sets, crossing, onEvent }) {
   const events = [];
   let clock = 0;
   let nextStart = { set: 0, at: 0 };        // the first run begins at once
+  // the types take turns, run by run, whichever track (config TOWN.rail.trains)
+  let turn = 0;
+  const nextType = () => rotation[turn++ % rotation.length];
   const cross = { closing: false, since: 0, armT: 0, blink: 0, bells: false, arrows: { east: false, west: false } };
 
   const emit = (name, r) => {
@@ -117,12 +120,13 @@ export function makeService({ sets, crossing, onEvent }) {
     onEvent?.(name, r);
   };
 
-  function begin(r) {
+  function begin(r, type = nextType()) {
     r.phase = 'approach';
     r.x = STOP_X - r.dir * S.appear;
     r.v = S.cruise;
     r.t = 0;
     r.doors = 0;
+    r.emu.use?.(type);
     r.emu.setDest(r.dir > 0 ? 'east' : 'west');
     emit('appear', r);
   }
@@ -150,6 +154,7 @@ export function makeService({ sets, crossing, onEvent }) {
 
   function place(r) {
     const g = r.emu.group;
+    if (!g) return;                    // a slot that has never run shows nothing
     g.visible = r.phase !== 'idle';
     g.position.set(r.x, 0, r.z);
     g.rotation.y = r.dir > 0 ? 0 : Math.PI;
@@ -207,26 +212,27 @@ export function makeService({ sets, crossing, onEvent }) {
       }
       return rows.sort((a, b) => a.secs - b.secs);
     },
-    /** Dev: stand the service in a given moment, for screenshots. */
-    stage(kind) {
+    /** Dev: stand the service in a given moment, for screenshots: `platform`, `platform-shut`,
+     *  `platform2`, `crossing`, `approach`, each with an optional `:type` (`platform:poke`). */
+    stage(spec) {
+      const [kind, type] = String(spec).split(':');
       for (const r of runs) { r.phase = 'idle'; r.v = 0; r.doors = 0; }
+      const r = runs[kind === 'platform2' || kind === 'crossing' ? 1 : 0];
+      // the asked-for type, or whatever the slot last showed (the rotation's first if nothing yet)
+      if (type || !r.emu.type) r.emu.use?.(type ?? rotation[0]);
       if (kind === 'platform' || kind === 'platform-shut') {
         // standing at platform 1: doors open, or shut (the moment before it pulls away)
-        const r = runs[0];
         Object.assign(r, kind === 'platform' ? { phase: 'dwell', t: 20, x: STOP_X, doors: 1 } : { phase: 'hold', t: 0, x: STOP_X, doors: 0 });
         r.emu.setDest('east');
       } else if (kind === 'platform2') {
-        const r = runs[1];
         Object.assign(r, { phase: 'dwell', t: 20, x: STOP_X, doors: 1 });
         r.emu.setDest('west');
       } else if (kind === 'crossing') {
         // westbound pulling out over the crossing, gates down
-        const r = runs[1];
         Object.assign(r, { phase: 'depart', t: 8, v: 6, x: CROSS_X + 6, doors: 0 });
         r.emu.setDest('west');
       } else if (kind === 'approach') {
         // eastbound coming in, front 25 m short of the crossing
-        const r = runs[0];
         Object.assign(r, { phase: 'approach', v: S.cruise, x: CROSS_X - 25 - r.len / 2 });
         r.emu.setDest('east');
       }

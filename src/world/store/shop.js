@@ -218,7 +218,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     if (primed || !soundBus.ready) return;
     primed = true;
     // (it waits for the list of files: asked for too early, it fetched nothing and the first checkout was a tap)
-    soundBus.preload(['kiosk-scan', 'kiosk-pay', 'bite', 'munch', 'gulp', 'can-open', 'wrapper']);
+    soundBus.preload(['kiosk-scan', 'kiosk-pay', 'ka-ching', 'bite', 'munch', 'gulp', 'can-open', 'wrapper']);
   }
 
   /* ----------------------------- flights ----------------------------- */
@@ -329,6 +329,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     T(tp, () => { screen.show('tap', h.id, sum); card.visible = true; hands.raise(true); gaze = TILL.reader; });
     T(pay, () => tillSound('kiosk-pay', 'ui-tap', STORE.checkoutGain));
     T(cardAt - 0.45, () => { reachFor(TILL.reader); reachR = 0; });
+    T(cardAt + 0.05, () => tillSound('ka-ching', 'can', STORE.checkoutGain));      // paid: the ka-ching as the card taps (Tan)
     T(cardAt + 0.35, () => { reachR = -1; });
     T(pay + K.payDone, () => { screen.show('paid', h.id, sum); gaze = TILL.look; });
     // the card away, your thing back from the bagging shelf

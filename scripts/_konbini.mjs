@@ -210,15 +210,15 @@ try {
       const p = window.__scene.player.pos;
       const v = S.debug.visit();
       // what the checkout played: each cut from its file (not the stand-in tap), at the level it is placed for
-      const kiosk = snd.log.filter((l) => /^kiosk-/.test(l.name)).map((l) => `${l.name}:${l.src}:${l.k}`);
+      const kiosk = snd.log.filter((l) => /^(kiosk-|ka-ching)/.test(l.name)).map((l) => `${l.name}:${l.src}:${l.k}`);
       return { ok, atSpot, secs: +v.t.toFixed(1), parts: v.marks.filter((m) => m[0] !== 'do' && m[0] !== 'pause' && m[0] !== 'wait' && m[0] !== 'face').map((m) => m.join('@')).join(' '), kiosk, phases, heard: S.debug.heard.slice(), said: window.__said.slice(), toasts: window.__toasts.slice(), tipsy, end: [+p.x.toFixed(2), +p.z.toFixed(2)], scripted: !!window.__scene.player.scripted, ...shots };
     }, { id, frames });
     // the self-checkout (no cashier: Tan): its two cuts of Tan's recording, and nobody speaks
-    const sayAll = (r) => r.heard.join() === 'kiosk-scan,kiosk-pay' && r.said.length === 0;
+    const sayAll = (r) => r.heard.join() === 'kiosk-scan,kiosk-pay,ka-ching' && r.said.length === 0;   // the ka-ching as the card taps (Tan)
     /* Tan (2026-09-28): the whole visit, choosing to eaten, in no more than
      * 30-35 s (the choco wafer, beside the till, takes about 21) */
     const brisk = (r) => r.secs >= 18 && r.secs <= 35;
-    const fromFiles = (r) => r.kiosk.length === 2 && r.kiosk.every((k) => /:file:/.test(k) && +k.split(':')[2] >= 0.8);
+    const fromFiles = (r) => r.kiosk.length === 3 && r.kiosk.every((k) => /:file:/.test(k) && +k.split(':')[2] >= 0.8);
     const done = (r) => r.ok && r.atSpot && !r.scripted && brisk(r) && Math.hypot(r.end[0] + 2.3, r.end[1] - 2.4) < 0.5 && r.phases.includes('eat') && sayAll(r) && fromFiles(r);
     let prev = null;
     for (const [i, id] of ['onigiri_tuna', 'sando_egg', 'fruit_sando', 'strong_nine', 'choco_wafer_jumbo'].entries()) {

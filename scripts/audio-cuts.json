@@ -1,6 +1,14 @@
 {
   "_": "How each file in assets/audio/ is cut for the web (scripts/encode-audio.mjs). start/len in seconds; loop: crossfade the tail into the head so it repeats seamlessly; peak: normalise to this peak (0..1); kbps: AAC bitrate. Everything is mono: sounds in a konbini come from a place or a ceiling speaker.",
   "files": {
+    "ka-ching": {
+      "start": 0.0,
+      "len": 0,
+      "peak": 0.75,
+      "kbps": 40,
+      "fadeOut": 0.15,
+      "_": "Tan's ka-ching, as the IC card taps the self-checkout's reader (store/shop.js)"
+    },
     "kiosk-scan": {
       "src": "cashier-checkout",
       "start": 16.05,

@@ -94,6 +94,12 @@ const sky = buildSky(scene, 2900, { avoidYaw: FUJI.bearing });
 /* Dev only: ?kit swaps the town for the M2a kit test street, and ?shots
  * (scripts/shots.mjs) freezes time so every frame it takes repeats exactly. */
 const devParams = new URLSearchParams(location.search);
+/* ?fresh: play as if for the first time (Tan): forget what the game remembers
+ * about a visit (Hachi's hello; the volume stays).  Works on the live site too. */
+if (devParams.has('fresh')) {
+  try { localStorage.removeItem('hachi-intro'); } catch { /* storage is optional */ }
+  history.replaceState(null, '', location.pathname);      // a reload after that is an ordinary visit
+}
 const KIT = import.meta.env.DEV && devParams.has('kit');
 const FROZEN = import.meta.env.DEV && devParams.has('shots');
 const world = KIT ? buildKitTest(scene) : buildTown(scene);

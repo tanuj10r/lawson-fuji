@@ -477,6 +477,30 @@ try {
     return { waited, pitch0, minPitch: +minPitch.toFixed(2), satFrames, onScreen, card, after: +player.pitch.toFixed(2), state: window.__guide.G.state, stored: localStorage.getItem('hachi-intro') };
   }, (r) => r.minPitch < r.pitch0 - 0.2 && r.satFrames > 10 && r.onScreen >= r.satFrames * 0.8 && r.card && Math.abs(r.after - r.pitch0) < 0.05 && r.state === 'ready' && r.stored === null);
 
+  await step('46-pause-holds', async () => {
+    // paused, everything stands still (Tan: Hachi said hello behind the pause card): the pup's clock, its hello, the
+    // trains; its caption waits under the card; on resume all goes on
+    const { player, world } = window.__scene;
+    const G = window.__guide.G, svc = world.line.local.service;
+    window.__press('KeyR');
+    await window.__wait(600);
+    G.state = 'home'; G.act = null;                              // (the last step left it sitting where it said hello)
+    window.__guide.introReset();
+    for (let k = 0; k < 60 && !(G.state === 'intro' && G.introSaid); k++) await window.__wait(250);
+    const card = document.getElementById('hachi-card');
+    const said = G.state === 'intro' && G.introSaid;
+    player.locked = false;                                      // pause
+    await window.__wait(400);
+    const t0 = G.t, runs0 = svc.runs.map((r) => [r.phase, +r.x.toFixed(2), +r.t.toFixed(2)]).join('|'), x0 = G.x;
+    const hidden = getComputedStyle(card).visibility === 'hidden';
+    await window.__wait(3000);
+    const held = { t: +(G.t - t0).toFixed(3), trains: svc.runs.map((r) => [r.phase, +r.x.toFixed(2), +r.t.toFixed(2)]).join('|') === runs0, pup: Math.abs(G.x - x0) < 1e-6, state: G.state };
+    player.locked = true;                                       // resume
+    await window.__wait(1500);
+    const on = { t: +(G.t - t0).toFixed(2), visible: getComputedStyle(card).visibility !== 'hidden' };
+    return { said, hidden, held, on };
+  }, (r) => r.said && r.hidden && r.held.t === 0 && r.held.trains && r.held.pup && r.held.state === 'intro' && r.on.t > 0.5 && r.on.visible);
+
   await step('30-minimap', async () => {
     const { player, world } = window.__scene;
     const list = world.experiences.list;

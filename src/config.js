@@ -739,7 +739,7 @@ export const SOUND = {
   // the train's next-stop announcement, played where you stand on platform 1's listening spot
   trainListen: { near: 4, far: 14 },
   /* Tan's song on the start and pause cards: its level, the game's own sound under it (`duck`), fades (s) */
-  menu: { level: 0.3, duck: 0.15, fadeIn: 1.2, fadeOut: 1.5 },   // (the song is mastered loud: rms 0.22, the store music 0.05)
+  menu: { level: 0.3, duck: 0, fadeIn: 1.2, fadeOut: 1.5 },   // (the song is mastered loud: rms 0.22, the store music 0.05; duck 0: paused, the game is silent under it, as it stands still)
   autoDoor: { near: 4, far: 18 },
   fridge: { near: 2.5, far: 9 },           // the cooler: its doors and its compressor
   shelf: { near: 3, far: 10 },             // taking and putting back

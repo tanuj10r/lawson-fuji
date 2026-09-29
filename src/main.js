@@ -629,12 +629,16 @@ function frame(now = 0) {
   if (document.hidden) return;
   // Tan's song on the start and pause cards: on whenever the pointer is free (a card is up), off in play
   const menu = !player.locked && !FROZEN;
-  if (menu !== menuShown) { menuShown = menu; sound.setMenu(menu); }
+  if (menu !== menuShown) { menuShown = menu; sound.setMenu(menu); document.body.classList.toggle('game-paused', menu); }
   const idle = !player.locked && !FROZEN;
   if (idle && now - lastDraw < 100) return;
   lastDraw = now;
   if (import.meta.env?.DEV) window.__drawn = (window.__drawn ?? 0) + 1;
-  const dt = FROZEN ? 0 : Math.min(clock.getDelta(), 1 / 20);
+  /* paused (a card up: the start or the pause card), the game stands still (Tan, 2026-09-29: "When the user pauses,
+   * everything about the game pauses"): no time passes for anything, Hachi's hello, the trains, Han, the konbini;
+   * the scene is still drawn (blurred behind the card), and the clock is read so play resumes without a jump */
+  const tick = Math.min(clock.getDelta(), 1 / 20);
+  const dt = FROZEN || menu ? 0 : tick;
 
   watchCar(dt);
   watchPup(dt);
@@ -676,8 +680,7 @@ function frame(now = 0) {
 
   // in the store the shelves are aimed at by the shop; outside, the hitboxes
   let hovered = null;
-  // the konbini's scene holds still while paused
-  if (shop) shop.update(shop.visiting && !player.locked ? 0 : dt, camera, player.bob);
+  if (shop) shop.update(dt, camera, player.bob);   // (0 while paused, like everything)
   if (handsHud) {
     const want = shop.atSpot && player.locked && !FROZEN && !minimap?.fullOpen;
     if (want !== handsHud.open) handsHud.menu(want ? shop.menu : null);

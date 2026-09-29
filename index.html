@@ -32,6 +32,8 @@
   #view { display: block; width: 100vw; height: 100vh; }
 
   .hud { position: fixed; inset: 0; pointer-events: none; }
+  /* paused, the game's own captions (Hachi's hello) wait under the card, and come back on resume */
+  body.game-paused #hachi-card { visibility: hidden; }
 
   /* ---------- crosshair ---------- */
   .crosshair {

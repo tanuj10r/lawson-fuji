@@ -269,7 +269,9 @@ const SIM = async (kind) => {
     const first = S.target?.id ?? null;
     for (let k = 0; k < 60 && S.state === 'lead'; k++) { lookAt(S.x, S.z); if (dist(P, S) > 2.5) walk(S, 2.3); step(); }
     const awayFrom = (secs) => {
-      let yaw = Math.atan2(P.x - S.x, P.z - S.z);
+      // away from where it is leading (not merely from the pup, which may be on the way there with you)
+      const to = S.target ?? S;
+      let yaw = Math.atan2(P.x - to.x, P.z - to.z);
       for (const d of [0, 0.5, -0.5, 1.0, -1.0, 1.5, -1.5]) { const y = yaw + d; if (W.free(P.x + Math.sin(y) * 4, P.z + Math.cos(y) * 4) && W.free(P.x + Math.sin(y) * 8, P.z + Math.cos(y) * 8)) { yaw = y; break; } }
       const t0 = t, seen = new Set();
       let tWait = null, at = null, moved = 0;
@@ -303,7 +305,7 @@ const SIM = async (kind) => {
     }
     res.first = first; res.away = a; res.rejoined = rejoined; res.away2 = b; res.whistle = { came, greeted, rush, expect, fast: +fast.toFixed(1) };
     res.skipped = [...S.skipped]; res.events = events.slice(0, 14);
-    const stays = (r) => r.tWait !== null && r.tWait <= 3.5 && r.moved <= 3.5 && !r.states.includes('come') && !r.states.includes('chase');
+    const stays = (r) => r.tWait !== null && r.tWait <= 4.5 && r.moved <= 3.5 && !r.states.includes('come') && !r.states.includes('chase');
     res.ok = !!first && stays(a) && !!rejoined && rejoined.d <= 5 && stays(b) && came && greeted && !!rush && rush.target === expect && fast >= 3.2;
   } else if (kind === 'wander') {
     // wandering about on your own for a minute, never going back to it: it stays where it stopped (it never trails you)

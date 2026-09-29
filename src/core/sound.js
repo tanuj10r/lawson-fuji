@@ -132,7 +132,7 @@ export function createSound({ volume = 0.5 } = {}) {
       voice(d, t + 0.85, 0.4, [[0, 1300], [0.5, 1650], [1, 1200]], { level: 0.22, formants: [[1800, 6], [3200, 8]], breath: 0.01, vib: 16 });
     },
     'dog-hmm'(d, t) { voice(d, t, 0.26, [[0, 850], [1, 1250]], { level: 0.26, formants: [[1400, 5], [2700, 6]], breath: 0.01 }); },   // the head tilt: "hm?"
-    'dog-pant'(d, t) { for (let i = 0; i < 6; i++) burst(d, t + i * 0.15, 0.08, { freq: i % 2 ? 1700 : 1300, q: 1.1, level: 0.13 }); },
+    'dog-pant'(d, t) { for (let i = 0; i < 6; i++) burst(d, t + i * 0.15, 0.08, { freq: i % 2 ? 1700 : 1300, q: 1.1, level: 0.26 }); },   // audible over the town (it sat at the ambience's level)
     'dog-shake'(d, t) {                                                                            // the collar tag jingling as it shakes off
       for (let i = 0; i < 7; i++) {
         tone(d, 3200 + Math.random() * 1600, t + i * 0.055 + Math.random() * 0.02, 0.2, { level: 0.06 });

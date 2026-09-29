@@ -407,7 +407,9 @@ try {
       const out = {};
       for (const n of ['dog-yip', 'dog-boof', 'dog-whine', 'dog-hmm', 'dog-pant', 'dog-shake', 'dog-snore', 'dog-awoo', 'dog-snort', 'dog-sneeze', 'whistle']) {
         await new Promise((r) => setTimeout(r, 900));
-        const before = await dbg.level(250);
+        // the town's own sound varies: its level is the median of three short reads
+        const bs = [(await dbg.level(200)).peak, (await dbg.level(200)).peak, (await dbg.level(200)).peak].sort((a, b) => a - b);
+        const before = { peak: bs[1] };
         snd.oneShot(n, { gain: 0.7, recipe: n });
         const during = await dbg.level(700);
         out[n] = { before: +before.peak.toFixed(3), peak: +during.peak.toFixed(3) };
@@ -415,7 +417,7 @@ try {
       dbg.log.length = 0;
       return out;
     });
-    const loud = voice.error ? false : Object.values(voice).every((v) => v.peak > 0.01 && v.peak > v.before * 1.5);
+    const loud = voice.error ? false : Object.values(voice).every((v) => v.peak > 0.01 && v.peak > v.before * 1.4 && v.peak - v.before > 0.005);
     if (!loud) bad++;
     console.log(loud ? 'pass' : 'FAIL', 'voice', JSON.stringify(voice));
 

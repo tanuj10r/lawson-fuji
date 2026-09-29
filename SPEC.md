@@ -338,10 +338,15 @@ pup, about 24 cm at the shoulder, with sit, lie, trot, tilt, shake and nap:
   water crossings, no alleys, and he takes stairs like a person.
 - **Following:** he follows your lead if you go your own way, and picks the
   tour up again later.
-- **The whistle:** F whistles; he answers after the whistle ends and comes
-  to you.
+- **The whistle:** F whistles; he answers after the whistle ends and you
+  always see him come. He never pops up in view: he comes round a corner,
+  from behind a car or a building ahead of you, in a bounding gallop across
+  the middle of your view. Then he greets you 4 m in front (nearer, he'd be
+  below the frame): a skid, a spin, two hops, a sit and a head tilt.
+- **The Strong Nine:** while you're tipsy he comes to just in front of you
+  and rolls on his back, paws going, giggling, for the whole ten seconds.
 - **His voice:** made in code. Yips, a "boof", a curious "hm?", a whine,
-  panting and his collar tag.
+  a giggle, panting and his collar tag.
 - **The nap:** he naps when everything is done.
 
 `scripts/_guide.mjs` checks all of this.

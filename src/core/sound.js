@@ -142,6 +142,14 @@ export function createSound({ volume = 0.5 } = {}) {
     'dog-snore'(d, t) { burst(d, t, 0.8, { freq: 700, q: 0.7, level: 0.26, type: 'lowpass' }); tone(d, 1900, t + 0.72, 0.16, { level: 0.04 }); },   // a puppy's snuffly breath asleep
     'dog-awoo'(d, t) { voice(d, t, 0.55, [[0, 700], [0.3, 1150], [0.75, 1250], [1, 900]], { level: 0.34, formants: [[1300, 4], [2600, 6]], breath: 0.02, vib: 10 }); },   // zoomies: a little "awoo"
     'dog-snort'(d, t) { burst(d, t, 0.09, { freq: 900, q: 0.9, level: 0.3, type: 'lowpass' }); burst(d, t + 0.13, 0.07, { freq: 1100, q: 0.9, level: 0.22, type: 'lowpass' }); },   // happy snorts, rolling on its back
+    // a puppy's giggle (Tan: tipsy with you, it giggles and rolls): quick breathy huffs, each with a tiny squeak, rising then tumbling
+    'dog-giggle'(d, t) {
+      for (let i = 0; i < 6; i++) {
+        const k = 1 + 0.06 * Math.min(i, 3) - 0.1 * Math.max(0, i - 3), at = t + i * 0.105 + (Math.random() - 0.5) * 0.015;
+        burst(d, at, 0.055, { freq: 1500 + i * 90, q: 1.2, level: 0.2 });
+        voice(d, at + 0.012, 0.065, [[0, 1250 * k], [0.45, 1700 * k], [1, 1350 * k]], { level: 0.27, formants: [[1900, 3], [3400, 5]], breath: 0.05 });
+      }
+    },
     'dog-sneeze'(d, t) { burst(d, t, 0.03, { freq: 2600, q: 0.6, level: 0.22 }); voice(d, t + 0.02, 0.11, [[0, 1500], [1, 700]], { level: 0.3, formants: [[1800, 2], [3000, 3]], breath: 0.12 }); },   // a big little sneeze
     // your whistle for the pup (F): two clear notes, breathy, the second higher
     'whistle'(d, t) {

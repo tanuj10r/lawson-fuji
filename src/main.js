@@ -149,7 +149,7 @@ const hud = createHud({ volume: volumeStep });
 if (shop) {
   shop.flash = (text, error = false) => hud.flash(text, error ? 2800 : 2200, error);
   // the Strong Nine: ten seconds a little tipsy
-  shop.onTipsy = () => { tipsy = 0; hud.flash(STRINGS.store.tipsy, 3200); };
+  shop.onTipsy = () => { tipsy = 0; hud.flash(STRINGS.store.tipsy, 3200); GUIDE.tipsy(10); };   // and Hachi giggles and rolls about with you (Tan)
 }
 /* The sound (M4): one engine for the town and the store, started by the
  * same first click that takes the pointer lock (browsers start no audio

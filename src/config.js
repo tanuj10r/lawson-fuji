@@ -770,7 +770,15 @@ export const ANIMALS = {
     tripEvery: 45,                            // trips over its own paws about once in this many seconds at a trot
     fields: 6,                                // distance fields kept grown at once (2.6 MB each)
     introCard: 4.5,                           // the "Hi, I'm Hachi" caption stays this long (s)
-    whistle: { far: 80, near: 2.2, answer: 0.85 },   // F: beyond `far` m it comes from the nearest corner out of view; it stops `near` m from you; it answers `answer` s after the whistle starts (the whistle is 0.52 s long)
+    /* F (Tan: it must be seen running to you, wherever you look): it answers `answer` s after the whistle starts (the whistle
+     * is 0.52 s long).  If you can see it (within `see` m, `cone` degrees of the lens, nothing between) it runs from there;
+     * else it is set out of sight of nothing: on a street `from` m ahead of you, in view, with a clear run to you, and
+     * gallops in at `gallop` m/s, bounding; it stops `near` m from you and greets you (a skid, a spin, two bounces, a sit
+     * and a head tilt).  Only with no such street (a wall in your face) does it come from out of view, as before. */
+    whistle: { far: 80, near: 4.2, answer: 0.85, see: 40, cone: 30, from: [10, 18], gallop: 4.4 },   // (`near`: nearer than ~4 m a 24 cm pup is under the bottom of your view)
+    /* the Strong Nine (Tan: when you're tipsy, the pup giggles and rolls on the floor): it comes to `d` m in front of
+     * you and plays for as long as the tipsiness lasts (main.js: 10 s) */
+    party: { d: 4.0, from: [7, 12], lean: -0.35 },
     engage: { konbini: 1.2, view: 1.0, han: 0.85, train: 1.1, slowlife: 1.1 },   // the engagements' ring radii (and which ids count until the list says `kind`)
     cell: 0.4, radius: 0.25,                  // its map of the town: cell size, and clearance from anything solid (its own half-width and a little)
     step: 0.45,                               // the biggest step between neighbouring cells it will take: kerbs yes, the channel no

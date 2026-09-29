@@ -49,7 +49,7 @@ import { STRINGS } from '../../data/strings.js';
 
 const A = ANIMALS.guide;
 /** The pup, for main.js: `whistle()` (F) calls it to you from anywhere; set once it is built. */
-export const GUIDE = { whistle: () => false };
+export const GUIDE = { whistle: () => false, tipsy: () => {} };
 const INF = Infinity;
 const ENGAGE = A.engage;
 
@@ -72,6 +72,7 @@ class Walk {
     const cost = this.cost = new Uint8Array(N).fill(K.alley);
     const h = this.h = new Int16Array(N);
     this.haz = new Uint8Array(N);
+    this.tall = new Uint8Array(N);       // something that hides a pup from you (a wall, a car, a machine): the whistle's corners
     this.stair = new Uint8Array(N);      // 1: a flight climbing along x, 2: along z (entered only along that axis)
     this.water = new Uint8Array(N);      // for the checks: cells that are water (all blocked)
     this.C = C;
@@ -125,9 +126,11 @@ class Walk {
     for (const c of ctx.colliders) {
       if ((c.bottom ?? 0) >= 0.8 || (c.top ?? 9) <= 0.3 || c.x1 - c.x0 < 0.01 || c.z1 - c.z0 < 0.01) continue;
       rect(c.x0 - R, c.z0 - R, c.x1 + R, c.z1 + R, (i) => { cost[i] = 0; });
+      if ((c.top ?? 9) >= 1.1) rect(c.x0, c.z0, c.x1, c.z1, (i) => { this.tall[i] = 1; });
     }
     // the store itself (its door opens for you, not for a dog) and Han's bay
     rect(-LAWSON.width / 2 - 0.4, -LAWSON.depth - 0.4, LAWSON.width / 2 + LAWSON.wingWidth + 0.4, LAWSON.frontZ + 0.35, (i) => { cost[i] = 0; });
+    rect(-LAWSON.width / 2, -LAWSON.depth, LAWSON.width / 2 + LAWSON.wingWidth, LAWSON.frontZ, (i) => { this.tall[i] = 1; });
     wrect(HAN_BAY.x - 1.3, HAN_BAY.z - 2.6, HAN_BAY.x + 1.3, HAN_BAY.z + 2.6, 0);
     /* the pond's water, with a margin */
     {
@@ -246,6 +249,17 @@ class Walk {
       if (d < bd) { bd = d; best = i; }
     }
     return best;
+  }
+  /** Is a pup at a hidden from an eye at b (something tall on the line between, short of the pup's own half-metre)? */
+  hidden(ax, az, bx, bz) {
+    const L = Math.hypot(bx - ax, bz - az) || 1, n = Math.ceil(L / (this.C * 0.5));
+    for (let k = 1; k <= n; k++) {
+      const t = k / n;
+      if (t * L < 0.5) continue;
+      const c = this.cell(ax + (bx - ax) * t, az + (bz - az) * t);
+      if (c >= 0 && this.tall[c]) return true;
+    }
+    return false;
   }
   /** Nothing solid on a straight line from a to b, nor a hand's width either side of it (no grazing a corner). */
   sight(ax, az, bx, bz) {
@@ -383,13 +397,13 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   /* Its voice (Tan: "very cute, adorable sounds"; core/sound.js dog-* recipes):
    * soft, heard only near it, never two within 1.2 s. */
   let lastSay = -9, pantT = 0, whined = false, snoreT = 0;
-  const say = (name, gain = 0.7, must = false) => {
+  const say = (name, gain = 0.7, must = false, far = 16) => {
     if (!must && G.t - lastSay < 1.2) return;
     lastSay = G.t;
-    soundBus.oneShot(name, { x: G.x, z: G.z, y: 0.3, near: 3, far: 16, gain, recipe: name });
+    soundBus.oneShot(name, { x: G.x, z: G.z, y: 0.3, near: 3, far, gain, recipe: name });
   };
   let list = [], listT = 0;
-  const fields = { follow: null };
+  const fields = { follow: null, whistle: null };
   const ready = new Map();            // goal key -> a Field; the last few kept (each is 2.6 MB of Float32 for the town)
   const queue = [];                   // fields to grow ahead while nothing else is wanted
   const dbg = { paths: 0 };
@@ -546,32 +560,126 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     if (!W.built || G.whistleAt !== null || G.t - G.lastWhistle < 1.0) return false;
     soundBus.oneShot('whistle', { x: P.x, z: P.z, y: P.y, near: 4, far: 30, gain: 0.8, recipe: 'whistle' });
     G.lastWhistle = G.t; G.whistleAt = G.t + A.whistle.answer;
+    // the way to you, grown over the notes (a frame's worth at a time), so the answer doesn't stall a frame
+    const f = (fields.whistle ??= new Field(W));
+    grow(f, P.x, P.z, 0.6, A.whistle.far * 1.5);
     return true;
   };
-  const answer = () => {
-    say('dog-yip', 0.9, true);
-    const dP = dist(P, G);
-    G.act = null; G.roll = G.pitch = 0;
-    if (dP <= A.whistle.near + 1.5 && G.state !== 'nap' && G.state !== 'home') { play('hop'); G.wagA = Math.max(G.wagA, 0.7); return; }
-    G.target = null; G.resume = null; G.drops = 0;
-    G.state = 'come'; G.since = 0; G.thinkT = -9; G.waitT = 0; G.awooed = false;
-    G.field = aim('follow', P.x, P.z, 0.6, A.whistle.far * 1.5); G.thinkT = 0;
-    if (dP > A.whistle.far) {
-      // too far to watch it cross the whole town: it turns up from a street 25-40 m off, out of your view
-      const f = G.field;
-      while (!f.ready) f.work(50);
-      const fc = facing?.();
-      let best = -1, bd = INF;
-      for (let i = 0; i < W.N; i++) {
-        const m = f.m[i];
-        if (m < 25 || m > 40) continue;
-        const q = W.at(i), dx = q.x - P.x, dz = q.z - P.z, d = Math.hypot(dx, dz) || 1;
-        if (fc && (dx * fc.x + dz * fc.z) / d > 0.2) continue;        // in front of the lens: no
-        if (m < bd) { bd = m; best = i; }
+  /** Where to come from so you see it come (Tan: no popping up, no coming from behind): a street `from` [min, max] m
+   * ahead of you, within `cone` degrees of the lens, hidden from you right now (behind a building's corner, a car, a
+   * machine), whose way to you comes out into plain view within a few metres and runs at you from there (a way not
+   * much longer than the straight line).  `f` is a field grown from you.  The middle of the view and of the range win.
+   * With `hide` false it may be in plain view already (only as a far fallback: small and far, it reads as arriving). */
+  const spotInView = (f, [d0, d1], cone, hide = true, mid = null, exitCone = 28, within = 5) => {
+    const fc = facing?.();
+    if (!fc || fc.lengthSq() < 0.5) return null;
+    const cosC = Math.cos(cone * Math.PI / 180), cosE = Math.cos(exitCone * Math.PI / 180), dm = mid ?? (d0 + d1) / 2;
+    let best = -1, bs = INF;
+    for (let i = 0; i < W.N; i += 2) {
+      const m = f.m[i];
+      if (m > d1 * 1.5 + 4) continue;
+      const q = W.at(i), dx = q.x - P.x, dz = q.z - P.z, d = Math.hypot(dx, dz);
+      if (d < d0 || d > d1 || m > d * 1.5 + 4) continue;
+      const c = (dx * fc.x + dz * fc.z) / d;
+      if (c < cosC) continue;
+      const sc = Math.abs(d - dm) / dm + 3 * (1 - c) + 0.3 * (m / d - 1);
+      if (sc >= bs || !W.free(q.x, q.z)) continue;
+      if (!hide) { if (!W.hidden(q.x, q.z, P.x, P.z)) { bs = sc; best = i; } continue; }
+      if (!W.hidden(q.x, q.z, P.x, P.z)) continue;
+      // out into view within 4 m of its way, then a clear run at you
+      let k = i, walked = 0, out = false;
+      for (let s2 = 0; s2 < 24 && walked < within; s2++) {
+        const n = f.next(k);
+        if (n < 0) break;
+        const a = W.at(k), b = W.at(n);
+        walked += Math.hypot(b.x - a.x, b.z - a.z); k = n;
+        const ex = b.x - P.x, ez = b.z - P.z, e = Math.hypot(ex, ez) || 1;
+        if ((ex * fc.x + ez * fc.z) / e > cosE && !W.hidden(b.x, b.z, P.x, P.z)) { out = true; break; }
       }
-      if (best >= 0) { const q = W.at(best); G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); G.speed = 0; }
+      if (out) { bs = sc; best = i; }
     }
+    return best >= 0 ? W.at(best) : null;
   };
+  /** Set it where you will see it come from (see spotInView); false if there is nowhere. */
+  const enterView = (f, near, cone) => {
+    const m = (near[0] + near[1]) / 2;
+    const q = spotInView(f, near, cone)                         // hidden ahead, out into the middle of the view at once
+      ?? spotInView(f, [5, 30], 70, true, m, 28, 10)            // hidden to a side, out into the middle within 10 m
+      ?? spotInView(f, [5, 30], 70, true, m, 46, 12)            // round a corner at the edge of the view (its run swings in across it)
+      ?? spotInView(f, [24, 40], 28, false)                     // far off and small, in plain view
+      ?? offView(f);                                            // nowhere to be seen coming from: round a corner behind you
+    if (!q) return false;
+    setAt(q);
+    // facing down its way already, and off at a run: no turning on the spot where it comes out
+    const c = W.cell(q.x, q.z), n = c >= 0 ? f.next(c) : -1;
+    if (n >= 0) { const b = W.at(n); G.yaw = Math.atan2(b.x - q.x, b.z - q.z); }
+    G.speed = A.whistle.gallop * 0.8;
+    return true;
+  };
+  /** The spot `d` m in front of you (where you look), on free ground: where it greets you and plays. */
+  const frontSpot = (d) => {
+    const fc = facing?.();
+    const fx = fc && fc.lengthSq() > 0.5 ? fc.x : P.hx, fz = fc && fc.lengthSq() > 0.5 ? fc.z : P.hz;
+    const c = W.nearest(P.x + fx * d, P.z + fz * d, 1.6);
+    return c >= 0 ? W.at(c) : null;
+  };
+  /** Last resort: a street 12-30 m off by the way, out of your view (the old whistle's corner). */
+  const offView = (f) => {
+    const fc = facing?.();
+    let best = -1, bd = INF;
+    for (let i = 0; i < W.N; i++) {
+      const mm = f.m[i];
+      if (mm < 12 || mm > 30) continue;
+      const q = W.at(i), dx = q.x - P.x, dz = q.z - P.z, d = Math.hypot(dx, dz) || 1;
+      if (fc && (dx * fc.x + dz * fc.z) / d > 0.2 && !W.hidden(q.x, q.z, P.x, P.z)) continue;
+      if (mm < bd) { bd = mm; best = i; }
+    }
+    return best >= 0 ? W.at(best) : null;
+  };
+  /** Can you see it now: near enough, in the lens, nothing between? */
+  const inSight = (see, cone) => dist(P, G) <= see && inCone(cone) && W.sight(G.x, G.z, P.x, P.z);
+  const setAt = (q) => { G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); G.speed = 0; G.yaw = Math.atan2(P.x - G.x, P.z - G.z); };
+  const answer = () => {
+    // the yip comes from where you'll see it (placed first when it was out of view: heard from far off, it is not at all)
+    const dP = dist(P, G);
+    if (dP <= 5 || inSight(A.whistle.see, A.whistle.cone)) say('dog-yip', 0.9, true, 30);   // (the answer carries: you called it)
+    else G.yipDue = true;
+    G.act = null; G.roll = G.pitch = 0;
+    // already just in front of you: the greeting there; beside or behind you (under or out of your view), it bounds
+    // out to the spot in front and greets you from there
+    const fs0 = frontSpot(A.whistle.near);
+    if (fs0 && dist(G, fs0) < 1.2 && G.state !== 'nap' && G.state !== 'home') { greet(); return; }
+    G.target = null; G.resume = null; G.drops = 0;
+    G.state = 'come'; G.since = 0; G.thinkT = -9; G.waitT = 0; G.awooed = false; G.cameYip = false;
+    const pre = fields.whistle;
+    G.field = pre && pre.goalAt && dist(pre.goalAt, P) < 3 ? pre : aim('follow', P.x, P.z, 0.6, A.whistle.far * 1.5); G.thinkT = 0;
+    const W_ = A.whistle;
+    if (inSight(W_.see, W_.cone)) return;               // you can see it: it runs from where it is
+    // out of your view (behind you, round a corner, far off): it is set on a street ahead of you, in view, and runs in
+    const f = G.field;
+    while (!f.ready) f.work(50);          // (grown over the notes already: this finishes it, if anything)
+    enterView(f, W_.from, W_.cone);        // 1-4 ms
+    sayDue();
+  };
+  const sayDue = () => { if (G.yipDue) { G.yipDue = false; say('dog-yip', 0.9, true, 30); } };
+  /** Arrived at your whistle (or already beside you): the greeting. */
+  const greet = () => {
+    G.state = 'caught'; G.since = 0;
+    play('greet', { yaw0: Math.atan2(P.x - G.x, P.z - G.z), s: Math.random() < 0.5 ? 1 : -1 });
+  };
+  /** The Strong Nine (main.js, when it kicks in): the pup comes to just in front of you and giggles and rolls about for
+   * `dur` seconds.  Not during Han's show, and not when it is asleep for the day and far off. */
+  const tipsy = (dur = 10) => {
+    if (!W.built || HAN_SHOW.running() || G.state === 'staged') return;
+    G.resumeK = G.state === 'lead' || G.state === 'atSpot' || G.state === 'gate' ? G.leg : G.resumeK;
+    G.state = 'party'; G.partyT = dur; G.partyK = 0; G.since = 0; G.act = null; G.roll = G.pitch = 0; G.target = null; G.whistleAt = null;
+    G.field = aim('follow', P.x, P.z, 0.6, 120);
+    if (inSight(24, 40)) return;
+    const f = G.field;
+    while (!f.ready) f.work(50);
+    enterView(f, A.party.from, 30);
+  };
+  GUIDE.tipsy = tipsy;
   GUIDE.whistle = whistle;
   /** "Not interested": the leg is dropped (an engagement is skipped, not done) and it comes after you. */
   const drop = () => {
@@ -650,7 +758,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     // rolled on its back: turned about a centre at the body's height, not about its feet
     const cy = G.roll !== 0 && Math.abs(G.roll) > 0.5 ? BODY_R : 0;
     const ox = Math.sin(G.roll) * cy, oy = cy - Math.cos(G.roll) * cy;
-    herd.set(0, l.x + ox * Math.cos(yaw), G.y + oy, l.z - ox * Math.sin(yaw), yaw, G.pitch, G.roll, A.size);
+    herd.set(0, l.x + ox * Math.cos(yaw), G.y + oy, l.z - ox * Math.sin(yaw), yaw, G.pitch + (G.bpitch ?? 0), G.roll, A.size);
     herd.setPose(0, G.ph, G.amp, G.look, G.nod);
     herd.setPose2(0, G.posture, G.wag, G.perk, G.tilt);
     herd.flush();
@@ -743,7 +851,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
    * ones (zoomies, chasing its tail, the circle round your legs) move it too.
    * Which one, and when, comes from its energy and how near you are. */
   const ACTS = {
-    bow: 2.2, roll: 4.2, tail: 2.8, zoom: 3.4, hop: 0.6, sneeze: 1.1, shake: 0.7, tilt: 1.6, trip: 0.8, circle: 2.4,
+    bow: 2.2, roll: 4.2, tail: 2.8, zoom: 3.4, hop: 0.6, sneeze: 1.1, shake: 0.7, tilt: 1.6, trip: 0.8, circle: 2.4, greet: 3.8,
   };
   const play = (name, extra = {}) => {
     if (G.act && G.act.name === name) return false;
@@ -820,7 +928,13 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         G.rollTo = (Math.PI + wig) * over + (u < 0.18 ? 0 : 0);
         pose.amp = over * 0.7; pose.phRate = 13 * over;
         pose.wag = 0.6; pose.perk = 0.4 + 0.5 * (1 - over); pose.look = over > 0.5 ? 0.6 * Math.sin(a.t * 3) : pose.toYou; pose.nod = -0.2 * over;
-        if (!a.said && u > 0.32) { a.said = true; say('dog-snort', 0.7, true); }
+        if (G.state === 'party') {
+          // tipsy with you: giggling on its back, paws going, a wriggle side to side
+          if (!a.g1 && u > 0.2) { a.g1 = true; say('dog-giggle', 0.85, true); }
+          if (!a.g2 && u > 0.55) { a.g2 = true; say('dog-giggle', 0.8, true); }
+          pose.amp = over; pose.phRate = 17 * over;
+          G.rollTo += over * (A.party.lean + 0.12 * Math.sin(a.t * 5.5));   // tipped a little your way: the belly, not the flank
+        } else if (!a.said && u > 0.32) { a.said = true; say('dog-snort', 0.7, true); }
         return true;
       }
       case 'tail': {
@@ -862,6 +976,31 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         G.speed = A.trot;
         pose.amp = 0.9; pose.phRate = 12; pose.look = -a.s * 1.0; pose.nod = pose.nodYou; pose.wag = 0.7; pose.perk = 1.3;
         G.rollTo = a.s * 0.1;
+        return true;
+      }
+      case 'greet': {
+        // at your whistle, arrived: a skid, a happy spin on the spot, two little bounces up at you, then a sit looking up,
+        // head tilted, tongue out, tail going
+        G.speed *= Math.max(0, 1 - dt * 10);
+        const toP = Math.atan2(P.x - G.x, P.z - G.z);
+        pose.perk = 1.3; pose.wag = 1;
+        if (u < 0.1) { pose.posture = 0.35; G.pitchTo = -0.14; pose.look = pose.toYou; pose.nod = pose.nodYou; }
+        else if (u < 0.4) {
+          const k = ease((u - 0.1) / 0.3);
+          G.yaw = a.yaw0 + a.s * Math.PI * 2 * k;
+          pose.amp = 0.85; pose.phRate = 17; pose.look = -a.s * 0.55; pose.nod = 0.05; G.rollTo = a.s * 0.12;
+          if (!a.said) { a.said = true; say('dog-giggle', 0.7, true); }
+        } else if (u < 0.68) {
+          G.yaw += turn(G.yaw, toP) * Math.min(1, dt * 10);
+          if (!a.h1) { a.h1 = true; G.hopT = 0; }
+          if (!a.h2 && u > 0.54) { a.h2 = true; G.hopT = 0; say('dog-yip', 0.75, true); }
+          G.pitchTo = -0.22 * Math.sin(Math.PI * ((u - 0.4) / 0.14 % 1));
+          pose.look = pose.toYou; pose.nod = pose.nodYou;
+        } else {
+          G.yaw += turn(G.yaw, toP) * Math.min(1, dt * 6);
+          pose.posture = 1; pose.look = pose.toYou; pose.nod = pose.nodYou - 0.05;
+          if (!a.tilted && u > 0.74) { a.tilted = true; G.tiltT = 0; G.tiltSide = a.s; say('dog-hmm', 0.7, true); }
+        }
         return true;
       }
       case 'hop':
@@ -918,7 +1057,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
 
     /* the introduction (Tan): the first time you see Hachi near the middle of your view, within 8 m, off the famous
      * view: it comes up, sits and says hello (a caption); once per visit, and never again once it has been seen */
-    if (!G.intro && !view && !show && dist(P, VIEW) > 1.5 && !inStore(P) && dist(P, G) < 8 && inCone(25) && !['hazard', 'come', 'chase', 'staged'].includes(G.state) && !introSeen()) {
+    if (!G.intro && !view && !show && dist(P, VIEW) > 1.5 && !inStore(P) && dist(P, G) < 8 && inCone(25) && !['hazard', 'come', 'chase', 'staged', 'party'].includes(G.state) && G.act?.name !== 'greet' && !introSeen()) {
       const f = facing?.();
       const fx = f && f.lengthSq() > 0.5 ? f.x : (G.x - P.x) / (dist(P, G) || 1), fz = f && f.lengthSq() > 0.5 ? f.z : (G.z - P.z) / (dist(P, G) || 1);
       const c = W.nearest(P.x + fx * 2, P.z + fz * 2, 2);
@@ -927,7 +1066,9 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       G.state = 'intro'; G.field = null; G.act = null;
     }
     // the field grows a little each frame while it is wanted; the others are grown ahead, one at a time
-    if (G.field && !G.field.ready) G.field.work(dt > 0 ? 4 : 40);
+    // (not while a whistle is pending: its own way is growing, and two fields grown in turn undo each other's work)
+    if (G.whistleAt !== null) {}
+    else if (G.field && !G.field.ready) G.field.work(dt > 0 ? 4 : 40);
     else if (dt > 0) {
       if (growing && growing.ready) growing = null;
       if (!growing && queue.length) growing = queue.shift()();
@@ -939,7 +1080,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     const toYou = THREE.MathUtils.clamp(turn(G.yaw, Math.atan2(dxp, dzp)), -1.4, 1.4);
     const headY = G.y + 0.27 * (1 - 0.3 * Math.max(0, G.posture - 1));
     const nodYou = THREE.MathUtils.clamp(-Math.atan2(P.y - headY, Math.max(0.5, dP)) * 0.8, -0.6, 0.35);
-    const pose = { posture: 0, wag: 0.15, perk: 1, look: null, nod: null, amp: null, phRate: 0, speedK: 1, toYou, nodYou };
+    const pose = { posture: 0, wag: 0.15, perk: 1, look: null, nod: null, amp: null, phRate: 0, speedK: 1, bound: 0, toYou, nodYou };
     let wantSpeed = 0, lookAt = 'player';
     G.sinceInvite += dt; G.rollTo = 0; G.pitchTo = 0; G.dip = 0;
     // how far ahead of you it is: along the way, or as the crow flies when you are right here (off the way, your path metres run long)
@@ -1102,11 +1243,41 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         break;
       }
       case 'come': {
-        // whistled: a gallop to you, wherever you are; arrived, a hop, and it guides on from here
+        // whistled: a bounding puppy gallop to just in front of you (across your view, not at your feet), ears flopping,
+        // tongue out, tail going; there, the greeting
         G.since += dt;
-        if (dP > A.whistle.near) { r = pursue(dt, A.run); lookAt = 'way'; if (r === 'lost' && G.since > 4) { const n = W.nearest(P.x, P.z, 4); if (n >= 0) { const q = W.at(n); G.x = q.x; G.z = q.z; } } }
-        else { G.state = 'caught'; G.since = 0; play('hop'); }
-        pose.perk = 1.2; pose.wag = 0.5; pose.nod = 0.05;
+        // the spot it runs for slides in as it comes: far off it aims well out in front of you, so the run swings across
+        // the middle of your view instead of along its edge; close, it is the greeting spot
+        const lead = THREE.MathUtils.clamp(0.5 * dP, A.whistle.near, 7);
+        const fs = frontSpot(lead) ?? frontSpot(A.whistle.near);
+        const dF = fs ? dist(G, fs) : dP;
+        if ((dF > 0.45 || lead > A.whistle.near + 0.3) && dP > 1.1) {
+          r = fs && dF < 24 && W.sight(G.x, G.z, fs.x, fs.z) ? move(dt, fs, A.whistle.gallop) : pursue(dt, A.whistle.gallop);
+          lookAt = 'player'; pose.bound = 1;
+          // no way to you from where it is (a pocket of the grid): it comes in from where you'll see it, else to your side
+          if (r === 'lost' && G.since > 4) { const f = aim('follow', P.x, P.z, 0.6, 120); while (!f.ready) f.work(50); G.since = 0; if (!enterView(f, A.whistle.from, A.whistle.cone)) { const n = W.nearest(P.x, P.z, 4); if (n >= 0) setAt(W.at(n)); } }
+          if (!G.cameYip && dP < 7) { G.cameYip = true; say('dog-yip', 0.8); }
+        } else greet();
+        pose.perk = 0.6; pose.wag = 0.95; pose.nod = 0.02;
+        break;
+      }
+      case 'party': {
+        // the Strong Nine: to just in front of you, then rolling about on its back, giggling, a play bow, round after its tail
+        G.since += dt; G.partyT -= dt;
+        const spot = frontSpot(A.party.d) ?? { x: G.x, z: G.z };
+        if (!G.act) {
+          const off = dist(G, spot);
+          if (off > 0.6 && G.partyT > 1) { r = off < 24 && W.sight(G.x, G.z, spot.x, spot.z) ? move(dt, spot, off > 3 ? A.run : A.trot) : pursue(dt, A.run); lookAt = 'player'; pose.bound = off > 3 ? 1 : 0; pose.wag = 0.95; }   // (flat out: the fun lasts ten seconds)
+          else if (G.partyT > 1.2) {
+            const seq = ['roll', 'roll', 'bow', 'roll', 'tail', 'roll'];
+            const next = seq[G.partyK++ % seq.length];
+            // rolls side-on to you, belly and paws your way; quicker than an idle roll, one after another
+            if (next === 'roll') G.yaw = Math.atan2(P.x - G.x, P.z - G.z) - 1.4;   // (this side on, the belly and paws face you; the other way you see its back)
+            play(next, next === 'roll' ? { dur: 3.0 } : next === 'bow' ? { dur: 1.6 } : {});
+          }
+        }
+        pose.perk = 1.3; pose.wag = Math.max(pose.wag, 0.9);
+        if (G.partyT <= 0 && !G.act) { G.state = 'caught'; G.since = 0; }
         break;
       }
       case 'hazard': {
@@ -1128,7 +1299,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     }
     G.r = r;
     // your whistle: ears up until the notes are over (whatever it was doing), then the answer
-    if (G.whistleAt !== null) { pose.perk = 1.2; if (G.t >= G.whistleAt) { G.whistleAt = null; answer(); } }
+    if (G.whistleAt !== null) { pose.perk = 1.2; if (fields.whistle && !fields.whistle.ready) fields.whistle.work(dt > 0 ? 3 : 40); if (G.t >= G.whistleAt) { G.whistleAt = null; answer(); } }
     // the acts shape the pose (and some of them move it)
     const acting = act(dt, pose);
     if (!acting && r !== 'moving') G.speed += (0 - G.speed) * Math.min(1, dt * 6);
@@ -1201,7 +1372,10 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     G.roll += shakeRoll;
     G.pitch += (G.pitchTo - G.pitch) * Math.min(1, dt * 8);
     // the bouncy puppy trot: a high bob at two beats a stride
-    G.y = ground(G.x, G.z) + G.amp * 0.036 * (0.5 + 0.5 * Math.sin(2 * G.ph + 1)) + G.hop + G.dip;
+    // the whistle's gallop: a bound a stride, rocking nose-up, nose-down (the pitch is added at placing, too quick to ease)
+    G.boundA = (G.boundA ?? 0) + ((G.speed > 1 ? pose.bound : 0) - (G.boundA ?? 0)) * Math.min(1, dt * 5);
+    G.bpitch = G.boundA * 0.1 * Math.cos(G.ph);
+    G.y = ground(G.x, G.z) + G.amp * 0.036 * (0.5 + 0.5 * Math.sin(2 * G.ph + 1)) + G.boundA * 0.055 * Math.abs(Math.sin(G.ph)) + G.hop + G.dip;
     tickCard(dt);
     place();
   }
@@ -1247,6 +1421,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       /** Step the pup by `dt` with the player at `p` (the headless run drives it). */
       step(dt, p) { update(dt, p); },
       whistle,
+      tipsy,
       /** the introduction: 0 not yet, 1 running, 2 done; introReset forgets it (localStorage too) for a check */
       intro: () => G.intro,
       introReset() { G.intro = 0; G.introSeenNow = false; try { localStorage.removeItem('hachi-intro'); } catch {} },

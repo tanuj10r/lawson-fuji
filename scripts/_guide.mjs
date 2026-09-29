@@ -304,11 +304,11 @@ const SIM = async (kind) => {
     res.ok = caught !== null && maxD <= 12 && gaps.every((x) => x >= 19.5) && replans <= 4;
   } else if (kind === 'whistle') {
     // the pup left napping by the bench, the player at the view (about 100 m by the way): F
-    const run = (place, label) => {
+    const run = (place, label, yaw = 0) => {
       g.reset();
       const dt = 1 / 30;
       Object.assign(S, { x: place.x, z: place.z, state: 'nap', field: null, target: null });
-      P.x = 0; P.z = 11; P.yaw = 0; sync();          // (off the famous view: standing on one, the hero-frame rule wins and it waits behind you)
+      P.x = 0; P.z = 11; P.yaw = yaw; sync();          // (off the famous view: standing on one, the hero-frame rule wins and it waits behind you)
       for (let k = 0; k < 15; k++) g.step(dt, P);
       const d0 = +dist(P, S).toFixed(1), from = { x: +S.x.toFixed(1), z: +S.z.toFixed(1) };
       // the sound log, in game time (the sim runs faster than the clock, so the log's own times mean nothing here)
@@ -317,27 +317,45 @@ const SIM = async (kind) => {
       const readLog = (tt) => { for (; seen < log.length; seen++) { const n = log[seen].name; if (n === 'whistle') { whistles++; tWhistle ??= tt; } if (n === 'dog-yip') { yips++; tYip ??= tt; } } };
       g.whistle(); g.whistle();                          // a double press: one whistle, one answer
       readLog(0);
-      let tt = 0, reached = null, resumed = null, states = [], at = null, d1 = null, angle = null, perkUp = 0;
+      let tt = 0, reached = null, resumed = null, states = [], at = null, d1 = null, angle = null, perkUp = 0, runF = 0, seenF = 0, greeted = false, popped = null;
       while (tt < 60) {
         g.step(dt, P); tt += dt;
         readLog(tt);
         if (tt < 0.8 && S.perk > 1.05) perkUp++;
         if (at === null && tt >= 1.0) {
           at = { x: +S.x.toFixed(1), z: +S.z.toFixed(1) }; d1 = +dist(P, S).toFixed(1);
-          const dx = S.x - P.x, dz = S.z - P.z; angle = +(Math.acos(-dz / Math.hypot(dx, dz)) * 180 / Math.PI).toFixed(0);   // out of the lens (looking -z)?
+          const dx = S.x - P.x, dz = S.z - P.z; angle = +(Math.acos((-Math.sin(P.yaw) * dx - Math.cos(P.yaw) * dz) / Math.hypot(dx, dz)) * 180 / Math.PI).toFixed(0);   // out of the lens (looking -z)?
         }
         if (!states.includes(S.state)) states.push(S.state);
-        if (reached === null && dist(P, S) < 3) reached = +tt.toFixed(1);
+        if (S.act?.name === 'greet') greeted = true;
+        // the moment it answers: moved (a jump) only to where you can't see it, or far off; never popping up in view
+        if (popped === null && S.state === 'come') { const dx = S.x - P.x, dz = S.z - P.z, d = Math.hypot(dx, dz) || 1, jumped = Math.abs(d - d0) > 1; const lens = (-Math.sin(P.yaw) * dx - Math.cos(P.yaw) * dz) / d > Math.cos(40 * Math.PI / 180); popped = jumped && lens && d < 26 && !W.hidden(S.x, S.z, P.x, P.z); }
+        // the run you watch: from the answer until it is with you, in the lens (35 degrees) with nothing between
+        if (tt > 0.9 && reached === null) { runF++; const dx = S.x - P.x, dz = S.z - P.z, d = Math.hypot(dx, dz) || 1; if ((-Math.sin(P.yaw) * dx - Math.cos(P.yaw) * dz) / d > Math.cos(33 * Math.PI / 180) && !W.hidden(S.x, S.z, P.x, P.z)) seenF++; }   // on screen (hfov 70) and not behind anything
+        if (reached === null && dist(P, S) < 5) reached = +tt.toFixed(1);
         if (reached !== null && resumed === null && tt > 1.2 && ['lead', 'company', 'invite', 'nap'].includes(S.state)) { resumed = { t: +tt.toFixed(1), state: S.state, target: S.target?.id ?? null }; break; }
       }
-      return { label, from, d0, at, d1, angle, reached, resumed, states, whistles, yips, tWhistle, tYip: tYip === null ? null : +tYip.toFixed(2), earsUpFrames: perkUp };
+      return { label, from, d0, at, d1, angle, reached, resumed, states, whistles, yips, tWhistle, tYip: tYip === null ? null : +tYip.toFixed(2), earsUpFrames: perkUp, seen: +(seenF / Math.max(1, runF)).toFixed(2), greeted, popped };
     };
     const bench = window.__scene.world.frame.toWorld({ x: 75.6, z: 103.6 });
-    const far = run(bench, 'bench, 100+ m');
+    const far = run(bench, 'bench, 100+ m (you facing the store: it can only come round the store\'s corner)');
+    const far2 = run(bench, 'bench, 100+ m, you facing the car park', Math.PI);
     // and 40 m up the main road (under the "appear from a corner" distance): it must run all the way
     let mid = null;
     for (const cand of [{ x: 0, z: -24 }, { x: 4.6, z: -22 }, { x: -3, z: -22 }]) { const c = W.nearest(cand.x, cand.z, 4); if (c >= 0) { mid = W.at(c); break; } }
-    const near = mid ? run(mid, 'main road, ~40 m') : null;
+    const behind = mid ? run(mid, 'behind the store, ~35 m') : null;
+    // and in plain view ahead (the camera looking along open street): it runs from where it is, no jump
+    let ahead = null;
+    for (const yaw of [0, Math.PI, Math.PI / 2, -Math.PI / 2]) {
+      for (const d of [22, 18, 14]) {
+        const c = W.nearest(P.x - Math.sin(yaw) * d, P.z - Math.cos(yaw) * d, 3);
+        if (c < 0) continue;
+        const q = W.at(c);
+        if (W.sight(q.x, q.z, 0, 11)) { ahead = { q, yaw }; break; }
+      }
+      if (ahead) break;
+    }
+    const near = ahead ? run(ahead.q, 'in view, ~20 m', ahead.yaw) : null;
     // and beside you already (2 m): no run, just the answer once the whistle is over
     const here = (() => {
       g.reset();
@@ -348,20 +366,46 @@ const SIM = async (kind) => {
       const log = window.__scene.sound.debug.log; log.length = 0;
       const d0 = +dist(P, S).toFixed(1);
       g.whistle(); g.whistle();
-      let tt = 0, seen = 0, tWhistle = null, tYip = null, whistles = 0, yips = 0, hopped = false, ran = false;
+      let tt = 0, seen = 0, tWhistle = null, tYip = null, whistles = 0, yips = 0, hopped = false, ran = false, greetAt = null;
       while (tt < 4) {
         g.step(1 / 30, P); tt += 1 / 30;
         for (; seen < log.length; seen++) { const n = log[seen].name; if (n === 'whistle') { whistles++; tWhistle ??= +tt.toFixed(2); } if (n === 'dog-yip') { yips++; tYip ??= +tt.toFixed(2); } }
-        if (S.act?.name === 'hop') hopped = true;
-        if (S.state === 'come' || S.state === 'chase' || (tt < 2 && dist(P, S) > 3.5)) ran = true;   // (it may play after answering; it must not run off)
+        if (S.act?.name === 'greet') hopped = true;
+        if (S.act?.name === 'greet' && greetAt === null) greetAt = +dist(P, S).toFixed(1);
+        if (S.state === 'chase' || dist(P, S) > 6) ran = true;   // (it bounds out in front of you to greet you; it must not run off)
       }
-      return { d0, whistles, yips, tWhistle, tYip, hopped, ran, d1: +dist(P, S).toFixed(1) };
+      return { d0, whistles, yips, tWhistle, tYip, hopped, ran, greetAt, d1: +dist(P, S).toFixed(1) };
     })();
-    res.far = far; res.near = near; res.here = here;
-    const timing = (r) => r.whistles === 1 && (r.yips === 0 || (r.yips === 1 && r.tYip !== null && r.tYip - (r.tWhistle ?? 0) >= 0.52));
-    res.ok = far.reached !== null && far.reached <= 15 && far.d1 <= 42 && far.angle > 60 && !!far.resumed && timing(far)
-      && (!near || (near.reached !== null && near.reached <= near.d0 / 4 + 8 && Math.abs(near.d1 - near.d0) < 0.5 && !!near.resumed && timing(near) && near.earsUpFrames > 5))
-      && here.whistles === 1 && here.yips === 1 && here.tYip - here.tWhistle >= 0.52 && here.hopped && !here.ran;
+    res.far = far; res.far2 = far2; res.behind = behind; res.near = near; res.here = here;
+    const timing = (r) => r.whistles === 1 && r.yips >= 1 && r.tYip !== null && r.tYip - (r.tWhistle ?? 0) >= 0.52;
+    // Tan: seen running to you, wherever you look: far off, it sets out ahead of you, in the lens, and you watch it come
+    res.ok = far.reached !== null && far.reached <= 8 && far.d1 >= 7 && far.d1 <= 20 && far.angle < 52 && far.seen >= 0.25 && far.popped === false && far.greeted && !!far.resumed && timing(far)
+      && far2.reached !== null && far2.reached <= 8 && far2.seen >= 0.6 && far2.popped === false && far2.greeted && !!far2.resumed && timing(far2)
+      && (!behind || (behind.reached !== null && behind.reached <= 8 && behind.angle < 52 && behind.seen >= 0.25 && behind.popped === false && behind.greeted && !!behind.resumed && timing(behind)))
+      && !!near && near.reached !== null && near.reached <= near.d0 / 3.5 + 3 && Math.abs(near.d1 - near.d0) < 0.5 && near.seen >= 0.85 && near.popped === false && near.greeted && !!near.resumed && timing(near) && near.earsUpFrames > 5
+      && here.whistles === 1 && here.yips >= 1 && here.tYip - here.tWhistle >= 0.52 && here.hopped && !here.ran && here.greetAt >= 3.2 && here.greetAt <= 5.2;
+  } else if (kind === 'tipsy') {
+    // the Strong Nine: the pup napping by the bench far off, you tipsy on the main road looking up it: it comes into
+    // view, to just in front of you, and giggles and rolls about until the ten seconds are up
+    g.reset();
+    const dt = 1 / 30;
+    const bench = window.__scene.world.frame.toWorld({ x: 75.6, z: 103.6 });
+    Object.assign(S, { x: bench.x, z: bench.z, state: 'nap', field: null, target: null });
+    P.x = 0; P.z = 11; P.yaw = 0; sync();
+    for (let k = 0; k < 15; k++) g.step(dt, P);
+    const log = window.__scene.sound.debug.log; log.length = 0;
+    g.tipsy(10);
+    let tt = 0, there = null, rolls = 0, lastAct = null, inLens = 0, frames = 0, giggles = 0, seen = 0, endState = null;
+    while (tt < 13) {
+      g.step(dt, P); tt += dt;
+      for (; seen < log.length; seen++) if (log[seen].name === 'dog-giggle') giggles++;
+      if (S.act?.name !== lastAct) { lastAct = S.act?.name ?? null; if (lastAct === 'roll') rolls++; }
+      if (there === null && dist(P, S) < 5) there = +tt.toFixed(1);
+      if (tt > 1 && tt < 10) { frames++; const dx = S.x - P.x, dz = S.z - P.z, d = Math.hypot(dx, dz) || 1; if (-dz / d > Math.cos(40 * Math.PI / 180)) inLens++; }
+    }
+    endState = S.state;
+    res.tipsy = { there, rolls, giggles, inLens: +(inLens / frames).toFixed(2), endState };
+    res.ok = there !== null && there <= 4 && rolls >= 2 && giggles >= 3 && inLens >= 0.85 && endState !== 'party';
   }
   res.viol = viol; res.wall = wall; res.gridMs = +W.ms.toFixed(0); res.cells = W.N; res.msPerStep = +(fieldMs / Math.max(1, Math.round(t * 30))).toFixed(3);
   return res;
@@ -405,7 +449,7 @@ try {
       // the engine really putting sound out before the first measure (it was 0 on a slow start)
       for (let k = 0; k < 20 && (await dbg.level(250)).peak < 0.001; k++) await new Promise((r) => setTimeout(r, 250));
       const out = {};
-      for (const n of ['dog-yip', 'dog-boof', 'dog-whine', 'dog-hmm', 'dog-pant', 'dog-shake', 'dog-snore', 'dog-awoo', 'dog-snort', 'dog-sneeze', 'whistle']) {
+      for (const n of ['dog-yip', 'dog-boof', 'dog-whine', 'dog-hmm', 'dog-pant', 'dog-shake', 'dog-snore', 'dog-awoo', 'dog-snort', 'dog-sneeze', 'dog-giggle', 'whistle']) {
         await new Promise((r) => setTimeout(r, 900));
         // the town's own sound varies: its level is the median of three short reads
         const bs = [(await dbg.level(200)).peak, (await dbg.level(200)).peak, (await dbg.level(200)).peak].sort((a, b) => a - b);
@@ -421,7 +465,7 @@ try {
     if (!loud) bad++;
     console.log(loud ? 'pass' : 'FAIL', 'voice', JSON.stringify(voice));
 
-    for (const kind of ['tour', 'intro', 'turnaway', 'wander', 'whistle'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
+    for (const kind of ['tour', 'intro', 'turnaway', 'wander', 'whistle', 'tipsy'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
       const r = await page.evaluate(SIM, kind);
       if (r.map) { fs.writeFileSync(path.join(out, 'trail.png'), Buffer.from(r.map.split(',')[1], 'base64')); delete r.map; }
       const said = await page.evaluate(() => { const l = [...new Set(window.__scene.sound.debug.log.map((e) => e.name).filter((n) => /^dog-|^whistle/.test(n ?? '')))]; window.__scene.sound.debug.log.length = 0; return l; });

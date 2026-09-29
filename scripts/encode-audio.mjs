@@ -73,13 +73,14 @@ for (const [name, c] of Object.entries(files)) {
   /* `song`: a piece of music played whole (the theme): kept in stereo, no cut or levelling, only re-encoded */
   if (c.song) {
     const m4a = path.join(OUT, name + '.m4a');
-    execFileSync('afconvert', ['-f', 'm4af', '-d', 'aac', '-b', String((c.kbps ?? 96) * 1000), '-q', '127', mp3, m4a]);
+    // HE-AAC (`aach`) for a song: half the bytes of plain AAC for music at the same ear (every desktop browser plays it)
+    execFileSync('afconvert', ['-f', 'm4af', '-d', c.he ? 'aach' : 'aac', '-b', String((c.kbps ?? 96) * 1000), ...(c.he ? [] : ['-q', '127']), mp3, m4a]);
     const info = execFileSync('afinfo', [m4a]).toString();
     const dur = +(info.match(/estimated duration: ([0-9.]+)/)?.[1] ?? 0);
     const size = fs.statSync(m4a).size;
     total += size;
     manifest[name] = { file: name + '.m4a', duration: +dur.toFixed(2), loop: true, song: true };
-    rows.push([name, `${dur.toFixed(1)} s song, stereo  ${(size / 1024).toFixed(1)} KB`]);
+    rows.push([name, `${dur.toFixed(1)} s song, stereo${c.he ? ' HE-AAC' : ''} ${c.kbps ?? 96} kbps  ${(size / 1024).toFixed(1)} KB`]);
     continue;
   }
   const wav = path.join(tmp, name + '.wav');

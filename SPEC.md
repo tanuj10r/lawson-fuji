@@ -418,8 +418,8 @@ facings out of place).
   - Han's song (han-drift), ドンペン堂's theme, shrine chimes, the rural
     flute;
   - birds, crows, night insects, wind, ui-tap, stamp.
-  - Tan's song for the cards, `nippon-lets-go.mp3` (kept whole and in
-    stereo).
+  - Tan's song for the cards, `title bgm.mp3` (kept whole and in stereo,
+    HE-AAC 48 kbps, 1.03 MB).
 - **Rules:**
   - audio files are never committed;
   - no soundboard or sound gallery (効果音ラボ's terms);
@@ -452,7 +452,7 @@ facings out of place).
 
 | Measure | Target | Now |
 | --- | --- | --- |
-| First-visit download (`npm run size`) | < 5 MB | 4.90 MB (1.53 MB before the first click; key art 0.15 MB) |
+| First-visit download (`npm run size`) | < 5 MB | 5.91 MB with the title song (1.03 MB, streamed only when a card plays it); 4.90 MB without; 1.53 MB before the first click |
 | Ready to play | < 5 s | about 4 s |
 | Famous view frame, 1440p | 60 fps | 9.5 ms |
 | Worst spots, 1440p | 60 fps | 9-11 ms (the far bank, the paddies from the lane end) |

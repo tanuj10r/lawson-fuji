@@ -33,7 +33,7 @@ check('the first click starts it (running), the manifest loads', s1.state === 'r
 // under it; in play it stops and the game comes back; paused again, it picks up where it left off (not from the top)
 const th = await page.evaluate(async () => {
   const d = window.__scene.sound.debug, p = window.__scene.player, wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  if (!d.manifest.theme) return { skip: 'no theme file (assets/audio/nippon-lets-go.mp3)' };
+  if (!d.manifest.theme) return { skip: 'no theme file (assets/audio/title bgm.mp3)' };
   const T = d._theme;
   p.locked = false;                                  // a card up (the first click may have taken the pointer)
   await wait(2500);
@@ -45,7 +45,7 @@ const th = await page.evaluate(async () => {
   p.locked = true; await wait(2600);
   return { on, off, again, end: { paused: T.el.paused, world: +d._world.gain.value.toFixed(2) } };
 });
-check("Tan's song loops on the start and pause cards, picks up where it left off, off in play", !!th.skip || (th.on.playing && th.on.at > 1 && th.on.world <= 0.2 && th.on.rms > 0.005 && th.off.paused && th.off.world >= 0.95 && th.again.playing && th.again.at >= th.off.at && th.end.paused && th.end.world >= 0.95), th);
+check("Tan's song loops on the start and pause cards, picks up where it left off, off in play", !!th.skip || (th.on.playing && th.on.at > 1 && th.on.world <= 0.2 && th.on.rms > 0.003 && th.off.paused && th.off.world >= 0.95 && th.again.playing && th.again.at >= th.off.at && th.end.paused && th.end.world >= 0.95), th);
 
 // every file decodes, and its loop span fits
 const dec = await page.evaluate(async () => {

@@ -313,7 +313,7 @@ export function buildHan(ctx) {
   let envK = -1;
   const pl = new THREE.Vector3(), hv = new THREE.Vector3();
   ctx.update((dt, cam) => {
-    if (!cam) return;
+    if (!cam || S.puppet) return;                          // (Director Mode, dev: a shot drives Han and the car)
     const p = ctx.toLocal({ x: cam.x, z: cam.z });
     const dCar = Math.hypot(p.x - cg.position.x, p.z - cg.position.z);
     if (!S.run && dCar > NEAR) return;
@@ -436,6 +436,8 @@ export function buildHan(ctx) {
       return { tris: Math.round(tris), draws };
     };
     window.__han = {
+      // Director Mode: the parts, to drive by hand (S.puppet = true rests the show)
+      car, han, cg, smoke, S, POSES, blendPose, groundAt, toTown, smokeStep: (dt, psi) => smokeStep(dt, psi), cp, D, placeCar, ctx,
       set, play: () => { S.frozen = false; start(); }, stop: () => { S.run = false; S.frozen = false; smoke.reset(); },
       state: () => ({ run: S.run, t: S.t, held: S.held, armed: S.armed, x: cg.position.x, z: cg.position.z, psi: -cg.rotation.y }),
       show: (on) => { cg.visible = on; smoke.mesh.userData.on = on; smoke.mesh.visible = false; },

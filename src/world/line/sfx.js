@@ -51,11 +51,20 @@ function ensure() {
   return ac;
 }
 
+let fxOn = 1, tapNode = null;
 /** Each frame: where the listener is (world), and the engine's volume. */
 export function sfxListen(p) {
   listener.x = p.x; listener.z = p.z;
-  if (out) out.gain.setTargetAtTime(host() * 0.9, ac.currentTime, 0.1);
+  if (out) out.gain.setTargetAtTime(host() * 0.9 * fxOn, ac.currentTime, 0.1);
 }
+/** Director Mode (dev): the train's own graph as a MediaStream for the recording, and its sound on or off (the
+ * effects group). */
+export function sfxTap() {
+  if (!ensure()) return null;
+  if (!tapNode) { tapNode = ac.createMediaStreamDestination(); out.connect(tapNode); }
+  return tapNode.stream;
+}
+export function sfxOn(on) { fxOn = on ? 1 : 0; }
 
 /**
  * One set's running sound.  `step(dt, { v, dv, at, phase })`: speed (m/s),

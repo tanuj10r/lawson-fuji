@@ -1,0 +1,41 @@
+[
+ {
+  "pass": false,
+  "stockAtThisPoint": {
+   "menu": [
+    "sando_egg",
+    "fruit_sando",
+    "onigiri_tuna",
+    "strong_nine",
+    "choco_wafer_jumbo"
+   ],
+   "left": {
+    "strong_nine": 10,
+    "onigiri_tuna": 10,
+    "sando_egg": 8,
+    "fruit_sando": 8,
+    "choco_wafer_jumbo": 16
+   }
+  },
+  "visiting": false,
+  "menuStill": true,
+  "toasts": [],
+  "menuText": [
+   "5",
+   "Choco Wafer Jumbo",
+   "チョコウエハース ジャンボ",
+   "¥190"
+  ],
+  "note": "the menu offers it; the key does nothing and nothing says why",
+  "secs": 17.1,
+  "id": "15-konbini-stock-out"
+ },
+ {
+  "pass": null,
+  "cachedBefore": false,
+  "songStartsAfterS": 3.52,
+  "note": "on localhost; on a real connection add the 134 KB fetch",
+  "secs": 28,
+  "id": "23-han-song-latency"
+ }
+]

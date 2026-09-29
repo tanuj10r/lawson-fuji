@@ -1,0 +1,2097 @@
+{
+ "samples": [
+  {
+   "t": 27.76,
+   "label": "card",
+   "heapMB": 154,
+   "heapTotalMB": 218.9,
+   "nodes": 686,
+   "listeners": 41,
+   "docs": 1,
+   "fps": 30.4,
+   "p95": 100,
+   "max": 300,
+   "over50": 16,
+   "gl": {
+    "geometries": 736,
+    "textures": 155,
+    "programs": 163
+   },
+   "audio": {
+    "live": 0,
+    "peak": 0,
+    "osc": 0,
+    "oscPeak": 0,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 0,
+    "media": 0
+   },
+   "look": null,
+   "pos": [
+    0,
+    16.5
+   ],
+   "guide": {
+    "state": "home",
+    "leg": 0,
+    "target": null,
+    "done": 1
+   },
+   "locked": false
+  },
+  {
+   "t": 43.84,
+   "label": "start",
+   "heapMB": 159,
+   "heapTotalMB": 219.5,
+   "nodes": 692,
+   "listeners": 63,
+   "docs": 1,
+   "fps": 54,
+   "p95": 33.4,
+   "max": 66.6,
+   "over50": 1,
+   "gl": {
+    "geometries": 736,
+    "textures": 155,
+    "programs": 163
+   },
+   "audio": {
+    "live": 2,
+    "peak": 2,
+    "osc": 4,
+    "oscPeak": 4,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 2,
+    "media": 1
+   },
+   "look": "golden",
+   "pos": [
+    0,
+    16.5
+   ],
+   "guide": {
+    "state": "home",
+    "leg": 0,
+    "target": null,
+    "done": 1
+   },
+   "locked": false
+  },
+  {
+   "t": 78.79,
+   "label": "",
+   "heapMB": 177.6,
+   "heapTotalMB": 231.5,
+   "nodes": 965,
+   "listeners": 161,
+   "docs": 1,
+   "fps": 42.9,
+   "p95": 33.4,
+   "max": 266.7,
+   "over50": 3,
+   "gl": {
+    "geometries": 900,
+    "textures": 175,
+    "programs": 188
+   },
+   "audio": {
+    "live": 4,
+    "peak": 10,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 42,
+    "media": 2
+   },
+   "look": "blue",
+   "pos": [
+    -7.9,
+    9.1
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 2,
+    "target": null,
+    "done": 2
+   },
+   "locked": true
+  },
+  {
+   "t": 113.18,
+   "label": "",
+   "heapMB": 176,
+   "heapTotalMB": 243.2,
+   "nodes": 1037,
+   "listeners": 338,
+   "docs": 1,
+   "fps": 34.7,
+   "p95": 33.5,
+   "max": 100,
+   "over50": 2,
+   "gl": {
+    "geometries": 921,
+    "textures": 179,
+    "programs": 199
+   },
+   "audio": {
+    "live": 3,
+    "peak": 11,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 1,
+    "zonesLive": [],
+    "log": 116,
+    "media": 2
+   },
+   "look": "blue",
+   "pos": [
+    -25.4,
+    23.4
+   ],
+   "guide": {
+    "state": "atSpot",
+    "leg": 4,
+    "target": "han",
+    "done": 2
+   },
+   "locked": true
+  },
+  {
+   "t": 145.91,
+   "label": "",
+   "heapMB": 117.8,
+   "heapTotalMB": 161.1,
+   "nodes": 840,
+   "listeners": 120,
+   "docs": 1,
+   "fps": 41.7,
+   "p95": 33.4,
+   "max": 83.3,
+   "over50": 2,
+   "gl": {
+    "geometries": 921,
+    "textures": 179,
+    "programs": 199
+   },
+   "audio": {
+    "live": 4,
+    "peak": 11,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 1,
+    "zonesLive": [],
+    "log": 178,
+    "media": 2
+   },
+   "look": "blue",
+   "pos": [
+    -25.4,
+    23.4
+   ],
+   "guide": {
+    "state": "atSpot",
+    "leg": 4,
+    "target": "han",
+    "done": 2
+   },
+   "locked": true
+  },
+  {
+   "t": 178.7,
+   "label": "",
+   "heapMB": 112.8,
+   "heapTotalMB": 177.6,
+   "nodes": 834,
+   "listeners": 100,
+   "docs": 1,
+   "fps": 29.8,
+   "p95": 50.1,
+   "max": 133.3,
+   "over50": 4,
+   "gl": {
+    "geometries": 921,
+    "textures": 179,
+    "programs": 199
+   },
+   "audio": {
+    "live": 3,
+    "peak": 11,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 253,
+    "media": 2
+   },
+   "look": "day",
+   "pos": [
+    -25.4,
+    23.5
+   ],
+   "guide": {
+    "state": "atSpot",
+    "leg": 4,
+    "target": "han",
+    "done": 2
+   },
+   "locked": true
+  },
+  {
+   "t": 211.81,
+   "label": "",
+   "heapMB": 130.7,
+   "heapTotalMB": 177.6,
+   "nodes": 902,
+   "listeners": 275,
+   "docs": 1,
+   "fps": 33.2,
+   "p95": 33.4,
+   "max": 133.2,
+   "over50": 2,
+   "gl": {
+    "geometries": 922,
+    "textures": 179,
+    "programs": 199
+   },
+   "audio": {
+    "live": 4,
+    "peak": 11,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 335,
+    "media": 2
+   },
+   "look": "day",
+   "pos": [
+    -25.4,
+    23.5
+   ],
+   "guide": {
+    "state": "atSpot",
+    "leg": 4,
+    "target": "han",
+    "done": 2
+   },
+   "locked": true
+  },
+  {
+   "t": 244.81,
+   "label": "",
+   "heapMB": 133.1,
+   "heapTotalMB": 186.8,
+   "nodes": 811,
+   "listeners": 63,
+   "docs": 1,
+   "fps": 16.9,
+   "p95": 133.4,
+   "max": 649.9,
+   "over50": 6,
+   "gl": {
+    "geometries": 922,
+    "textures": 179,
+    "programs": 199
+   },
+   "audio": {
+    "live": 4,
+    "peak": 11,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 409,
+    "media": 2
+   },
+   "look": "day",
+   "pos": [
+    -25.4,
+    23.4
+   ],
+   "guide": {
+    "state": "atSpot",
+    "leg": 4,
+    "target": "han",
+    "done": 2
+   },
+   "locked": true
+  },
+  {
+   "t": 277.85,
+   "label": "",
+   "heapMB": 118.8,
+   "heapTotalMB": 209.3,
+   "nodes": 901,
+   "listeners": 237,
+   "docs": 1,
+   "fps": 34.2,
+   "p95": 33.4,
+   "max": 183.2,
+   "over50": 3,
+   "gl": {
+    "geometries": 922,
+    "textures": 179,
+    "programs": 199
+   },
+   "audio": {
+    "live": 3,
+    "peak": 11,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 3,
+    "zonesLive": [],
+    "log": 488,
+    "media": 2
+   },
+   "look": "day",
+   "pos": [
+    -25.4,
+    23.5
+   ],
+   "guide": {
+    "state": "come",
+    "leg": 4,
+    "target": null,
+    "done": 2
+   },
+   "locked": true
+  },
+  {
+   "t": 322.91,
+   "label": "",
+   "heapMB": 143.5,
+   "heapTotalMB": 209.6,
+   "nodes": 1053,
+   "listeners": 182,
+   "docs": 1,
+   "fps": 43.3,
+   "p95": 33.4,
+   "max": 200,
+   "over50": 2,
+   "gl": {
+    "geometries": 1002,
+    "textures": 189,
+    "programs": 203
+   },
+   "audio": {
+    "live": 8,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 1,
+    "zonesLive": [],
+    "log": 535,
+    "media": 2
+   },
+   "look": "blue",
+   "pos": [
+    -22.2,
+    24.5
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 5,
+    "target": null,
+    "done": 3
+   },
+   "locked": true
+  },
+  {
+   "t": 362.08,
+   "label": "",
+   "heapMB": 122.1,
+   "heapTotalMB": 209.3,
+   "nodes": 927,
+   "listeners": 179,
+   "docs": 1,
+   "fps": 25.2,
+   "p95": 66.7,
+   "max": 150,
+   "over50": 7,
+   "gl": {
+    "geometries": 1002,
+    "textures": 189,
+    "programs": 203
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 591,
+    "media": 4
+   },
+   "look": "blue",
+   "pos": [
+    -22.9,
+    24.2
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 5,
+    "target": null,
+    "done": 3
+   },
+   "locked": true
+  },
+  {
+   "t": 395.05,
+   "label": "",
+   "heapMB": 114.7,
+   "heapTotalMB": 209.6,
+   "nodes": 809,
+   "listeners": 141,
+   "docs": 1,
+   "fps": 23.5,
+   "p95": 50.1,
+   "max": 50.1,
+   "over50": 4,
+   "gl": {
+    "geometries": 1003,
+    "textures": 189,
+    "programs": 203
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 661,
+    "media": 4
+   },
+   "look": "blue",
+   "pos": [
+    -22.9,
+    24.2
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 5,
+    "target": null,
+    "done": 3
+   },
+   "locked": true
+  },
+  {
+   "t": 428.69,
+   "label": "",
+   "heapMB": 110.9,
+   "heapTotalMB": 209.8,
+   "nodes": 833,
+   "listeners": 90,
+   "docs": 1,
+   "fps": 23,
+   "p95": 66.7,
+   "max": 166.7,
+   "over50": 8,
+   "gl": {
+    "geometries": 1003,
+    "textures": 189,
+    "programs": 203
+   },
+   "audio": {
+    "live": 3,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 739,
+    "media": 4
+   },
+   "look": "golden",
+   "pos": [
+    -22.9,
+    24.2
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 5,
+    "target": null,
+    "done": 3
+   },
+   "locked": true
+  },
+  {
+   "t": 462.27,
+   "label": "",
+   "heapMB": 133.7,
+   "heapTotalMB": 209.3,
+   "nodes": 830,
+   "listeners": 87,
+   "docs": 1,
+   "fps": 22,
+   "p95": 66.6,
+   "max": 166.7,
+   "over50": 5,
+   "gl": {
+    "geometries": 1003,
+    "textures": 189,
+    "programs": 203
+   },
+   "audio": {
+    "live": 2,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 814,
+    "media": 4
+   },
+   "look": "golden",
+   "pos": [
+    -22.9,
+    24.2
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 5,
+    "target": null,
+    "done": 3
+   },
+   "locked": true
+  },
+  {
+   "t": 495.2,
+   "label": "",
+   "heapMB": 121.3,
+   "heapTotalMB": 209.6,
+   "nodes": 812,
+   "listeners": 66,
+   "docs": 1,
+   "fps": 18.7,
+   "p95": 150.1,
+   "max": 399.9,
+   "over50": 7,
+   "gl": {
+    "geometries": 1033,
+    "textures": 190,
+    "programs": 205
+   },
+   "audio": {
+    "live": 3,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 1,
+    "zonesLive": [],
+    "log": 892,
+    "media": 4
+   },
+   "look": "golden",
+   "pos": [
+    -22.9,
+    24.2
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 5,
+    "target": null,
+    "done": 3
+   },
+   "locked": true
+  },
+  {
+   "t": 533.42,
+   "label": "",
+   "heapMB": 128.3,
+   "heapTotalMB": 209.3,
+   "nodes": 809,
+   "listeners": 63,
+   "docs": 1,
+   "fps": 19.2,
+   "p95": 166.6,
+   "max": 450,
+   "over50": 5,
+   "gl": {
+    "geometries": 1033,
+    "textures": 190,
+    "programs": 205
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 1,
+    "zonesLive": [],
+    "log": 935,
+    "media": 4
+   },
+   "look": "day",
+   "pos": [
+    -21.2,
+    23.4
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 25,
+    "target": "slowlife",
+    "done": 3
+   },
+   "locked": true
+  },
+  {
+   "t": 566.48,
+   "label": "",
+   "heapMB": 115.9,
+   "heapTotalMB": 210.1,
+   "nodes": 809,
+   "listeners": 66,
+   "docs": 1,
+   "fps": 29.6,
+   "p95": 99.9,
+   "max": 166.7,
+   "over50": 5,
+   "gl": {
+    "geometries": 1039,
+    "textures": 191,
+    "programs": 206
+   },
+   "audio": {
+    "live": 3,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 1,
+    "zonesLive": [],
+    "log": 1014,
+    "media": 4
+   },
+   "look": "day",
+   "pos": [
+    -52.8,
+    -26.6
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 25,
+    "target": "slowlife",
+    "done": 3
+   },
+   "locked": true
+  },
+  {
+   "t": 611.24,
+   "label": "",
+   "heapMB": 121.1,
+   "heapTotalMB": 209.8,
+   "nodes": 872,
+   "listeners": 69,
+   "docs": 1,
+   "fps": 28.5,
+   "p95": 50,
+   "max": 150.1,
+   "over50": 3,
+   "gl": {
+    "geometries": 1045,
+    "textures": 191,
+    "programs": 209
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [
+     "rural-flute"
+    ],
+    "log": 1088,
+    "media": 4
+   },
+   "look": "day",
+   "pos": [
+    -73,
+    -73.5
+   ],
+   "guide": {
+    "state": "linger",
+    "leg": 25,
+    "target": "slowlife",
+    "done": 4
+   },
+   "locked": true
+  },
+  {
+   "t": 644.2,
+   "label": "",
+   "heapMB": 133.3,
+   "heapTotalMB": 210.8,
+   "nodes": 810,
+   "listeners": 63,
+   "docs": 1,
+   "fps": 17.1,
+   "p95": 216.6,
+   "max": 683.4,
+   "over50": 6,
+   "gl": {
+    "geometries": 1046,
+    "textures": 191,
+    "programs": 209
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 1,
+    "zonesLive": [
+     "shrine-chimes"
+    ],
+    "log": 1160,
+    "media": 4
+   },
+   "look": "day",
+   "pos": [
+    -30.4,
+    -72
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 28,
+    "target": null,
+    "done": 4
+   },
+   "locked": true
+  },
+  {
+   "t": 677.09,
+   "label": "",
+   "heapMB": 118.2,
+   "heapTotalMB": 210.8,
+   "nodes": 908,
+   "listeners": 152,
+   "docs": 1,
+   "fps": 34.2,
+   "p95": 50,
+   "max": 50.1,
+   "over50": 1,
+   "gl": {
+    "geometries": 1046,
+    "textures": 191,
+    "programs": 209
+   },
+   "audio": {
+    "live": 3,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 1200,
+    "media": 6
+   },
+   "look": "blue",
+   "pos": [
+    -29.7,
+    -38.4
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 28,
+    "target": null,
+    "done": 4
+   },
+   "locked": true
+  },
+  {
+   "t": 711.06,
+   "label": "",
+   "heapMB": 129.6,
+   "heapTotalMB": 210.8,
+   "nodes": 947,
+   "listeners": 338,
+   "docs": 1,
+   "fps": 50.1,
+   "p95": 33.4,
+   "max": 99.9,
+   "over50": 3,
+   "gl": {
+    "geometries": 1046,
+    "textures": 191,
+    "programs": 209
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 1285,
+    "media": 6
+   },
+   "look": "blue",
+   "pos": [
+    -32.8,
+    17.3
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 29,
+    "target": null,
+    "done": 4
+   },
+   "locked": true
+  },
+  {
+   "t": 746.98,
+   "label": "",
+   "heapMB": 128,
+   "heapTotalMB": 210.3,
+   "nodes": 896,
+   "listeners": 231,
+   "docs": 1,
+   "fps": 55.6,
+   "p95": 16.8,
+   "max": 66.7,
+   "over50": 2,
+   "gl": {
+    "geometries": 1046,
+    "textures": 191,
+    "programs": 209
+   },
+   "audio": {
+    "live": 3,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 1,
+    "zonesLive": [],
+    "log": 1366,
+    "media": 6
+   },
+   "look": "blue",
+   "pos": [
+    -29.2,
+    41.9
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 31,
+    "target": "gate",
+    "done": 4
+   },
+   "locked": true
+  },
+  {
+   "t": 779.7,
+   "label": "",
+   "heapMB": 111.6,
+   "heapTotalMB": 210.3,
+   "nodes": 815,
+   "listeners": 76,
+   "docs": 1,
+   "fps": 22.6,
+   "p95": 50.1,
+   "max": 150,
+   "over50": 7,
+   "gl": {
+    "geometries": 1046,
+    "textures": 191,
+    "programs": 209
+   },
+   "audio": {
+    "live": 3,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 1425,
+    "media": 6
+   },
+   "look": "golden",
+   "pos": [
+    -24.5,
+    33.4
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 32,
+    "target": "train",
+    "done": 4
+   },
+   "locked": true
+  },
+  {
+   "t": 812.85,
+   "label": "",
+   "heapMB": 133.3,
+   "heapTotalMB": 210.3,
+   "nodes": 902,
+   "listeners": 248,
+   "docs": 1,
+   "fps": 29.8,
+   "p95": 50,
+   "max": 116.7,
+   "over50": 3,
+   "gl": {
+    "geometries": 1046,
+    "textures": 191,
+    "programs": 209
+   },
+   "audio": {
+    "live": 2,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 12,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 1504,
+    "media": 6
+   },
+   "look": "golden",
+   "pos": [
+    24.9,
+    -7.6
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 32,
+    "target": "train",
+    "done": 4
+   },
+   "locked": true
+  },
+  {
+   "t": 846.18,
+   "label": "",
+   "heapMB": 135.8,
+   "heapTotalMB": 210.3,
+   "nodes": 914,
+   "listeners": 448,
+   "docs": 1,
+   "fps": 32.8,
+   "p95": 50,
+   "max": 200,
+   "over50": 3,
+   "gl": {
+    "geometries": 1047,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 6,
+    "peak": 17,
+    "osc": 10,
+    "oscPeak": 12,
+    "voices": 2,
+    "zonesLive": [
+     "station-ambience"
+    ],
+    "log": 1589,
+    "media": 6
+   },
+   "look": "golden",
+   "pos": [
+    25.9,
+    -78.6
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 32,
+    "target": "train",
+    "done": 4
+   },
+   "locked": true
+  },
+  {
+   "t": 879.27,
+   "label": "",
+   "heapMB": 122,
+   "heapTotalMB": 210.8,
+   "nodes": 830,
+   "listeners": 114,
+   "docs": 1,
+   "fps": 58,
+   "p95": 16.8,
+   "max": 49.9,
+   "over50": 0,
+   "gl": {
+    "geometries": 1047,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 10,
+    "oscPeak": 18,
+    "voices": 0,
+    "zonesLive": [
+     "station-ambience"
+    ],
+    "log": 1663,
+    "media": 6
+   },
+   "look": "golden",
+   "pos": [
+    53.1,
+    -129.3
+   ],
+   "guide": {
+    "state": "atSpot",
+    "leg": 32,
+    "target": "train",
+    "done": 4
+   },
+   "locked": true
+  },
+  {
+   "t": 912.5,
+   "label": "",
+   "heapMB": 118.3,
+   "heapTotalMB": 210.8,
+   "nodes": 911,
+   "listeners": 150,
+   "docs": 1,
+   "fps": 28.8,
+   "p95": 116.6,
+   "max": 133.4,
+   "over50": 5,
+   "gl": {
+    "geometries": 1047,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 6,
+    "peak": 17,
+    "osc": 10,
+    "oscPeak": 18,
+    "voices": 1,
+    "zonesLive": [
+     "station-ambience"
+    ],
+    "log": 1674,
+    "media": 6
+   },
+   "look": "day",
+   "pos": [
+    53.1,
+    -129.3
+   ],
+   "guide": {
+    "state": "atSpot",
+    "leg": 32,
+    "target": "train",
+    "done": 4
+   },
+   "locked": true
+  },
+  {
+   "t": 945.43,
+   "label": "",
+   "heapMB": 137.5,
+   "heapTotalMB": 210.8,
+   "nodes": 984,
+   "listeners": 220,
+   "docs": 1,
+   "fps": 27.6,
+   "p95": 50,
+   "max": 133.3,
+   "over50": 3,
+   "gl": {
+    "geometries": 1047,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 18,
+    "voices": 3,
+    "zonesLive": [
+     "station-ambience"
+    ],
+    "log": 1692,
+    "media": 6
+   },
+   "look": "day",
+   "pos": [
+    50.4,
+    -126
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 14,
+    "target": "train",
+    "done": 4
+   },
+   "locked": true
+  },
+  {
+   "t": 987.68,
+   "label": "",
+   "heapMB": 110.1,
+   "heapTotalMB": 119.1,
+   "nodes": 869,
+   "listeners": 73,
+   "docs": 1,
+   "fps": 60,
+   "p95": 16.7,
+   "max": 16.8,
+   "over50": 0,
+   "gl": {
+    "geometries": 1047,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 6,
+    "peak": 17,
+    "osc": 10,
+    "oscPeak": 18,
+    "voices": 0,
+    "zonesLive": [
+     "station-ambience"
+    ],
+    "log": 1704,
+    "media": 8
+   },
+   "look": "day",
+   "pos": [
+    52.8,
+    -129.2
+   ],
+   "guide": {
+    "state": "atSpot",
+    "leg": 14,
+    "target": "train",
+    "done": 4
+   },
+   "locked": true
+  },
+  {
+   "t": 1020.79,
+   "label": "",
+   "heapMB": 110.2,
+   "heapTotalMB": 132.1,
+   "nodes": 821,
+   "listeners": 84,
+   "docs": 1,
+   "fps": 38.7,
+   "p95": 50,
+   "max": 116.7,
+   "over50": 4,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 7,
+    "peak": 17,
+    "osc": 10,
+    "oscPeak": 18,
+    "voices": 1,
+    "zonesLive": [
+     "station-ambience"
+    ],
+    "log": 1736,
+    "media": 8
+   },
+   "look": "blue",
+   "pos": [
+    55.5,
+    -111.9
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 16,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  },
+  {
+   "t": 1054.05,
+   "label": "",
+   "heapMB": 117.8,
+   "heapTotalMB": 142.8,
+   "nodes": 824,
+   "listeners": 86,
+   "docs": 1,
+   "fps": 37.6,
+   "p95": 50,
+   "max": 116.7,
+   "over50": 3,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 5,
+    "peak": 17,
+    "osc": 10,
+    "oscPeak": 18,
+    "voices": 0,
+    "zonesLive": [
+     "station-ambience"
+    ],
+    "log": 1801,
+    "media": 8
+   },
+   "look": "blue",
+   "pos": [
+    73.3,
+    -111.7
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 18,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  },
+  {
+   "t": 1087.59,
+   "label": "",
+   "heapMB": 120.2,
+   "heapTotalMB": 147.8,
+   "nodes": 907,
+   "listeners": 279,
+   "docs": 1,
+   "fps": 39.7,
+   "p95": 33.4,
+   "max": 100,
+   "over50": 2,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 5,
+    "peak": 17,
+    "osc": 10,
+    "oscPeak": 18,
+    "voices": 1,
+    "zonesLive": [
+     "station-ambience"
+    ],
+    "log": 1880,
+    "media": 8
+   },
+   "look": "blue",
+   "pos": [
+    73.3,
+    -111.7
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 18,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  },
+  {
+   "t": 1120.87,
+   "label": "",
+   "heapMB": 118.4,
+   "heapTotalMB": 148.8,
+   "nodes": 974,
+   "listeners": 418,
+   "docs": 1,
+   "fps": 33.8,
+   "p95": 33.4,
+   "max": 150,
+   "over50": 2,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 18,
+    "voices": 1,
+    "zonesLive": [
+     "station-ambience"
+    ],
+    "log": 1944,
+    "media": 8
+   },
+   "look": "blue",
+   "pos": [
+    73.3,
+    -111.7
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 18,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  },
+  {
+   "t": 1154.85,
+   "label": "",
+   "heapMB": 128.1,
+   "heapTotalMB": 150.3,
+   "nodes": 992,
+   "listeners": 569,
+   "docs": 1,
+   "fps": 28.2,
+   "p95": 66.7,
+   "max": 250,
+   "over50": 6,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 10,
+    "oscPeak": 18,
+    "voices": 1,
+    "zonesLive": [
+     "station-ambience"
+    ],
+    "log": 2008,
+    "media": 8
+   },
+   "look": "golden",
+   "pos": [
+    73.3,
+    -111.7
+   ],
+   "guide": {
+    "state": "lead",
+    "leg": 18,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  },
+  {
+   "t": 1188.02,
+   "label": "",
+   "heapMB": 120,
+   "heapTotalMB": 152.6,
+   "nodes": 1082,
+   "listeners": 757,
+   "docs": 1,
+   "fps": 34,
+   "p95": 49.9,
+   "max": 166.7,
+   "over50": 3,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 10,
+    "oscPeak": 18,
+    "voices": 4,
+    "zonesLive": [
+     "station-ambience"
+    ],
+    "log": 2089,
+    "media": 8
+   },
+   "look": "golden",
+   "pos": [
+    72.9,
+    -111.7
+   ],
+   "guide": {
+    "state": "caught",
+    "leg": 18,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  },
+  {
+   "t": 1220.99,
+   "label": "",
+   "heapMB": 118.6,
+   "heapTotalMB": 153.6,
+   "nodes": 863,
+   "listeners": 178,
+   "docs": 1,
+   "fps": 31,
+   "p95": 50,
+   "max": 116.7,
+   "over50": 2,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 11,
+    "peak": 17,
+    "osc": 10,
+    "oscPeak": 18,
+    "voices": 1,
+    "zonesLive": [
+     "station-ambience"
+    ],
+    "log": 2152,
+    "media": 8
+   },
+   "look": "golden",
+   "pos": [
+    29,
+    -97.5
+   ],
+   "guide": {
+    "state": "nap",
+    "leg": 18,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  },
+  {
+   "t": 1253.76,
+   "label": "",
+   "heapMB": 134.5,
+   "heapTotalMB": 179.8,
+   "nodes": 845,
+   "listeners": 125,
+   "docs": 1,
+   "fps": 39.5,
+   "p95": 33.4,
+   "max": 100,
+   "over50": 3,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 2,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 18,
+    "voices": 1,
+    "zonesLive": [],
+    "log": 2231,
+    "media": 8
+   },
+   "look": "golden",
+   "pos": [
+    22.9,
+    -29.3
+   ],
+   "guide": {
+    "state": "nap",
+    "leg": 18,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  },
+  {
+   "t": 1286.68,
+   "label": "",
+   "heapMB": 118.7,
+   "heapTotalMB": 186.1,
+   "nodes": 869,
+   "listeners": 333,
+   "docs": 1,
+   "fps": 45.5,
+   "p95": 33.4,
+   "max": 33.5,
+   "over50": 0,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 18,
+    "voices": 1,
+    "zonesLive": [],
+    "log": 2321,
+    "media": 8
+   },
+   "look": "day",
+   "pos": [
+    -15,
+    24.5
+   ],
+   "guide": {
+    "state": "nap",
+    "leg": 18,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  },
+  {
+   "t": 1320.35,
+   "label": "",
+   "heapMB": 118.8,
+   "heapTotalMB": 186.8,
+   "nodes": 857,
+   "listeners": 152,
+   "docs": 1,
+   "fps": 55.2,
+   "p95": 33.3,
+   "max": 50,
+   "over50": 0,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 18,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 2365,
+    "media": 10
+   },
+   "look": "day",
+   "pos": [
+    -26.4,
+    38.1
+   ],
+   "guide": {
+    "state": "nap",
+    "leg": 18,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  },
+  {
+   "t": 1353.53,
+   "label": "",
+   "heapMB": 126.8,
+   "heapTotalMB": 188.1,
+   "nodes": 950,
+   "listeners": 292,
+   "docs": 1,
+   "fps": 58.4,
+   "p95": 16.8,
+   "max": 49.9,
+   "over50": 0,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 18,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 2436,
+    "media": 10
+   },
+   "look": "day",
+   "pos": [
+    -26.4,
+    38.1
+   ],
+   "guide": {
+    "state": "nap",
+    "leg": 18,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  },
+  {
+   "t": 1428.65,
+   "label": "idle-60s",
+   "heapMB": 115.3,
+   "heapTotalMB": 189.3,
+   "nodes": 815,
+   "listeners": 64,
+   "docs": 1,
+   "fps": 60,
+   "p95": 16.7,
+   "max": 16.8,
+   "over50": 0,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 18,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 2478,
+    "media": 10
+   },
+   "look": "day",
+   "pos": [
+    -26.3,
+    38.1
+   ],
+   "guide": {
+    "state": "nap",
+    "leg": 18,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  },
+  {
+   "t": 1433.79,
+   "label": "after-gc",
+   "heapMB": 110.9,
+   "heapTotalMB": 118.3,
+   "nodes": 809,
+   "listeners": 63,
+   "docs": 1,
+   "fps": 60,
+   "p95": 16.8,
+   "max": 16.8,
+   "over50": 0,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "audio": {
+    "live": 4,
+    "peak": 17,
+    "osc": 4,
+    "oscPeak": 18,
+    "voices": 0,
+    "zonesLive": [],
+    "log": 2478,
+    "media": 10
+   },
+   "look": "day",
+   "pos": [
+    -26.3,
+    38.1
+   ],
+   "guide": {
+    "state": "nap",
+    "leg": 18,
+    "target": null,
+    "done": 5
+   },
+   "locked": true
+  }
+ ],
+ "events": [
+  {
+   "t": 58.13,
+   "k": "target",
+   "v": {
+    "target": "konbini",
+    "state": "lead",
+    "leg": 1,
+    "done": [
+     "view"
+    ]
+   }
+  },
+  {
+   "t": 70.51,
+   "k": "konbini",
+   "v": "chose 3"
+  },
+  {
+   "t": 72.11,
+   "k": "target",
+   "v": {
+    "target": null,
+    "state": "lead",
+    "leg": 2,
+    "done": [
+     "view",
+     "konbini"
+    ]
+   }
+  },
+  {
+   "t": 94.23,
+   "k": "target",
+   "v": {
+    "target": "han",
+    "state": "lead",
+    "leg": 4,
+    "done": [
+     "view",
+     "konbini"
+    ]
+   }
+  },
+  {
+   "t": 166.13,
+   "k": "look",
+   "v": "1"
+  },
+  {
+   "t": 274.34,
+   "k": "stall",
+   "v": {
+    "target": "han",
+    "state": "atSpot",
+    "at": [
+     -25.38,
+     23.542357026409473
+    ],
+    "hidden": false
+   }
+  },
+  {
+   "t": 277.87,
+   "k": "target",
+   "v": {
+    "target": null,
+    "state": "come",
+    "leg": 4,
+    "done": [
+     "view",
+     "konbini"
+    ]
+   }
+  },
+  {
+   "t": 286.33,
+   "k": "look",
+   "v": "3"
+  },
+  {
+   "t": 289.28,
+   "k": "target",
+   "v": {
+    "target": "han",
+    "state": "lead",
+    "leg": 4,
+    "done": [
+     "view",
+     "konbini"
+    ]
+   }
+  },
+  {
+   "t": 318.99,
+   "k": "target",
+   "v": {
+    "target": null,
+    "state": "lead",
+    "leg": 5,
+    "done": [
+     "view",
+     "konbini",
+     "han"
+    ]
+   }
+  },
+  {
+   "t": 357.2,
+   "k": "paused 8 s",
+   "v": {
+    "locked": false,
+    "levels": [
+     {
+      "rms": 0.02074,
+      "peak": 0.1044,
+      "state": "running"
+     },
+     {
+      "rms": 0,
+      "peak": 0,
+      "state": "running"
+     }
+    ]
+   }
+  },
+  {
+   "t": 406.58,
+   "k": "look",
+   "v": "2"
+  },
+  {
+   "t": 499.4,
+   "k": "stall",
+   "v": {
+    "target": null,
+    "state": "lead",
+    "at": [
+     -22.919999999999998,
+     24.189999999999998
+    ]
+   }
+  },
+  {
+   "t": 506.82,
+   "k": "target",
+   "v": {
+    "target": "slowlife",
+    "state": "lead",
+    "leg": 25,
+    "done": [
+     "view",
+     "konbini",
+     "han"
+    ]
+   }
+  },
+  {
+   "t": 530.53,
+   "k": "look",
+   "v": "1"
+  },
+  {
+   "t": 594.59,
+   "k": "bench",
+   "v": "pressed E from outside the ring"
+  },
+  {
+   "t": 614.23,
+   "k": "target",
+   "v": {
+    "target": null,
+    "state": "lead",
+    "leg": 26,
+    "done": [
+     "view",
+     "konbini",
+     "han",
+     "slowlife"
+    ]
+   }
+  },
+  {
+   "t": 650.82,
+   "k": "look",
+   "v": "3"
+  },
+  {
+   "t": 668.88,
+   "k": "paused 8 s",
+   "v": {
+    "locked": false,
+    "levels": [
+     {
+      "rms": 0.02193,
+      "peak": 0.0953,
+      "state": "running"
+     },
+     {
+      "rms": 0,
+      "peak": 0,
+      "state": "running"
+     }
+    ]
+   }
+  },
+  {
+   "t": 747.12,
+   "k": "target",
+   "v": {
+    "target": "gate",
+    "state": "lead",
+    "leg": 31,
+    "done": [
+     "view",
+     "konbini",
+     "han",
+     "slowlife"
+    ]
+   }
+  },
+  {
+   "t": 753.82,
+   "k": "target",
+   "v": {
+    "target": "train",
+    "state": "lead",
+    "leg": 32,
+    "done": [
+     "view",
+     "konbini",
+     "han",
+     "slowlife"
+    ]
+   }
+  },
+  {
+   "t": 771.33,
+   "k": "look",
+   "v": "2"
+  },
+  {
+   "t": 891.62,
+   "k": "look",
+   "v": "1"
+  },
+  {
+   "t": 934.73,
+   "k": "stall",
+   "v": {
+    "target": "train",
+    "state": "atSpot",
+    "at": [
+     53.082013261507726,
+     -129.2592518157145
+    ],
+    "hidden": true
+   }
+  },
+  {
+   "t": 937.14,
+   "k": "target",
+   "v": {
+    "target": null,
+    "state": "come",
+    "leg": 32,
+    "done": [
+     "view",
+     "konbini",
+     "han",
+     "slowlife"
+    ]
+   }
+  },
+  {
+   "t": 945.52,
+   "k": "target",
+   "v": {
+    "target": "train",
+    "state": "lead",
+    "leg": 14,
+    "done": [
+     "view",
+     "konbini",
+     "han",
+     "slowlife"
+    ]
+   }
+  },
+  {
+   "t": 983.56,
+   "k": "paused 8 s",
+   "v": {
+    "locked": false,
+    "levels": [
+     {
+      "rms": 0.01013,
+      "peak": 0.1054,
+      "state": "running"
+     },
+     {
+      "rms": 0,
+      "peak": 0,
+      "state": "running"
+     }
+    ]
+   }
+  },
+  {
+   "t": 1004.16,
+   "k": "target",
+   "v": {
+    "target": null,
+    "state": "lead",
+    "leg": 15,
+    "done": [
+     "view",
+     "konbini",
+     "han",
+     "slowlife",
+     "train"
+    ]
+   }
+  },
+  {
+   "t": 1011.76,
+   "k": "look",
+   "v": "3"
+  },
+  {
+   "t": 1133.1,
+   "k": "look",
+   "v": "2"
+  },
+  {
+   "t": 1184.18,
+   "k": "stall",
+   "v": {
+    "target": null,
+    "state": "lead",
+    "at": [
+     72.98823490824122,
+     -111.74
+    ]
+   }
+  },
+  {
+   "t": 1254.07,
+   "k": "look",
+   "v": "1"
+  },
+  {
+   "t": 1296.15,
+   "k": "paused 8 s",
+   "v": {
+    "locked": false,
+    "levels": [
+     {
+      "rms": 0.00464,
+      "peak": 0.0308,
+      "state": "running"
+     },
+     {
+      "rms": 0,
+      "peak": 0,
+      "state": "running"
+     }
+    ]
+   }
+  },
+  {
+   "t": 1364.29,
+   "k": "stall",
+   "v": {
+    "target": null,
+    "state": "nap",
+    "at": [
+     -26.38,
+     38.11
+    ]
+   }
+  }
+ ],
+ "errors": [],
+ "http": []
+}

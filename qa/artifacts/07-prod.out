@@ -1,0 +1,74 @@
+plain {"cardMs":8017,"paint":{"fcp":7784,"fp":104,"dcl":234,"load":259,"ttfb":51},"fuji":122,"requests":28,"MB":2.3,"non200":["206 http://127.0.0.1:5180/audio/theme.m4a","404 http://127.0.0.1:5180/favicon.ico","404 http://127.0.0.1:5180/favicon.ico"],"errors":[]}
+fast4g-cpu4x {"cardMs":42719,"paint":{"fcp":38836,"fp":144,"dcl":953,"load":1517,"ttfb":22},"fuji":132,"requests":27,"MB":2.03,"non200":["404 http://127.0.0.1:5180/favicon.ico","404 http://127.0.0.1:5180/favicon.ico"],"errors":[]}
+slow4g-cpu4x {"cardMs":35952,"paint":{"fcp":33996,"fp":232,"dcl":4052,"load":6933,"ttfb":32},"fuji":139,"requests":28,"MB":2.03,"non200":["404 http://127.0.0.1:5180/favicon.ico","404 http://127.0.0.1:5180/favicon.ico","206 http://127.0.0.1:5180/audio/theme.m4a"],"errors":[]}
+1920 famous-view {"n":"famous-view","calls":1462,"tris":4949236,"fps":26.4,"avgMs":37.92,"p95":50,"max":266.7,"over33":21}
+1920 konbini-door {"n":"konbini-door","calls":1358,"tris":5039660,"fps":37.8,"avgMs":26.46,"p95":33.4,"max":250,"over33":15}
+1920 car-park-han {"n":"car-park-han","calls":1087,"tris":6946510,"fps":23.7,"avgMs":42.12,"p95":50.1,"max":199.9,"over33":44}
+1920 master-junction {"n":"master-junction","calls":1269,"tris":6414486,"fps":27,"avgMs":37.04,"p95":50.1,"max":133.2,"over33":35}
+1920 shopping-street {"n":"shopping-street","calls":1243,"tris":4824580,"fps":28.8,"avgMs":34.69,"p95":50.1,"max":100,"over33":31}
+1920 donpen-front {"n":"donpen-front","calls":420,"tris":3096700,"fps":53.9,"avgMs":18.55,"p95":16.8,"max":350,"over33":1}
+1920 station-plaza {"n":"station-plaza","calls":699,"tris":4054830,"fps":32.2,"avgMs":31.1,"p95":100,"max":133.4,"over33":25}
+1920 platform-1 {"n":"platform-1","calls":896,"tris":4180928,"fps":27.2,"avgMs":36.79,"p95":50.1,"max":299.9,"over33":26}
+1920 level-crossing {"n":"level-crossing","calls":334,"tris":2582524,"fps":55.7,"avgMs":17.96,"p95":16.8,"max":133.4,"over33":3}
+1920 shrine {"n":"shrine","calls":802,"tris":4259326,"fps":24.7,"avgMs":40.54,"p95":83.3,"max":133.3,"over33":35}
+1920 pond-bench {"n":"pond-bench","calls":894,"tris":4274122,"fps":24.7,"avgMs":40.54,"p95":66.7,"max":133.4,"over33":28}
+1920 pond-promenade {"n":"pond-promenade","calls":548,"tris":3729952,"fps":30.2,"avgMs":33.15,"p95":50,"max":133.3,"over33":19}
+1920 river-walk {"n":"river-walk","calls":266,"tris":3757250,"fps":55.3,"avgMs":18.07,"p95":33.3,"max":50,"over33":5}
+1920 deer-gate {"n":"deer-gate","calls":188,"tris":2159880,"fps":59,"avgMs":16.95,"p95":16.8,"max":33.3,"over33":0}
+1920 far-bank {"n":"far-bank","calls":1970,"tris":7454318,"fps":17.9,"avgMs":55.86,"p95":66.7,"max":216.6,"over33":47}
+2560 famous-view {"n":"famous-view","calls":1462,"tris":4949236,"fps":31,"avgMs":32.26,"p95":50,"max":233.3,"over33":14}
+2560 konbini-door {"n":"konbini-door","calls":1056,"tris":5307862,"fps":53,"avgMs":18.87,"p95":33.4,"max":50.1,"over33":7}
+2560 car-park-han {"n":"car-park-han","calls":972,"tris":5914652,"fps":21.8,"avgMs":45.96,"p95":66.7,"max":200,"over33":38}
+2560 master-junction {"n":"master-junction","calls":1108,"tris":5458138,"fps":30.5,"avgMs":32.78,"p95":50,"max":150,"over33":33}
+2560 shopping-street {"n":"shopping-street","calls":1066,"tris":3798752,"fps":38,"avgMs":26.31,"p95":33.4,"max":50,"over33":24}
+2560 donpen-front {"n":"donpen-front","calls":420,"tris":3096700,"fps":60,"avgMs":16.67,"p95":16.7,"max":16.8,"over33":0}
+2560 station-plaza {"n":"station-plaza","calls":554,"tris":2997708,"fps":46.7,"avgMs":21.39,"p95":33.4,"max":66.7,"over33":13}
+2560 platform-1 {"n":"platform-1","calls":894,"tris":4180924,"fps":43.3,"avgMs":23.08,"p95":33.4,"max":66.7,"over33":10}
+2560 level-crossing {"n":"level-crossing","calls":334,"tris":2582524,"fps":60,"avgMs":16.67,"p95":16.7,"max":16.8,"over33":0}
+2560 shrine {"n":"shrine","calls":802,"tris":4259326,"fps":49.7,"avgMs":20.13,"p95":33.4,"max":50,"over33":3}
+2560 pond-bench {"n":"pond-bench","calls":894,"tris":4274122,"fps":42.7,"avgMs":23.44,"p95":33.4,"max":66.7,"over33":10}
+2560 pond-promenade {"n":"pond-promenade","calls":550,"tris":3730592,"fps":57,"avgMs":17.54,"p95":16.8,"max":50.1,"over33":3}
+2560 river-walk {"n":"river-walk","calls":266,"tris":3757250,"fps":60,"avgMs":16.67,"p95":16.8,"max":16.8,"over33":0}
+2560 deer-gate {"n":"deer-gate","calls":188,"tris":2159880,"fps":60,"avgMs":16.67,"p95":16.7,"max":16.8,"over33":0}
+2560 far-bank {"n":"far-bank","calls":1970,"tris":7454318,"fps":32.7,"avgMs":30.61,"p95":50,"max":100,"over33":12}
+{
+ "globals": [
+  "__THREE__",
+  "__scene",
+  "__setOutlineRes"
+ ],
+ "console": [
+  "warning: THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+  "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+ ],
+ "title": "Take Me Back to Japan",
+ "meta": [
+  "<meta charset=\"utf-8\">",
+  "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
+  "<meta name=\"google\" content=\"notranslate\">",
+  "<meta name=\"description\" content=\"A first-person stroll through Fujikawaguchikko, a small Japanese town under Mt. Fuji: a konbini at golden hour, cherry blossom, a shrine, a local train. In your browser, on a desktop.\">",
+  "<link rel=\"canonical\" href=\"https://takemebacktojapan.com/\">",
+  "<meta property=\"og:type\" content=\"website\">",
+  "<meta property=\"og:site_name\" content=\"Take Me Back to Japan\">",
+  "<meta property=\"og:title\" content=\"Take Me Back to Japan\">",
+  "<meta property=\"og:description\" content=\"A small town under Mt. Fuji. Walk it at golden hour, in your browser.\">",
+  "<meta property=\"og:url\" content=\"https://takemebacktojapan.com/\">",
+  "<meta property=\"og:image\" content=\"https://takemebacktojapan.com/keyart.webp\">",
+  "<meta property=\"og:image:width\" content=\"1600\">",
+  "<meta property=\"og:image:height\" content=\"900\">",
+  "<meta name=\"twitter:card\" content=\"summary_large_image\">",
+  "<meta name=\"twitter:title\" content=\"Take Me Back to Japan\">",
+  "<meta name=\"twitter:image\" content=\"https://takemebacktojapan.com/keyart.webp\">",
+  "<link rel=\"preload\" as=\"image\" href=\"keyart.webp\" type=\"image/webp\" fetchpriority=\"high\">"
+ ],
+ "favicon": 404,
+ "robots": 200,
+ "notFound": {
+  "status": 200,
+  "type": "text/html"
+ },
+ "coordsInProd": true,
+ "coordsShot": "qa/artifacts/07-prod/leak/prod-C-coordinates.jpg",
+ "gradeOffShot": "qa/artifacts/07-prod/leak/prod-G-grade-off.jpg",
+ "backquote": "coordinates off"
+}

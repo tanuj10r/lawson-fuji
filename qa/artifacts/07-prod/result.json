@@ -1,0 +1,910 @@
+{
+ "load-plain": {
+  "label": "plain",
+  "net": null,
+  "cpu": 1,
+  "cardMs": 8017,
+  "paint": {
+   "fcp": 7784,
+   "fp": 104,
+   "dcl": 234,
+   "load": 259,
+   "ttfb": 51
+  },
+  "keyart": {
+   "complete": true,
+   "w": 1600
+  },
+  "startLocked": true,
+  "fujiAfterStartMs": 122,
+  "shot": "qa/artifacts/07-prod/load-plain/after-start.jpg",
+  "requests": 28,
+  "bytes": 2409639,
+  "byType": {
+   "Document": 3918,
+   "Image": 158140,
+   "Script": 586170,
+   "Font": 566924,
+   "Fetch": 295228,
+   "Other": 314,
+   "audio": 798945
+  },
+  "largest": [
+   {
+    "url": "/assets/index-DkHFWWFL.js",
+    "kB": 572,
+    "mime": "text/javascript",
+    "enc": "gzip",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/assets/brush-BgdeCShl.woff2",
+    "kB": 377,
+    "mime": "font/woff2",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/assets/fuji-dem-6GrXuyZw.bin",
+    "kB": 288,
+    "mime": "application/octet-stream",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/theme.m4a",
+    "kB": 276,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/wind.m4a",
+    "kB": 183,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/assets/round-Dt2Hp1so.woff2",
+    "kB": 177,
+    "mime": "font/woff2",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/keyart.webp",
+    "kB": 154,
+    "mime": "image/webp",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/crows.m4a",
+    "kB": 125,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/lawson-chime.m4a",
+    "kB": 39,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/railway-bells.m4a",
+    "kB": 23,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/kiosk-pay.m4a",
+    "kB": 17,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/walk-kakko.m4a",
+    "kB": 15,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   }
+  ],
+  "non200": [
+   "206 http://127.0.0.1:5180/audio/theme.m4a",
+   "404 http://127.0.0.1:5180/favicon.ico",
+   "404 http://127.0.0.1:5180/favicon.ico"
+  ],
+  "errors": [],
+  "console": [
+   "warning: THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+   "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+ },
+ "load-fast4g-cpu4x": {
+  "label": "fast4g-cpu4x",
+  "net": {
+   "latency": 60,
+   "downloadThroughput": 1179648,
+   "uploadThroughput": 196608
+  },
+  "cpu": 4,
+  "cardMs": 42719,
+  "paint": {
+   "fcp": 38836,
+   "fp": 144,
+   "dcl": 953,
+   "load": 1517,
+   "ttfb": 22
+  },
+  "keyart": {
+   "complete": true,
+   "w": 1600
+  },
+  "startLocked": true,
+  "fujiAfterStartMs": 132,
+  "shot": "qa/artifacts/07-prod/load-fast4g-cpu4x/after-start.jpg",
+  "requests": 27,
+  "bytes": 2126782,
+  "byType": {
+   "Document": 3918,
+   "Image": 158140,
+   "Script": 586170,
+   "Font": 566924,
+   "Fetch": 295228,
+   "Other": 314,
+   "audio": 516088
+  },
+  "largest": [
+   {
+    "url": "/assets/index-DkHFWWFL.js",
+    "kB": 572,
+    "mime": "text/javascript",
+    "enc": "gzip",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/assets/brush-BgdeCShl.woff2",
+    "kB": 377,
+    "mime": "font/woff2",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/assets/fuji-dem-6GrXuyZw.bin",
+    "kB": 288,
+    "mime": "application/octet-stream",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/wind.m4a",
+    "kB": 183,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/assets/round-Dt2Hp1so.woff2",
+    "kB": 177,
+    "mime": "font/woff2",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/keyart.webp",
+    "kB": 154,
+    "mime": "image/webp",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/crows.m4a",
+    "kB": 125,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/lawson-chime.m4a",
+    "kB": 39,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/railway-bells.m4a",
+    "kB": 23,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/kiosk-pay.m4a",
+    "kB": 17,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/walk-kakko.m4a",
+    "kB": 15,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/auto-door.m4a",
+    "kB": 14,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   }
+  ],
+  "non200": [
+   "404 http://127.0.0.1:5180/favicon.ico",
+   "404 http://127.0.0.1:5180/favicon.ico"
+  ],
+  "errors": [],
+  "console": [
+   "warning: THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+   "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "warning: Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden o",
+   "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+ },
+ "load-slow4g-cpu4x": {
+  "label": "slow4g-cpu4x",
+  "net": {
+   "latency": 150,
+   "downloadThroughput": 209715.2,
+   "uploadThroughput": 98304
+  },
+  "cpu": 4,
+  "cardMs": 35952,
+  "paint": {
+   "fcp": 33996,
+   "fp": 232,
+   "dcl": 4052,
+   "load": 6933,
+   "ttfb": 32
+  },
+  "keyart": {
+   "complete": true,
+   "w": 1600
+  },
+  "startLocked": true,
+  "fujiAfterStartMs": 139,
+  "shot": "qa/artifacts/07-prod/load-slow4g-cpu4x/after-start.jpg",
+  "requests": 28,
+  "bytes": 2126782,
+  "byType": {
+   "Document": 3918,
+   "Image": 158140,
+   "Script": 586170,
+   "Font": 566924,
+   "Fetch": 295228,
+   "Other": 314,
+   "audio": 516088
+  },
+  "largest": [
+   {
+    "url": "/assets/index-DkHFWWFL.js",
+    "kB": 572,
+    "mime": "text/javascript",
+    "enc": "gzip",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/assets/brush-BgdeCShl.woff2",
+    "kB": 377,
+    "mime": "font/woff2",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/assets/fuji-dem-6GrXuyZw.bin",
+    "kB": 288,
+    "mime": "application/octet-stream",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/wind.m4a",
+    "kB": 183,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/assets/round-Dt2Hp1so.woff2",
+    "kB": 177,
+    "mime": "font/woff2",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/keyart.webp",
+    "kB": 154,
+    "mime": "image/webp",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/crows.m4a",
+    "kB": 125,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/lawson-chime.m4a",
+    "kB": 39,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/railway-bells.m4a",
+    "kB": 23,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/kiosk-pay.m4a",
+    "kB": 17,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/walk-kakko.m4a",
+    "kB": 15,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   },
+   {
+    "url": "/audio/auto-door.m4a",
+    "kB": 14,
+    "mime": "audio/mp4",
+    "enc": "",
+    "cc": "no-cache"
+   }
+  ],
+  "non200": [
+   "404 http://127.0.0.1:5180/favicon.ico",
+   "404 http://127.0.0.1:5180/favicon.ico",
+   "206 http://127.0.0.1:5180/audio/theme.m4a"
+  ],
+  "errors": [],
+  "console": [
+   "warning: THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+   "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "warning: Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden o",
+   "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+ },
+ "perf-1920x1080": {
+  "W": 1920,
+  "H": 1080,
+  "spots": [
+   {
+    "n": "famous-view",
+    "calls": 1462,
+    "tris": 4949236,
+    "fps": 26.4,
+    "avgMs": 37.92,
+    "p95": 50,
+    "max": 266.7,
+    "over33": 21
+   },
+   {
+    "n": "konbini-door",
+    "calls": 1358,
+    "tris": 5039660,
+    "fps": 37.8,
+    "avgMs": 26.46,
+    "p95": 33.4,
+    "max": 250,
+    "over33": 15
+   },
+   {
+    "n": "car-park-han",
+    "calls": 1087,
+    "tris": 6946510,
+    "fps": 23.7,
+    "avgMs": 42.12,
+    "p95": 50.1,
+    "max": 199.9,
+    "over33": 44
+   },
+   {
+    "n": "master-junction",
+    "calls": 1269,
+    "tris": 6414486,
+    "fps": 27,
+    "avgMs": 37.04,
+    "p95": 50.1,
+    "max": 133.2,
+    "over33": 35
+   },
+   {
+    "n": "shopping-street",
+    "calls": 1243,
+    "tris": 4824580,
+    "fps": 28.8,
+    "avgMs": 34.69,
+    "p95": 50.1,
+    "max": 100,
+    "over33": 31
+   },
+   {
+    "n": "donpen-front",
+    "calls": 420,
+    "tris": 3096700,
+    "fps": 53.9,
+    "avgMs": 18.55,
+    "p95": 16.8,
+    "max": 350,
+    "over33": 1
+   },
+   {
+    "n": "station-plaza",
+    "calls": 699,
+    "tris": 4054830,
+    "fps": 32.2,
+    "avgMs": 31.1,
+    "p95": 100,
+    "max": 133.4,
+    "over33": 25
+   },
+   {
+    "n": "platform-1",
+    "calls": 896,
+    "tris": 4180928,
+    "fps": 27.2,
+    "avgMs": 36.79,
+    "p95": 50.1,
+    "max": 299.9,
+    "over33": 26
+   },
+   {
+    "n": "level-crossing",
+    "calls": 334,
+    "tris": 2582524,
+    "fps": 55.7,
+    "avgMs": 17.96,
+    "p95": 16.8,
+    "max": 133.4,
+    "over33": 3
+   },
+   {
+    "n": "shrine",
+    "calls": 802,
+    "tris": 4259326,
+    "fps": 24.7,
+    "avgMs": 40.54,
+    "p95": 83.3,
+    "max": 133.3,
+    "over33": 35
+   },
+   {
+    "n": "pond-bench",
+    "calls": 894,
+    "tris": 4274122,
+    "fps": 24.7,
+    "avgMs": 40.54,
+    "p95": 66.7,
+    "max": 133.4,
+    "over33": 28
+   },
+   {
+    "n": "pond-promenade",
+    "calls": 548,
+    "tris": 3729952,
+    "fps": 30.2,
+    "avgMs": 33.15,
+    "p95": 50,
+    "max": 133.3,
+    "over33": 19
+   },
+   {
+    "n": "river-walk",
+    "calls": 266,
+    "tris": 3757250,
+    "fps": 55.3,
+    "avgMs": 18.07,
+    "p95": 33.3,
+    "max": 50,
+    "over33": 5
+   },
+   {
+    "n": "deer-gate",
+    "calls": 188,
+    "tris": 2159880,
+    "fps": 59,
+    "avgMs": 16.95,
+    "p95": 16.8,
+    "max": 33.3,
+    "over33": 0
+   },
+   {
+    "n": "far-bank",
+    "calls": 1970,
+    "tris": 7454318,
+    "fps": 17.9,
+    "avgMs": 55.86,
+    "p95": 66.7,
+    "max": 216.6,
+    "over33": 47
+   }
+  ],
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+  "heapMB": 103,
+  "heapAfterGcMB": 95,
+  "perfMemory": {
+   "usedMB": 391,
+   "totalMB": 397
+  },
+  "uaMemory": {
+   "error": "TypeError"
+  },
+  "gl": {
+   "geometries": 982,
+   "textures": 189,
+   "programs": 208
+  },
+  "texMB": {
+   "total": 426,
+   "textures": 199,
+   "largest": [
+    [
+     "HTMLCanvasElement",
+     4096,
+     4096,
+     85.3
+    ],
+    [
+     "HTMLCanvasElement",
+     2048,
+     5472,
+     57
+    ],
+    [
+     "HTMLCanvasElement",
+     3072,
+     3072,
+     48
+    ],
+    [
+     "HTMLCanvasElement",
+     3072,
+     3072,
+     48
+    ],
+    [
+     "HTMLCanvasElement",
+     4096,
+     1488,
+     31
+    ],
+    [
+     "HTMLCanvasElement",
+     2048,
+     2048,
+     21.3
+    ],
+    [
+     "HTMLCanvasElement",
+     4096,
+     1024,
+     21.3
+    ],
+    [
+     "HTMLCanvasElement",
+     2048,
+     512,
+     5.3
+    ],
+    [
+     "HTMLCanvasElement",
+     1024,
+     1024,
+     5.3
+    ],
+    [
+     "HTMLCanvasElement",
+     4096,
+     149,
+     3.1
+    ]
+   ]
+  }
+ },
+ "perf-2560x1440": {
+  "W": 2560,
+  "H": 1440,
+  "spots": [
+   {
+    "n": "famous-view",
+    "calls": 1462,
+    "tris": 4949236,
+    "fps": 31,
+    "avgMs": 32.26,
+    "p95": 50,
+    "max": 233.3,
+    "over33": 14
+   },
+   {
+    "n": "konbini-door",
+    "calls": 1056,
+    "tris": 5307862,
+    "fps": 53,
+    "avgMs": 18.87,
+    "p95": 33.4,
+    "max": 50.1,
+    "over33": 7
+   },
+   {
+    "n": "car-park-han",
+    "calls": 972,
+    "tris": 5914652,
+    "fps": 21.8,
+    "avgMs": 45.96,
+    "p95": 66.7,
+    "max": 200,
+    "over33": 38
+   },
+   {
+    "n": "master-junction",
+    "calls": 1108,
+    "tris": 5458138,
+    "fps": 30.5,
+    "avgMs": 32.78,
+    "p95": 50,
+    "max": 150,
+    "over33": 33
+   },
+   {
+    "n": "shopping-street",
+    "calls": 1066,
+    "tris": 3798752,
+    "fps": 38,
+    "avgMs": 26.31,
+    "p95": 33.4,
+    "max": 50,
+    "over33": 24
+   },
+   {
+    "n": "donpen-front",
+    "calls": 420,
+    "tris": 3096700,
+    "fps": 60,
+    "avgMs": 16.67,
+    "p95": 16.7,
+    "max": 16.8,
+    "over33": 0
+   },
+   {
+    "n": "station-plaza",
+    "calls": 554,
+    "tris": 2997708,
+    "fps": 46.7,
+    "avgMs": 21.39,
+    "p95": 33.4,
+    "max": 66.7,
+    "over33": 13
+   },
+   {
+    "n": "platform-1",
+    "calls": 894,
+    "tris": 4180924,
+    "fps": 43.3,
+    "avgMs": 23.08,
+    "p95": 33.4,
+    "max": 66.7,
+    "over33": 10
+   },
+   {
+    "n": "level-crossing",
+    "calls": 334,
+    "tris": 2582524,
+    "fps": 60,
+    "avgMs": 16.67,
+    "p95": 16.7,
+    "max": 16.8,
+    "over33": 0
+   },
+   {
+    "n": "shrine",
+    "calls": 802,
+    "tris": 4259326,
+    "fps": 49.7,
+    "avgMs": 20.13,
+    "p95": 33.4,
+    "max": 50,
+    "over33": 3
+   },
+   {
+    "n": "pond-bench",
+    "calls": 894,
+    "tris": 4274122,
+    "fps": 42.7,
+    "avgMs": 23.44,
+    "p95": 33.4,
+    "max": 66.7,
+    "over33": 10
+   },
+   {
+    "n": "pond-promenade",
+    "calls": 550,
+    "tris": 3730592,
+    "fps": 57,
+    "avgMs": 17.54,
+    "p95": 16.8,
+    "max": 50.1,
+    "over33": 3
+   },
+   {
+    "n": "river-walk",
+    "calls": 266,
+    "tris": 3757250,
+    "fps": 60,
+    "avgMs": 16.67,
+    "p95": 16.8,
+    "max": 16.8,
+    "over33": 0
+   },
+   {
+    "n": "deer-gate",
+    "calls": 188,
+    "tris": 2159880,
+    "fps": 60,
+    "avgMs": 16.67,
+    "p95": 16.7,
+    "max": 16.8,
+    "over33": 0
+   },
+   {
+    "n": "far-bank",
+    "calls": 1970,
+    "tris": 7454318,
+    "fps": 32.7,
+    "avgMs": 30.61,
+    "p95": 50,
+    "max": 100,
+    "over33": 12
+   }
+  ],
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+  "heapMB": 148,
+  "heapAfterGcMB": 97,
+  "perfMemory": {
+   "usedMB": 394,
+   "totalMB": 400
+  },
+  "uaMemory": {
+   "error": "TypeError"
+  },
+  "gl": {
+   "geometries": 982,
+   "textures": 189,
+   "programs": 208
+  },
+  "texMB": {
+   "total": 426,
+   "textures": 199,
+   "largest": [
+    [
+     "HTMLCanvasElement",
+     4096,
+     4096,
+     85.3
+    ],
+    [
+     "HTMLCanvasElement",
+     2048,
+     5472,
+     57
+    ],
+    [
+     "HTMLCanvasElement",
+     3072,
+     3072,
+     48
+    ],
+    [
+     "HTMLCanvasElement",
+     3072,
+     3072,
+     48
+    ],
+    [
+     "HTMLCanvasElement",
+     4096,
+     1488,
+     31
+    ],
+    [
+     "HTMLCanvasElement",
+     2048,
+     2048,
+     21.3
+    ],
+    [
+     "HTMLCanvasElement",
+     4096,
+     1024,
+     21.3
+    ],
+    [
+     "HTMLCanvasElement",
+     2048,
+     512,
+     5.3
+    ],
+    [
+     "HTMLCanvasElement",
+     1024,
+     1024,
+     5.3
+    ],
+    [
+     "HTMLCanvasElement",
+     4096,
+     149,
+     3.1
+    ]
+   ]
+  }
+ },
+ "leak": {
+  "globals": [
+   "__THREE__",
+   "__scene",
+   "__setOutlineRes"
+  ],
+  "console": [
+   "warning: THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+   "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "title": "Take Me Back to Japan",
+  "meta": [
+   "<meta charset=\"utf-8\">",
+   "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
+   "<meta name=\"google\" content=\"notranslate\">",
+   "<meta name=\"description\" content=\"A first-person stroll through Fujikawaguchikko, a small Japanese town under Mt. Fuji: a konbini at golden hour, cherry blossom, a shrine, a local train. In your browser, on a desktop.\">",
+   "<link rel=\"canonical\" href=\"https://takemebacktojapan.com/\">",
+   "<meta property=\"og:type\" content=\"website\">",
+   "<meta property=\"og:site_name\" content=\"Take Me Back to Japan\">",
+   "<meta property=\"og:title\" content=\"Take Me Back to Japan\">",
+   "<meta property=\"og:description\" content=\"A small town under Mt. Fuji. Walk it at golden hour, in your browser.\">",
+   "<meta property=\"og:url\" content=\"https://takemebacktojapan.com/\">",
+   "<meta property=\"og:image\" content=\"https://takemebacktojapan.com/keyart.webp\">",
+   "<meta property=\"og:image:width\" content=\"1600\">",
+   "<meta property=\"og:image:height\" content=\"900\">",
+   "<meta name=\"twitter:card\" content=\"summary_large_image\">",
+   "<meta name=\"twitter:title\" content=\"Take Me Back to Japan\">",
+   "<meta name=\"twitter:image\" content=\"https://takemebacktojapan.com/keyart.webp\">",
+   "<link rel=\"preload\" as=\"image\" href=\"keyart.webp\" type=\"image/webp\" fetchpriority=\"high\">"
+  ],
+  "favicon": 404,
+  "robots": 200,
+  "notFound": {
+   "status": 200,
+   "type": "text/html"
+  },
+  "coordsInProd": true,
+  "coordsShot": "qa/artifacts/07-prod/leak/prod-C-coordinates.jpg",
+  "gradeOffShot": "qa/artifacts/07-prod/leak/prod-G-grade-off.jpg",
+  "backquote": "coordinates off"
+ }
+}

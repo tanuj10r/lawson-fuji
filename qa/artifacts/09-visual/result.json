@@ -1,0 +1,287 @@
+[
+ {
+  "n": "famous-view",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/famous-view-morning.jpg"
+ },
+ {
+  "n": "konbini-door",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/konbini-door-morning.jpg"
+ },
+ {
+  "n": "han-rx7",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/han-rx7-morning.jpg"
+ },
+ {
+  "n": "master-junction",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/master-junction-morning.jpg"
+ },
+ {
+  "n": "shopping-street",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/shopping-street-morning.jpg"
+ },
+ {
+  "n": "donpen-do",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/donpen-do-morning.jpg"
+ },
+ {
+  "n": "shrine",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/shrine-morning.jpg"
+ },
+ {
+  "n": "station-plaza",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/station-plaza-morning.jpg"
+ },
+ {
+  "n": "platform-1-train",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/platform-1-train-morning.jpg"
+ },
+ {
+  "n": "level-crossing",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/level-crossing-morning.jpg"
+ },
+ {
+  "n": "kagami-pond",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/kagami-pond-morning.jpg"
+ },
+ {
+  "n": "slow-life-bench",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/slow-life-bench-morning.jpg"
+ },
+ {
+  "n": "paddies",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/paddies-morning.jpg"
+ },
+ {
+  "n": "river-walk",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/river-walk-morning.jpg"
+ },
+ {
+  "n": "deer-park-gate",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/deer-park-gate-morning.jpg"
+ },
+ {
+  "n": "main-road-east-end",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/main-road-east-end-morning.jpg"
+ },
+ {
+  "n": "main-road-west-end",
+  "look": "morning",
+  "shot": "qa/artifacts/09-visual/main-road-west-end-morning.jpg"
+ },
+ {
+  "n": "famous-view",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/famous-view-golden.jpg"
+ },
+ {
+  "n": "konbini-door",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/konbini-door-golden.jpg"
+ },
+ {
+  "n": "han-rx7",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/han-rx7-golden.jpg"
+ },
+ {
+  "n": "master-junction",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/master-junction-golden.jpg"
+ },
+ {
+  "n": "shopping-street",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/shopping-street-golden.jpg"
+ },
+ {
+  "n": "donpen-do",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/donpen-do-golden.jpg"
+ },
+ {
+  "n": "shrine",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/shrine-golden.jpg"
+ },
+ {
+  "n": "station-plaza",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/station-plaza-golden.jpg"
+ },
+ {
+  "n": "platform-1-train",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/platform-1-train-golden.jpg"
+ },
+ {
+  "n": "level-crossing",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/level-crossing-golden.jpg"
+ },
+ {
+  "n": "kagami-pond",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/kagami-pond-golden.jpg"
+ },
+ {
+  "n": "slow-life-bench",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/slow-life-bench-golden.jpg"
+ },
+ {
+  "n": "paddies",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/paddies-golden.jpg"
+ },
+ {
+  "n": "river-walk",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/river-walk-golden.jpg"
+ },
+ {
+  "n": "deer-park-gate",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/deer-park-gate-golden.jpg"
+ },
+ {
+  "n": "main-road-east-end",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/main-road-east-end-golden.jpg"
+ },
+ {
+  "n": "main-road-west-end",
+  "look": "golden",
+  "shot": "qa/artifacts/09-visual/main-road-west-end-golden.jpg"
+ },
+ {
+  "n": "famous-view",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/famous-view-night.jpg"
+ },
+ {
+  "n": "konbini-door",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/konbini-door-night.jpg"
+ },
+ {
+  "n": "han-rx7",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/han-rx7-night.jpg"
+ },
+ {
+  "n": "master-junction",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/master-junction-night.jpg"
+ },
+ {
+  "n": "shopping-street",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/shopping-street-night.jpg"
+ },
+ {
+  "n": "donpen-do",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/donpen-do-night.jpg"
+ },
+ {
+  "n": "shrine",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/shrine-night.jpg"
+ },
+ {
+  "n": "station-plaza",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/station-plaza-night.jpg"
+ },
+ {
+  "n": "platform-1-train",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/platform-1-train-night.jpg"
+ },
+ {
+  "n": "level-crossing",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/level-crossing-night.jpg"
+ },
+ {
+  "n": "kagami-pond",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/kagami-pond-night.jpg"
+ },
+ {
+  "n": "slow-life-bench",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/slow-life-bench-night.jpg"
+ },
+ {
+  "n": "paddies",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/paddies-night.jpg"
+ },
+ {
+  "n": "river-walk",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/river-walk-night.jpg"
+ },
+ {
+  "n": "deer-park-gate",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/deer-park-gate-night.jpg"
+ },
+ {
+  "n": "main-road-east-end",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/main-road-east-end-night.jpg"
+ },
+ {
+  "n": "main-road-west-end",
+  "look": "night",
+  "shot": "qa/artifacts/09-visual/main-road-west-end-night.jpg"
+ },
+ {
+  "n": "transition",
+  "k": 0,
+  "shot": "qa/artifacts/09-visual/transition-0.jpg"
+ },
+ {
+  "n": "transition",
+  "k": 1,
+  "shot": "qa/artifacts/09-visual/transition-1.jpg"
+ },
+ {
+  "n": "transition",
+  "k": 2,
+  "shot": "qa/artifacts/09-visual/transition-2.jpg"
+ },
+ {
+  "n": "transition",
+  "k": 3,
+  "shot": "qa/artifacts/09-visual/transition-3.jpg"
+ },
+ {
+  "n": "transition",
+  "k": 4,
+  "shot": "qa/artifacts/09-visual/transition-4.jpg"
+ },
+ {
+  "n": "transition",
+  "k": 5,
+  "shot": "qa/artifacts/09-visual/transition-5.jpg"
+ }
+]

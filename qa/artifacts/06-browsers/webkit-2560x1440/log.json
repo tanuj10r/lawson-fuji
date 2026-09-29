@@ -1,0 +1,344 @@
+{
+ "engine": "webkit",
+ "viewport": {
+  "width": 2560,
+  "height": 1440
+ },
+ "console": [
+  {
+   "t": 2.63,
+   "type": "warning",
+   "text": "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed."
+  },
+  {
+   "t": 10.77,
+   "type": "info",
+   "text": "sinkcut: cut town/lawson-ground [x -22.5..27.5 z 20.5..42.5] (1 piece)"
+  }
+ ],
+ "errors": [],
+ "failed": [],
+ "http": [],
+ "responses": [
+  {
+   "t": 0.45,
+   "url": "http://127.0.0.1:5180/",
+   "status": 200,
+   "type": "document",
+   "ct": "text/html",
+   "cc": "no-cache"
+  },
+  {
+   "t": 0.54,
+   "url": "http://127.0.0.1:5180/keyart.webp",
+   "status": 200,
+   "type": "image",
+   "ct": "image/webp",
+   "cc": "no-cache"
+  },
+  {
+   "t": 0.57,
+   "url": "http://127.0.0.1:5180/assets/index-twozDotH.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 0.97,
+   "url": "http://127.0.0.1:5180/assets/brush-BgdeCShl.woff2",
+   "status": 200,
+   "type": "font",
+   "ct": "font/woff2",
+   "cc": "no-cache"
+  },
+  {
+   "t": 0.97,
+   "url": "http://127.0.0.1:5180/assets/round-Dt2Hp1so.woff2",
+   "status": 200,
+   "type": "font",
+   "ct": "font/woff2",
+   "cc": "no-cache"
+  },
+  {
+   "t": 12.9,
+   "url": "http://127.0.0.1:5180/assets/fuji-dem-6GrXuyZw.bin",
+   "status": 200,
+   "type": "fetch",
+   "ct": "application/octet-stream",
+   "cc": "no-cache"
+  },
+  {
+   "t": 12.9,
+   "url": "http://127.0.0.1:5180/reference/real-day.png",
+   "status": 200,
+   "type": "image",
+   "ct": "text/html",
+   "cc": "no-cache"
+  },
+  {
+   "t": 21.95,
+   "url": "http://127.0.0.1:5180/audio/manifest.json",
+   "status": 200,
+   "type": "fetch",
+   "ct": "application/json",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.05,
+   "url": "http://127.0.0.1:5180/audio/wind.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.05,
+   "url": "http://127.0.0.1:5180/audio/crows.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.05,
+   "url": "http://127.0.0.1:5180/audio/ui-tap.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.05,
+   "url": "http://127.0.0.1:5180/audio/auto-door.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.08,
+   "url": "http://127.0.0.1:5180/audio/fridge-door.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.08,
+   "url": "http://127.0.0.1:5180/audio/door-chime.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.08,
+   "url": "http://127.0.0.1:5180/audio/lawson-chime.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.09,
+   "url": "http://127.0.0.1:5180/audio/railway-bells.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.1,
+   "url": "http://127.0.0.1:5180/audio/walk-kakko.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.1,
+   "url": "http://127.0.0.1:5180/audio/walk-piyo.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.1,
+   "url": "http://127.0.0.1:5180/audio/kiosk-scan.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.1,
+   "url": "http://127.0.0.1:5180/audio/kiosk-pay.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.15,
+   "url": "http://127.0.0.1:5180/audio/ka-ching.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.15,
+   "url": "http://127.0.0.1:5180/audio/bite.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.16,
+   "url": "http://127.0.0.1:5180/audio/munch.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.16,
+   "url": "http://127.0.0.1:5180/audio/gulp.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.16,
+   "url": "http://127.0.0.1:5180/audio/can-open.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 22.16,
+   "url": "http://127.0.0.1:5180/audio/wrapper.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 23.23,
+   "url": "http://127.0.0.1:5180/audio/theme.m4a",
+   "status": 206,
+   "type": "other",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 23.25,
+   "url": "http://127.0.0.1:5180/audio/theme.m4a",
+   "status": 206,
+   "type": "other",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.82,
+   "url": "http://127.0.0.1:5180/audio/han-drift.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.84,
+   "url": "http://127.0.0.1:5180/audio/donki-theme.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.84,
+   "url": "http://127.0.0.1:5180/audio/station-ambience.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.84,
+   "url": "http://127.0.0.1:5180/audio/train-nextstop.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.84,
+   "url": "http://127.0.0.1:5180/audio/rural-flute.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.84,
+   "url": "http://127.0.0.1:5180/audio/shrine-chimes.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.84,
+   "url": "http://127.0.0.1:5180/audio/night-insects.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.85,
+   "url": "http://127.0.0.1:5180/audio/birds.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 35.64,
+   "url": "http://127.0.0.1:5180/audio/store-bgm.m4a",
+   "status": 206,
+   "type": "other",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 35.7,
+   "url": "http://127.0.0.1:5180/audio/store-bgm.m4a",
+   "status": 206,
+   "type": "other",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 36.64,
+   "url": "http://127.0.0.1:5180/audio/theme.m4a",
+   "status": 206,
+   "type": "other",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 36.69,
+   "url": "http://127.0.0.1:5180/audio/theme.m4a",
+   "status": 206,
+   "type": "other",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  }
+ ]
+}

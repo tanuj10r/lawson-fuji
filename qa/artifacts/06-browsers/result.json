@@ -1,0 +1,629 @@
+[
+ {
+  "id": "chromium-1366x768",
+  "engine": "chromium",
+  "W": 1366,
+  "H": 768,
+  "cardMs": 20312,
+  "readyMs": 20685,
+  "gpu": {
+   "webgl2": true,
+   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)"
+  },
+  "fit": {
+   "w": 902,
+   "h": 667,
+   "inside": true
+  },
+  "cardShot": "qa/artifacts/06-browsers/chromium-1366x768/card.jpg",
+  "lock": {
+   "locked": true,
+   "pl": true,
+   "ac": "running",
+   "contexts": 2
+  },
+  "viewShot": "qa/artifacts/06-browsers/chromium-1366x768/view.jpg",
+  "fps": {
+   "frames": 118,
+   "avgMs": 34.32,
+   "fps": 29.1,
+   "p50": 33.3,
+   "p95": 50,
+   "p99": 100.1,
+   "max": 116.6,
+   "over33": 42,
+   "over50": 5
+  },
+  "audio": {
+   "allDecoded": true,
+   "notDecoded": [],
+   "storeBgm": "plays",
+   "theme": "plays",
+   "ctx": "running",
+   "sampleRate": 48000
+  },
+  "trainCtx": {
+   "contexts": 2,
+   "states": [
+    "0:running",
+    "1:running"
+   ],
+   "level": {
+    "rms": 0.02309,
+    "peak": 0.0618,
+    "state": "running"
+   }
+  },
+  "konbini": {
+   "menu": true,
+   "gameT": 21.8,
+   "started": true,
+   "wallS": 24.5,
+   "heard": [
+    "kiosk-scan",
+    "kiosk-pay",
+    "ka-ching"
+   ],
+   "eatShot": "qa/artifacts/06-browsers/chromium-1366x768/konbini-after.jpg"
+  },
+  "errors": [],
+  "warnings": [
+   "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+   "Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Con",
+   "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "http": []
+ },
+ {
+  "id": "chromium-1920x1080",
+  "engine": "chromium",
+  "W": 1920,
+  "H": 1080,
+  "cardMs": 34332,
+  "readyMs": 35493,
+  "gpu": {
+   "webgl2": true,
+   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)"
+  },
+  "fit": {
+   "w": 1267,
+   "h": 919,
+   "inside": true
+  },
+  "cardShot": "qa/artifacts/06-browsers/chromium-1920x1080/card.jpg",
+  "lock": {
+   "locked": true,
+   "pl": true,
+   "ac": "running",
+   "contexts": 2
+  },
+  "viewShot": "qa/artifacts/06-browsers/chromium-1920x1080/view.jpg",
+  "fps": {
+   "frames": 109,
+   "avgMs": 36.85,
+   "fps": 27.1,
+   "p50": 33.4,
+   "p95": 50,
+   "p99": 50,
+   "max": 50.1,
+   "over33": 53,
+   "over50": 1
+  },
+  "audio": {
+   "allDecoded": true,
+   "notDecoded": [],
+   "storeBgm": "plays",
+   "theme": "plays",
+   "ctx": "running",
+   "sampleRate": 48000
+  },
+  "trainCtx": {
+   "contexts": 2,
+   "states": [
+    "0:running",
+    "1:running"
+   ],
+   "level": {
+    "rms": 0.02112,
+    "peak": 0.0496,
+    "state": "running"
+   }
+  },
+  "errors": [],
+  "warnings": [
+   "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+   "Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Con",
+   "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "http": []
+ },
+ {
+  "id": "chromium-2560x1440",
+  "engine": "chromium",
+  "W": 2560,
+  "H": 1440,
+  "cardMs": 16106,
+  "readyMs": 16586,
+  "gpu": {
+   "webgl2": true,
+   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)"
+  },
+  "fit": {
+   "w": 1500,
+   "h": 1088,
+   "inside": true
+  },
+  "cardShot": "qa/artifacts/06-browsers/chromium-2560x1440/card.jpg",
+  "lock": {
+   "locked": true,
+   "pl": true,
+   "ac": "running",
+   "contexts": 2
+  },
+  "viewShot": "qa/artifacts/06-browsers/chromium-2560x1440/view.jpg",
+  "fps": {
+   "frames": 124,
+   "avgMs": 32.53,
+   "fps": 30.7,
+   "p50": 33.3,
+   "p95": 50,
+   "p99": 50.1,
+   "max": 50.1,
+   "over33": 36,
+   "over50": 3
+  },
+  "audio": {
+   "allDecoded": true,
+   "notDecoded": [],
+   "storeBgm": "plays",
+   "theme": "plays",
+   "ctx": "running",
+   "sampleRate": 48000
+  },
+  "trainCtx": {
+   "contexts": 2,
+   "states": [
+    "0:running",
+    "1:running"
+   ],
+   "level": {
+    "rms": 0.0225,
+    "peak": 0.0554,
+    "state": "running"
+   }
+  },
+  "errors": [],
+  "warnings": [
+   "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+   "Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Con",
+   "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "http": []
+ },
+ {
+  "id": "firefox-1366x768",
+  "engine": "firefox",
+  "W": 1366,
+  "H": 768,
+  "cardMs": 24158,
+  "readyMs": 24602,
+  "gpu": {
+   "webgl2": true,
+   "renderer": "Apple M1, or similar"
+  },
+  "fit": {
+   "w": 902,
+   "h": 667,
+   "inside": true
+  },
+  "cardShot": "qa/artifacts/06-browsers/firefox-1366x768/card.jpg",
+  "lock": {
+   "locked": true,
+   "pl": true,
+   "ac": "running",
+   "contexts": 2
+  },
+  "viewShot": "qa/artifacts/06-browsers/firefox-1366x768/view.jpg",
+  "fps": {
+   "frames": 124,
+   "avgMs": 32.25,
+   "fps": 31,
+   "p50": 32.92,
+   "p95": 65.02,
+   "p99": 116.38,
+   "max": 133.22,
+   "over33": 44,
+   "over50": 13
+  },
+  "audio": {
+   "allDecoded": true,
+   "notDecoded": [],
+   "storeBgm": "plays",
+   "theme": "plays",
+   "ctx": "running",
+   "sampleRate": 48000
+  },
+  "trainCtx": {
+   "contexts": 2,
+   "states": [
+    "0:running",
+    "1:running"
+   ],
+   "level": {
+    "rms": 0.02011,
+    "peak": 0.0406,
+    "state": "running"
+   }
+  },
+  "konbini": {
+   "menu": true,
+   "gameT": 21.8,
+   "started": true,
+   "wallS": 27.4,
+   "heard": [
+    "kiosk-scan",
+    "kiosk-pay",
+    "ka-ching"
+   ],
+   "eatShot": "qa/artifacts/06-browsers/firefox-1366x768/konbini-after.jpg"
+  },
+  "errors": [],
+  "warnings": [
+   "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+   "THREE.WebGLRenderer: WEBGL_multi_draw extension not supported.",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "[JavaScript Warning: \"“127.0.0.1” has been classified as a bounce tracker. If it does not receive user activation within the next 3,600 seconds it will have its state purged.\"]"
+  ],
+  "http": []
+ },
+ {
+  "id": "firefox-1920x1080",
+  "engine": "firefox",
+  "W": 1920,
+  "H": 1080,
+  "cardMs": 29931,
+  "readyMs": 30059,
+  "gpu": {
+   "webgl2": true,
+   "renderer": "Apple M1, or similar"
+  },
+  "fit": {
+   "w": 1267,
+   "h": 919,
+   "inside": true
+  },
+  "cardShot": "qa/artifacts/06-browsers/firefox-1920x1080/card.jpg",
+  "lock": {
+   "locked": true,
+   "pl": true,
+   "ac": "running",
+   "contexts": 2
+  },
+  "viewShot": "qa/artifacts/06-browsers/firefox-1920x1080/view.jpg",
+  "fps": {
+   "frames": 63,
+   "avgMs": 63.99,
+   "fps": 15.6,
+   "p50": 34.34,
+   "p95": 133.56,
+   "p99": 198.64,
+   "max": 198.64,
+   "over33": 35,
+   "over50": 26
+  },
+  "audio": {
+   "allDecoded": true,
+   "notDecoded": [],
+   "storeBgm": "plays",
+   "theme": "plays",
+   "ctx": "running",
+   "sampleRate": 48000
+  },
+  "trainCtx": {
+   "contexts": 2,
+   "states": [
+    "0:running",
+    "1:running"
+   ],
+   "level": {
+    "rms": 0.02209,
+    "peak": 0.0589,
+    "state": "running"
+   }
+  },
+  "errors": [],
+  "warnings": [
+   "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+   "THREE.WebGLRenderer: WEBGL_multi_draw extension not supported.",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "[JavaScript Warning: \"“127.0.0.1” has been classified as a bounce tracker. If it does not receive user activation within the next 3,600 seconds it will have its state purged.\"]"
+  ],
+  "http": []
+ },
+ {
+  "id": "firefox-2560x1440",
+  "engine": "firefox",
+  "W": 2560,
+  "H": 1440,
+  "cardMs": 51976,
+  "readyMs": 54113,
+  "gpu": {
+   "webgl2": true,
+   "renderer": "Apple M1, or similar"
+  },
+  "fit": {
+   "w": 1500,
+   "h": 1088,
+   "inside": true
+  },
+  "cardShot": "qa/artifacts/06-browsers/firefox-2560x1440/card.jpg",
+  "lock": {
+   "locked": true,
+   "pl": true,
+   "ac": "running",
+   "contexts": 2
+  },
+  "viewShot": "qa/artifacts/06-browsers/firefox-2560x1440/view.jpg",
+  "fps": {
+   "frames": 50,
+   "avgMs": 80.3,
+   "fps": 12.5,
+   "p50": 50.28,
+   "p95": 164.68,
+   "p99": 350.38,
+   "max": 350.38,
+   "over33": 37,
+   "over50": 27
+  },
+  "audio": {
+   "allDecoded": true,
+   "notDecoded": [],
+   "storeBgm": "plays",
+   "theme": "plays",
+   "ctx": "running",
+   "sampleRate": 48000
+  },
+  "trainCtx": {
+   "contexts": 2,
+   "states": [
+    "0:running",
+    "1:running"
+   ],
+   "level": {
+    "rms": 0.01104,
+    "peak": 0.0331,
+    "state": "running"
+   }
+  },
+  "errors": [],
+  "warnings": [
+   "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+   "THREE.WebGLRenderer: WEBGL_multi_draw extension not supported.",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "THREE.WebGLProgram: Program Info Log: WARNING: Output of vertex shader 'webgl_bdf9278215949b45' not read by fragment shader\nWARNING: Output of vertex shader 'webgl_da8da2969455bd18' not read by fragme",
+   "[JavaScript Warning: \"“127.0.0.1” has been classified as a bounce tracker. If it does not receive user activation within the next 3,600 seconds it will have its state purged.\"]"
+  ],
+  "http": []
+ },
+ {
+  "id": "webkit-1366x768",
+  "engine": "webkit",
+  "W": 1366,
+  "H": 768,
+  "cardMs": 85971,
+  "readyMs": 99363,
+  "gpu": {
+   "webgl2": true,
+   "renderer": "Apple GPU"
+  },
+  "fit": {
+   "w": 902,
+   "h": 667,
+   "inside": true
+  },
+  "cardShot": "qa/artifacts/06-browsers/webkit-1366x768/card.jpg",
+  "lock": {
+   "locked": false,
+   "pl": false,
+   "ac": "running",
+   "contexts": 2
+  },
+  "viewShot": "qa/artifacts/06-browsers/webkit-1366x768/view.jpg",
+  "fps": {
+   "frames": 5,
+   "avgMs": 730.2,
+   "fps": 1.4,
+   "p50": 505,
+   "p95": 1526,
+   "p99": 1526,
+   "max": 1526,
+   "over33": 5,
+   "over50": 5
+  },
+  "audio": {
+   "allDecoded": true,
+   "notDecoded": [],
+   "storeBgm": "plays",
+   "theme": "plays",
+   "ctx": "running",
+   "sampleRate": 48000
+  },
+  "trainCtx": {
+   "contexts": 2,
+   "states": [
+    "0:running",
+    "1:running"
+   ],
+   "level": {
+    "rms": 0.02265,
+    "peak": 0.0545,
+    "state": "running"
+   }
+  },
+  "konbini": {
+   "menu": true,
+   "gameT": 21.9,
+   "started": true,
+   "wallS": 43.8,
+   "heard": [
+    "kiosk-scan",
+    "kiosk-pay",
+    "ka-ching"
+   ],
+   "eatShot": "qa/artifacts/06-browsers/webkit-1366x768/konbini-after.jpg"
+  },
+  "errors": [],
+  "warnings": [
+   "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed."
+  ],
+  "http": []
+ },
+ {
+  "id": "webkit-1920x1080",
+  "engine": "webkit",
+  "W": 1920,
+  "H": 1080,
+  "cardMs": 132461,
+  "readyMs": 146978,
+  "gpu": {
+   "webgl2": true,
+   "renderer": "Apple GPU"
+  },
+  "fit": {
+   "w": 1267,
+   "h": 919,
+   "inside": true
+  },
+  "cardShot": "qa/artifacts/06-browsers/webkit-1920x1080/card.jpg",
+  "lock": {
+   "locked": false,
+   "pl": false,
+   "ac": "running",
+   "contexts": 2
+  },
+  "viewShot": "qa/artifacts/06-browsers/webkit-1920x1080/view.jpg",
+  "fps": {
+   "frames": 22,
+   "avgMs": 181.14,
+   "fps": 5.5,
+   "p50": 117,
+   "p95": 671,
+   "p99": 827,
+   "max": 827,
+   "over33": 22,
+   "over50": 22
+  },
+  "audio": {
+   "allDecoded": true,
+   "notDecoded": [],
+   "storeBgm": "plays",
+   "theme": "plays",
+   "ctx": "running",
+   "sampleRate": 48000
+  },
+  "trainCtx": {
+   "contexts": 2,
+   "states": [
+    "0:running",
+    "1:running"
+   ],
+   "level": {
+    "rms": 0,
+    "peak": 0,
+    "state": "running"
+   }
+  },
+  "errors": [],
+  "warnings": [
+   "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed."
+  ],
+  "http": []
+ },
+ {
+  "id": "webkit-2560x1440",
+  "engine": "webkit",
+  "W": 2560,
+  "H": 1440,
+  "cardMs": 19384,
+  "readyMs": 20086,
+  "gpu": {
+   "webgl2": true,
+   "renderer": "Apple GPU"
+  },
+  "fit": {
+   "w": 1500,
+   "h": 1088,
+   "inside": true
+  },
+  "cardShot": "qa/artifacts/06-browsers/webkit-2560x1440/card.jpg",
+  "lock": {
+   "locked": false,
+   "pl": false,
+   "ac": "running",
+   "contexts": 2
+  },
+  "viewShot": "qa/artifacts/06-browsers/webkit-2560x1440/view.jpg",
+  "fps": {
+   "frames": 146,
+   "avgMs": 27.58,
+   "fps": 36.3,
+   "p50": 24,
+   "p95": 34,
+   "p99": 54,
+   "max": 459,
+   "over33": 10,
+   "over50": 2
+  },
+  "audio": {
+   "allDecoded": true,
+   "notDecoded": [],
+   "storeBgm": "plays",
+   "theme": "plays",
+   "ctx": "running",
+   "sampleRate": 48000
+  },
+  "trainCtx": {
+   "contexts": 2,
+   "states": [
+    "0:running",
+    "1:running"
+   ],
+   "level": {
+    "rms": 0.0203,
+    "peak": 0.0389,
+    "state": "running"
+   }
+  },
+  "errors": [],
+  "warnings": [
+   "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed."
+  ],
+  "http": []
+ }
+]

@@ -1,0 +1,159 @@
+[
+ {
+  "w": 4096,
+  "h": 4096,
+  "MB": 85.3,
+  "slots": [
+   "map"
+  ],
+  "meshes": [
+   "Mesh",
+   "shrine-stoneName",
+   "shrine-ema",
+   "vending",
+   "merged"
+  ],
+  "n": 5
+ },
+ {
+  "w": 2048,
+  "h": 5472,
+  "MB": 57,
+  "slots": [
+   "map"
+  ],
+  "meshes": [
+   "store-quads"
+  ],
+  "n": 1
+ },
+ {
+  "w": 3072,
+  "h": 3072,
+  "MB": 48,
+  "slots": [
+   "map"
+  ],
+  "meshes": [
+   "stock-page-0"
+  ],
+  "n": 1
+ },
+ {
+  "w": 3072,
+  "h": 3072,
+  "MB": 48,
+  "slots": [
+   "map"
+  ],
+  "meshes": [
+   "stock-page-1"
+  ],
+  "n": 1
+ },
+ {
+  "w": 4096,
+  "h": 1488,
+  "MB": 31,
+  "slots": [
+   "map"
+  ],
+  "meshes": [
+   "vending",
+   "Mesh",
+   "station",
+   "merged"
+  ],
+  "n": 4
+ },
+ {
+  "w": 2048,
+  "h": 2048,
+  "MB": 21.3,
+  "slots": [
+   "map"
+  ],
+  "meshes": [
+   "parking-paint",
+   "kit-decals"
+  ],
+  "n": 2
+ },
+ {
+  "w": 4096,
+  "h": 1024,
+  "MB": 21.3,
+  "slots": [
+   "map",
+   "emissiveMap"
+  ],
+  "meshes": [
+   "Mesh",
+   "merged"
+  ],
+  "n": 2
+ },
+ {
+  "w": 2048,
+  "h": 512,
+  "MB": 5.3,
+  "slots": [
+   "map"
+  ],
+  "meshes": [
+   "merged"
+  ],
+  "n": 1
+ },
+ {
+  "w": 1024,
+  "h": 1024,
+  "MB": 5.3,
+  "slots": [
+   "map"
+  ],
+  "meshes": [
+   "merged"
+  ],
+  "n": 1
+ },
+ {
+  "w": 4096,
+  "h": 149,
+  "MB": 3.1,
+  "slots": [
+   "map"
+  ],
+  "meshes": [
+   "lawson"
+  ],
+  "n": 1
+ },
+ {
+  "w": 1024,
+  "h": 512,
+  "MB": 2.7,
+  "slots": [
+   "map",
+   "emissiveMap"
+  ],
+  "meshes": [
+   "house-mortar",
+   "house-old",
+   "merged"
+  ],
+  "n": 3
+ },
+ {
+  "w": 1024,
+  "h": 512,
+  "MB": 2.7,
+  "slots": [
+   "map"
+  ],
+  "meshes": [
+   "kit-decals-street"
+  ],
+  "n": 1
+ }
+]

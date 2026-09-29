@@ -1,0 +1,327 @@
+{
+ "engine": "chromium",
+ "viewport": {
+  "width": 2560,
+  "height": 1440
+ },
+ "console": [
+  {
+   "t": 1.81,
+   "type": "warning",
+   "text": "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed."
+  },
+  {
+   "t": 8.23,
+   "type": "info",
+   "text": "sinkcut: cut town/lawson-ground [x -22.5..27.5 z 20.5..42.5] (1 piece)"
+  },
+  {
+   "t": 15.59,
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  },
+  {
+   "t": 25.36,
+   "type": "warning",
+   "text": "Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Consider using the inert attribute instead, which will also prevent focus. For more details, see the aria-hidden section of the WAI-ARIA specification at https://w3c.github.io/aria/#aria-hidden.\nElement with focus: <button.menu-action>\nAncestor with aria-hidden: <div.overlay hidden>"
+  },
+  {
+   "t": 25.61,
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  }
+ ],
+ "errors": [],
+ "failed": [],
+ "http": [],
+ "responses": [
+  {
+   "t": 0.16,
+   "url": "http://127.0.0.1:5180/",
+   "status": 200,
+   "type": "document",
+   "ct": "text/html",
+   "cc": "no-cache"
+  },
+  {
+   "t": 0.25,
+   "url": "http://127.0.0.1:5180/keyart.webp",
+   "status": 200,
+   "type": "image",
+   "ct": "image/webp",
+   "cc": "no-cache"
+  },
+  {
+   "t": 0.38,
+   "url": "http://127.0.0.1:5180/assets/index-twozDotH.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 0.48,
+   "url": "http://127.0.0.1:5180/assets/round-Dt2Hp1so.woff2",
+   "status": 200,
+   "type": "font",
+   "ct": "font/woff2",
+   "cc": "no-cache"
+  },
+  {
+   "t": 0.49,
+   "url": "http://127.0.0.1:5180/assets/brush-BgdeCShl.woff2",
+   "status": 200,
+   "type": "font",
+   "ct": "font/woff2",
+   "cc": "no-cache"
+  },
+  {
+   "t": 10.57,
+   "url": "http://127.0.0.1:5180/reference/real-day.png",
+   "status": 200,
+   "type": "image",
+   "ct": "text/html",
+   "cc": "no-cache"
+  },
+  {
+   "t": 14.83,
+   "url": "http://127.0.0.1:5180/assets/fuji-dem-6GrXuyZw.bin",
+   "status": 200,
+   "type": "fetch",
+   "ct": "application/octet-stream",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.21,
+   "url": "http://127.0.0.1:5180/audio/manifest.json",
+   "status": 200,
+   "type": "fetch",
+   "ct": "application/json",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.36,
+   "url": "http://127.0.0.1:5180/audio/wind.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.36,
+   "url": "http://127.0.0.1:5180/audio/crows.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.37,
+   "url": "http://127.0.0.1:5180/audio/lawson-chime.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.37,
+   "url": "http://127.0.0.1:5180/audio/door-chime.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.37,
+   "url": "http://127.0.0.1:5180/audio/auto-door.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.45,
+   "url": "http://127.0.0.1:5180/audio/fridge-door.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.45,
+   "url": "http://127.0.0.1:5180/audio/ui-tap.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.45,
+   "url": "http://127.0.0.1:5180/audio/railway-bells.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.45,
+   "url": "http://127.0.0.1:5180/audio/walk-piyo.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.45,
+   "url": "http://127.0.0.1:5180/audio/walk-kakko.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.45,
+   "url": "http://127.0.0.1:5180/audio/kiosk-scan.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.46,
+   "url": "http://127.0.0.1:5180/audio/kiosk-pay.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.47,
+   "url": "http://127.0.0.1:5180/audio/ka-ching.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.47,
+   "url": "http://127.0.0.1:5180/audio/bite.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.47,
+   "url": "http://127.0.0.1:5180/audio/munch.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.48,
+   "url": "http://127.0.0.1:5180/audio/gulp.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.48,
+   "url": "http://127.0.0.1:5180/audio/wrapper.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 25.48,
+   "url": "http://127.0.0.1:5180/audio/can-open.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.69,
+   "url": "http://127.0.0.1:5180/audio/donki-theme.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.69,
+   "url": "http://127.0.0.1:5180/audio/han-drift.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.69,
+   "url": "http://127.0.0.1:5180/audio/station-ambience.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.7,
+   "url": "http://127.0.0.1:5180/audio/train-nextstop.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.7,
+   "url": "http://127.0.0.1:5180/audio/rural-flute.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.7,
+   "url": "http://127.0.0.1:5180/audio/shrine-chimes.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.7,
+   "url": "http://127.0.0.1:5180/audio/night-insects.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 34.71,
+   "url": "http://127.0.0.1:5180/audio/birds.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 35.24,
+   "url": "http://127.0.0.1:5180/audio/store-bgm.m4a",
+   "status": 206,
+   "type": "media",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 35.76,
+   "url": "http://127.0.0.1:5180/audio/theme.m4a",
+   "status": 206,
+   "type": "media",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  }
+ ]
+}

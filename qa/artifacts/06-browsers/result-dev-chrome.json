@@ -1,0 +1,196 @@
+[
+ {
+  "id": "chromium-1366x768",
+  "engine": "chromium",
+  "W": 1366,
+  "H": 768,
+  "cardMs": 28502,
+  "readyMs": 29138,
+  "gpu": {
+   "webgl2": true,
+   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)"
+  },
+  "fit": {
+   "w": 902,
+   "h": 667,
+   "inside": true
+  },
+  "cardShot": "qa/artifacts/06-browsers/chromium-1366x768/card.jpg",
+  "lock": {
+   "locked": true,
+   "pl": true,
+   "ac": "running",
+   "contexts": 2
+  },
+  "viewShot": "qa/artifacts/06-browsers/chromium-1366x768/view.jpg",
+  "fps": {
+   "frames": 70,
+   "avgMs": 58.09,
+   "fps": 17.2,
+   "p50": 50,
+   "p95": 100,
+   "p99": 416.6,
+   "max": 416.6,
+   "over33": 60,
+   "over50": 28
+  },
+  "audio": {
+   "allDecoded": true,
+   "notDecoded": [],
+   "storeBgm": "plays",
+   "theme": "plays",
+   "ctx": "running",
+   "sampleRate": 48000
+  },
+  "trainCtx": {
+   "contexts": 2,
+   "states": [
+    "0:running",
+    "1:running"
+   ],
+   "level": {
+    "rms": 0.02141,
+    "peak": 0.0502,
+    "state": "running"
+   }
+  },
+  "crash": "TypeError: Cannot read properties of undefined (reading 'toFixed')\n    at file:///Users/tanujr/DevSpace/lawson-fuji/.claude/worktrees/agent-ad6f1cdf429549b59/qa/06-browsers.mjs:71:64",
+  "crashShot": "qa/artifacts/06-browsers/chromium-1366x768/crash.jpg"
+ },
+ {
+  "id": "chromium-1920x1080",
+  "engine": "chromium",
+  "W": 1920,
+  "H": 1080,
+  "cardMs": 26859,
+  "readyMs": 27147,
+  "gpu": {
+   "webgl2": true,
+   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)"
+  },
+  "fit": {
+   "w": 1267,
+   "h": 919,
+   "inside": true
+  },
+  "cardShot": "qa/artifacts/06-browsers/chromium-1920x1080/card.jpg",
+  "lock": {
+   "locked": true,
+   "pl": true,
+   "ac": "running",
+   "contexts": 2
+  },
+  "viewShot": "qa/artifacts/06-browsers/chromium-1920x1080/view.jpg",
+  "fps": {
+   "frames": 82,
+   "avgMs": 48.98,
+   "fps": 20.4,
+   "p50": 49.9,
+   "p95": 100,
+   "p99": 183.4,
+   "max": 183.4,
+   "over33": 49,
+   "over50": 20
+  },
+  "audio": {
+   "allDecoded": true,
+   "notDecoded": [],
+   "storeBgm": "plays",
+   "theme": "plays",
+   "ctx": "running",
+   "sampleRate": 48000
+  },
+  "trainCtx": {
+   "contexts": 2,
+   "states": [
+    "0:running",
+    "1:running"
+   ],
+   "level": {
+    "rms": 0.02001,
+    "peak": 0.0379,
+    "state": "running"
+   }
+  },
+  "errors": [],
+  "warnings": [
+   "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+   "Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Con"
+  ],
+  "http": []
+ },
+ {
+  "id": "chromium-2560x1440",
+  "engine": "chromium",
+  "W": 2560,
+  "H": 1440,
+  "cardMs": 66199,
+  "readyMs": 67675,
+  "gpu": {
+   "webgl2": true,
+   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)"
+  },
+  "fit": {
+   "w": 1500,
+   "h": 1088,
+   "inside": true
+  },
+  "cardShot": "qa/artifacts/06-browsers/chromium-2560x1440/card.jpg",
+  "lock": {
+   "locked": false,
+   "pl": false,
+   "ac": "running",
+   "contexts": 2
+  },
+  "viewShot": "qa/artifacts/06-browsers/chromium-2560x1440/view.jpg",
+  "fps": {
+   "frames": 88,
+   "avgMs": 46.02,
+   "fps": 21.7,
+   "p50": 33.4,
+   "p95": 83.3,
+   "p99": 216.6,
+   "max": 216.6,
+   "over33": 43,
+   "over50": 15
+  },
+  "audio": {
+   "allDecoded": true,
+   "notDecoded": [],
+   "storeBgm": "plays",
+   "theme": "plays",
+   "ctx": "running",
+   "sampleRate": 48000
+  },
+  "trainCtx": {
+   "contexts": 2,
+   "states": [
+    "0:running",
+    "1:running"
+   ],
+   "level": {
+    "rms": 0.02256,
+    "peak": 0.0562,
+    "state": "running"
+   }
+  },
+  "errors": [],
+  "warnings": [
+   "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.",
+   "Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Con"
+  ],
+  "http": []
+ },
+ {
+  "id": "firefox-1366x768",
+  "engine": "firefox",
+  "W": 1366,
+  "H": 768,
+  "crash": "page.goto: Timeout 180000ms exceeded.\nCall log:\n  - navigating to \"http://127.0.0.1:5180/\", waiting until \"load\"\n\n    at /Users/tanujr/DevSpace/lawson-fuji/.claude/worktrees/agent-ad6f1cdf429549b59/qa/06-browsers.mjs:25:18",
+  "crashShot": "qa/artifacts/06-browsers/firefox-1366x768/crash.jpg"
+ }
+]

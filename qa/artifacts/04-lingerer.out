@@ -1,0 +1,76 @@
+[27.76s] heap 154 MB, nodes 686, fps 30.4 (p95 100 ms), geo 736 tex 155 prog 163, audio live 0 osc 0 voices 0 zones , null, hachi home/null leg 0 done 1
+[43.84s] heap 159 MB, nodes 692, fps 54 (p95 33.4 ms), geo 736 tex 155 prog 163, audio live 2 osc 4 voices 0 zones , golden, hachi home/null leg 0 done 1
+[58.13] target {"target":"konbini","state":"lead","leg":1,"done":["view"]}
+[70.52] konbini "chose 3"
+[72.11] target {"target":null,"state":"lead","leg":2,"done":["view","konbini"]}
+[78.79s] heap 177.6 MB, nodes 965, fps 42.9 (p95 33.4 ms), geo 900 tex 175 prog 188, audio live 4 osc 4 voices 0 zones , blue, hachi lead/null leg 2 done 2
+[94.23] target {"target":"han","state":"lead","leg":4,"done":["view","konbini"]}
+[113.18s] heap 176 MB, nodes 1037, fps 34.7 (p95 33.5 ms), geo 921 tex 179 prog 199, audio live 3 osc 4 voices 1 zones , blue, hachi atSpot/han leg 4 done 2
+[145.91s] heap 117.8 MB, nodes 840, fps 41.7 (p95 33.4 ms), geo 921 tex 179 prog 199, audio live 4 osc 4 voices 1 zones , blue, hachi atSpot/han leg 4 done 2
+[166.13] look "1"
+[178.7s] heap 112.8 MB, nodes 834, fps 29.8 (p95 50.1 ms), geo 921 tex 179 prog 199, audio live 3 osc 4 voices 0 zones , day, hachi atSpot/han leg 4 done 2
+[211.81s] heap 130.7 MB, nodes 902, fps 33.2 (p95 33.4 ms), geo 922 tex 179 prog 199, audio live 4 osc 4 voices 0 zones , day, hachi atSpot/han leg 4 done 2
+[244.81s] heap 133.1 MB, nodes 811, fps 16.9 (p95 133.4 ms), geo 922 tex 179 prog 199, audio live 4 osc 4 voices 0 zones , day, hachi atSpot/han leg 4 done 2
+[274.34] stall {"target":"han","state":"atSpot","at":[-25.38,23.542357026409473],"hidden":false}
+[277.85s] heap 118.8 MB, nodes 901, fps 34.2 (p95 33.4 ms), geo 922 tex 179 prog 199, audio live 3 osc 4 voices 3 zones , day, hachi come/null leg 4 done 2
+[277.87] target {"target":null,"state":"come","leg":4,"done":["view","konbini"]}
+[286.33] look "3"
+[289.28] target {"target":"han","state":"lead","leg":4,"done":["view","konbini"]}
+[319] target {"target":null,"state":"lead","leg":5,"done":["view","konbini","han"]}
+[322.91s] heap 143.5 MB, nodes 1053, fps 43.3 (p95 33.4 ms), geo 1002 tex 189 prog 203, audio live 8 osc 4 voices 1 zones , blue, hachi lead/null leg 5 done 3
+[357.2] paused 8 s {"locked":false,"levels":[{"rms":0.02074,"peak":0.1044,"state":"running"},{"rms":0,"peak":0,"state":"running"}]}
+[362.08s] heap 122.1 MB, nodes 927, fps 25.2 (p95 66.7 ms), geo 1002 tex 189 prog 203, audio live 4 osc 4 voices 0 zones , blue, hachi lead/null leg 5 done 3
+[395.05s] heap 114.7 MB, nodes 809, fps 23.5 (p95 50.1 ms), geo 1003 tex 189 prog 203, audio live 4 osc 4 voices 0 zones , blue, hachi lead/null leg 5 done 3
+[406.58] look "2"
+[428.69s] heap 110.9 MB, nodes 833, fps 23 (p95 66.7 ms), geo 1003 tex 189 prog 203, audio live 3 osc 4 voices 0 zones , golden, hachi lead/null leg 5 done 3
+[462.27s] heap 133.7 MB, nodes 830, fps 22 (p95 66.6 ms), geo 1003 tex 189 prog 203, audio live 2 osc 4 voices 0 zones , golden, hachi lead/null leg 5 done 3
+[495.2s] heap 121.3 MB, nodes 812, fps 18.7 (p95 150.1 ms), geo 1033 tex 190 prog 205, audio live 3 osc 4 voices 1 zones , golden, hachi lead/null leg 5 done 3
+[499.4] stall {"target":null,"state":"lead","at":[-22.919999999999998,24.189999999999998]}
+[506.82] target {"target":"slowlife","state":"lead","leg":25,"done":["view","konbini","han"]}
+[530.53] look "1"
+[533.42s] heap 128.3 MB, nodes 809, fps 19.2 (p95 166.6 ms), geo 1033 tex 190 prog 205, audio live 4 osc 4 voices 1 zones , day, hachi lead/slowlife leg 25 done 3
+[566.48s] heap 115.9 MB, nodes 809, fps 29.6 (p95 99.9 ms), geo 1039 tex 191 prog 206, audio live 3 osc 4 voices 1 zones , day, hachi lead/slowlife leg 25 done 3
+[594.59] bench "pressed E from outside the ring"
+[611.24s] heap 121.1 MB, nodes 872, fps 28.5 (p95 50 ms), geo 1045 tex 191 prog 209, audio live 4 osc 4 voices 0 zones rural-flute, day, hachi linger/slowlife leg 25 done 4
+[614.24] target {"target":null,"state":"lead","leg":26,"done":["view","konbini","han","slowlife"]}
+[644.2s] heap 133.3 MB, nodes 810, fps 17.1 (p95 216.6 ms), geo 1046 tex 191 prog 209, audio live 4 osc 4 voices 1 zones shrine-chimes, day, hachi lead/null leg 28 done 4
+[650.82] look "3"
+[668.88] paused 8 s {"locked":false,"levels":[{"rms":0.02193,"peak":0.0953,"state":"running"},{"rms":0,"peak":0,"state":"running"}]}
+[677.09s] heap 118.2 MB, nodes 908, fps 34.2 (p95 50 ms), geo 1046 tex 191 prog 209, audio live 3 osc 4 voices 0 zones , blue, hachi lead/null leg 28 done 4
+[711.06s] heap 129.6 MB, nodes 947, fps 50.1 (p95 33.4 ms), geo 1046 tex 191 prog 209, audio live 4 osc 4 voices 0 zones , blue, hachi lead/null leg 29 done 4
+[746.98s] heap 128 MB, nodes 896, fps 55.6 (p95 16.8 ms), geo 1046 tex 191 prog 209, audio live 3 osc 4 voices 1 zones , blue, hachi lead/gate leg 31 done 4
+[747.12] target {"target":"gate","state":"lead","leg":31,"done":["view","konbini","han","slowlife"]}
+[753.82] target {"target":"train","state":"lead","leg":32,"done":["view","konbini","han","slowlife"]}
+[771.33] look "2"
+[779.7s] heap 111.6 MB, nodes 815, fps 22.6 (p95 50.1 ms), geo 1046 tex 191 prog 209, audio live 3 osc 4 voices 0 zones , golden, hachi lead/train leg 32 done 4
+[812.85s] heap 133.3 MB, nodes 902, fps 29.8 (p95 50 ms), geo 1046 tex 191 prog 209, audio live 2 osc 4 voices 0 zones , golden, hachi lead/train leg 32 done 4
+[846.18s] heap 135.8 MB, nodes 914, fps 32.8 (p95 50 ms), geo 1047 tex 191 prog 210, audio live 6 osc 10 voices 2 zones station-ambience, golden, hachi lead/train leg 32 done 4
+[879.27s] heap 122 MB, nodes 830, fps 58 (p95 16.8 ms), geo 1047 tex 191 prog 210, audio live 4 osc 10 voices 0 zones station-ambience, golden, hachi atSpot/train leg 32 done 4
+[891.62] look "1"
+[912.5s] heap 118.3 MB, nodes 911, fps 28.8 (p95 116.6 ms), geo 1047 tex 191 prog 210, audio live 6 osc 10 voices 1 zones station-ambience, day, hachi atSpot/train leg 32 done 4
+[934.74] stall {"target":"train","state":"atSpot","at":[53.082013261507726,-129.2592518157145],"hidden":true}
+[937.14] target {"target":null,"state":"come","leg":32,"done":["view","konbini","han","slowlife"]}
+[945.43s] heap 137.5 MB, nodes 984, fps 27.6 (p95 50 ms), geo 1047 tex 191 prog 210, audio live 4 osc 4 voices 3 zones station-ambience, day, hachi lead/train leg 14 done 4
+[945.52] target {"target":"train","state":"lead","leg":14,"done":["view","konbini","han","slowlife"]}
+[983.56] paused 8 s {"locked":false,"levels":[{"rms":0.01013,"peak":0.1054,"state":"running"},{"rms":0,"peak":0,"state":"running"}]}
+[987.68s] heap 110.1 MB, nodes 869, fps 60 (p95 16.7 ms), geo 1047 tex 191 prog 210, audio live 6 osc 10 voices 0 zones station-ambience, day, hachi atSpot/train leg 14 done 4
+[1004.16] target {"target":null,"state":"lead","leg":15,"done":["view","konbini","han","slowlife","train"]}
+[1011.76] look "3"
+[1020.79s] heap 110.2 MB, nodes 821, fps 38.7 (p95 50 ms), geo 1049 tex 191 prog 210, audio live 7 osc 10 voices 1 zones station-ambience, blue, hachi lead/null leg 16 done 5
+[1054.05s] heap 117.8 MB, nodes 824, fps 37.6 (p95 50 ms), geo 1049 tex 191 prog 210, audio live 5 osc 10 voices 0 zones station-ambience, blue, hachi lead/null leg 18 done 5
+[1087.59s] heap 120.2 MB, nodes 907, fps 39.7 (p95 33.4 ms), geo 1049 tex 191 prog 210, audio live 5 osc 10 voices 1 zones station-ambience, blue, hachi lead/null leg 18 done 5
+[1120.87s] heap 118.4 MB, nodes 974, fps 33.8 (p95 33.4 ms), geo 1049 tex 191 prog 210, audio live 4 osc 4 voices 1 zones station-ambience, blue, hachi lead/null leg 18 done 5
+[1133.1] look "2"
+[1154.85s] heap 128.1 MB, nodes 992, fps 28.2 (p95 66.7 ms), geo 1049 tex 191 prog 210, audio live 4 osc 10 voices 1 zones station-ambience, golden, hachi lead/null leg 18 done 5
+[1184.18] stall {"target":null,"state":"lead","at":[72.98823490824122,-111.74]}
+[1188.02s] heap 120 MB, nodes 1082, fps 34 (p95 49.9 ms), geo 1049 tex 191 prog 210, audio live 4 osc 10 voices 4 zones station-ambience, golden, hachi caught/null leg 18 done 5
+[1220.99s] heap 118.6 MB, nodes 863, fps 31 (p95 50 ms), geo 1049 tex 191 prog 210, audio live 11 osc 10 voices 1 zones station-ambience, golden, hachi nap/null leg 18 done 5
+[1253.76s] heap 134.5 MB, nodes 845, fps 39.5 (p95 33.4 ms), geo 1049 tex 191 prog 210, audio live 2 osc 4 voices 1 zones , golden, hachi nap/null leg 18 done 5
+[1254.07] look "1"
+[1286.68s] heap 118.7 MB, nodes 869, fps 45.5 (p95 33.4 ms), geo 1049 tex 191 prog 210, audio live 4 osc 4 voices 1 zones , day, hachi nap/null leg 18 done 5
+[1296.15] paused 8 s {"locked":false,"levels":[{"rms":0.00464,"peak":0.0308,"state":"running"},{"rms":0,"peak":0,"state":"running"}]}
+[1320.35s] heap 118.8 MB, nodes 857, fps 55.2 (p95 33.3 ms), geo 1049 tex 191 prog 210, audio live 4 osc 4 voices 0 zones , day, hachi nap/null leg 18 done 5
+[1353.53s] heap 126.8 MB, nodes 950, fps 58.4 (p95 16.8 ms), geo 1049 tex 191 prog 210, audio live 4 osc 4 voices 0 zones , day, hachi nap/null leg 18 done 5
+[1364.29] stall {"target":null,"state":"nap","at":[-26.38,38.11]}
+[1428.65s] heap 115.3 MB, nodes 815, fps 60 (p95 16.7 ms), geo 1049 tex 191 prog 210, audio live 4 osc 4 voices 0 zones , day, hachi nap/null leg 18 done 5
+[1433.79s] heap 110.9 MB, nodes 809, fps 60 (p95 16.8 ms), geo 1049 tex 191 prog 210, audio live 4 osc 4 voices 0 zones , day, hachi nap/null leg 18 done 5

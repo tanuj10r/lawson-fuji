@@ -1,0 +1,685 @@
+[
+ {
+  "pass": false,
+  "locked": true,
+  "ac": "running",
+  "gesture": {
+   "t": 9.297,
+   "ev": "pointerdown"
+  },
+  "ctx": [
+   {
+    "t": 10.506,
+    "state": "running"
+   },
+   {
+    "t": 10.56,
+    "state": "running"
+   }
+  ],
+  "secs": 0,
+  "id": "00-start"
+ },
+ {
+  "pass": true,
+  "missing": [],
+  "chimes": 2,
+  "recipesInsteadOfFiles": [],
+  "menu": true,
+  "started": true,
+  "gameT": 30.2,
+  "heard": [
+   "4.091 auto-door file k0.35",
+   "4.944 lawson-chime file k0.22",
+   "5.339 store-bgm loop k",
+   "8.267 auto-door file k0.239",
+   "11.744 plastic recipe k0.9",
+   "22.219 kiosk-scan file k0.9",
+   "23.968 kiosk-pay file k0.9",
+   "24.267 ka-ching file k0.9",
+   "30.117 auto-door file k0.35",
+   "30.992 lawson-chime file k0.55",
+   "33.365 wrapper file k0.6",
+   "33.936 auto-door file k0.25",
+   "33.936 bite file k0.9",
+   "34.067 munch file k0.7",
+   "34.851 bite file k0.9",
+   "34.997 munch file k0.7",
+   "35.584 bite file k0.9",
+   "35.717 munch file k0.7"
+  ],
+  "sp": {
+   "live": 3,
+   "peak": 10,
+   "osc": 4,
+   "voices": 0,
+   "logN": 72
+  },
+  "toast": [
+   "Delicious. Step back onto the highlight for another"
+  ],
+  "shop": {
+   "phase": "out",
+   "held": 0,
+   "p": {
+    "x": -2.3,
+    "z": 2.4
+   },
+   "susp": false,
+   "scripted": false,
+   "filter": ""
+  },
+  "extra": null,
+  "secs": 36.3,
+  "id": "10-konbini-item1"
+ },
+ {
+  "pass": true,
+  "missing": [],
+  "chimes": 2,
+  "recipesInsteadOfFiles": [],
+  "menu": true,
+  "started": true,
+  "gameT": 30.3,
+  "heard": [
+   "40.821 auto-door file k0.35",
+   "41.781 lawson-chime file k0.22",
+   "41.861 store-bgm loop k",
+   "45.28 auto-door file k0.239",
+   "47.659 plastic recipe k0.9",
+   "59.979 kiosk-scan file k0.9",
+   "62.091 kiosk-pay file k0.9",
+   "62.512 ka-ching file k0.9",
+   "68.293 auto-door file k0.35",
+   "69.349 lawson-chime file k0.55",
+   "72.997 wrapper file k0.6",
+   "73.541 bite file k0.9",
+   "73.557 auto-door file k0.25",
+   "73.691 munch file k0.7",
+   "74.272 bite file k0.9",
+   "74.405 munch file k0.7",
+   "75.019 bite file k0.9",
+   "75.2 munch file k0.7"
+  ],
+  "sp": {
+   "live": 3,
+   "peak": 11,
+   "osc": 4,
+   "voices": 0,
+   "logN": 140
+  },
+  "toast": [
+   "Delicious. Step back onto the highlight for another",
+   "Delicious. Step back onto the highlight for another"
+  ],
+  "shop": {
+   "phase": "out",
+   "held": 0,
+   "p": {
+    "x": -2.3,
+    "z": 2.4
+   },
+   "susp": false,
+   "scripted": false,
+   "filter": ""
+  },
+  "extra": null,
+  "secs": 39.5,
+  "id": "10-konbini-item2"
+ },
+ {
+  "pass": false,
+  "missing": [
+   "auto-door",
+   "lawson-chime",
+   "kiosk-scan",
+   "kiosk-pay",
+   "ka-ching"
+  ],
+  "chimes": 0,
+  "recipesInsteadOfFiles": [],
+  "menu": false,
+  "started": false,
+  "gameT": 30.3,
+  "heard": [],
+  "sp": {
+   "live": 3,
+   "peak": 11,
+   "osc": 4,
+   "voices": 0,
+   "logN": 140
+  },
+  "toast": [
+   "Delicious. Step back onto the highlight for another",
+   "Delicious. Step back onto the highlight for another"
+  ],
+  "shop": {
+   "phase": "out",
+   "held": 0,
+   "p": {
+    "x": -2.3,
+    "z": 2.3
+   },
+   "susp": false,
+   "scripted": false,
+   "filter": ""
+  },
+  "extra": null,
+  "secs": 2.8,
+  "id": "10-konbini-item3"
+ },
+ {
+  "pass": true,
+  "missing": [],
+  "chimes": 2,
+  "recipesInsteadOfFiles": [],
+  "menu": true,
+  "started": true,
+  "gameT": 21.7,
+  "heard": [
+   "81.547 night-insects loop k",
+   "82.821 auto-door file k0.35",
+   "83.725 lawson-chime file k0.22",
+   "83.755 store-bgm loop k",
+   "86.656 auto-door file k0.239",
+   "87.821 plastic recipe k0.9",
+   "91.157 kiosk-scan file k0.9",
+   "92.944 kiosk-pay file k0.9",
+   "93.235 ka-ching file k0.9",
+   "99.088 auto-door file k0.35",
+   "99.877 lawson-chime file k0.55",
+   "105.685 wrapper file k0.6",
+   "106.229 bite file k0.9",
+   "106.245 auto-door file k0.25",
+   "106.379 munch file k0.7",
+   "106.96 bite file k0.9",
+   "107.088 munch file k0.7",
+   "107.68 bite file k0.9",
+   "107.829 munch file k0.7"
+  ],
+  "sp": {
+   "live": 3,
+   "peak": 11,
+   "osc": 4,
+   "voices": 1,
+   "logN": 186
+  },
+  "toast": [
+   "Delicious. Step back onto the highlight for another",
+   "Delicious. Step back onto the highlight for another"
+  ],
+  "shop": {
+   "phase": "out",
+   "held": 0,
+   "p": {
+    "x": -2.3,
+    "z": 2.4
+   },
+   "susp": false,
+   "scripted": false,
+   "filter": ""
+  },
+  "extra": null,
+  "secs": 28.7,
+  "id": "10-konbini-item5"
+ },
+ {
+  "pass": true,
+  "filters": [
+   "blur(0.35px)",
+   "blur(0.35px)",
+   "blur(0.35px)",
+   "blur(0.6px)",
+   "blur(1.53px)",
+   "blur(2.96px)"
+  ],
+  "after": "",
+  "guide": {
+   "state": "party",
+   "act": null
+  },
+  "toast": [
+   "Delicious. Step back onto the highlight for another",
+   "That Strong Nine is living up to its name"
+  ],
+  "secs": 44.3,
+  "id": "11-konbini-strong-nine"
+ },
+ {
+  "pass": true,
+  "map": false,
+  "frozen": 0,
+  "lockedPaused": false,
+  "lockedAfter": true,
+  "stillVisiting": true,
+  "rJumped": false,
+  "gameT": 30.2,
+  "secs": 35.9,
+  "id": "12-konbini-keys-mid-scene"
+ },
+ {
+  "pass": false,
+  "menuStates": [
+   false,
+   true,
+   false,
+   true,
+   false,
+   true,
+   false,
+   true,
+   false,
+   true
+  ],
+  "one": {
+   "visiting": true,
+   "id": "sando_egg"
+  },
+  "after": {
+   "phase": "out",
+   "held": 0,
+   "stock": [
+    "strong_nine:1/2",
+    "onigiri_tuna:1/2",
+    "sando_egg:0/2",
+    "fruit_sando:1/2",
+    "choco_wafer_jumbo:0/1"
+   ]
+  },
+  "secs": 36.3,
+  "id": "13-konbini-spot-spam"
+ },
+ {
+  "pass": true,
+  "out": [
+   {
+    "k": 0,
+    "started": true,
+    "u": [
+     "onigiri_tuna:0",
+     "onigiri_tuna:2",
+     "onigiri_tuna:2",
+     "onigiri_tuna:2",
+     "onigiri_tuna:2"
+    ]
+   },
+   {
+    "k": 1,
+    "started": true,
+    "u": [
+     "onigiri_tuna:0",
+     "onigiri_tuna:1",
+     "onigiri_tuna:2",
+     "onigiri_tuna:2",
+     "onigiri_tuna:2"
+    ]
+   },
+   {
+    "k": 2,
+    "started": true,
+    "u": [
+     "onigiri_tuna:0",
+     "onigiri_tuna:0",
+     "onigiri_tuna:2",
+     "onigiri_tuna:2",
+     "onigiri_tuna:2"
+    ]
+   },
+   {
+    "k": 3,
+    "started": true,
+    "u": [
+     "onigiri_tuna:0",
+     "onigiri_tuna:0",
+     "onigiri_tuna:1",
+     "onigiri_tuna:2",
+     "onigiri_tuna:2"
+    ]
+   }
+  ],
+  "sp": {
+   "live": 4,
+   "peak": 16,
+   "osc": 4,
+   "voices": 1,
+   "logN": 661
+  },
+  "gl": {
+   "geometries": 1050,
+   "textures": 190,
+   "programs": 207,
+   "calls": 1,
+   "tris": 1
+  },
+  "secs": 131.8,
+  "id": "14-konbini-repeat-20"
+ },
+ {
+  "pass": true,
+  "songs": [
+   "358.064 han-drift file-late k0.5"
+  ],
+  "peakLive": 5,
+  "after": {
+   "run": false,
+   "susp": false,
+   "x": 24.15,
+   "z": 4.7
+  },
+  "secs": 18.2,
+  "id": "20-han-show"
+ },
+ {
+  "pass": null,
+  "showT": [
+   3.0542999999523177,
+   3.18389999985695
+  ],
+  "audioClockAdvanced": 6.12,
+  "pausedLocked": false,
+  "note": "the song is an AudioBufferSource one-shot: the audio clock runs on while the show is frozen, so on resume the song is ahead of the car by the pause length",
+  "secs": 24.4,
+  "id": "21-han-pause-desync"
+ },
+ {
+  "pass": true,
+  "p": [
+   0,
+   16.5
+  ],
+  "susp": false,
+  "run": true,
+  "watch": {
+   "on": false,
+   "mine": false,
+   "gone": true,
+   "last": 0
+  },
+  "moved": [
+   0,
+   18.39
+  ],
+  "secs": 18.2,
+  "id": "22-han-R-mid-show"
+ },
+ {
+  "pass": false,
+  "plays": 7,
+  "audibleVoices": 6,
+  "sp": {
+   "live": 11,
+   "peak": 16,
+   "osc": 10,
+   "voices": 7,
+   "logN": 696
+  },
+  "note": "each step into the ring starts another copy of the announcement",
+  "secs": 10.2,
+  "id": "30-train-spot-stacking"
+ },
+ {
+  "pass": null,
+  "openShare": 0.23,
+  "longestWaitS": 196,
+  "secs": 0.1,
+  "id": "31-train-ring-hidden-most-of-the-time"
+ },
+ {
+  "pass": false,
+  "prompts": [
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "seatedInRing": false,
+  "note": "standing in the ring: does E (or anything) seat you?",
+  "secs": 4,
+  "id": "40-bench-step-in"
+ },
+ {
+  "pass": true,
+  "prompt": "E  ·  Sit a while",
+  "seated": true,
+  "stillSeated": {
+   "seat": true,
+   "map": true
+  },
+  "stood": true,
+  "end": {
+   "seat": false,
+   "susp": false,
+   "flute": 0.45
+  },
+  "secs": 16.6,
+  "id": "41-bench-sit-spam"
+ },
+ {
+  "pass": true,
+  "mid": {
+   "scripted": true
+  },
+  "end": {
+   "x": 0,
+   "z": 16.5,
+   "yaw": 0,
+   "pitch": 0.16,
+   "scripted": false,
+   "map": "visible"
+  },
+  "secs": 4.5,
+  "id": "50-view-spot-glide"
+ },
+ {
+  "pass": true,
+  "out": {
+   "rural-flute": {
+    "near": 0.45,
+    "playing": true,
+    "beyond": {
+     "g": 0,
+     "src": false
+    }
+   },
+   "shrine-chimes": {
+    "near": 0.5,
+    "playing": true,
+    "beyond": {
+     "g": 0.0018,
+     "src": false
+    }
+   },
+   "donki-theme": {
+    "near": 0.6,
+    "playing": true,
+    "beyond": {
+     "g": 0.0022,
+     "src": false
+    }
+   },
+   "station-ambience": {
+    "near": 0.45,
+    "playing": true,
+    "beyond": {
+     "g": 0.0016,
+     "src": false
+    }
+   }
+  },
+  "secs": 20.1,
+  "id": "60-sound-places"
+ },
+ {
+  "pass": true,
+  "n": 4,
+  "out": [
+   {
+    "i": 0,
+    "sound": "kakko",
+    "green": true,
+    "heard": [
+     "474.061 walk-kakko loop k"
+    ]
+   },
+   {
+    "i": 1,
+    "sound": "piyo",
+    "green": true,
+    "heard": [
+     "498.272 walk-piyo loop k"
+    ]
+   },
+   {
+    "i": 2,
+    "sound": "piyo",
+    "green": true,
+    "heard": [
+     "499.237 walk-piyo loop k"
+    ]
+   },
+   {
+    "i": 3,
+    "sound": "piyo",
+    "green": true,
+    "heard": [
+     "503.797 walk-kakko loop k",
+     "521.285 walk-piyo loop k"
+    ]
+   }
+  ],
+  "secs": 48.3,
+  "id": "61-walk-signals"
+ },
+ {
+  "pass": true,
+  "bells": true,
+  "heard": [
+   "522.357 railway-bells loop k"
+  ],
+  "secs": 1.9,
+  "id": "62-crossing-bells"
+ },
+ {
+  "pass": true,
+  "before": {
+   "live": 5,
+   "peak": 16,
+   "osc": 10,
+   "voices": 0,
+   "logN": 736
+  },
+  "after": {
+   "live": 3,
+   "peak": 16,
+   "osc": 4,
+   "voices": 0,
+   "logN": 737
+  },
+  "st": {
+   "state": "wait",
+   "act": null
+  },
+  "onScreen": {
+   "x": 4.71,
+   "y": -0.3,
+   "z": 0.952,
+   "d": 36.01
+  },
+  "secs": 7.7,
+  "id": "70-whistle-spam"
+ },
+ {
+  "pass": true,
+  "res": {
+   "0": {
+    "greetSamples": 0,
+    "inFrame": 0
+   },
+   "0.16": {
+    "greetSamples": 0,
+    "inFrame": 0
+   }
+  },
+  "secs": 18.5,
+  "id": "71-whistle-greeting-in-view-at-spawn-pitch"
+ },
+ {
+  "pass": true,
+  "look": {
+   "fog": "#e8b8b0",
+   "fade": "0"
+  },
+  "secs": 3.5,
+  "id": "72-time-of-day-spam"
+ },
+ {
+  "pass": false,
+  "open": {
+   "susp": false
+  },
+  "closed": {
+   "susp": true
+  },
+  "muted": true,
+  "unmuted": false,
+  "secs": 2.8,
+  "id": "73-map-and-sound-spam"
+ },
+ {
+  "pass": null,
+  "coords": {
+   "on": true,
+   "text": "x0.00 z16.50 y0.00\nyaw0.00 pitch0.16 south -z\n{ pos: [0.0, 0, 16.5], yaw: 0.00, pitch: 0.16 }\nclick or Shift+C to copy",
+   "toast": "coordinates on"
+  },
+  "passes": {
+   "ink": false,
+   "grade": false,
+   "fxaa": true
+  },
+  "secs": 2.3,
+  "id": "74-debug-keys-in-play"
+ },
+ {
+  "pass": null,
+  "gate": {
+   "x": -30,
+   "z": 68.3
+  },
+  "through": [
+   -30,
+   69.7
+  ],
+  "secs": 5.5,
+  "id": "75-vending-and-gate"
+ },
+ {
+  "pass": true,
+  "errors": [],
+  "http": [],
+  "audio": {
+   "live": 2,
+   "peak": 16,
+   "osc": 4,
+   "voices": 0,
+   "logN": 745
+  },
+  "gl": {
+   "geometries": 1068,
+   "textures": 192,
+   "programs": 213,
+   "calls": 1,
+   "tris": 1
+  },
+  "mem": {
+   "used": 466,
+   "total": 530
+  },
+  "secs": 0,
+  "id": "99-end"
+ }
+]

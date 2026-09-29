@@ -1,0 +1,187 @@
+{
+ "minutes": 23.2,
+ "samples": 41,
+ "heapMB": {
+  "min": 110.1,
+  "max": 177.6,
+  "first": 159,
+  "last": 110.9
+ },
+ "heapFirstHalfMean": 130.9,
+ "heapSecondHalfMean": 121.7,
+ "nodes": {
+  "min": 692,
+  "max": 1082,
+  "first": 692,
+  "last": 809
+ },
+ "fps": {
+  "min": 16.9,
+  "max": 60,
+  "first": 54,
+  "last": 60,
+  "firstHalfMean": 31.1,
+  "secondHalfMean": 41.8
+ },
+ "geometries": {
+  "min": 736,
+  "max": 1049,
+  "first": 736,
+  "last": 1049
+ },
+ "textures": {
+  "min": 155,
+  "max": 191,
+  "first": 155,
+  "last": 191
+ },
+ "programs": {
+  "min": 163,
+  "max": 210,
+  "first": 163,
+  "last": 210
+ },
+ "audioLive": {
+  "min": 2,
+  "max": 11,
+  "first": 2,
+  "last": 4
+ },
+ "audioPeak": 17,
+ "oscPeak": 18,
+ "voicesMax": 4,
+ "labelled": [
+  {
+   "label": "card",
+   "t": 27.76,
+   "heapMB": 154,
+   "nodes": 686,
+   "gl": {
+    "geometries": 736,
+    "textures": 155,
+    "programs": 163
+   },
+   "fps": 30.4
+  },
+  {
+   "label": "start",
+   "t": 43.84,
+   "heapMB": 159,
+   "nodes": 692,
+   "gl": {
+    "geometries": 736,
+    "textures": 155,
+    "programs": 163
+   },
+   "fps": 54
+  },
+  {
+   "label": "idle-60s",
+   "t": 1428.65,
+   "heapMB": 115.3,
+   "nodes": 815,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "fps": 60
+  },
+  {
+   "label": "after-gc",
+   "t": 1433.79,
+   "heapMB": 110.9,
+   "nodes": 809,
+   "gl": {
+    "geometries": 1049,
+    "textures": 191,
+    "programs": 210
+   },
+   "fps": 60
+  }
+ ],
+ "tour": [
+  "58s target {\"target\":\"konbini\",\"state\":\"lead\",\"leg\":1,\"done\":[\"view\"]}",
+  "71s konbini chose 3",
+  "72s target {\"target\":null,\"state\":\"lead\",\"leg\":2,\"done\":[\"view\",\"konbini\"]}",
+  "94s target {\"target\":\"han\",\"state\":\"lead\",\"leg\":4,\"done\":[\"view\",\"konbini\"]}",
+  "274s stall {\"target\":\"han\",\"state\":\"atSpot\",\"at\":[-25.38,23.542357026409473],\"hidden\":false}",
+  "278s target {\"target\":null,\"state\":\"come\",\"leg\":4,\"done\":[\"view\",\"konbini\"]}",
+  "289s target {\"target\":\"han\",\"state\":\"lead\",\"leg\":4,\"done\":[\"view\",\"konbini\"]}",
+  "319s target {\"target\":null,\"state\":\"lead\",\"leg\":5,\"done\":[\"view\",\"konbini\",\"han\"]}",
+  "499s stall {\"target\":null,\"state\":\"lead\",\"at\":[-22.919999999999998,24.189999999999998]}",
+  "507s target {\"target\":\"slowlife\",\"state\":\"lead\",\"leg\":25,\"done\":[\"view\",\"konbini\",\"han\"]}",
+  "595s bench pressed E from outside the ring",
+  "614s target {\"target\":null,\"state\":\"lead\",\"leg\":26,\"done\":[\"view\",\"konbini\",\"han\",\"slowlife\"]}",
+  "747s target {\"target\":\"gate\",\"state\":\"lead\",\"leg\":31,\"done\":[\"view\",\"konbini\",\"han\",\"slowlife\"]}",
+  "754s target {\"target\":\"train\",\"state\":\"lead\",\"leg\":32,\"done\":[\"view\",\"konbini\",\"han\",\"slowlife\"]}",
+  "935s stall {\"target\":\"train\",\"state\":\"atSpot\",\"at\":[53.082013261507726,-129.2592518157145],\"hidden\":true}",
+  "937s target {\"target\":null,\"state\":\"come\",\"leg\":32,\"done\":[\"view\",\"konbini\",\"han\",\"slowlife\"]}",
+  "946s target {\"target\":\"train\",\"state\":\"lead\",\"leg\":14,\"done\":[\"view\",\"konbini\",\"han\",\"slowlife\"]}",
+  "1004s target {\"target\":null,\"state\":\"lead\",\"leg\":15,\"done\":[\"view\",\"konbini\",\"han\",\"slowlife\",\"train\"]}",
+  "1184s stall {\"target\":null,\"state\":\"lead\",\"at\":[72.98823490824122,-111.74]}",
+  "1364s stall {\"target\":null,\"state\":\"nap\",\"at\":[-26.38,38.11]}"
+ ],
+ "pauses": [
+  {
+   "locked": false,
+   "levels": [
+    {
+     "rms": 0.02074,
+     "peak": 0.1044,
+     "state": "running"
+    },
+    {
+     "rms": 0,
+     "peak": 0,
+     "state": "running"
+    }
+   ]
+  },
+  {
+   "locked": false,
+   "levels": [
+    {
+     "rms": 0.02193,
+     "peak": 0.0953,
+     "state": "running"
+    },
+    {
+     "rms": 0,
+     "peak": 0,
+     "state": "running"
+    }
+   ]
+  },
+  {
+   "locked": false,
+   "levels": [
+    {
+     "rms": 0.01013,
+     "peak": 0.1054,
+     "state": "running"
+    },
+    {
+     "rms": 0,
+     "peak": 0,
+     "state": "running"
+    }
+   ]
+  },
+  {
+   "locked": false,
+   "levels": [
+    {
+     "rms": 0.00464,
+     "peak": 0.0308,
+     "state": "running"
+    },
+    {
+     "rms": 0,
+     "peak": 0,
+     "state": "running"
+    }
+   ]
+  }
+ ]
+}

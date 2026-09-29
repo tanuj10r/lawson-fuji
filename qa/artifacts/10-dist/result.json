@@ -1,0 +1,368 @@
+{
+ "files": [
+  {
+   "file": "assets/index-DkHFWWFL.js",
+   "raw": 1782333,
+   "gzip": 585351,
+   "brotli": 471086,
+   "kB": 1741,
+   "gzipKB": 572,
+   "brotliKB": 460
+  },
+  {
+   "file": "audio/store-bgm.m4a",
+   "raw": 1402792,
+   "gzip": 1402792,
+   "brotli": 1402792,
+   "kB": 1370,
+   "gzipKB": 1370,
+   "brotliKB": 1370
+  },
+  {
+   "file": "assets/brush-BgdeCShl.woff2",
+   "raw": 385748,
+   "gzip": 385748,
+   "brotli": 385748,
+   "kB": 377,
+   "gzipKB": 377,
+   "brotliKB": 377
+  },
+  {
+   "file": "audio/station-ambience.m4a",
+   "raw": 316258,
+   "gzip": 316258,
+   "brotli": 316258,
+   "kB": 309,
+   "gzipKB": 309,
+   "brotliKB": 309
+  },
+  {
+   "file": "audio/rural-flute.m4a",
+   "raw": 296273,
+   "gzip": 296273,
+   "brotli": 296273,
+   "kB": 289,
+   "gzipKB": 289,
+   "brotliKB": 289
+  },
+  {
+   "file": "assets/fuji-dem-6GrXuyZw.bin",
+   "raw": 294944,
+   "gzip": 294944,
+   "brotli": 294944,
+   "kB": 288,
+   "gzipKB": 288,
+   "brotliKB": 288
+  },
+  {
+   "file": "audio/theme.m4a",
+   "raw": 282515,
+   "gzip": 282515,
+   "brotli": 282515,
+   "kB": 276,
+   "gzipKB": 276,
+   "brotliKB": 276
+  },
+  {
+   "file": "audio/wind.m4a",
+   "raw": 186780,
+   "gzip": 186780,
+   "brotli": 186780,
+   "kB": 182,
+   "gzipKB": 182,
+   "brotliKB": 182
+  },
+  {
+   "file": "assets/round-Dt2Hp1so.woff2",
+   "raw": 180532,
+   "gzip": 180532,
+   "brotli": 180532,
+   "kB": 176,
+   "gzipKB": 176,
+   "brotliKB": 176
+  },
+  {
+   "file": "audio/night-insects.m4a",
+   "raw": 159631,
+   "gzip": 159631,
+   "brotli": 159631,
+   "kB": 156,
+   "gzipKB": 156,
+   "brotliKB": 156
+  },
+  {
+   "file": "keyart.webp",
+   "raw": 157870,
+   "gzip": 157870,
+   "brotli": 157870,
+   "kB": 154,
+   "gzipKB": 154,
+   "brotliKB": 154
+  },
+  {
+   "file": "audio/train-nextstop.m4a",
+   "raw": 156653,
+   "gzip": 156653,
+   "brotli": 156653,
+   "kB": 153,
+   "gzipKB": 153,
+   "brotliKB": 153
+  },
+  {
+   "file": "audio/han-drift.m4a",
+   "raw": 133875,
+   "gzip": 133875,
+   "brotli": 133875,
+   "kB": 131,
+   "gzipKB": 131,
+   "brotliKB": 131
+  },
+  {
+   "file": "audio/crows.m4a",
+   "raw": 127393,
+   "gzip": 127393,
+   "brotli": 127393,
+   "kB": 124,
+   "gzipKB": 124,
+   "brotliKB": 124
+  },
+  {
+   "file": "audio/donki-theme.m4a",
+   "raw": 91800,
+   "gzip": 91800,
+   "brotli": 91800,
+   "kB": 90,
+   "gzipKB": 90,
+   "brotliKB": 90
+  },
+  {
+   "file": "audio/shrine-chimes.m4a",
+   "raw": 77414,
+   "gzip": 77414,
+   "brotli": 77414,
+   "kB": 76,
+   "gzipKB": 76,
+   "brotliKB": 76
+  },
+  {
+   "file": "audio/birds.m4a",
+   "raw": 64362,
+   "gzip": 64362,
+   "brotli": 64362,
+   "kB": 63,
+   "gzipKB": 63,
+   "brotliKB": 63
+  },
+  {
+   "file": "audio/lawson-chime.m4a",
+   "raw": 39261,
+   "gzip": 39261,
+   "brotli": 39261,
+   "kB": 38,
+   "gzipKB": 38,
+   "brotliKB": 38
+  },
+  {
+   "file": "audio/railway-bells.m4a",
+   "raw": 23192,
+   "gzip": 23192,
+   "brotli": 23192,
+   "kB": 23,
+   "gzipKB": 23,
+   "brotliKB": 23
+  },
+  {
+   "file": "audio/kiosk-pay.m4a",
+   "raw": 17566,
+   "gzip": 17566,
+   "brotli": 17566,
+   "kB": 17,
+   "gzipKB": 17,
+   "brotliKB": 17
+  },
+  {
+   "file": "audio/walk-kakko.m4a",
+   "raw": 15348,
+   "gzip": 15348,
+   "brotli": 15348,
+   "kB": 15,
+   "gzipKB": 15,
+   "brotliKB": 15
+  },
+  {
+   "file": "audio/auto-door.m4a",
+   "raw": 13558,
+   "gzip": 13558,
+   "brotli": 13558,
+   "kB": 13,
+   "gzipKB": 13,
+   "brotliKB": 13
+  },
+  {
+   "file": "audio/walk-piyo.m4a",
+   "raw": 12019,
+   "gzip": 12019,
+   "brotli": 12019,
+   "kB": 12,
+   "gzipKB": 12,
+   "brotliKB": 12
+  },
+  {
+   "file": "audio/door-chime.m4a",
+   "raw": 11343,
+   "gzip": 11343,
+   "brotli": 11343,
+   "kB": 11,
+   "gzipKB": 11,
+   "brotliKB": 11
+  },
+  {
+   "file": "index.html",
+   "raw": 10847,
+   "gzip": 3638,
+   "brotli": 2994,
+   "kB": 11,
+   "gzipKB": 4,
+   "brotliKB": 3
+  },
+  {
+   "file": "audio/ka-ching.m4a",
+   "raw": 10736,
+   "gzip": 10736,
+   "brotli": 10736,
+   "kB": 10,
+   "gzipKB": 10,
+   "brotliKB": 10
+  },
+  {
+   "file": "audio/kiosk-scan.m4a",
+   "raw": 10017,
+   "gzip": 10017,
+   "brotli": 10017,
+   "kB": 10,
+   "gzipKB": 10,
+   "brotliKB": 10
+  },
+  {
+   "file": "audio/can-open.m4a",
+   "raw": 7222,
+   "gzip": 7222,
+   "brotli": 7222,
+   "kB": 7,
+   "gzipKB": 7,
+   "brotliKB": 7
+  },
+  {
+   "file": "audio/fridge-door.m4a",
+   "raw": 7030,
+   "gzip": 7030,
+   "brotli": 7030,
+   "kB": 7,
+   "gzipKB": 7,
+   "brotliKB": 7
+  },
+  {
+   "file": "audio/wrapper.m4a",
+   "raw": 6768,
+   "gzip": 6768,
+   "brotli": 6768,
+   "kB": 7,
+   "gzipKB": 7,
+   "brotliKB": 7
+  },
+  {
+   "file": "audio/munch.m4a",
+   "raw": 6619,
+   "gzip": 6619,
+   "brotli": 6619,
+   "kB": 6,
+   "gzipKB": 6,
+   "brotliKB": 6
+  },
+  {
+   "file": "audio/stamp.m4a",
+   "raw": 6304,
+   "gzip": 6304,
+   "brotli": 6304,
+   "kB": 6,
+   "gzipKB": 6,
+   "brotliKB": 6
+  },
+  {
+   "file": "audio/gulp.m4a",
+   "raw": 5386,
+   "gzip": 5386,
+   "brotli": 5386,
+   "kB": 5,
+   "gzipKB": 5,
+   "brotliKB": 5
+  },
+  {
+   "file": "audio/ui-tap.m4a",
+   "raw": 5329,
+   "gzip": 5329,
+   "brotli": 5329,
+   "kB": 5,
+   "gzipKB": 5,
+   "brotliKB": 5
+  },
+  {
+   "file": "audio/bite.m4a",
+   "raw": 4882,
+   "gzip": 4882,
+   "brotli": 4882,
+   "kB": 5,
+   "gzipKB": 5,
+   "brotliKB": 5
+  },
+  {
+   "file": "audio/manifest.json",
+   "raw": 2426,
+   "gzip": 524,
+   "brotli": 485,
+   "kB": 2,
+   "gzipKB": 1,
+   "brotliKB": 0
+  }
+ ],
+ "totals": {
+  "rawMB": 6.02,
+  "wireMB": 4.87,
+  "wireBrotliMB": 4.76,
+  "audioMB": 3.34
+ },
+ "bundle": {
+  "jsFiles": 1,
+  "localhost": 0,
+  "shotEndpoint": 0,
+  "referenceDir": 0,
+  "consoleLog": 4,
+  "consoleWarn": 75,
+  "windowScene": 2,
+  "devHooks": [],
+  "sourceMaps": 0,
+  "licenseComments": 4,
+  "threeLicense": true,
+  "otherDomains": [
+   "http://www.w3.org"
+  ]
+ },
+ "html": {
+  "title": "Take Me Back to Japan",
+  "favicon": false,
+  "appleTouch": false,
+  "ogImage": "https://takemebacktojapan.com/keyart.webp",
+  "twitterDescription": false,
+  "themeColor": false,
+  "noscript": false,
+  "manifest": false
+ },
+ "hosting": {
+  "headersFile": false,
+  "redirectsFile": false,
+  "notFoundPage": false,
+  "robots": false,
+  "licenseInDist": false,
+  "faviconIco": false
+ }
+}

@@ -1,0 +1,1503 @@
+{
+ "engine": "chromium",
+ "viewport": {
+  "width": 1280,
+  "height": 720
+ },
+ "console": [
+  {
+   "t": 1.43,
+   "type": "debug",
+   "text": "[vite] connecting..."
+  },
+  {
+   "t": 1.56,
+   "type": "debug",
+   "text": "[vite] connected."
+  },
+  {
+   "t": 2.91,
+   "type": "warning",
+   "text": "THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed."
+  },
+  {
+   "t": 6.42,
+   "type": "info",
+   "text": "sinkcut: cut town/lawson-ground [x -22.5..27.5 z 20.5..42.5] (1 piece)"
+  },
+  {
+   "t": 21.44,
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  },
+  {
+   "t": 27.65,
+   "type": "warning",
+   "text": "Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Consider using the inert attribute instead, which will also prevent focus. For more details, see the aria-hidden section of the WAI-ARIA specification at https://w3c.github.io/aria/#aria-hidden.\nElement with focus: <button.menu-action>\nAncestor with aria-hidden: <div.overlay hidden>"
+  },
+  {
+   "t": 28.02,
+   "type": "error",
+   "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  }
+ ],
+ "errors": [],
+ "failed": [
+  {
+   "t": 205.03,
+   "url": "http://127.0.0.1:5180/audio/theme.m4a",
+   "why": "net::ERR_ABORTED"
+  }
+ ],
+ "http": [],
+ "responses": [
+  {
+   "t": 0.36,
+   "url": "http://127.0.0.1:5180/",
+   "status": 200,
+   "type": "document",
+   "ct": "text/html",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.4,
+   "url": "http://127.0.0.1:5180/@vite/client",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.41,
+   "url": "http://127.0.0.1:5180/keyart.webp",
+   "status": 200,
+   "type": "image",
+   "ct": "image/webp",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.42,
+   "url": "http://127.0.0.1:5180/src/main.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.43,
+   "url": "http://127.0.0.1:5180/@fs/Users/tanujr/DevSpace/lawson-fuji/node_modules/vite/dist/client/env.mjs",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.43,
+   "url": "http://127.0.0.1:5180/src/core/fonts.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.43,
+   "url": "http://127.0.0.1:5180/.qa-vite-cache/deps/three.js?v=18eb7892",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "max-age=31536000,immutable"
+  },
+  {
+   "t": 1.44,
+   "url": "http://127.0.0.1:5180/src/core/palette.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.45,
+   "url": "http://127.0.0.1:5180/src/core/hud.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.45,
+   "url": "http://127.0.0.1:5180/src/core/player.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.47,
+   "url": "http://127.0.0.1:5180/src/core/post.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.47,
+   "url": "http://127.0.0.1:5180/src/core/sound.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.47,
+   "url": "http://127.0.0.1:5180/src/world/signals.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.47,
+   "url": "http://127.0.0.1:5180/src/core/soundBus.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.49,
+   "url": "http://127.0.0.1:5180/src/core/sky.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.5,
+   "url": "http://127.0.0.1:5180/src/ui/minimap.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.5,
+   "url": "http://127.0.0.1:5180/src/ui/hands.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.5,
+   "url": "http://127.0.0.1:5180/src/world/town.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.5,
+   "url": "http://127.0.0.1:5180/src/world/land/mirror.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.51,
+   "url": "http://127.0.0.1:5180/src/core/outline.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.52,
+   "url": "http://127.0.0.1:5180/src/world/kit-test.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.52,
+   "url": "http://127.0.0.1:5180/src/world/kit/density.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.52,
+   "url": "http://127.0.0.1:5180/src/data/strings.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.54,
+   "url": "http://127.0.0.1:5180/src/data/catalog.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.54,
+   "url": "http://127.0.0.1:5180/src/world/han/index.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.54,
+   "url": "http://127.0.0.1:5180/src/ui/controls.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.56,
+   "url": "http://127.0.0.1:5180/src/world/animals/guide.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.57,
+   "url": "http://127.0.0.1:5180/src/assets/fonts/round.woff2?import&url",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.57,
+   "url": "http://127.0.0.1:5180/src/assets/fonts/brush.woff2?import&url",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.57,
+   "url": "http://127.0.0.1:5180/src/config.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.66,
+   "url": "http://127.0.0.1:5180/src/data/town.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.66,
+   "url": "http://127.0.0.1:5180/src/core/util.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.66,
+   "url": "http://127.0.0.1:5180/.qa-vite-cache/deps/three_addons_postprocessing_Pass__js.js?v=d88f9e43",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "max-age=31536000,immutable"
+  },
+  {
+   "t": 1.66,
+   "url": "http://127.0.0.1:5180/src/core/toon.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.71,
+   "url": "http://127.0.0.1:5180/src/core/textures.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.71,
+   "url": "http://127.0.0.1:5180/src/ui/mapArt.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.71,
+   "url": "http://127.0.0.1:5180/.qa-vite-cache/deps/chunk-LHYD4JAN.js?v=425a016c",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "max-age=31536000,immutable"
+  },
+  {
+   "t": 1.72,
+   "url": "http://127.0.0.1:5180/src/world/ctx.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.72,
+   "url": "http://127.0.0.1:5180/src/world/kit/paint.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.73,
+   "url": "http://127.0.0.1:5180/src/world/merge.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.74,
+   "url": "http://127.0.0.1:5180/src/world/lawson-dress.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.74,
+   "url": "http://127.0.0.1:5180/src/world/fuji.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.74,
+   "url": "http://127.0.0.1:5180/src/world/town-edge.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.74,
+   "url": "http://127.0.0.1:5180/src/world/sinkcut.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.78,
+   "url": "http://127.0.0.1:5180/src/world/lawson.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.78,
+   "url": "http://127.0.0.1:5180/src/world/petals.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.78,
+   "url": "http://127.0.0.1:5180/src/world/kit/sakura.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.78,
+   "url": "http://127.0.0.1:5180/src/world/land/index.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.78,
+   "url": "http://127.0.0.1:5180/src/world/experiences.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.78,
+   "url": "http://127.0.0.1:5180/src/world/town-core.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.78,
+   "url": "http://127.0.0.1:5180/src/world/kit/night.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.78,
+   "url": "http://127.0.0.1:5180/.qa-vite-cache/deps/three_examples_jsm_objects_Reflector__js.js?v=4fc8b6ba",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "max-age=31536000,immutable"
+  },
+  {
+   "t": 1.78,
+   "url": "http://127.0.0.1:5180/.qa-vite-cache/deps/three_addons_utils_BufferGeometryUtils__js.js?v=42c967db",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "max-age=31536000,immutable"
+  },
+  {
+   "t": 1.78,
+   "url": "http://127.0.0.1:5180/src/world/kit/index.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.83,
+   "url": "http://127.0.0.1:5180/src/world/animals/index.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.83,
+   "url": "http://127.0.0.1:5180/src/world/han/rx7.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.84,
+   "url": "http://127.0.0.1:5180/src/world/han/han.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.84,
+   "url": "http://127.0.0.1:5180/src/world/han/drive.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.84,
+   "url": "http://127.0.0.1:5180/src/world/land/pond.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.84,
+   "url": "http://127.0.0.1:5180/src/world/kit/decals.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.84,
+   "url": "http://127.0.0.1:5180/src/world/town-plan.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.84,
+   "url": "http://127.0.0.1:5180/src/world/animals/shiba.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.84,
+   "url": "http://127.0.0.1:5180/src/world/animals/shade.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.84,
+   "url": "http://127.0.0.1:5180/src/ui/map/style.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.84,
+   "url": "http://127.0.0.1:5180/src/world/land/paddies.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.84,
+   "url": "http://127.0.0.1:5180/src/world/lawson-tex.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.84,
+   "url": "http://127.0.0.1:5180/src/world/kit/wear.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.87,
+   "url": "http://127.0.0.1:5180/src/world/props.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.89,
+   "url": "http://127.0.0.1:5180/src/world/streetprops.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.89,
+   "url": "http://127.0.0.1:5180/src/world/buildings.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.89,
+   "url": "http://127.0.0.1:5180/src/ui/map/icons.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.9,
+   "url": "http://127.0.0.1:5180/src/world/trees.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.9,
+   "url": "http://127.0.0.1:5180/src/world/vending.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.92,
+   "url": "http://127.0.0.1:5180/src/world/vehicles.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.92,
+   "url": "http://127.0.0.1:5180/src/world/town-tex.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.92,
+   "url": "http://127.0.0.1:5180/src/world/store/interior.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.93,
+   "url": "http://127.0.0.1:5180/src/world/store/shop.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.94,
+   "url": "http://127.0.0.1:5180/src/world/kit/tex.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.94,
+   "url": "http://127.0.0.1:5180/src/world/street.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.94,
+   "url": "http://127.0.0.1:5180/src/world/kit/canopy.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.94,
+   "url": "http://127.0.0.1:5180/src/world/store/doors.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.95,
+   "url": "http://127.0.0.1:5180/src/world/land/water.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.95,
+   "url": "http://127.0.0.1:5180/src/world/land/tex.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.95,
+   "url": "http://127.0.0.1:5180/src/world/land/channel.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.95,
+   "url": "http://127.0.0.1:5180/src/world/land/gate.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.95,
+   "url": "http://127.0.0.1:5180/src/world/land/geo.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.95,
+   "url": "http://127.0.0.1:5180/src/world/land/hills.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.96,
+   "url": "http://127.0.0.1:5180/src/world/land/slowlife.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.96,
+   "url": "http://127.0.0.1:5180/src/world/kit/lots.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.96,
+   "url": "http://127.0.0.1:5180/src/world/kit/buildings.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.96,
+   "url": "http://127.0.0.1:5180/src/world/land/parking.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.96,
+   "url": "http://127.0.0.1:5180/src/world/kit/dress.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.96,
+   "url": "http://127.0.0.1:5180/src/world/line/index.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.97,
+   "url": "http://127.0.0.1:5180/src/world/line/track.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.97,
+   "url": "http://127.0.0.1:5180/src/world/kit/life.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.97,
+   "url": "http://127.0.0.1:5180/src/world/kit/specials.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.97,
+   "url": "http://127.0.0.1:5180/src/world/kit/network.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.97,
+   "url": "http://127.0.0.1:5180/src/world/kit/roads.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.98,
+   "url": "http://127.0.0.1:5180/src/world/kit/markings.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.98,
+   "url": "http://127.0.0.1:5180/src/world/kit/poles.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.98,
+   "url": "http://127.0.0.1:5180/src/world/kit/green.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.98,
+   "url": "http://127.0.0.1:5180/src/world/kit/street/clutter.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.98,
+   "url": "http://127.0.0.1:5180/src/world/animals/koi.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.98,
+   "url": "http://127.0.0.1:5180/src/world/animals/turtles.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.98,
+   "url": "http://127.0.0.1:5180/src/world/animals/ducks.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.98,
+   "url": "http://127.0.0.1:5180/src/world/kit/signs.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.99,
+   "url": "http://127.0.0.1:5180/src/world/animals/pigeons.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.99,
+   "url": "http://127.0.0.1:5180/src/world/animals/butterflies.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.99,
+   "url": "http://127.0.0.1:5180/src/world/land/ryokan.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 1.99,
+   "url": "http://127.0.0.1:5180/src/world/kit/street/atlas.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2,
+   "url": "http://127.0.0.1:5180/src/world/animals/waders.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2,
+   "url": "http://127.0.0.1:5180/src/world/foodart.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2,
+   "url": "http://127.0.0.1:5180/src/world/kit/facade/forms.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2,
+   "url": "http://127.0.0.1:5180/src/world/kit/facade/dress.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2,
+   "url": "http://127.0.0.1:5180/src/world/store/painter.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2,
+   "url": "http://127.0.0.1:5180/src/world/animals/shapes.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.01,
+   "url": "http://127.0.0.1:5180/src/world/store/planogram.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.01,
+   "url": "http://127.0.0.1:5180/src/world/store/tex.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.01,
+   "url": "http://127.0.0.1:5180/src/world/store/products.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.01,
+   "url": "http://127.0.0.1:5180/src/world/store/figure.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.01,
+   "url": "http://127.0.0.1:5180/src/world/store/basket.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.01,
+   "url": "http://127.0.0.1:5180/src/world/store/eat.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.02,
+   "url": "http://127.0.0.1:5180/src/world/line/tex.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.02,
+   "url": "http://127.0.0.1:5180/src/world/kit/houses.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.02,
+   "url": "http://127.0.0.1:5180/src/world/kit/shopfronts.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.02,
+   "url": "http://127.0.0.1:5180/src/world/store/hands.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.02,
+   "url": "http://127.0.0.1:5180/src/world/line/crossing.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.03,
+   "url": "http://127.0.0.1:5180/src/world/line/emu.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.03,
+   "url": "http://127.0.0.1:5180/src/world/line/service.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.04,
+   "url": "http://127.0.0.1:5180/src/world/line/station.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.04,
+   "url": "http://127.0.0.1:5180/src/world/kit/street/walks.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.04,
+   "url": "http://127.0.0.1:5180/src/world/ground.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.04,
+   "url": "http://127.0.0.1:5180/src/world/animals/cat.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.04,
+   "url": "http://127.0.0.1:5180/src/world/railway.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.04,
+   "url": "http://127.0.0.1:5180/src/world/housing.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.04,
+   "url": "http://127.0.0.1:5180/src/world/line/sfx.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.05,
+   "url": "http://127.0.0.1:5180/src/world/kit/megastore/index.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.06,
+   "url": "http://127.0.0.1:5180/src/world/kit/street/boards.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.06,
+   "url": "http://127.0.0.1:5180/src/world/store/labels.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.06,
+   "url": "http://127.0.0.1:5180/src/world/line/art.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.06,
+   "url": "http://127.0.0.1:5180/src/world/kit/shrine/index.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.06,
+   "url": "http://127.0.0.1:5180/src/world/kit/facade/signs.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.07,
+   "url": "http://127.0.0.1:5180/src/world/kit/megastore/tex.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.07,
+   "url": "http://127.0.0.1:5180/src/world/kit/megastore/mascot.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.07,
+   "url": "http://127.0.0.1:5180/src/world/kit/megastore/goods.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.08,
+   "url": "http://127.0.0.1:5180/src/world/shops.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.08,
+   "url": "http://127.0.0.1:5180/src/world/kit/shrine/torii.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.08,
+   "url": "http://127.0.0.1:5180/src/world/kit/shrine/halls.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.08,
+   "url": "http://127.0.0.1:5180/src/world/kit/shrine/props.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.08,
+   "url": "http://127.0.0.1:5180/src/world/kit/shrine/tex.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.08,
+   "url": "http://127.0.0.1:5180/src/world/kit/shrine/geo.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.08,
+   "url": "http://127.0.0.1:5180/src/world/kit/facade/skins.js",
+   "status": 200,
+   "type": "script",
+   "ct": "text/javascript",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.12,
+   "url": "http://127.0.0.1:5180/src/assets/fonts/round.woff2",
+   "status": 200,
+   "type": "font",
+   "ct": "font/woff2",
+   "cc": "no-cache"
+  },
+  {
+   "t": 2.12,
+   "url": "http://127.0.0.1:5180/src/assets/fonts/brush.woff2",
+   "status": 200,
+   "type": "font",
+   "ct": "font/woff2",
+   "cc": "no-cache"
+  },
+  {
+   "t": 8.05,
+   "url": "http://127.0.0.1:5180/reference/real-day.png",
+   "status": 200,
+   "type": "image",
+   "ct": "text/html",
+   "cc": "no-cache"
+  },
+  {
+   "t": 21.31,
+   "url": "http://127.0.0.1:5180/src/data/fuji-dem.bin",
+   "status": 200,
+   "type": "fetch",
+   "ct": "application/octet-stream",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.22,
+   "url": "http://127.0.0.1:5180/audio/manifest.json",
+   "status": 200,
+   "type": "fetch",
+   "ct": "application/json",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.53,
+   "url": "http://127.0.0.1:5180/audio/wind.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.54,
+   "url": "http://127.0.0.1:5180/audio/theme.m4a",
+   "status": 206,
+   "type": "media",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/crows.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/lawson-chime.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/door-chime.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/auto-door.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/fridge-door.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/ui-tap.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/railway-bells.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/walk-kakko.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/walk-piyo.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/kiosk-scan.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/kiosk-pay.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/ka-ching.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.58,
+   "url": "http://127.0.0.1:5180/audio/bite.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.59,
+   "url": "http://127.0.0.1:5180/audio/munch.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.59,
+   "url": "http://127.0.0.1:5180/audio/gulp.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.59,
+   "url": "http://127.0.0.1:5180/audio/can-open.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 27.59,
+   "url": "http://127.0.0.1:5180/audio/wrapper.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 47.32,
+   "url": "http://127.0.0.1:5180/audio/store-bgm.m4a",
+   "status": 206,
+   "type": "media",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 152.47,
+   "url": "http://127.0.0.1:5180/reference/real-day.png",
+   "status": 200,
+   "type": "image",
+   "ct": "text/html",
+   "cc": "no-cache"
+  },
+  {
+   "t": 163.68,
+   "url": "http://127.0.0.1:5180/audio/night-insects.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 165.81,
+   "url": "http://127.0.0.1:5180/audio/birds.m4a",
+   "status": 200,
+   "type": "fetch",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  },
+  {
+   "t": 185.69,
+   "url": "http://127.0.0.1:5180/audio/theme.m4a",
+   "status": 206,
+   "type": "media",
+   "ct": "audio/mp4",
+   "cc": "no-cache"
+  }
+ ]
+}

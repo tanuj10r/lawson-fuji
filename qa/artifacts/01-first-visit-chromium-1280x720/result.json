@@ -1,0 +1,451 @@
+{
+ "engine": "chromium",
+ "size": "1280x720",
+ "steps": [
+  {
+   "t": 1.12,
+   "k": "status",
+   "v": 200
+  },
+  {
+   "t": 22.67,
+   "k": "start card shown (ms)",
+   "v": 22656
+  },
+  {
+   "t": 22.69,
+   "k": "navigation",
+   "v": {
+    "dcl": 2055,
+    "load": 2077
+   }
+  },
+  {
+   "t": 23.54,
+   "k": "card fits",
+   "v": {
+    "w": 845,
+    "h": 631,
+    "top": 45,
+    "bottom": 675,
+    "vw": 1280,
+    "vh": 720,
+    "overflowX": false,
+    "overflowY": false
+   }
+  },
+  {
+   "t": 23.54,
+   "k": "before gesture",
+   "v": {
+    "soundReady": false,
+    "audioFetched": []
+   }
+  },
+  {
+   "t": 29.08,
+   "k": "after Start",
+   "v": {
+    "x": 0,
+    "z": 16.5,
+    "yaw": 0,
+    "pitch": 0.16,
+    "locked": true,
+    "pl": true,
+    "ac": "running"
+   }
+  },
+  {
+   "t": 33.19,
+   "k": "hello card",
+   "v": null
+  },
+  {
+   "t": 44.14,
+   "k": "walked to the konbini spot",
+   "v": {
+    "secs": 7.5,
+    "stuck": 0,
+    "at": {
+     "x": -2.25,
+     "z": 2.51,
+     "yaw": 0.212,
+     "pitch": 0.026,
+     "locked": true,
+     "pl": true,
+     "ac": "running"
+    }
+   }
+  },
+  {
+   "t": 45.26,
+   "k": "menu",
+   "v": {
+    "on": true,
+    "text": "What would you like?\nPress a number\n1\nEgg sando\nたまごサンド\n¥298\n2\nFruit sando\nフルーツサンド\n¥398\n3\nTuna-mayo onigiri\nツナマヨおにぎり\n¥150\n4\nStrong NineLemon beer · 9%\nストロングナイン レモン\nRECOMMENDED\n¥198\n5\nChoco Wafer Jumbo\nチョコウエハース ジャンボ\n¥190",
+    "controls": "↑\n↓\n←\n→\nMove\nMouse\nLook around\n1–5\nChoose\nShift\nRun\nF\nWhistle for Hachi\nM\nMap\nR\nBack to the start\n1\n2\n3\nTime of day\nN\nSound\nSpace\nPause"
+   }
+  },
+  {
+   "t": 122.25,
+   "k": "visit took (s)",
+   "v": 71.5
+  },
+  {
+   "t": 132.1,
+   "k": "toast after the visit",
+   "v": "Delicious. Step back onto the highlight for another"
+  },
+  {
+   "t": 147.49,
+   "k": "walked to the view spot",
+   "v": {
+    "secs": 14.9,
+    "stuck": 0,
+    "at": {
+     "x": 0,
+     "z": 15.94,
+     "yaw": 0,
+     "pitch": 0.16,
+     "locked": true,
+     "pl": true,
+     "ac": "running"
+    }
+   }
+  },
+  {
+   "t": 181.32,
+   "k": "hachi after F",
+   "v": {
+    "state": "caught",
+    "leg": 2,
+    "target": null,
+    "done": [
+     "view",
+     "konbini"
+    ],
+    "skipped": [],
+    "act": "greet",
+    "x": 9.38,
+    "z": 9.74,
+    "yaw": 5.3,
+    "speed": 0,
+    "posture": 0,
+    "energy": 0.38,
+    "gridMs": 245,
+    "cells": 329400,
+    "paths": 7,
+    "ready": true
+   }
+  },
+  {
+   "t": 183.69,
+   "k": "after Esc",
+   "v": {
+    "x": 5.5,
+    "z": 12.31,
+    "yaw": -0.988,
+    "pitch": 0.16,
+    "locked": true,
+    "pl": true,
+    "ac": "running"
+   }
+  },
+  {
+   "t": 185.68,
+   "k": "after Space",
+   "v": {
+    "x": 5.5,
+    "z": 12.31,
+    "yaw": -0.988,
+    "pitch": 0.16,
+    "locked": false,
+    "pl": false,
+    "ac": "running"
+   }
+  },
+  {
+   "t": 187.38,
+   "k": "after Space again",
+   "v": {
+    "x": 5.5,
+    "z": 12.31,
+    "yaw": -0.988,
+    "pitch": 0.16,
+    "locked": true,
+    "pl": true,
+    "ac": "running"
+   }
+  }
+ ],
+ "notes": [],
+ "loading700": "qa/artifacts/01-first-visit-chromium-1280x720/00-loading-700ms.jpg",
+ "loading2500": "qa/artifacts/01-first-visit-chromium-1280x720/00-loading-2500ms.jpg",
+ "cardMs": 22656,
+ "readyMs": 22668,
+ "card": "qa/artifacts/01-first-visit-chromium-1280x720/01-start-card.jpg",
+ "cardText": "FUJIKAWAGUCHIKKO·富士川口湖町\n\nTake Me Back to Japan\n\n日本へ、もう一度\n\nA small town under Mt. Fuji. Take your time.\n\n↑\n↓\n←\n→\nMove\nMouse\nLook around\nShift\nRun\nE\nInteract\n1\n2\n3\nTime of day\nR\nBack to the start\nF\nWhistle for Hachi\nM\nMap\nN\nSound\nSpace\nPause\nStart\n\ntakemebacktojapan.com\nBuilt on Sakura Crossing (MIT)",
+ "cardFit": {
+  "w": 845,
+  "h": 631,
+  "top": 45,
+  "bottom": 675,
+  "vw": 1280,
+  "vh": 720,
+  "overflowX": false,
+  "overflowY": false
+ },
+ "beforeGesture": {
+  "soundReady": false,
+  "audioFetched": []
+ },
+ "afterStart": "qa/artifacts/01-first-visit-chromium-1280x720/02-after-start.jpg",
+ "controlsText": "↑\n↓\n←\n→\nMove\n1\n2\n3\nTime of day",
+ "hello": "qa/artifacts/01-first-visit-chromium-1280x720/03-hachi-hello.jpg",
+ "helloCard": null,
+ "hello2": "qa/artifacts/01-first-visit-chromium-1280x720/04-hachi-sits.jpg",
+ "menuShown": {
+  "on": true,
+  "text": "What would you like?\nPress a number\n1\nEgg sando\nたまごサンド\n¥298\n2\nFruit sando\nフルーツサンド\n¥398\n3\nTuna-mayo onigiri\nツナマヨおにぎり\n¥150\n4\nStrong NineLemon beer · 9%\nストロングナイン レモン\nRECOMMENDED\n¥198\n5\nChoco Wafer Jumbo\nチョコウエハース ジャンボ\n¥190",
+  "controls": "↑\n↓\n←\n→\nMove\nMouse\nLook around\n1–5\nChoose\nShift\nRun\nF\nWhistle for Hachi\nM\nMap\nR\nBack to the start\n1\n2\n3\nTime of day\nN\nSound\nSpace\nPause"
+ },
+ "menuShot": "qa/artifacts/01-first-visit-chromium-1280x720/05-konbini-menu.jpg",
+ "visitSecs": 71.5,
+ "visit": {
+  "marks": [
+   [
+    "in",
+    0.04
+   ],
+   [
+    "take",
+    5.85
+   ],
+   [
+    "face",
+    5.85
+   ],
+   [
+    "do",
+    6.47
+   ],
+   [
+    "pause",
+    6.47
+   ],
+   [
+    "do",
+    6.65
+   ],
+   [
+    "wait",
+    6.65
+   ],
+   [
+    "do",
+    7.04
+   ],
+   [
+    "to-till",
+    7.04
+   ],
+   [
+    "checkout",
+    15.83
+   ],
+   [
+    "do",
+    16.4
+   ],
+   [
+    "wait",
+    16.4
+   ],
+   [
+    "out",
+    20.14
+   ],
+   [
+    "eat",
+    25.92
+   ],
+   [
+    "do",
+    26.53
+   ],
+   [
+    "wait",
+    26.53
+   ],
+   [
+    "pause",
+    30.09
+   ]
+  ],
+  "heard": [
+   "kiosk-scan",
+   "kiosk-pay",
+   "ka-ching"
+  ],
+  "log": [
+   "1.296s wind loop",
+   "1.435s theme loop",
+   "4.261s walk-piyo loop",
+   "4.72s crow-call ",
+   "8.933s dog-yip recipe",
+   "10.592s step recipe",
+   "11.36s step recipe",
+   "11.739s step recipe",
+   "12.123s step recipe",
+   "12.512s step recipe",
+   "12.907s step recipe",
+   "13.312s step recipe",
+   "13.771s step recipe",
+   "14.128s step recipe",
+   "14.517s step recipe",
+   "14.923s step recipe",
+   "15.307s step recipe",
+   "15.688s step recipe",
+   "16.379s step recipe",
+   "16.656s crow-call ",
+   "18.064s dog-pant recipe",
+   "19.536s step recipe",
+   "19.68s auto-door file",
+   "19.973s step recipe",
+   "20.469s step recipe",
+   "20.539s lawson-chime file",
+   "20.816s store-bgm loop",
+   "20.939s step recipe",
+   "21.408s step recipe",
+   "21.856s step recipe",
+   "22.299s step recipe",
+   "22.72s step recipe",
+   "23.168s step recipe",
+   "23.792s step recipe",
+   "23.851s auto-door file",
+   "24.341s step recipe",
+   "24.869s step recipe",
+   "25.019s walk-kakko loop",
+   "25.376s step recipe",
+   "28.149s plastic recipe",
+   "29.776s step recipe",
+   "30.16s step recipe",
+   "30.613s step recipe",
+   "31.387s crow-call ",
+   "31.541s step recipe",
+   "32.027s step recipe",
+   "32.512s step recipe",
+   "32.939s step recipe",
+   "33.429s step recipe",
+   "33.861s step recipe",
+   "34.315s step recipe",
+   "34.768s step recipe",
+   "35.392s step recipe",
+   "35.84s step recipe",
+   "36.277s step recipe",
+   "36.715s step recipe",
+   "37.173s step recipe",
+   "37.68s step recipe",
+   "38.117s step recipe",
+   "38.608s step recipe",
+   "40.096s kiosk-scan file",
+   "42.203s kiosk-pay file",
+   "42.56s ka-ching file",
+   "64.837s step recipe",
+   "65.872s step recipe",
+   "66.571s step recipe",
+   "67.024s step recipe",
+   "67.579s step recipe",
+   "68.267s step recipe",
+   "68.352s walk-piyo loop",
+   "68.88s step recipe",
+   "70.331s step recipe",
+   "70.507s auto-door file",
+   "71.115s step recipe",
+   "71.789s step recipe",
+   "71.904s lawson-chime file",
+   "71.909s crow-call ",
+   "72.309s step recipe",
+   "73.013s step recipe",
+   "73.061s crow-call ",
+   "73.477s dog-yip recipe",
+   "75.275s wrapper file",
+   "75.835s bite file",
+   "75.936s auto-door file",
+   "76.075s munch file",
+   "76.781s bite file",
+   "76.928s munch file",
+   "77.755s bite file",
+   "77.893s munch file",
+   "87.787s dog-yip recipe",
+   "92.059s dog-hmm recipe"
+  ]
+ },
+ "afterVisit": "qa/artifacts/01-first-visit-chromium-1280x720/07-after-visit.jpg",
+ "toastAfter": "Delicious. Step back onto the highlight for another",
+ "viewSpot": {
+  "x": 0,
+  "z": 15.94,
+  "yaw": 0,
+  "pitch": 0.16,
+  "locked": true,
+  "pl": true,
+  "ac": "running"
+ },
+ "viewShot": "qa/artifacts/01-first-visit-chromium-1280x720/08-view-spot.jpg",
+ "map": "qa/artifacts/01-first-visit-chromium-1280x720/09-map.jpg",
+ "night": "qa/artifacts/01-first-visit-chromium-1280x720/10-night.jpg",
+ "morning": "qa/artifacts/01-first-visit-chromium-1280x720/11-morning.jpg",
+ "muteToast": "Sound off",
+ "whistle": "qa/artifacts/01-first-visit-chromium-1280x720/12-whistle.jpg",
+ "guide": {
+  "state": "caught",
+  "leg": 2,
+  "target": null,
+  "done": [
+   "view",
+   "konbini"
+  ],
+  "skipped": [],
+  "act": "greet",
+  "x": 9.38,
+  "z": 9.74,
+  "yaw": 5.3,
+  "speed": 0,
+  "posture": 0,
+  "energy": 0.38,
+  "gridMs": 245,
+  "cells": 329400,
+  "paths": 7,
+  "ready": true
+ },
+ "pause": {
+  "x": 5.5,
+  "z": 12.31,
+  "yaw": -0.988,
+  "pitch": 0.16,
+  "locked": true,
+  "pl": true,
+  "ac": "running"
+ },
+ "pauseShot": "qa/artifacts/01-first-visit-chromium-1280x720/13-pause-card.jpg",
+ "resume": {
+  "x": 5.5,
+  "z": 12.31,
+  "yaw": -0.988,
+  "pitch": 0.16,
+  "locked": false,
+  "pl": false,
+  "ac": "running"
+ },
+ "pause2": {
+  "x": 5.5,
+  "z": 12.31,
+  "yaw": -0.988,
+  "pitch": 0.16,
+  "locked": true,
+  "pl": true,
+  "ac": "running"
+ },
+ "crash": "page.click: Timeout 180000ms exceeded.\nCall log:\n  - waiting for locator('.overlay .menu-action')\n    - locator resolved to <button type=\"button\" class=\"menu-action\">…</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n    183 × waiting for element to be visible, enabled and stable\n        - element is not visible\n      - retrying click action\n        - waiting 500ms\n\n    at /Users/tanujr/DevSpace/lawson-fuji/.claude/worktrees/agent-ad6f1cdf429549b59/qa/01-first-visit.mjs:159:14"
+}

@@ -1,0 +1,60 @@
+{
+ "device": "Low-end Android (Moto G4 profile)",
+ "engine": "chromium",
+ "cpu": 6,
+ "viewport": {
+  "width": 360,
+  "height": 640
+ },
+ "dpr": 3,
+ "started": "2026-09-29T18:55:34.721Z",
+ "browserVersion": "154.0.8037.58",
+ "load": {
+  "profile": "none",
+  "ok": true,
+  "wallMs": 237459,
+  "bytesBeforeTapKB": 1569,
+  "hostLoad1": 20,
+  "marks": {
+   "dcl": 922,
+   "card": 174019,
+   "scene": 219987,
+   "firstFrame": 220150,
+   "fuji": 224835,
+   "fujiFrame": 225661
+  },
+  "longTasks": 96,
+  "longestTaskMs": 172445,
+  "blockedMs": 224032,
+  "heapMB": 377,
+  "pipeline": [
+   720,
+   1280
+  ],
+  "startButton": {
+   "x": 594,
+   "y": 523,
+   "w": 182,
+   "h": 33
+  },
+  "card": {
+   "x": 0,
+   "y": 32,
+   "w": 760,
+   "h": 576
+  },
+  "viewport": [
+   360,
+   640
+  ],
+  "startVisible": false,
+  "procMem": {
+   "totalMB": 281,
+   "topMB": 125,
+   "topKind": "renderer",
+   "procs": 7,
+   "load1": 20
+  },
+  "errors": []
+ }
+}

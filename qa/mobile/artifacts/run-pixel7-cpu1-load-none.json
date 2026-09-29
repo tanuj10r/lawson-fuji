@@ -1,0 +1,58 @@
+{
+ "device": "Pixel 7",
+ "engine": "chromium",
+ "cpu": 1,
+ "viewport": {
+  "width": 412,
+  "height": 839
+ },
+ "dpr": 2.625,
+ "started": "2026-09-29T17:57:32.614Z",
+ "browserVersion": "154.0.8037.58",
+ "load": {
+  "profile": "none",
+  "ok": true,
+  "wallMs": 15209,
+  "bytesBeforeTapKB": 1569,
+  "marks": {
+   "dcl": 174,
+   "card": 4301,
+   "scene": 5778,
+   "firstFrame": 5822,
+   "fuji": 5883,
+   "fujiFrame": 6148
+  },
+  "longTasks": 3,
+  "longestTaskMs": 4113,
+  "blockedMs": 5406,
+  "heapMB": 384,
+  "pipeline": [
+   824,
+   1678
+  ],
+  "startButton": {
+   "x": 594,
+   "y": 622,
+   "w": 182,
+   "h": 33
+  },
+  "card": {
+   "x": 0,
+   "y": 131,
+   "w": 760,
+   "h": 576
+  },
+  "viewport": [
+   412,
+   839
+  ],
+  "startVisible": false,
+  "procMem": {
+   "totalMB": 555,
+   "topMB": 226,
+   "topKind": "renderer",
+   "procs": 7
+  },
+  "errors": []
+ }
+}

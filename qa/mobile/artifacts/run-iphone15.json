@@ -1,0 +1,191 @@
+{
+ "device": "iPhone 15",
+ "engine": "webkit",
+ "cpu": "n/a (WebKit: no CPU throttling in Playwright)",
+ "viewport": {
+  "width": 393,
+  "height": 659
+ },
+ "dpr": 3,
+ "started": "2026-09-29T19:00:08.742Z",
+ "browserVersion": "26.6",
+ "fast3g": {
+  "profile": "fast3g",
+  "ok": true,
+  "wallMs": 41807,
+  "bytesBeforeTapKB": 1569,
+  "hostLoad1": 12.5,
+  "marks": {
+   "dcl": 7011,
+   "card": 20026,
+   "scene": 26209,
+   "fuji": 26453,
+   "firstFrame": 26599,
+   "fujiFrame": 28480
+  },
+  "longTasks": 0,
+  "longestTaskMs": null,
+  "blockedMs": 0,
+  "heapMB": null,
+  "pipeline": [
+   786,
+   1318
+  ],
+  "startButton": {
+   "x": 594,
+   "y": 532,
+   "w": 182,
+   "h": 33
+  },
+  "card": {
+   "x": 0,
+   "y": 41,
+   "w": 760,
+   "h": 576
+  },
+  "viewport": [
+   393,
+   659
+  ],
+  "startVisible": false,
+  "procMem": {
+   "totalMB": 221,
+   "topMB": 180,
+   "topKind": "web content",
+   "procs": 5,
+   "load1": 12.5
+  },
+  "landscape": {
+   "viewport": [
+    734,
+    343
+   ],
+   "startButton": {
+    "x": 594,
+    "y": 374,
+    "w": 182,
+    "h": 33
+   },
+   "startVisible": false
+  },
+  "tap": {
+   "pointerLockApi": "undefined",
+   "locked": false,
+   "cardHidden": false,
+   "audioContexts": [
+    "suspended->running",
+    "suspended->running"
+   ],
+   "mediaPlays": [],
+   "audioKBAfter4s": 1
+  },
+  "errors": []
+ },
+ "shots": {
+  "startPortrait": "qa/mobile/artifacts/iphone15-start-portrait.jpg",
+  "startLandscape": "qa/mobile/artifacts/iphone15-start-landscape.jpg",
+  "afterTapPortrait": "qa/mobile/artifacts/iphone15-after-tap-portrait.jpg",
+  "playFamousPortrait": "qa/mobile/artifacts/iphone15-play-famous-portrait.jpg",
+  "playStreetPortrait": "qa/mobile/artifacts/iphone15-play-street-portrait.jpg",
+  "konbiniMenuPortrait": "qa/mobile/artifacts/iphone15-konbini-menu-portrait.jpg",
+  "playStreetLandscape": "qa/mobile/artifacts/iphone15-play-street-landscape.jpg",
+  "mapLandscape": "qa/mobile/artifacts/iphone15-map-landscape.jpg"
+ },
+ "g4": {
+  "profile": "4g",
+  "ok": true,
+  "wallMs": 59004,
+  "bytesBeforeTapKB": 1569,
+  "hostLoad1": 17.2,
+  "marks": {
+   "dcl": 1858,
+   "card": 43701,
+   "scene": 53135,
+   "fuji": 53630,
+   "firstFrame": 54180,
+   "fujiFrame": 54920
+  },
+  "longTasks": 0,
+  "longestTaskMs": null,
+  "blockedMs": 0,
+  "heapMB": null,
+  "pipeline": [
+   786,
+   1318
+  ],
+  "startButton": {
+   "x": 594,
+   "y": 532,
+   "w": 182,
+   "h": 33
+  },
+  "card": {
+   "x": 0,
+   "y": 41,
+   "w": 760,
+   "h": 576
+  },
+  "viewport": [
+   393,
+   659
+  ],
+  "startVisible": false,
+  "tap": {
+   "pointerLockApi": "undefined",
+   "locked": false,
+   "cardHidden": false,
+   "audioContexts": [
+    "suspended->running",
+    "suspended->running"
+   ],
+   "mediaPlays": [
+    "theme.m4a: pending"
+   ],
+   "audioKBAfter4s": 499
+  },
+  "errors": []
+ },
+ "views": {
+  "famous view": {
+   "hostLoad1": 15.2,
+   "fps": 6,
+   "p50ms": 59,
+   "p95ms": 632,
+   "worstMs": 1796,
+   "heapMB": null
+  },
+  "shopping street": {
+   "hostLoad1": 22.3,
+   "fps": 10.6,
+   "p50ms": 55,
+   "p95ms": 194,
+   "worstMs": 1471,
+   "heapMB": null
+  },
+  "inside the konbini (still)": {
+   "hostLoad1": 19.7,
+   "fps": 31,
+   "p50ms": 25,
+   "p95ms": 67,
+   "worstMs": 394,
+   "heapMB": null
+  },
+  "konbini visit (scripted, 30 s)": {
+   "hostLoad1": 17.3,
+   "fps": 14,
+   "p50ms": 36,
+   "p95ms": 255,
+   "worstMs": 1081,
+   "heapMB": null
+  },
+  "shopping street (landscape)": {
+   "hostLoad1": 14.7,
+   "fps": 24.9,
+   "p50ms": 26,
+   "p95ms": 118,
+   "worstMs": 351,
+   "heapMB": null
+  }
+ },
+ "finished": "2026-09-29T19:05:09.133Z"
+}

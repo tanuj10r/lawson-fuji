@@ -1,0 +1,99 @@
+{
+ "iPhone 13 (WebKit)": {
+  "ua": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6 Mobile/15E148 Safari/604.1",
+  "webgl2": true,
+  "renderer": "Apple GPU",
+  "maxTexture": 16384,
+  "colorBufferHalfFloat": true,
+  "colorBufferFloat": true,
+  "requestPointerLock": "undefined",
+  "fullscreen": "undefined",
+  "maxTouchPoints": 0,
+  "coarse": true,
+  "hover": false,
+  "audioContext": "function",
+  "audioSession": "object",
+  "heap": "n/a (no performance.memory)",
+  "dpr": 3,
+  "inner": [
+   390,
+   664
+  ],
+  "pipeline": [
+   780,
+   1328,
+   2
+  ],
+  "fuji": true,
+  "overlay": true,
+  "afterTap": {
+   "locked": false,
+   "overlayHidden": false,
+   "audio": [],
+   "plays": [],
+   "marks": {
+    "dcl": 978,
+    "card": 31879,
+    "scene": 32595,
+    "fuji": 32595,
+    "firstFrame": 82466,
+    "fujiFrame": 101082
+   }
+  },
+  "started": true,
+  "tSceneMs": 84844,
+  "errors": [
+   "WebGL: context lost.",
+   "tap: page.tap: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('.menu-action')\n",
+   "WebGL: context lost."
+  ]
+ },
+ "Pixel 7 (Chromium)": {
+  "ua": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
+  "webgl2": true,
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+  "maxTexture": 16384,
+  "colorBufferHalfFloat": true,
+  "colorBufferFloat": true,
+  "requestPointerLock": "function",
+  "fullscreen": "function",
+  "maxTouchPoints": 1,
+  "coarse": true,
+  "hover": false,
+  "audioContext": "function",
+  "audioSession": "undefined",
+  "heap": 403,
+  "dpr": 2.625,
+  "inner": [
+   412,
+   839
+  ],
+  "pipeline": [
+   824,
+   1678,
+   2
+  ],
+  "fuji": true,
+  "overlay": true,
+  "afterTap": {
+   "locked": false,
+   "overlayHidden": false,
+   "audio": [],
+   "plays": [],
+   "marks": {
+    "dcl": 8639,
+    "card": 45280,
+    "scene": 101189,
+    "firstFrame": 101360,
+    "fuji": 101745,
+    "fujiFrame": 105985
+   }
+  },
+  "started": true,
+  "tSceneMs": 102834,
+  "errors": [
+   "Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "tap: page.tap: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('.menu-action')\n    - locator resolved to <button type=\"button\" class=\"menu-action\">…</button>\n  - attempting tap action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - element is outside of the viewport\n    - retrying tap action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - element is outside of the viewport\n    - retrying tap action\n      - waiting 100ms\n    53 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - element is outside of the viewport\n     - retrying tap action\n       - waiting 500ms\n"
+  ]
+ }
+}

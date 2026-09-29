@@ -1,0 +1,14 @@
+[iphone15] iPhone 15 webkit 26.6 cpu 1
+[iphone15]   fast3g 7 s: marks {"dcl":7011}, 728 KB sent
+[iphone15]   fast3g 26 s: marks {"dcl":7011,"card":20026}, 1569 KB sent
+[iphone15] fast3g {"profile":"fast3g","ok":true,"wallMs":41807,"bytesBeforeTapKB":1569,"hostLoad1":12.5,"marks":{"dcl":7011,"card":20026,"scene":26209,"fuji":26453,"firstFrame":26599,"fujiFrame":28480},"longTasks":0,"longestTaskMs":null,"blockedMs":0,"heapMB":null,"pipeline":[786,1318],"startButton":{"x":594,"y":532,"w":182,"h":33},"card":{"x":0,"y":41,"w":760,"h":576},"viewport":[393,659],"startVisible":false,"procMem":{"totalMB":221,"topMB":180,"topKind":"web content","procs":5,"load1":12.5}}
+[iphone15] tap (emulation API surface) {"pointerLockApi":"undefined","locked":false,"cardHidden":false,"audioContexts":["suspended->running","suspended->running"],"mediaPlays":[],"audioKBAfter4s":1}
+[iphone15]   4g 2 s: marks {"dcl":1858}, 728 KB sent
+[iphone15]   4g 32 s: marks "busy", 1281 KB sent
+[iphone15]   4g 44 s: marks {"dcl":1858,"card":43701}, 1281 KB sent
+[iphone15] 4g {"profile":"4g","ok":true,"wallMs":59004,"bytesBeforeTapKB":1569,"hostLoad1":17.2,"marks":{"dcl":1858,"card":43701,"scene":53135,"fuji":53630,"firstFrame":54180,"fujiFrame":54920},"longTasks":0,"longestTaskMs":null,"blockedMs":0,"heapMB":null,"pipeline":[786,1318],"startButton":{"x":594,"y":532,"w":182,"h":33},"card":{"x":0,"y":41,"w":760,"h":576},"viewport":[393,659],"startVisible":false}
+[iphone15] tap (phone API surface: no pointer lock) {"pointerLockApi":"undefined","locked":false,"cardHidden":false,"audioContexts":["suspended->running","suspended->running"],"mediaPlays":["theme.m4a: pending"],"audioKBAfter4s":499}
+[iphone15] view famous view {"hostLoad1":15.2,"fps":6,"p50ms":59,"p95ms":632,"worstMs":1796,"heapMB":null}
+[iphone15] view shopping street {"hostLoad1":22.3,"fps":10.6,"p50ms":55,"p95ms":194,"worstMs":1471,"heapMB":null}
+[iphone15] view inside the konbini (still) {"hostLoad1":19.7,"fps":31,"p50ms":25,"p95ms":67,"worstMs":394,"heapMB":null}
+[iphone15] konbini visit {"hostLoad1":17.3,"fps":14,"p50ms":36,"p95ms":255,"worstMs":1081,"heapMB":null}

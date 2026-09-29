@@ -1,0 +1,412 @@
+{
+ "device": "Pixel 7",
+ "engine": "chromium",
+ "cpu": 4,
+ "viewport": {
+  "width": 412,
+  "height": 839
+ },
+ "dpr": 2.625,
+ "started": "2026-09-29T18:10:18.305Z",
+ "browserVersion": "154.0.8037.58",
+ "fast3g": {
+  "profile": "fast3g",
+  "ok": true,
+  "wallMs": 157315,
+  "bytesBeforeTapKB": 1569,
+  "marks": {
+   "dcl": 7892,
+   "card": 114371,
+   "scene": 140883,
+   "firstFrame": 141208,
+   "fuji": 144547,
+   "fujiFrame": 145660
+  },
+  "longTasks": 94,
+  "longestTaskMs": 102671,
+  "blockedMs": 143495,
+  "heapMB": 381,
+  "pipeline": [
+   824,
+   1678
+  ],
+  "startButton": {
+   "x": 594,
+   "y": 622,
+   "w": 182,
+   "h": 33
+  },
+  "card": {
+   "x": 0,
+   "y": 131,
+   "w": 760,
+   "h": 576
+  },
+  "viewport": [
+   412,
+   839
+  ],
+  "startVisible": false,
+  "procMem": {
+   "totalMB": 1144,
+   "topMB": 210,
+   "topKind": "renderer",
+   "procs": 22
+  },
+  "landscape": {
+   "viewport": [
+    863,
+    360
+   ],
+   "startButton": {
+    "x": 646,
+    "y": 383,
+    "w": 182,
+    "h": 33
+   },
+   "startVisible": false
+  },
+  "tap": {
+   "pointerLockApi": "function",
+   "locked": true,
+   "cardHidden": true,
+   "audioContexts": [
+    "running->running",
+    "running->running"
+   ],
+   "mediaPlays": [
+    "theme.m4a: pending"
+   ],
+   "audioKBAfter4s": 775
+  },
+  "errors": []
+ },
+ "shots": {
+  "startPortrait": "qa/mobile/artifacts/pixel7-start-portrait.jpg",
+  "startLandscape": "qa/mobile/artifacts/pixel7-start-landscape.jpg",
+  "afterTapPortrait": "qa/mobile/artifacts/pixel7-after-tap-portrait.jpg",
+  "playFamousPortrait": "qa/mobile/artifacts/pixel7-play-famous-portrait.jpg",
+  "playStreetPortrait": "qa/mobile/artifacts/pixel7-play-street-portrait.jpg",
+  "konbiniMenuPortrait": "qa/mobile/artifacts/pixel7-konbini-menu-portrait.jpg",
+  "playStreetLandscape": "qa/mobile/artifacts/pixel7-play-street-landscape.jpg",
+  "mapLandscape": "qa/mobile/artifacts/pixel7-map-landscape.jpg"
+ },
+ "g4": {
+  "profile": "4g",
+  "ok": true,
+  "wallMs": 185263,
+  "bytesBeforeTapKB": 1569,
+  "marks": {
+   "dcl": 2262,
+   "card": 139859,
+   "scene": 170019,
+   "firstFrame": 170224,
+   "fuji": 171922,
+   "fujiFrame": 172421
+  },
+  "longTasks": 34,
+  "longestTaskMs": 136748,
+  "blockedMs": 165169,
+  "heapMB": 395,
+  "pipeline": [
+   824,
+   1678
+  ],
+  "startButton": {
+   "x": 594,
+   "y": 622,
+   "w": 182,
+   "h": 33
+  },
+  "card": {
+   "x": 0,
+   "y": 131,
+   "w": 760,
+   "h": 576
+  },
+  "viewport": [
+   412,
+   839
+  ],
+  "startVisible": false,
+  "tap": {
+   "pointerLockApi": "undefined",
+   "locked": false,
+   "cardHidden": false,
+   "audioContexts": [
+    "running->running",
+    "running->running"
+   ],
+   "mediaPlays": [
+    "theme.m4a: playing"
+   ],
+   "audioKBAfter4s": 775
+  },
+  "errors": []
+ },
+ "views": {
+  "famous view": {
+   "fps": 10.2,
+   "p50ms": 66.6,
+   "p95ms": 466.6,
+   "worstMs": 767,
+   "heapMB": 390
+  },
+  "shopping street": {
+   "fps": 2.7,
+   "p50ms": 216.7,
+   "p95ms": 1033.4,
+   "worstMs": 1133,
+   "heapMB": 392
+  },
+  "inside the konbini (still)": {
+   "fps": 3.2,
+   "p50ms": 133.4,
+   "p95ms": 1483.4,
+   "worstMs": 2883,
+   "heapMB": 396
+  },
+  "konbini visit (scripted, 30 s)": {
+   "fps": 4.9,
+   "p50ms": 133.3,
+   "p95ms": 649.9,
+   "worstMs": 1350,
+   "heapMB": 393
+  },
+  "shopping street (landscape)": {
+   "fps": 9.3,
+   "p50ms": 83.3,
+   "p95ms": 300,
+   "worstMs": 417,
+   "heapMB": 384
+  }
+ },
+ "tour": [
+  {
+   "t": 19,
+   "stop": "famous view",
+   "fps": 10.3,
+   "p50ms": 50,
+   "p95ms": 316.7,
+   "worstMs": 800,
+   "heapMB": 393,
+   "proc": {
+    "totalMB": 1048,
+    "topMB": 181,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  },
+  {
+   "t": 40,
+   "stop": "spine north",
+   "fps": 13.3,
+   "p50ms": 50.1,
+   "p95ms": 150,
+   "worstMs": 767,
+   "heapMB": 397,
+   "proc": {
+    "totalMB": 884,
+    "topMB": 174,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  },
+  {
+   "t": 61,
+   "stop": "spine shops",
+   "fps": 8.7,
+   "p50ms": 66.6,
+   "p95ms": 366.7,
+   "worstMs": 1950,
+   "heapMB": 396,
+   "proc": {
+    "totalMB": 956,
+    "topMB": 184,
+    "topKind": "renderer",
+    "procs": 24
+   }
+  },
+  {
+   "t": 81,
+   "stop": "station plaza",
+   "fps": 27.4,
+   "p50ms": 33.3,
+   "p95ms": 83.3,
+   "worstMs": 333,
+   "heapMB": 400,
+   "proc": {
+    "totalMB": 980,
+    "topMB": 174,
+    "topKind": "renderer",
+    "procs": 24
+   }
+  },
+  {
+   "t": 103,
+   "stop": "platform, train",
+   "fps": 17.2,
+   "p50ms": 50,
+   "p95ms": 100,
+   "worstMs": 417,
+   "heapMB": 403,
+   "proc": {
+    "totalMB": 952,
+    "topMB": 236,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  },
+  {
+   "t": 124,
+   "stop": "level crossing",
+   "fps": 28.8,
+   "p50ms": 33.2,
+   "p95ms": 66.8,
+   "worstMs": 883,
+   "heapMB": 400,
+   "proc": {
+    "totalMB": 892,
+    "topMB": 180,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  },
+  {
+   "t": 146,
+   "stop": "shrine tunnel",
+   "fps": 20.3,
+   "p50ms": 16.8,
+   "p95ms": 116.6,
+   "worstMs": 3333,
+   "heapMB": 396,
+   "proc": {
+    "totalMB": 1027,
+    "topMB": 255,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  },
+  {
+   "t": 167,
+   "stop": "lane houses",
+   "fps": 14.6,
+   "p50ms": 66.7,
+   "p95ms": 100,
+   "worstMs": 483,
+   "heapMB": 395,
+   "proc": {
+    "totalMB": 1022,
+    "topMB": 330,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  },
+  {
+   "t": 186,
+   "stop": "paddies (mirror)",
+   "fps": 20.3,
+   "p50ms": 49.9,
+   "p95ms": 83.3,
+   "worstMs": 1333,
+   "heapMB": 395,
+   "proc": {
+    "totalMB": 857,
+    "topMB": 183,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  },
+  {
+   "t": 213,
+   "stop": "main road east",
+   "fps": 3.9,
+   "p50ms": 116.7,
+   "p95ms": 766.6,
+   "worstMs": 3400,
+   "heapMB": 390,
+   "proc": {
+    "totalMB": 772,
+    "topMB": 182,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  },
+  {
+   "t": 233,
+   "stop": "junction walk",
+   "fps": 3.4,
+   "p50ms": 166.6,
+   "p95ms": 916.6,
+   "worstMs": 3983,
+   "heapMB": 392,
+   "proc": {
+    "totalMB": 843,
+    "topMB": 184,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  },
+  {
+   "t": 258,
+   "stop": "Deer Park gate",
+   "fps": 11.3,
+   "p50ms": 50,
+   "p95ms": 316.6,
+   "worstMs": 1233,
+   "heapMB": 408,
+   "proc": {
+    "totalMB": 1003,
+    "topMB": 278,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  },
+  {
+   "t": 279,
+   "stop": "main road west",
+   "fps": 9.2,
+   "p50ms": 83.4,
+   "p95ms": 283.4,
+   "worstMs": 683,
+   "heapMB": 398,
+   "proc": {
+    "totalMB": 1046,
+    "topMB": 200,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  },
+  {
+   "t": 303,
+   "stop": "konbini forecourt",
+   "fps": 9.1,
+   "p50ms": 83.4,
+   "p95ms": 266.7,
+   "worstMs": 1233,
+   "heapMB": 406,
+   "proc": {
+    "totalMB": 879,
+    "topMB": 174,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  },
+  {
+   "t": 332,
+   "stop": "famous view again",
+   "fps": 11.3,
+   "p50ms": 50,
+   "p95ms": 200,
+   "worstMs": 2700,
+   "heapMB": 389,
+   "proc": {
+    "totalMB": 999,
+    "topMB": 235,
+    "topKind": "renderer",
+    "procs": 23
+   }
+  }
+ ],
+ "finished": "2026-09-29T18:24:27.620Z"
+}

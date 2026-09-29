@@ -1,0 +1,162 @@
+{
+ "device": "iPhone 13",
+ "engine": "webkit",
+ "cpu": "n/a (WebKit)",
+ "viewport": {
+  "width": 750,
+  "height": 342
+ },
+ "dpr": 3,
+ "views": {
+  "famous view": {
+   "best": 24.9,
+   "median": 19,
+   "p95msAtBest": 66,
+   "windows": [
+    {
+     "fps": 24.9,
+     "p95ms": 66,
+     "load1": 29.8
+    },
+    {
+     "fps": 19,
+     "p95ms": 78,
+     "load1": 30.6
+    },
+    {
+     "fps": 10.7,
+     "p95ms": 210,
+     "load1": 29.2
+    }
+   ]
+  },
+  "shopping street": {
+   "best": 30.9,
+   "median": 26.9,
+   "p95msAtBest": 59,
+   "windows": [
+    {
+     "fps": 26.9,
+     "p95ms": 77,
+     "load1": 26.2
+    },
+    {
+     "fps": 24.4,
+     "p95ms": 85,
+     "load1": 25.5
+    },
+    {
+     "fps": 30.9,
+     "p95ms": 59,
+     "load1": 24
+    }
+   ]
+  },
+  "inside the konbini": {
+   "best": 10.9,
+   "median": 7.9,
+   "p95msAtBest": 219,
+   "windows": [
+    {
+     "fps": 10.9,
+     "p95ms": 219,
+     "load1": 21.8
+    },
+    {
+     "fps": 7.9,
+     "p95ms": 398,
+     "load1": 25.7
+    },
+    {
+     "fps": 4.2,
+     "p95ms": 482,
+     "load1": 27.3
+    }
+   ]
+  },
+  "paddies (mirror)": {
+   "best": 11.4,
+   "median": 8.4,
+   "p95msAtBest": 184,
+   "windows": [
+    {
+     "fps": 11.4,
+     "p95ms": 184,
+     "load1": 27
+    },
+    {
+     "fps": 8.4,
+     "p95ms": 266,
+     "load1": 26.8
+    },
+    {
+     "fps": 6.4,
+     "p95ms": 455,
+     "load1": 26.8
+    }
+   ]
+  },
+  "platform, train in": {
+   "best": 12.6,
+   "median": 9.1,
+   "p95msAtBest": 229,
+   "windows": [
+    {
+     "fps": 7.4,
+     "p95ms": 266,
+     "load1": 25.8
+    },
+    {
+     "fps": 9.1,
+     "p95ms": 269,
+     "load1": 25.2
+    },
+    {
+     "fps": 12.6,
+     "p95ms": 229,
+     "load1": 25.2
+    }
+   ]
+  },
+  "konbini visit (scripted)": {
+   "best": 13.8,
+   "median": 5.9,
+   "windows": [
+    {
+     "fps": 4.7,
+     "p95ms": 548,
+     "load1": 24.6
+    },
+    {
+     "fps": 5.9,
+     "p95ms": 263,
+     "load1": 24.6
+    },
+    {
+     "fps": 13.8,
+     "p95ms": 185,
+     "load1": 23.3
+    },
+    {
+     "fps": 7.4,
+     "p95ms": 328,
+     "load1": 22.3
+    }
+   ]
+  }
+ },
+ "marks": {
+  "dcl": 3283,
+  "card": 24881,
+  "scene": 24916,
+  "firstFrame": 46413,
+  "fuji": 49747,
+  "fujiFrame": 70284
+ },
+ "pipeline": [
+  1500,
+  684
+ ],
+ "heapMB": null,
+ "errors": []
+}

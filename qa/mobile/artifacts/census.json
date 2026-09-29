@@ -1,0 +1,364 @@
+{
+ "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+ "webgl2": true,
+ "maxTexture": 16384,
+ "info": {
+  "geometries": 736,
+  "textures": 155
+ },
+ "programs": 163,
+ "heapMB": 458,
+ "meshes": 1153,
+ "visibleMeshes": 1066,
+ "instancedMeshes": 199,
+ "instances": 52517,
+ "materials": 597,
+ "lights": {
+  "DirectionalLight": 3,
+  "HemisphereLight": 1
+ },
+ "textures": 178,
+ "textureMB": 411,
+ "rt": {
+  "pipeline": "1920x1080",
+  "pipelineMB": 47.5,
+  "shadowMB": 16
+ },
+ "geometries": 1059,
+ "geometryMB": 205,
+ "top": [
+  {
+   "name": "",
+   "w": 4096,
+   "h": 4096,
+   "kind": "canvas",
+   "mb": 85.3,
+   "users": "town-turned, shrine-stoneName, shrine-ema +3"
+  },
+  {
+   "name": "",
+   "w": 2048,
+   "h": 5472,
+   "kind": "canvas",
+   "mb": 57,
+   "users": "store-quads"
+  },
+  {
+   "name": "",
+   "w": 3072,
+   "h": 3072,
+   "kind": "canvas",
+   "mb": 48,
+   "users": "stock-page-0"
+  },
+  {
+   "name": "",
+   "w": 3072,
+   "h": 3072,
+   "kind": "canvas",
+   "mb": 48,
+   "users": "stock-page-1"
+  },
+  {
+   "name": "",
+   "w": 4096,
+   "h": 1488,
+   "kind": "canvas",
+   "mb": 31,
+   "users": "vending, town-turned, station +1"
+  },
+  {
+   "name": "",
+   "w": 2048,
+   "h": 2048,
+   "kind": "canvas",
+   "mb": 21.3,
+   "users": "parking-paint, kit-decals"
+  },
+  {
+   "name": "",
+   "w": 4096,
+   "h": 1024,
+   "kind": "canvas",
+   "mb": 21.3,
+   "users": "train-poke, merged"
+  },
+  {
+   "name": "",
+   "w": 2048,
+   "h": 512,
+   "kind": "canvas",
+   "mb": 5.3,
+   "users": "merged"
+  },
+  {
+   "name": "",
+   "w": 1024,
+   "h": 1024,
+   "kind": "canvas",
+   "mb": 5.3,
+   "users": "merged"
+  },
+  {
+   "name": "",
+   "w": 768,
+   "h": 768,
+   "kind": "Object",
+   "mb": 4.5,
+   "users": "land-pond-mirror"
+  },
+  {
+   "name": "",
+   "w": 4096,
+   "h": 149,
+   "kind": "canvas",
+   "mb": 3.1,
+   "users": "lawson"
+  },
+  {
+   "name": "",
+   "w": 1024,
+   "h": 512,
+   "kind": "canvas",
+   "mb": 2.7,
+   "users": "house-mortar, house-old, merged"
+  },
+  {
+   "name": "",
+   "w": 1024,
+   "h": 512,
+   "kind": "canvas",
+   "mb": 2.7,
+   "users": "kit-decals-street"
+  },
+  {
+   "name": "",
+   "w": 1024,
+   "h": 460,
+   "kind": "canvas",
+   "mb": 2.4,
+   "users": "rx7, rx7-door"
+  },
+  {
+   "name": "",
+   "w": 512,
+   "h": 512,
+   "kind": "Object",
+   "mb": 2,
+   "users": "land-river-mirror"
+  },
+  {
+   "name": "",
+   "w": 512,
+   "h": 512,
+   "kind": "Object",
+   "mb": 2,
+   "users": "land-paddy-mirror"
+  },
+  {
+   "name": "",
+   "w": 768,
+   "h": 512,
+   "kind": "canvas",
+   "mb": 2,
+   "users": "megastore"
+  },
+  {
+   "name": "",
+   "w": 512,
+   "h": 704,
+   "kind": "canvas",
+   "mb": 1.8,
+   "users": "lawson"
+  },
+  {
+   "name": "",
+   "w": 512,
+   "h": 704,
+   "kind": "canvas",
+   "mb": 1.8,
+   "users": "lawson"
+  },
+  {
+   "name": "",
+   "w": 512,
+   "h": 704,
+   "kind": "canvas",
+   "mb": 1.8,
+   "users": "lawson"
+  },
+  {
+   "name": "",
+   "w": 512,
+   "h": 704,
+   "kind": "canvas",
+   "mb": 1.8,
+   "users": "lawson"
+  },
+  {
+   "name": "",
+   "w": 512,
+   "h": 704,
+   "kind": "canvas",
+   "mb": 1.8,
+   "users": "lawson"
+  },
+  {
+   "name": "",
+   "w": 512,
+   "h": 704,
+   "kind": "canvas",
+   "mb": 1.8,
+   "users": "lawson"
+  },
+  {
+   "name": "",
+   "w": 512,
+   "h": 512,
+   "kind": "canvas",
+   "mb": 1.3,
+   "users": "store-quads"
+  },
+  {
+   "name": "",
+   "w": 512,
+   "h": 512,
+   "kind": "canvas",
+   "mb": 1.3,
+   "users": "store-quads"
+  }
+ ],
+ "frames": [
+  {
+   "view": "famous view (hero-1)",
+   "size": "phone landscape 844x390 @ scale 2",
+   "calls": 903,
+   "mainCalls": 769,
+   "tris": 3507402,
+   "mainTris": 2523304,
+   "ms": 10.05,
+   "internal": [
+    1688,
+    780
+   ]
+  },
+  {
+   "view": "famous view (hero-1)",
+   "size": "1440p @ scale 1.5",
+   "calls": 864,
+   "mainCalls": 730,
+   "tris": 3460080,
+   "mainTris": 2475982,
+   "ms": 9.96,
+   "internal": [
+    2859,
+    1608
+   ]
+  },
+  {
+   "view": "shopping street (town-spine-north)",
+   "size": "phone landscape 844x390 @ scale 2",
+   "calls": 291,
+   "mainCalls": 200,
+   "tris": 3499285,
+   "mainTris": 2445901,
+   "ms": 4.46,
+   "internal": [
+    1688,
+    780
+   ]
+  },
+  {
+   "view": "shopping street (town-spine-north)",
+   "size": "1440p @ scale 1.5",
+   "calls": 291,
+   "mainCalls": 200,
+   "tris": 3498281,
+   "mainTris": 2444897,
+   "ms": 7.03,
+   "internal": [
+    2859,
+    1608
+   ]
+  },
+  {
+   "view": "inside the konbini (store-aisle)",
+   "size": "phone landscape 844x390 @ scale 2",
+   "calls": 913,
+   "mainCalls": 770,
+   "tris": 4321537,
+   "mainTris": 3376131,
+   "ms": 11.07,
+   "internal": [
+    1688,
+    780
+   ]
+  },
+  {
+   "view": "inside the konbini (store-aisle)",
+   "size": "1440p @ scale 1.5",
+   "calls": 776,
+   "mainCalls": 633,
+   "tris": 3503776,
+   "mainTris": 2558370,
+   "ms": 10.3,
+   "internal": [
+    2859,
+    1608
+   ]
+  },
+  {
+   "view": "paddies, lane end (paddy-lane)",
+   "size": "phone landscape 844x390 @ scale 2",
+   "calls": 382,
+   "mainCalls": 241,
+   "tris": 3005841,
+   "mainTris": 1939773,
+   "ms": 5.01,
+   "internal": [
+    1688,
+    780
+   ]
+  },
+  {
+   "view": "paddies, lane end (paddy-lane)",
+   "size": "1440p @ scale 1.5",
+   "calls": 367,
+   "mainCalls": 226,
+   "tris": 2953867,
+   "mainTris": 1887799,
+   "ms": 7.81,
+   "internal": [
+    2859,
+    1608
+   ]
+  },
+  {
+   "view": "train at platform (train-at-platform)",
+   "size": "phone landscape 844x390 @ scale 2",
+   "calls": 147,
+   "mainCalls": 132,
+   "tris": 1391628,
+   "mainTris": 973548,
+   "ms": 2.52,
+   "internal": [
+    1688,
+    780
+   ]
+  },
+  {
+   "view": "train at platform (train-at-platform)",
+   "size": "1440p @ scale 1.5",
+   "calls": 123,
+   "mainCalls": 108,
+   "tris": 1171312,
+   "mainTris": 753232,
+   "ms": 4.45,
+   "internal": [
+    2859,
+    1608
+   ]
+  }
+ ],
+ "heapAfterMB": 478
+}

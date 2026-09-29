@@ -119,16 +119,31 @@
   the middle pane with the run number beside it, a white FRP nose with the
   band across it, glazed seat partitions, blue seats.
 - **The Pokémon skin is one texture page** (tex.js `pokeArtTex`,
-  3072x1024, ~16 MB with mips): the two cars' sides as two rows mapped by
+  4096x1024, ~21 MB with mips): the two cars' sides as two rows mapped by
   planar projection (`sideUV`; the +z side mirrored so the wordmark reads
   right from both platforms, and a turned westbound set still reads right),
   the nose panel with Pikachu's face, the ceiling strip (silhouettes on
   cream) and the floor strip (paw prints), and a swatch strip so the door
   leaves' rubber and sticker share the material.  A door leaf's UVs are its
-  shut position: the art rides with the leaf.  4096 wide was crisper at
-  1.5 m (21 MB); 2048 went soft (10.6 MB); 3072 is the middle.  Every
-  figure is Canvas2D (art.js): Pikachu in five poses, Poké Balls, bolts,
-  paw prints; Tan allowed the likeness, the rule against downloaded images
-  stands.  Lettering is Helvetica-family (the subset fonts hold no Latin).
-- **Yellow in shade is ochre, not olive:** the poke type's cel tint is
-  0xb8863a (the stainless types keep the lavender 0x6e7292).
+  shut position: the art rides with the leaf.  2048 wide went soft at 1.5 m
+  (10.6 MB), 3072 was passable (16 MB); Tan chose quality, so 4096.  Every
+  figure is Canvas2D (art.js): Pikachu in five poses, Eevee, Piplup,
+  Bulbasaur, Poké Balls, bolts, paw prints; Tan allowed the likeness, the
+  rule against downloaded images stands.  Lettering is Helvetica-family
+  (the subset fonts hold no Latin).
+- **The parade is full colour on clouds.** The first pass drew Pikachu in
+  the body's own yellow with a thin outline, and it vanished in shade.  Now
+  each figure is a brighter yellow (#ffe14a on a #f5c832 body) with a
+  heavier ink line, stood on a white or pastel cloud, in the solid runs
+  between the doors (the wordmark on a white pill in the middle run), with
+  peeking Pikachus on clouds over the wide windows.  Nothing that matters
+  sits on a door leaf, so an open door splits no figure.  "Big across two
+  window bays" is not possible on this body: above the sill it is nearly
+  all window and door, and a figure that tall loses its head into the
+  glass; sizes vary within the band instead.
+- **Yellow in the canopy's shadow is yellow.** A shadowed face gets ambient
+  light only, so no cel tint can save a saturated yellow from going olive;
+  the poke type's body materials carry a little self-light (`glow`
+  0xffd24a at 0.2, through the art as an emissive map), the tint is a warm
+  0xf0a83a, and the base is a golden 0xf5c832.  The stainless types keep
+  the lavender 0x6e7292 and no glow.

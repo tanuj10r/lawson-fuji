@@ -10,7 +10,8 @@
  * ------------------------------------------------------------------ */
 
 export const PIKA = {
-  yellow: '#f9d83b', yellowLo: '#e8b923', cheek: '#e8402a', brown: '#8a4a1c', ink: '#2a1a0e',
+  // the yellow is brighter than the car's, so a figure stands off the body
+  yellow: '#ffe14a', yellowLo: '#f2c22e', cheek: '#e8402a', brown: '#8a4a1c', ink: '#2a1a0e',
   eye: '#1c1410', white: '#ffffff', mouth: '#7a2a1a', tongue: '#e0605a',
 };
 
@@ -43,7 +44,7 @@ export function pikachu(c, x, y, s, { pose = 'wave', dir = 1, silhouette = null,
   c.translate(x, y);
   c.scale(dir * s / 1.5, s / 1.5);
   const K = PIKA;
-  const lw = 0.022;
+  const lw = 0.03;
   const ink = silhouette ?? K.ink;
   const Y = silhouette ?? K.yellow, B = silhouette ?? K.brown, W = silhouette ?? K.white, R = silhouette ?? K.cheek;
   const st = outline && !silhouette ? K.ink : silhouette;
@@ -221,4 +222,113 @@ export function pawprint(c, x, y, r, color) {
   for (const [dx, dy] of [[-0.62, -0.35], [-0.2, -0.65], [0.25, -0.65], [0.65, -0.35]]) {
     c.beginPath(); c.arc(x + dx * r, y + dy * r, r * 0.22, 0, Math.PI * 2); c.fill();
   }
+}
+
+/** A soft cloud / panel shape, w wide and h tall about (x, y): the pastel plate behind a figure. */
+export function cloud(c, x, y, w, h, color) {
+  c.save();
+  c.translate(x, y);
+  c.fillStyle = color;
+  const lobes = [[-0.32, -0.12, 0.26], [0, -0.26, 0.3], [0.32, -0.12, 0.26], [-0.2, 0.22, 0.28], [0.2, 0.22, 0.28], [-0.42, 0.14, 0.2], [0.42, 0.14, 0.2]];
+  for (const [lx, ly, r] of lobes) { c.beginPath(); c.ellipse(lx * w, ly * h, r * w * 0.7, r * h, 0, 0, Math.PI * 2); c.fill(); }
+  c.beginPath(); c.roundRect(-w * 0.44, -h * 0.28, w * 0.88, h * 0.68, h * 0.12); c.fill();
+  c.restore();
+}
+
+/**
+ * Eevee: the brown fox with the cream ruff and the cream-tipped bushy tail,
+ * big ears, big dark eyes.  Height s, feet at y, facing `dir`.
+ */
+export function eevee(c, x, y, s, { dir = 1 } = {}) {
+  c.save(); c.translate(x, y); c.scale(dir * s, s);
+  const BR = '#b0703a', CR = '#f4e6c6', INK = '#3a2214', lw = 0.02;
+  const fs = (fill) => { c.fillStyle = fill; c.fill(); c.strokeStyle = INK; c.lineWidth = lw; c.lineJoin = 'round'; c.stroke(); };
+  // the tail: a big bushy sweep behind, cream at the tip
+  const tail = [[-0.2, -0.4], [-0.36, -0.62], [-0.6, -0.72], [-0.7, -0.5], [-0.54, -0.26], [-0.3, -0.18]];
+  blob(c, tail); fs(BR);
+  c.save(); blob(c, tail); c.clip();
+  c.fillStyle = CR; c.beginPath(); c.ellipse(-0.62, -0.62, 0.16, 0.2, 0.6, 0, Math.PI * 2); c.fill(); c.restore();
+  // the body and legs
+  blob(c, [[-0.3, -0.2], [-0.3, -0.5], [0.05, -0.56], [0.28, -0.4], [0.3, -0.12], [0.1, -0.02], [-0.2, -0.02]]); fs(BR);
+  for (const lx of [-0.2, -0.05, 0.12, 0.26]) { c.beginPath(); c.roundRect(lx - 0.06, -0.2, 0.12, 0.2, 0.04); fs(BR); }
+  // the ruff
+  blob(c, [[-0.05, -0.5], [0.22, -0.62], [0.4, -0.5], [0.36, -0.3], [0.14, -0.22], [-0.08, -0.32]]); fs(CR);
+  // the ears, long and pointed, dark inside
+  for (const [ex, lean] of [[0.12, -0.1], [0.34, 0.1]]) {
+    c.beginPath(); c.moveTo(ex - 0.1, -0.7); c.quadraticCurveTo(ex + lean - 0.02, -0.95, ex + lean + 0.02, -1.08); c.quadraticCurveTo(ex + lean + 0.12, -0.9, ex + 0.14, -0.7); c.closePath(); fs(BR);
+    c.fillStyle = '#6b3d22'; c.beginPath(); c.moveTo(ex - 0.03, -0.74); c.lineTo(ex + lean + 0.01, -1.0); c.lineTo(ex + 0.08, -0.74); c.closePath(); c.fill();
+  }
+  // the head, the tuft, the face
+  blob(c, [[0.02, -0.74], [0.28, -0.86], [0.52, -0.72], [0.56, -0.48], [0.36, -0.36], [0.08, -0.44]]); fs(BR);
+  blob(c, [[0.14, -0.84], [0.24, -0.94], [0.36, -0.88], [0.3, -0.8]]); fs(BR);
+  for (const ex of [0.24, 0.42]) {
+    c.fillStyle = INK; c.beginPath(); c.ellipse(ex, -0.6, 0.05, 0.065, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#ffffff'; c.beginPath(); c.arc(ex - 0.015, -0.625, 0.018, 0, Math.PI * 2); c.fill();
+  }
+  c.fillStyle = INK; c.beginPath(); c.ellipse(0.5, -0.5, 0.02, 0.014, 0, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = INK; c.lineWidth = lw; c.beginPath(); c.moveTo(0.44, -0.46); c.quadraticCurveTo(0.47, -0.42, 0.5, -0.45); c.stroke();
+  c.restore();
+}
+
+/**
+ * Piplup: the little blue penguin, dark blue head and cape, white face and
+ * bib with its two spots, yellow beak and feet.  Height s, feet at y.
+ */
+export function piplup(c, x, y, s, { dir = 1 } = {}) {
+  c.save(); c.translate(x, y); c.scale(dir * s, s);
+  const LB = '#7ec8f0', DB = '#2e5fa8', W = '#f6f8ff', YL = '#f6c83a', INK = '#1e2a4a', lw = 0.02;
+  const fs = (fill) => { c.fillStyle = fill; c.fill(); c.strokeStyle = INK; c.lineWidth = lw; c.lineJoin = 'round'; c.stroke(); };
+  // feet
+  for (const fx of [-0.14, 0.14]) { c.beginPath(); c.ellipse(fx, -0.02, 0.12, 0.05, 0, 0, Math.PI * 2); fs(YL); }
+  // the body
+  blob(c, [[0, -0.62], [0.3, -0.5], [0.34, -0.2], [0.2, -0.02], [-0.2, -0.02], [-0.34, -0.2], [-0.3, -0.5]]); fs(LB);
+  // the flippers
+  for (const side of [-1, 1]) { blob(c, [[side * 0.28, -0.5], [side * 0.46, -0.36], [side * 0.4, -0.16], [side * 0.28, -0.24]]); fs(DB); }
+  // the bib: white with two round spots
+  blob(c, [[0, -0.5], [0.2, -0.42], [0.22, -0.18], [0, -0.08], [-0.22, -0.18], [-0.2, -0.42]]); c.fillStyle = W; c.fill();
+  c.strokeStyle = INK; c.lineWidth = lw * 0.8;
+  for (const side of [-1, 1]) { c.beginPath(); c.arc(side * 0.1, -0.36, 0.06, 0, Math.PI * 2); c.stroke(); }
+  // the head: dark blue cap, white face
+  blob(c, [[0, -1.0], [0.3, -0.92], [0.4, -0.7], [0.3, -0.52], [0, -0.48], [-0.3, -0.52], [-0.4, -0.7], [-0.3, -0.92]]); fs(DB);
+  // the two little crest tufts
+  for (const side of [-1, 1]) { c.beginPath(); c.moveTo(side * 0.16, -0.98); c.lineTo(side * 0.24, -1.1); c.lineTo(side * 0.3, -0.94); c.closePath(); fs(DB); }
+  // the beak, the eyes
+  c.beginPath(); c.moveTo(-0.1, -0.66); c.lineTo(0.1, -0.66); c.lineTo(0, -0.54); c.closePath(); fs(YL);
+  for (const side of [-1, 1]) {
+    c.fillStyle = '#ffffff'; c.beginPath(); c.ellipse(side * 0.17, -0.72, 0.075, 0.085, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = INK; c.beginPath(); c.ellipse(side * 0.16, -0.71, 0.048, 0.062, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#ffffff'; c.beginPath(); c.arc(side * 0.16 - 0.014, -0.735, 0.018, 0, Math.PI * 2); c.fill();
+  }
+  c.restore();
+}
+
+/**
+ * Bulbasaur: the teal seed Pokémon with the darker patches, the green bulb
+ * on its back, red eyes.  Height s (to the bulb's top), feet at y.
+ */
+export function bulbasaur(c, x, y, s, { dir = 1 } = {}) {
+  c.save(); c.translate(x, y); c.scale(dir * s, s);
+  const TL = '#78c8b0', DK = '#3f8f78', GR = '#5aa85a', INK = '#1e3a30', lw = 0.02;
+  const fs = (fill) => { c.fillStyle = fill; c.fill(); c.strokeStyle = INK; c.lineWidth = lw; c.lineJoin = 'round'; c.stroke(); };
+  // the bulb, leaves out at the sides
+  for (const side of [-1, 1]) { blob(c, [[-0.25, -0.62], [-0.25 + side * 0.34, -0.72], [-0.25 + side * 0.4, -0.58], [-0.25 + side * 0.2, -0.52]]); fs(GR); }
+  blob(c, [[-0.25, -1.0], [-0.02, -0.9], [0.06, -0.66], [-0.25, -0.56], [-0.56, -0.66], [-0.48, -0.9]]); fs(GR);
+  c.strokeStyle = INK; c.lineWidth = lw; c.beginPath(); c.moveTo(-0.25, -0.98); c.lineTo(-0.25, -0.62); c.stroke();
+  // the body, the legs
+  blob(c, [[-0.5, -0.5], [-0.2, -0.6], [0.2, -0.56], [0.36, -0.36], [0.3, -0.12], [-0.4, -0.12], [-0.54, -0.3]]); fs(TL);
+  for (const lx of [-0.42, -0.2, 0.06, 0.26]) { c.beginPath(); c.roundRect(lx - 0.08, -0.16, 0.16, 0.16, 0.04); fs(TL); }
+  // the head, ears
+  for (const ex of [0.22, 0.46]) { c.beginPath(); c.moveTo(ex - 0.1, -0.62); c.lineTo(ex, -0.82); c.lineTo(ex + 0.1, -0.6); c.closePath(); fs(TL); }
+  blob(c, [[0.14, -0.64], [0.4, -0.68], [0.6, -0.5], [0.58, -0.28], [0.36, -0.16], [0.12, -0.3]]); fs(TL);
+  // the patches
+  c.fillStyle = DK;
+  for (const [px, py, r] of [[-0.3, -0.42, 0.06], [0.0, -0.36, 0.05], [0.3, -0.62, 0.035], [-0.1, -0.2, 0.04]]) { c.beginPath(); c.ellipse(px, py, r * 1.2, r, 0.4, 0, Math.PI * 2); c.fill(); }
+  // the red eyes, the mouth
+  for (const ex of [0.3, 0.5]) {
+    c.fillStyle = '#d83a3a'; c.beginPath(); c.ellipse(ex, -0.48, 0.05, 0.06, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = INK; c.beginPath(); c.ellipse(ex, -0.48, 0.025, 0.045, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#ffffff'; c.beginPath(); c.arc(ex - 0.012, -0.5, 0.014, 0, Math.PI * 2); c.fill();
+  }
+  c.strokeStyle = INK; c.lineWidth = lw; c.beginPath(); c.moveTo(0.3, -0.3); c.quadraticCurveTo(0.44, -0.22, 0.58, -0.32); c.stroke();
+  c.restore();
 }

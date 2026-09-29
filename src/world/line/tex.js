@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { STATION, LINE, TAXI, RIDE, NAME_BOARD, CAR_ADS } from '../../data/town.js';
 import { JP, JP_ROUND, JP_BRUSH } from '../kit/tex.js';
-import { pikachu, pokeball, bolt, pawprint, PIKA } from './art.js';
+import { pikachu, pokeball, bolt, pawprint, cloud, eevee, piplup, bulbasaur, PIKA } from './art.js';
 
 /* ------------------------------------------------------------------ *
  * Canvas2D art for the station and the train (AGENTS.md: drawn in code).
@@ -666,15 +666,15 @@ export const osakaPosterTex = (shape = 'tall') =>
  *     material (the door leaves' rubber and sticker)
  */
 export const POKE_ART = {
-  w: 3072, h: 1024, rowH: 368, y0: 0.86, y1: 3.85,           // car y -> row v (158 px/m along, 123 px/m up: 16 MB with mips)
-  front: { x: 0, y: 736, w: 768, h: 264 },
-  ceiling: { x: 768, y: 736, w: 1536, h: 264 },
-  floor: { x: 2304, y: 736, w: 768, h: 264 },
+  w: 4096, h: 1024, rowH: 368, y0: 0.86, y1: 3.85,           // car y -> row v (211 px/m along, 123 px/m up: 21 MB with mips; Tan chose crisp)
+  front: { x: 0, y: 736, w: 1024, h: 264 },
+  ceiling: { x: 1024, y: 736, w: 2048, h: 264 },
+  floor: { x: 3072, y: 736, w: 1024, h: 264 },
   swatch: { y: 1000, h: 24, w: 64, colours: ['#f9d83b', '#8a4a1c', '#24242c', '#ffe66a', '#f2c23c', '#6b4a2c', '#f6f4ee', '#e8362a'] },
 };
 export const pokeArtTex = () =>
   tex('pokeArt', POKE_ART.w, POKE_ART.h, (c, w, h) => {
-    const A = POKE_ART, Y = PIKA.yellow, BR = PIKA.brown;
+    const A = POKE_ART, Y = '#f5c832', BR = PIKA.brown;         // the body's yellow (emu.js TYPES.poke.steel); the figures are brighter
     const ppm = w / 19.4, pym = A.rowH / (A.y1 - A.y0);       // pixels per metre, across and up
     const X = (xm) => (xm + 9.7) * ppm;                         // car x (m) -> page x
     const rowY = (row, ym) => row * A.rowH + (A.y1 - ym) * pym; // car y (m) -> page y in a row
@@ -686,18 +686,37 @@ export const pokeArtTex = () =>
       // the brown skirt band under the floor line, and Pikachu's back stripes over it
       c.fillStyle = BR; c.fillRect(0, y(1.06), w, y(0.86) - y(1.06));
       c.fillStyle = PIKA.yellowLo; c.fillRect(0, y(1.2), w, y(1.06) - y(1.2));
-      // the parade under the windows: Pikachus of every pose between the doors
-      const poses = ['wave', 'stand', 'cheer', 'sit', 'wave', 'cheer', 'stand', 'sit'];
-      const spots = [-8.75, -5.6, -3.8, -0.9, 0.9, 3.8, 5.6, 8.75];
-      spots.forEach((xm, i) => {
-        const big = Math.abs(xm) > 8;                            // the end panels: a tall one, reaching to the window
-        const s = big ? 1.55 : 0.8, dir = xm < 0 ? 1 : -1;
-        pikachu(c, X(xm), y(big ? 1.16 : 1.2), s * pym, { pose: poses[(i + seed) % poses.length], dir });
+      /* the parade under the windows: full-colour figures on white and pastel
+       * clouds, in the solid runs between the doors (a leaf's art rides with
+       * it, so nothing that matters sits on a door); the wordmark in the middle */
+      const runsA = [[-8.68, 1.9], [-4.7, 3.2], [4.7, 3.2], [8.68, 1.9]];
+      const cast = row
+        ? [['pikachu', 'cheer'], ['eevee', null, 'pikachu', 'sit'], ['pikachu', 'wave', 'bulbasaur', null], ['piplup', null]]
+        : [['pikachu', 'wave'], ['piplup', null, 'pikachu', 'cheer'], ['pikachu', 'sit', 'eevee', null], ['bulbasaur', null]];
+      const pastel = ['#ffffff', '#dff1ff', '#ffe4ee', '#e6f6dc'];
+      const draw = (kind, pose, xm, ym, s, dir) => {
+        if (kind === 'pikachu') pikachu(c, X(xm), y(ym), s * pym, { pose, dir });
+        else if (kind === 'eevee') eevee(c, X(xm), y(ym), s * pym, { dir });
+        else if (kind === 'piplup') piplup(c, X(xm), y(ym), s * pym, { dir });
+        else bulbasaur(c, X(xm), y(ym), s * pym, { dir });
+      };
+      runsA.forEach(([cx, wm], i) => {
+        const who = cast[i];
+        cloud(c, X(cx), y(1.54), wm * 0.98 * ppm, 0.92 * pym, pastel[(i + row) % pastel.length]);
+        if (who.length === 2) draw(who[0], who[1], cx, 1.1, 0.92, cx < 0 ? 1 : -1);
+        else {
+          draw(who[0], who[1], cx - wm * 0.25, 1.1, 0.88, 1);
+          draw(who[2], who[3], cx + wm * 0.25, 1.1, 0.9, -1);
+        }
       });
-      // over each door: a Poké Ball between two bolts
+      // over each door: a Poké Ball between two bolts; over the wide windows, a peeking Pikachu on a cloud
       for (const d of [-7.0, -2.4, 2.4, 7.0]) {
         pokeball(c, X(d), y(3.3), 0.19 * pym);
         for (const e of [-1, 1]) bolt(c, X(d + e * 0.45), y(3.3), 0.36 * pym, e * (row ? 1 : -1) > 0 ? '#ffffff' : BR, e * 0.2);
+      }
+      for (const [bx, dir] of [[-4.7, 1], [0, row ? -1 : 1], [4.7, -1]]) {
+        cloud(c, X(bx), y(3.34), 1.3 * ppm, 0.4 * pym, '#ffffff');
+        pikachu(c, X(bx), y(3.14), 0.62 * pym, { pose: 'peek', dir });
       }
       // the wordmark under the middle window, and paw prints running to it
       c.save();
@@ -706,12 +725,12 @@ export const pokeArtTex = () =>
       let fs = 0.36 * pym;
       do { c.font = `900 ${Math.round(fs)}px ${SANS}`; fs -= 2; } while (c.measureText(word).width > 3.2 * ppm && fs > 10);
       c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.lineJoin = 'round'; c.lineWidth = 0.08 * pym; c.strokeStyle = BR; c.fillStyle = '#ffffff';
+      c.fillStyle = '#ffffff'; c.beginPath(); c.roundRect(X(-1.66), y(1.98), 3.32 * ppm, 0.86 * pym, 0.2 * pym); c.fill();
+      c.lineJoin = 'round'; c.lineWidth = 0.07 * pym; c.strokeStyle = BR; c.fillStyle = '#e8362a';
       c.strokeText(word, wx, wy); c.fillText(word, wx, wy);
       c.restore();
-      for (const bx of [-4.7, 4.7]) for (let k = 0; k < 5; k++) pawprint(c, X(bx - 1.0 + k * 0.5), y(1.36 + (k % 2) * 0.12), 0.07 * pym, BR);
-      // small Poké Balls scattered on the solid skin beside the doors
-      for (const [xm, ym, r] of [[-6.05, 1.5, 0.12], [6.05, 1.5, 0.12], [-3.4, 1.72, 0.1], [3.4, 1.72, 0.1], [-1.6, 3.32, 0.11], [1.6, 3.32, 0.11], [-5.6, 3.34, 0.1], [5.6, 3.34, 0.1]]) pokeball(c, X(xm), y(ym), r * pym);
+      pokeball(c, X(-1.3), y(1.26), 0.1 * pym); pokeball(c, X(1.3), y(1.26), 0.1 * pym);
+      for (let k = 0; k < 5; k++) pawprint(c, X(-0.9 + k * 0.45), y(1.24 + (k % 2) * 0.06), 0.05 * pym, BR);
     }
     // the front panel: the face, big, with a Poké Ball either side
     {

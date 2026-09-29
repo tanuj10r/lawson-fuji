@@ -85,7 +85,8 @@ export const TYPES = {
   },
   poke: {
     id: 'poke', roof: 'round', cab: 'kiha', skin: 'art', panto: false, dmu: true,
-    steel: 0xf9d83b, steelHi: 0xffe66a, steelTint: 0xb8863a,     // the shade an ochre, not an olive
+    steel: 0xf5c832, steelHi: 0xffe66a, steelTint: 0xf0a83a,     // a golden yellow; its shade a warm orange-yellow
+    glow: 0xffd24a,                                              // a little self-light, so the yellow stays yellow in the canopy's shadow (ambient alone turned it olive)
     band: 0x8a4a1c, bandTint: 0x4a2a1a, front: 0xf9d83b,
     stripes: [], topline: null, beads: null,
     lining: 0xf5efe2, floor: 0xf0c93a, seat: 0xf2c23c, seatPri: 0x8a4a1c, seatBase: 0x6b4a2c, pole: 0xdadee6, strap: 0xf9d83b,
@@ -102,9 +103,12 @@ function mats(T) {
     return m;
   };
   const art = T.skin === 'art' ? pokeArtTex() : null;
+  // the body colour: with `glow`, a little self-light (a saturated yellow goes olive on ambient alone)
+  const glowing = (extra) => (T.glow ? { emissive: T.glow, emissiveIntensity: 0.2, cache: false, ...extra } : extra);
+  const body = (color) => cel({ color, bands: 3, tint: T.steelTint, ...glowing({}) });
   const M = {
-    steel: c(T.steel, T.steelTint), steelHi: c(T.steelHi, T.steelTint), band: c(T.band ?? 0x888888, T.bandTint), pink: c(T.pink ?? 0xffffff, 0x8a5a86),
-    front: c(T.front ?? T.steel, T.steelTint),
+    steel: body(T.steel), steelHi: body(T.steelHi), band: c(T.band ?? 0x888888, T.bandTint), pink: c(T.pink ?? 0xffffff, 0x8a5a86),
+    front: body(T.front ?? T.steel),
     rubber: c(PLAIN.rubber, 0x4b4560, 2), bellows: c(0x5e606c, 0x4b4560), roof: c(PLAIN.roof, 0x60597f), gear: c(PLAIN.gear, 0x5c5680), under: c(PLAIN.under, 0x4b4560, 2),
     bogie: c(PLAIN.bogie, 0x4b4560, 2), spring: c(PLAIN.spring, 0x5c5680), wheel: c(PLAIN.wheel, 0x4b4560, 2), insul: c(PLAIN.insul, 0x7a7090),
     yellow: c(PLAIN.yellow, 0x8a6a50), console: c(PLAIN.console, 0x4b4560, 2),
@@ -117,7 +121,7 @@ function mats(T) {
     pole: live(T.pole, 0x666090),
     strap: live(T.strap, 0x6f6796),
     door: art
-      ? cel({ color: 0xffffff, bands: 3, tint: T.steelTint, map: art, cache: false })
+      ? cel({ color: 0xffffff, bands: 3, tint: T.steelTint, map: art, cache: false, ...glowing({ emissiveMap: art }) })
       : cel({ color: 0xffffff, bands: 3, tint: T.steelTint, vertexColors: true, cache: false }),
     light: flat({ color: 0xfffbea }),
     glass: flat({ color: 0xa8c4e0, transparent: true, opacity: 0.2, depthWrite: false }),
@@ -136,7 +140,7 @@ function mats(T) {
   };
   if (art) {
     // the painted skin, and the lit version for the floor and ceiling inside
-    M.art = cel({ color: 0xffffff, bands: 3, tint: T.steelTint, map: art, cache: false });
+    M.art = cel({ color: 0xffffff, bands: 3, tint: T.steelTint, map: art, cache: false, ...glowing({ emissiveMap: art }) });
     M.artLit = live(0xffffff, 0x7a7090, { map: art, emissiveMap: art });
     M.floor = M.artLit;
   }
@@ -363,7 +367,8 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
     // panel seams at the car's corners, and the car's number on the end panel
     // (below the window, past the last door's pocket: nothing sits where a leaf slides)
     if (!art) for (const e of [-1, 1]) push('rubber', box(0.014, TOP - FLOOR + 0.15, 0.01), trs(e * (CAR_L / 2 - 0.2), (FLOOR - 0.15 + TOP) / 2, zOut));
-    push('carNo', new THREE.PlaneGeometry(0.62, 0.12), trs(cabEnd ? -cabEnd * NUMBER_X : NUMBER_X, art ? 1.13 : 1.58, zOut + sz * 0.004, 0, face(sz), 0));
+    // (the painted car: at the top of the band, above the end panel's figure)
+    push('carNo', new THREE.PlaneGeometry(0.62, 0.12), trs(cabEnd ? -cabEnd * NUMBER_X : NUMBER_X, art ? 1.95 : 1.58, zOut + sz * 0.004, 0, face(sz), 0));
     // the side destination LED, over the window by door 2
     dests.push({ geometry: new THREE.PlaneGeometry(0.66, 0.165), matrix: trs(xOff - 4.7, 3.44, zOut + sz * 0.006, 0, face(sz), 0) });
     push('rubber', box(0.74, 0.22, 0.02), trs(-4.7, 3.44, zOut));

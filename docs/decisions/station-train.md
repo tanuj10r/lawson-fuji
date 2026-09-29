@@ -47,3 +47,41 @@
   then holds his arm up until it goes.
 - **The Deer Park gate's poster** is a board on two posts beside the gate,
   turned toward the bridge road (gate.js: the one edit there).
+
+## The entrance blockers and the train's doors (2026-09-29, Tan's review)
+
+- **The "green strip" was the front plinth.** station.js drew the trim
+  band (y0..y0+0.5, the green-grey `trim` material) the whole width of the
+  front, doorway included: from the foot of the steps it stood across the
+  entrance at gate height. A raycast from the eye at the steps hit it at
+  y 1.58, z = B.z0 - 0.04 in the static batch. It is now two pieces, either
+  side of the entrance.
+- **The "glass layer" was the night glow.** `ctx.night.glow` put an
+  additive warm panel (opacity 0 by day, 0.14 at golden, more at blue) the
+  size of the doorway 0.3 m inside it, the shop-window recipe. Over an open
+  doorway it read as a pale pinkish pane over the gates from dusk on. It is
+  gone: the doorway shows the lit concourse itself (the night pools and the
+  ceiling strips stay). The two front windows keep their panels.
+- **Every other opening checked** by the same raycasts: the back wall over
+  the gates, the office window (real glass, meant), the waiting room and
+  kiosk fronts (opaque glazing on a facade, meant), the bus shelter. Nothing
+  else stands in a doorway.
+- **Car numbers moved to the end panels** (x = ±(CAR_L/2 - 0.95), below the
+  window), where nothing slides: a leaf's pocket reaches 0.63 m past its
+  jamb (x 8.29 from the car's centre) and the number starts at 8.44. The
+  old spot (CAR_L/2 - 2.2) was inside door 4's opening, floating across it
+  when open and over the leaf when shut. The number is painted straight on
+  the stainless now (transparent texture, no grey plate).
+- **Pocket seams only on solid skin.** The panel seam 0.3 m past each door
+  used to run straight through the window bay beside it.
+- **A shut leaf receives shadows** like the body: without it a shut door
+  read cream on a lavender car in the canopy's shade.
+- **Livery:** the band is 0.28 m under the sill with the pinstripe under
+  it (was 0.18 m), three bead lines below (was two), steel a touch lighter
+  and its shade less purple (0x6e7292). The cab front gets the emergency
+  door's seams and handle and a rain gutter over the mask. The door-caution
+  sticker is a vertex-coloured yellow strip on the leaf's glass by the
+  meeting edge (no texture; it rides with the leaf). Car 2 is the 弱冷房車:
+  one 192x64 sticker on its end window.
+- **Shots:** `platform-shut` stage (doors shut at the platform) and three
+  spots: station-approach (Tan's 17.webp), train-beside-open/shut.

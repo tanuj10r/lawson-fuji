@@ -6,7 +6,7 @@ import { RAIL_TOP } from '../railway.js';
 import { mergeStatic } from '../merge.js';
 import { CONTACT_Y } from './track.js';
 import { RIDE } from '../../data/town.js';
-import { destTex, runNoTex, carNumberTex, doorLcdTex, carAdsTex, CAR_AD_CELLS, prioritySticker } from './tex.js';
+import { destTex, runNoTex, carNumberTex, doorLcdTex, carAdsTex, CAR_AD_CELLS, prioritySticker, weakSticker } from './tex.js';
 
 /* ------------------------------------------------------------------ *
  * Our train (Tan: "an extremely detailed train, like the real trains of
@@ -46,15 +46,18 @@ export const DOOR_W = 1.32;
 const DOOR_TOP = FLOOR + 1.85;
 const WIN_Y0 = 2.02, WIN_Y1 = 3.12;
 const BAYS = [[-8.55, 1.5], [-4.7, 3.1], [0, 3.3], [4.7, 3.1], [8.55, 1.5]];
-const BAND = [1.80, 1.98], PIN = [1.74, 1.78], TOPLINE = [3.22, 3.28];
+const BAND = [1.72, 2.0], PIN = [1.65, 1.70], TOPLINE = [3.22, 3.28];   // the livery: a broad band under the sill, the pinstripe under it
+const BEADS = [1.22, 1.36, 1.50];             // the bead lines pressed into the stainless below the band
 const DWIN = [2.06, 2.82];                    // the door windows
+const LEAF_TRAVEL = DOOR_W / 2 * 0.96;        // how far a leaf slides into its pocket (setDoors)
+const NUMBER_X = CAR_L / 2 - 0.95;            // the car's number: on the end panel, clear of the last door's pocket
 const BOGIE_X = 6.85;
 const RAIL_Y = TOP - 0.33;                    // the strap rails
 export const SEAT_D = 0.52, SEAT_TOP = FLOOR + 0.44;
 const CAB_WALL = CAR_L / 2 - 1.75;            // the cab's back wall, from the car's centre
 
 const C = {
-  steel: 0xc9cdd5, steelHi: 0xe4e7ec, band: new THREE.Color(RIDE.color).getHex(), pink: new THREE.Color(RIDE.pink).getHex(),
+  steel: 0xd2d6dc, steelHi: 0xeaedf1, band: new THREE.Color(RIDE.color).getHex(), pink: new THREE.Color(RIDE.pink).getHex(),
   rubber: 0x24242c, roof: 0x8f939c, gear: 0xaeb2ba, under: 0x3e4049, bogie: 0x33343d, spring: 0x6b6d78,
   wheel: 0x4a4552, insul: 0xe6e2d8, yellow: 0xf2c23c, console: 0x3a3d48, panel: 0xdfe3e9,
 };
@@ -69,7 +72,7 @@ function mats() {
     return m;
   };
   M = {
-    steel: c(C.steel, 0x6a6a92), steelHi: c(C.steelHi, 0x6a6a92), band: c(C.band, 0x3f5a6a), pink: c(C.pink, 0x8a5a86),
+    steel: c(C.steel, 0x6e7292), steelHi: c(C.steelHi, 0x6e7292), band: c(C.band, 0x3f5a6a), pink: c(C.pink, 0x8a5a86),
     rubber: c(C.rubber, 0x4b4560, 2), bellows: c(0x5e606c, 0x4b4560), roof: c(C.roof, 0x60597f), gear: c(C.gear, 0x5c5680), under: c(C.under, 0x4b4560, 2),
     bogie: c(C.bogie, 0x4b4560, 2), spring: c(C.spring, 0x5c5680), wheel: c(C.wheel, 0x4b4560, 2), insul: c(C.insul, 0x7a7090),
     yellow: c(C.yellow, 0x8a6a50), console: c(C.console, 0x4b4560, 2),
@@ -81,7 +84,7 @@ function mats() {
     seatBase: live(0xb8bac4),
     pole: live(0xd8dce4, 0x666090),
     strap: live(0xf4f2ec, 0x6f6796),
-    door: cel({ color: 0xffffff, bands: 3, tint: 0x6a6a92, vertexColors: true, cache: false }),
+    door: cel({ color: 0xffffff, bands: 3, tint: 0x6e7292, vertexColors: true, cache: false }),
     light: flat({ color: 0xfffbea }),
     glass: flat({ color: 0xa8c4e0, transparent: true, opacity: 0.2, depthWrite: false }),
     cabGlass: flat({ color: 0x2c3348 }),
@@ -93,8 +96,9 @@ function mats() {
     lcd: flat({ color: 0xffffff, map: doorLcdTex() }),
     ads: flat({ color: 0xffffff, map: carAdsTex() }),
     runNo: flat({ color: 0xffffff, map: runNoTex() }),
-    carNo: [flat({ color: 0xffffff, map: carNumberTex(0) }), flat({ color: 0xffffff, map: carNumberTex(1) })],
+    carNo: [flat({ color: 0xffffff, map: carNumberTex(0), transparent: true }), flat({ color: 0xffffff, map: carNumberTex(1), transparent: true })],
     priority: flat({ color: 0xffffff, map: prioritySticker() }),
+    weak: flat({ color: 0xffffff, map: weakSticker() }),
   };
   M.interior = [M.lining, M.floor, M.seat, M.seatPri, M.seatBase, M.pole, M.strap];
   return M;
@@ -187,7 +191,7 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
       // the band, the pinstripe, the line over the windows, the beads
       if (c.kind !== 'door') {
         for (const [k, [y0, y1]] of [['band', BAND], ['pink', PIN]]) push(k, box(len, y1 - y0, 0.012), trs(cx, (y0 + y1) / 2, zOut));
-        for (const y of [1.3, 1.52]) push('steelHi', box(len, 0.018, 0.01), trs(cx, y, zOut));
+        for (const y of BEADS) push('steelHi', box(len, 0.018, 0.01), trs(cx, y, zOut));
       }
       push('band', box(len, TOPLINE[1] - TOPLINE[0], 0.012), trs(cx, (TOPLINE[0] + TOPLINE[1]) / 2, zOut));
       if (c.kind === 'window') {
@@ -203,19 +207,24 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
     for (const d of DOORS) {
       for (const e of [-1, 1]) {
         push('rubber', box(0.035, DOOR_TOP - FLOOR, 0.1), trs(d + e * DOOR_W / 2, (FLOOR + DOOR_TOP) / 2, zSkin));
-        push('rubber', box(0.012, TOP - 0.2 - FLOOR + 0.18, 0.01), trs(d + e * (DOOR_W / 2 + 0.3), (FLOOR - 0.18 + TOP - 0.2) / 2, zOut));
+        // the pocket's panel seam, only where it falls on solid skin (next to a window bay it cut through the glass)
+        const sxm = d + e * (DOOR_W / 2 + 0.3);
+        if (cells.find((c) => sxm > c.a && sxm < c.b)?.kind === 'solid') push('rubber', box(0.012, TOP - 0.2 - FLOOR + 0.18, 0.01), trs(sxm, (FLOOR - 0.18 + TOP - 0.2) / 2, zOut));
       }
       push('rubber', box(DOOR_W + 0.07, 0.04, 0.1), trs(d, DOOR_TOP, zSkin));
       push('steelHi', box(DOOR_W, 0.04, 0.2), trs(d, FLOOR + 0.02, sz * (CAR_W / 2 - 0.08)));
       // inside: the yellow line at the door's edge
       push('yellow', box(DOOR_W - 0.1, 0.006, 0.08), trs(d, FLOOR + 0.004, sz * (CAR_W / 2 - 0.26)));
     }
-    // panel seams at the car's corners, and the car's number by each end
+    // panel seams at the car's corners, and the car's number on the end panel
+    // (below the window, past the last door's pocket: nothing sits where a leaf slides)
     for (const e of [-1, 1]) push('rubber', box(0.014, TOP - FLOOR + 0.15, 0.01), trs(e * (CAR_L / 2 - 0.2), (FLOOR - 0.15 + TOP) / 2, zOut));
-    push('carNo', new THREE.PlaneGeometry(0.62, 0.12), trs(-cabEnd * (CAR_L / 2 - 2.2) || CAR_L / 2 - 2.2, 1.46, zOut + sz * 0.004, 0, face(sz), 0));
+    push('carNo', new THREE.PlaneGeometry(0.62, 0.12), trs(cabEnd ? -cabEnd * NUMBER_X : NUMBER_X, 1.58, zOut + sz * 0.004, 0, face(sz), 0));
     // the side destination LED, over the window by door 2
     dests.push({ geometry: new THREE.PlaneGeometry(0.66, 0.165), matrix: trs(xOff - 4.7, 3.44, zOut + sz * 0.006, 0, face(sz), 0) });
     push('rubber', box(0.74, 0.22, 0.02), trs(-4.7, 3.44, zOut));
+    // the second car is the 弱冷房車: its sticker on the end window's glass, by the last door
+    if (index % 2) push('weak', new THREE.PlaneGeometry(0.3, 0.1), trs(-cabEnd * 8.2, WIN_Y1 - 0.12, zSkin + sz * 0.004, 0, face(sz), 0));
   }
   // the crew doors on a cab's sides (outlines, a handhold)
   if (cabEnd) {
@@ -246,10 +255,13 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
     add(C.steel, a, wi0, DWIN[0], DWIN[1]);
     add(C.steel, wi1, b, DWIN[0], DWIN[1]);
     for (const [k, [y0, y1]] of [[C.band, BAND], [C.pink, PIN]]) add(k, a, b, y0, y1, 0.012, 0.008);
-    for (const y of [1.3, 1.52]) add(C.steelHi, a, b, y - 0.009, y + 0.009, 0.012, 0.006);
+    for (const y of BEADS) add(C.steelHi, a, b, y - 0.009, y + 0.009, 0.012, 0.006);
     // the rubber: the meeting edge, and round the window
     const meet = half > 0 ? a : b;
     add(C.rubber, meet - 0.018, meet + 0.018, FLOOR, DOOR_TOP, 0.004, 0.03);
+    // the door-caution sticker on the glass, low by the meeting edge: it rides with the leaf
+    const sx = half > 0 ? wi0 + 0.03 : wi1 - 0.03;
+    add(C.yellow, Math.min(sx, sx + half * 0.17), Math.max(sx, sx + half * 0.17), DWIN[0] + 0.04, DWIN[0] + 0.11, 0.012, 0.004);
     add(C.rubber, wi0 - 0.02, wi1 + 0.02, DWIN[0] - 0.02, DWIN[0] + 0.01, 0.01, 0.01);
     add(C.rubber, wi0 - 0.02, wi1 + 0.02, DWIN[1] - 0.01, DWIN[1] + 0.02, 0.01, 0.01);
     add(C.rubber, wi0 - 0.02, wi0 + 0.01, DWIN[0], DWIN[1], 0.01, 0.01);
@@ -268,7 +280,7 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
       if (sz < 0) {
         const grp = new THREE.Group();
         const mb = new THREE.Mesh(bake(body), m.door);
-        mb.castShadow = true;
+        mb.castShadow = mb.receiveShadow = true;      // shaded like the body round it (unshadowed, a shut leaf read cream on a lavender car)
         const mg = new THREE.Mesh(bake(glass), m.glass);
         mg.userData.noOutline = true;
         grp.add(mb, mg);
@@ -382,10 +394,14 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
     B('steel', fx - s * 0.08, fx, FLOOR - 0.2, 2.0, -CAR_W / 2, CAR_W / 2);
     B('band', fx - s * 0.02, fx + s * 0.012, 1.72, 2.0, -CAR_W / 2 - 0.004, CAR_W / 2 + 0.004);
     B('pink', fx - s * 0.02, fx + s * 0.012, 1.66, 1.72, -CAR_W / 2 - 0.004, CAR_W / 2 + 0.004);
-    for (const y of [1.3, 1.5]) B('steelHi', fx, fx + s * 0.01, y - 0.009, y + 0.009, -CAR_W / 2 + 0.1, CAR_W / 2 - 0.1);
-    // the black mask with the silver pillars at its corners
+    for (const y of BEADS) B('steelHi', fx, fx + s * 0.01, y - 0.009, y + 0.009, -CAR_W / 2 + 0.1, CAR_W / 2 - 0.1);
+    // the emergency door in the middle of the front: its seams down the silver, a handle
+    for (const e of [-1, 1]) B('rubber', fx + s * 0.005, fx + s * 0.015, FLOOR - 0.1, 2.0, e * 0.5 - 0.008, e * 0.5 + 0.008);
+    B('rubber', fx + s * 0.012, fx + s * 0.03, 1.1, 1.18, 0.3, 0.42);
+    // the black mask with the silver pillars at its corners, a rain gutter over the glass
     B('rubber', fx - s * 0.08, fx + s * 0.02, 2.0, TOP, -CAR_W / 2 + 0.1, CAR_W / 2 - 0.1);
     for (const e of [-1, 1]) B('steel', fx - s * 0.08, fx + s * 0.03, 2.0, TOP, e * (CAR_W / 2 - 0.1), e * CAR_W / 2);
+    B('steelHi', fx + s * 0.02, fx + s * 0.05, TOP - 0.06, TOP - 0.02, -CAR_W / 2 + 0.12, CAR_W / 2 - 0.12);
     // the windscreen, two big panes, a glint on each
     for (const [z0, z1] of [[-1.24, -0.05], [0.05, 1.24]]) {
       push('cabGlass', new THREE.PlaneGeometry(z1 - z0, 0.98), trs(fx + s * 0.025, 2.82, (z0 + z1) / 2, 0, ry, 0));
@@ -508,10 +524,10 @@ function buildCar({ cab, tail, index, dests, straps, xOff }) {
     under: m.under, bellows: m.bellows, bogie: m.bogie, spring: m.spring, wheel: m.wheel, insul: m.insul, yellow: m.yellow, console: m.console,
     metal: m.gear, panel: m.lining, floor: m.floor, lining: m.lining, seat: m.seat, seatPri: m.seatPri, seatBase: m.seatBase, pole: m.pole,
     glass: m.glass, glint: m.glint, cabGlass: m.cabGlass, lcd: m.lcd, ads: m.ads, runNo: m.runNo, carNo: m.carNo[index % 2],
-    priority: m.priority, doorStatic: m.door,
+    priority: m.priority, weak: m.weak, doorStatic: m.door,
   };
   const inside = new Set(['lining', 'panel', 'floor', 'seat', 'seatPri', 'seatBase', 'pole', 'lcd', 'ads', 'priority', 'yellow', 'console']);
-  const see = new Set(['glass', 'glint', 'cabGlass', 'lcd', 'ads', 'runNo', 'carNo', 'priority']);
+  const see = new Set(['glass', 'glint', 'cabGlass', 'lcd', 'ads', 'runNo', 'carNo', 'priority', 'weak']);
   for (const [k, list] of Object.entries(P)) {
     const mesh = new THREE.Mesh(bake(list), matFor[k]);
     mesh.castShadow = !inside.has(k) && !see.has(k);

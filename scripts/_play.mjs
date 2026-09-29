@@ -228,7 +228,8 @@ try {
     player.pos.set(s.x, player.pos.y, s.z + 3);
     await window.__wait(300);
     player.pos.set(s.x, player.pos.y, s.z);
-    await window.__wait(400);
+    // the choice shows within a few frames (a busy moment can make that longer): wait for it, up to 3 s
+    for (let k = 0; k < 30 && !document.querySelector('.kmenu.on'); k++) await window.__wait(100);
     const menu = !!document.querySelector('.kmenu.on');
     window.__press('Digit2');
     await window.__wait(1500);

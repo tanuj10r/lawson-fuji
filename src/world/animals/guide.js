@@ -1029,7 +1029,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     /* the introduction (Tan, 2026-09-29: every time the game begins, nothing remembered): a moment after you press
      * Start it runs out from behind you to `A.intro.d` m in front (nearer, it is under the start view's frame: the lens
      * looks up at Fuji), turns to face you, sits and says hello (a caption); then it waits there until you walk off */
-    if (!G.intro && G.t > A.intro.after && !show && !inStore(P) && ['home', 'nap'].includes(G.state)) {
+    if (!G.intro && (G.t > A.intro.after || dist(P, VIEW) > 1.5) && !show && !inStore(P) && ['home', 'nap'].includes(G.state)) {   // (walk off the view sooner: the hello comes then)
       const fs = frontSpot(A.intro.d);
       G.introSpot = fs ?? { x: G.x, z: G.z };
       G.intro = 1; G.introT = 0; G.introSaid = false;
@@ -1084,7 +1084,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         pose.wag = dP < 6 ? 0.5 : 0.2;
         pose.posture = there && G.waitT > A.waitSit ? 1 : 0;
         // you walk off the view: it comes and suggests the first place
-        if (!view && dist(P, VIEW) > 1.5 && !inStore(P)) { const k = G.resumeK ?? G.leg ?? 0; G.resumeK = null; lead(k); }
+        if (!view && dist(P, VIEW) > 1.5 && !inStore(P) && G.intro !== 0) { const k = G.resumeK ?? G.leg ?? 0; G.resumeK = null; lead(k); }   // (the hello first)
         break;
       }
       case 'lead': {
@@ -1370,7 +1370,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       intro: () => G.intro,
       introReset() { G.intro = 0; },
       introMark() { G.intro = 2; },
-      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 2, introT: 0 }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
+      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 2, introT: 0, t: 0 }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
     };
   }
   return { update, herd, G };

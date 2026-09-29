@@ -330,7 +330,8 @@ facing Fuji: sit, look around with the mouse, and hear the flute theme.
 **Hachi, the guide** (animals/guide.js, shiba.js). A 3-4-month red shiba
 pup, about 24 cm at the shoulder, with sit, lie, trot, tilt, shake and nap:
 
-- **The hello:** every time the game starts, he runs out from behind you,
+- **The hello:** every time the game starts, after 4 s of looking at the
+  view (or as soon as you walk off it), he runs out from behind you,
   sits 3 m in front facing you, and says "Hi, I'm Hachi!" with a caption
   that tells you to follow him and that F whistles for him. The view eases
   down to him and back (your mouse takes it back at once). He waits there

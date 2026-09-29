@@ -230,11 +230,11 @@ const SIM = async (kind) => {
     const pitch = 0.16;                                   // the start view's lens looks up at Fuji (HERO_VIEWS.golden.play)
     const bottom = 21.5 - pitch * 180 / Math.PI;          // degrees below the horizon at the frame's bottom edge (hfov 70, 16:9)
     let fired = null, sat = null, inLensFrames = 0, runFrames = 0, home = false;
-    for (let k = 0; k < 16 * 30; k++) {
+    for (let k = 0; k < 20 * 30; k++) {
       step();
       if (fired === null && g.intro() === 1) fired = +t.toFixed(1);
       if (S.state === 'home' && fired !== null) home = true;
-      if (fired !== null && S.state === 'intro' && S.posture > 0.8 && sat === null) {
+      if (fired !== null && S.state === 'intro' && S.introSaid && S.posture > 0.8 && sat === null) {
         const dx = S.x - P.x, dz = S.z - P.z, d = Math.hypot(dx, dz);
         const face = Math.abs(((Math.atan2(P.x - S.x, P.z - S.z) - S.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
         sat = { t: +t.toFixed(1), d: +d.toFixed(1), off: +(Math.acos(-dz / d) * 180 / Math.PI).toFixed(0), below: +(Math.atan2(1.6 - 0.35, d) * 180 / Math.PI).toFixed(1), faceDeg: +(face * 180 / Math.PI).toFixed(0) };
@@ -248,9 +248,15 @@ const SIM = async (kind) => {
     let led = null;
     for (let k = 0; k < 5 * 30; k++) { lookAt(P.x, P.z - 2); walk({ x: P.x, z: P.z - 1 }, 2.3); step(); if (led === null && S.state === 'lead') led = +t.toFixed(1); }
     let stored = null; try { stored = localStorage.getItem('hachi-intro'); } catch {}
+    // walking off the view at once: the hello comes then (not at 4 s), and it doesn't lead before it has said it
+    g.reset(); g.introReset();
+    P.x = 0; P.z = 16.5; P.yaw = 0; sync();
+    const t1 = t; let early = null, ledFirst = false;
+    for (let k = 0; k < 6 * 30; k++) { lookAt(P.x, P.z - 2); walk({ x: P.x, z: P.z - 1 }, 2.3); step(); if (S.state === 'lead' && g.intro() === 0) ledFirst = true; if (early === null && g.intro() === 1) early = +(t - t1).toFixed(1); }
+    res.early = early; res.ledFirst = ledFirst;
     res.fired = fired; res.sat = sat; res.card = cardText; res.waiting = waiting; res.led = led; res.home = home; res.stored = stored; res.runSeen = +(inLensFrames / Math.max(1, runFrames)).toFixed(2);
-    res.ok = fired !== null && fired <= 1.0 && !!sat && sat.t - fired <= 5 && sat.off <= 20 && sat.d >= 2 && sat.d <= 4.5 && sat.faceDeg <= 25   /* (on screen: the view eases down to it, main.js; _play 45-hachi-hello) */
-      && !!cardText && cardText.includes('F') && waiting === 'ready' && !home && led !== null && stored === null;
+    res.ok = fired !== null && fired >= A.intro.after - 0.1 && fired <= A.intro.after + 0.5 && !!sat && sat.t - fired <= 5 && sat.off <= 20 && sat.d >= 2 && sat.d <= 4.5 && sat.faceDeg <= 25   /* (on screen: the view eases down to it, main.js; _play 45-hachi-hello) */
+      && early !== null && early > 0.3 && early < A.intro.after && !ledFirst && !!cardText && cardText.includes('F') && waiting === 'ready' && !home && led !== null && stored === null;
   } else if (kind === 'turnaway') {
     // Tan (2026-09-29): a guide, not a follower.  Off the view until the pup leads; follow 2 s; then turn away and
     // walk: it stops and waits where it is (never after you).  Walk back to it: it takes you on.  Away again, then F:

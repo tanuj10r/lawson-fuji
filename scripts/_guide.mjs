@@ -27,7 +27,7 @@ const args = process.argv.slice(2);
 const opt = (k) => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : null; };
 const ROOT = path.resolve(opt('root') ?? path.resolve(path.dirname(new URL(import.meta.url).pathname), '..'));
 const HERE = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const out = path.resolve(args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--root') ?? path.join(HERE, '.shots', 'guide'));
+const out = path.resolve(args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--root' && args[i - 1] !== '--only') ?? path.join(HERE, '.shots', 'guide'));
 const MEASURE = args.includes('--measure');
 const ONLY = opt('only');   // --only turnaway,whistle: just these scenarios
 fs.mkdirSync(out, { recursive: true });

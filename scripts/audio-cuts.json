@@ -150,6 +150,12 @@
       "peak": 0.45,
       "kbps": 40
     },
+    "theme": {
+      "src": "nippon-lets-go",
+      "song": true,
+      "kbps": 96,
+      "_": "Tan's song, Nippon Let's Go (made with Suno, their own lyrics): loops on the start and pause cards (core/sound.js setMenu); the whole track, stereo, streamed"
+    },
     "store-bgm": {
       "start": 0.0,
       "len": 0,

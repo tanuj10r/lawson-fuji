@@ -70,6 +70,18 @@ const rows = [];
 for (const [name, c] of Object.entries(files)) {
   const mp3 = path.join(SRC, (c.src ?? name) + (c.ext ?? '.mp3'));     // `src`: the file it is cut from, if not its own name; `ext`: .aiff for voices made with `say`
   if (!fs.existsSync(mp3)) { rows.push([name, 'missing (the procedural sound is used)']); continue; }
+  /* `song`: a piece of music played whole (the theme): kept in stereo, no cut or levelling, only re-encoded */
+  if (c.song) {
+    const m4a = path.join(OUT, name + '.m4a');
+    execFileSync('afconvert', ['-f', 'm4af', '-d', 'aac', '-b', String((c.kbps ?? 96) * 1000), '-q', '127', mp3, m4a]);
+    const info = execFileSync('afinfo', [m4a]).toString();
+    const dur = +(info.match(/estimated duration: ([0-9.]+)/)?.[1] ?? 0);
+    const size = fs.statSync(m4a).size;
+    total += size;
+    manifest[name] = { file: name + '.m4a', duration: +dur.toFixed(2), loop: true, song: true };
+    rows.push([name, `${dur.toFixed(1)} s song, stereo  ${(size / 1024).toFixed(1)} KB`]);
+    continue;
+  }
   const wav = path.join(tmp, name + '.wav');
   execFileSync('afconvert', ['-f', 'WAVE', '-d', `LEI16@${SR}`, '-c', '1', mp3, wav]);
   const x = readWav(wav), dur = x.length / SR;

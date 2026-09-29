@@ -259,6 +259,11 @@ names):
   (`scripts/_cards.mjs` checks 1280x720 to 2560x1440).
 - **Pause:** the same card with a PAUSED chip, the volume (five steps) and
   Resume. The game keeps drawing, blurred, at 10 fps.
+- **The song:** Tan's "Nippon Let's Go" (made with Suno) loops on the start
+  and pause cards, with the game's own sound down under it, and fades out as
+  play starts or resumes; paused again, it carries on where it left off. The
+  browser allows sound only after a first click or key, so on the start card
+  it plays once the visitor has touched anything.
 - **Minimap** (bottom right: compass, your arrow, places) and **town map**
   (M): an illustrated map drawn from the game's own data, with diamonds for
   things to do and speakers for things to hear. Hidden on the famous view.
@@ -413,6 +418,8 @@ facings out of place).
   - Han's song (han-drift), ドンペン堂's theme, shrine chimes, the rural
     flute;
   - birds, crows, night insects, wind, ui-tap, stamp.
+  - Tan's song for the cards, `nippon-lets-go.mp3` (kept whole and in
+    stereo).
 - **Rules:**
   - audio files are never committed;
   - no soundboard or sound gallery (効果音ラボ's terms);

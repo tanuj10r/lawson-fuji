@@ -36,7 +36,8 @@ const BEDS = { wind: 0.14, birds: 0.26, 'night-insects': 0.21 };
 const BED_OF_LOOK = { day: 'birds', blue: 'night-insects' };
 
 export function createSound({ volume = 0.5 } = {}) {
-  let ac = null, master, sfxBus, outBus, outLow, outGain, inGain, musicGain, reverb, wet;
+  let ac = null, master, world, sfxBus, outBus, outLow, outGain, inGain, musicGain, reverb, wet;
+  let theme = null, menuOn = false;
   let manifest = {}, muted = volume <= 0.001, lastAudible = volume > 0.001 ? volume : 0.5;
   const buffers = new Map(), loading = new Map();
   const log = [];                    // dev: every sound started, for the audio check
@@ -427,31 +428,44 @@ export function createSound({ volume = 0.5 } = {}) {
       comp.threshold.value = -14; comp.ratio.value = 3;
       comp.connect(ac.destination);
       master = ac.createGain(); master.gain.value = muted ? 0 : volume; master.connect(comp);
-      sfxBus = ac.createGain(); sfxBus.connect(master);
+      // the game's own sound goes through `world`, so the menu's song can take its place (setMenu); the song goes to master
+      world = ac.createGain(); world.gain.value = menuOn ? SOUND.menu.duck : 1; world.connect(master);
+      sfxBus = ac.createGain(); sfxBus.connect(world);
       // a small room, made in code: decaying noise (SPEC 9)
       reverb = ac.createConvolver();
       const n = Math.round(ac.sampleRate * 0.8), ir = ac.createBuffer(2, n, ac.sampleRate);
       for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n) ** 3; }
       reverb.buffer = ir;
       wet = ac.createGain(); wet.gain.value = 0.05;
-      sfxBus.connect(wet).connect(reverb).connect(master);
+      sfxBus.connect(wet).connect(reverb).connect(world);
       outBus = ac.createGain();
       outLow = ac.createBiquadFilter(); outLow.type = 'lowpass'; outLow.frequency.value = 20000; outLow.Q.value = 0.5;
       outGain = ac.createGain(); outGain.gain.value = 1;
-      outBus.connect(outLow).connect(outGain).connect(master);
-      inGain = ac.createGain(); inGain.gain.value = 0; inGain.connect(master);
-      musicGain = ac.createGain(); musicGain.gain.value = 1; musicGain.connect(master);
+      outBus.connect(outLow).connect(outGain).connect(world);
+      inGain = ac.createGain(); inGain.gain.value = 0; inGain.connect(world);
+      musicGain = ac.createGain(); musicGain.gain.value = 1; musicGain.connect(world);
       bell.gain = ac.createGain(); bell.gain.gain.value = 0; bell.gain.connect(outBus);
       hum = makeHum();
       fridge = makeFridge();
       // the loops exist at once (they wait for their files); the list of files comes after
       for (const [k, lvl] of Object.entries(BEDS)) beds[k] = loopNode(k, outBus, lvl);
       music = streamNode('store-bgm', musicGain, 0.2);
+      theme = streamNode('theme', master, SOUND.menu.level);
       manifestReady = fetch(import.meta.env.BASE_URL + 'audio/manifest.json').then((r) => r.json()).then((m) => { manifest = m; }, () => { manifest = {}; });
       await manifestReady;
       music.arm();                              // while the click that started us is still in hand
+      theme.arm();
+      if (menuOn) { theme.set(true, SOUND.menu.fadeIn); }
       // the short sounds are fetched now, quietly, so the first of each is ready
       for (const k of ['lawson-chime', 'door-chime', 'auto-door', 'fridge-door', 'ui-tap', 'railway-bells', 'walk-kakko', 'walk-piyo']) buffer(k);
+    },
+    /** The start and pause cards (Tan's song, Nippon Let's Go): the song loops while one shows, picking up where it
+     * left off, and the game's own sound steps back under it; off, the song fades out and the game comes back. */
+    setMenu(on) {
+      menuOn = on;
+      if (!ac) return;
+      world.gain.setTargetAtTime(on ? SOUND.menu.duck : 1, now(), (on ? SOUND.menu.fadeIn : SOUND.menu.fadeOut) / 4);
+      theme?.set(on, on ? SOUND.menu.fadeIn : SOUND.menu.fadeOut);
     },
     /** The tab went away or came back: an unheard graph should not be running. */
     setAwake(awake) {
@@ -637,6 +651,8 @@ export function createSound({ volume = 0.5 } = {}) {
   if (import.meta.env?.DEV) api.debug = {
     get _voices() { return voices; },
     get _music() { return music; },
+    get _theme() { return theme; },
+    get _world() { return world; },
     get _beds() { return beds; },
     /** What is actually coming out: the master's level over `ms` (dev only). */
     async level(ms = 1500) {

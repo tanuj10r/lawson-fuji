@@ -195,6 +195,10 @@ player.onLockChange = (locked) => {
   if (!locked && minimap?.fullOpen) { minimap.setFull(false); player.suspended = false; }
   handsHud?.setLocked(locked);
 };
+/* The browser lets a page make sound only after a click or a key: the first one anywhere (the start card's volume,
+ * the card itself, a key) starts the sound, and with it the song, before Start is even pressed */
+window.addEventListener('pointerdown', () => sound.start(), { once: true });
+window.addEventListener('keydown', () => sound.start(), { once: true });
 canvas.addEventListener('click', () => {
   sound.start();
   if (!player.locked) player.lock();
@@ -619,9 +623,13 @@ function controlRows(hovered) {
  * made the whole machine feel slow.  Hidden, it draws nothing; paused or
  * unfocused, ten frames a second, enough to look alive. */
 let lastDraw = 0;
+let menuShown = null;
 function frame(now = 0) {
   requestAnimationFrame(frame);
   if (document.hidden) return;
+  // Tan's song on the start and pause cards: on whenever the pointer is free (a card is up), off in play
+  const menu = !player.locked && !FROZEN;
+  if (menu !== menuShown) { menuShown = menu; sound.setMenu(menu); }
   const idle = !player.locked && !FROZEN;
   if (idle && now - lastDraw < 100) return;
   lastDraw = now;

@@ -29,6 +29,24 @@ await page.waitForFunction(() => window.__scene.sound.debug.ac?.state === 'runni
 const s1 = await page.evaluate(() => ({ state: window.__scene.sound.debug.ac.state, files: Object.keys(window.__scene.sound.debug.manifest).length }));
 check('the first click starts it (running), the manifest loads', s1.state === 'running' && s1.files >= 15, s1);
 
+// Tan's song on the cards: the start card is up (the click was on it, not Start): the song plays, the game ducked
+// under it; in play it stops and the game comes back; paused again, it picks up where it left off (not from the top)
+const th = await page.evaluate(async () => {
+  const d = window.__scene.sound.debug, p = window.__scene.player, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  if (!d.manifest.theme) return { skip: 'no theme file (assets/audio/nippon-lets-go.mp3)' };
+  const T = d._theme;
+  p.locked = false;                                  // a card up (the first click may have taken the pointer)
+  await wait(2500);
+  const on = { playing: !!T.el && !T.el.paused, at: +(T.el?.currentTime ?? 0).toFixed(1), world: +d._world.gain.value.toFixed(2), rms: +(await d.level(800)).rms.toFixed(4) };
+  p.locked = true; await wait(2600);
+  const off = { paused: !T.el || T.el.paused, world: +d._world.gain.value.toFixed(2), at: +(T.el?.currentTime ?? 0).toFixed(1) };
+  p.locked = false; await wait(1800);
+  const again = { playing: !T.el.paused, at: +T.el.currentTime.toFixed(1) };
+  p.locked = true; await wait(2600);
+  return { on, off, again, end: { paused: T.el.paused, world: +d._world.gain.value.toFixed(2) } };
+});
+check("Tan's song loops on the start and pause cards, picks up where it left off, off in play", !!th.skip || (th.on.playing && th.on.at > 1 && th.on.world <= 0.2 && th.on.rms > 0.005 && th.off.paused && th.off.world >= 0.95 && th.again.playing && th.again.at >= th.off.at && th.end.paused && th.end.world >= 0.95), th);
+
 // every file decodes, and its loop span fits
 const dec = await page.evaluate(async () => {
   const { manifest, ac } = window.__scene.sound.debug;

@@ -221,35 +221,36 @@ const SIM = async (kind) => {
     res.ok = rows.length === 4 && viol === 0 && wall === 0 && stuck < 5 && res.end.state === 'nap' && res.respawn.ok && cone > 60
       && heard && res.jog >= 2.7 && gateMin <= 8 && waterCells === 0 && alleyCells === 0 && sideEntries === 0 && feetLow === 0 && t < 900;
   } else if (kind === 'intro') {
-    // the hello: never on the famous view (even looking straight at it), once when you look at it off the view, never after a reload that remembers
-    const introCount = { onView: 0, off: 0, again: 0 };
-    const look = (secs, at) => { for (let k = 0; k < secs * 30; k++) { if (at) lookAt(at.x, at.z); sync(); step(); } };
-    g.introReset();
-    // on the view, turned round to look at it where it waits behind you
-    look(4, S);
-    introCount.onView = g.intro();
-    // off the view, looking at it as it comes: once
-    for (let k = 0; k < 60; k++) { lookAt(P.x, P.z - 2); walk({ x: P.x, z: P.z - 1 }, 2.3); sync(); step(); }
-    let fired = null, saidAt = null;
-    for (let k = 0; k < 20 * 30; k++) {
-      lookAt(S.x, S.z); sync(); step();
+    // the hello, every start (Tan, 2026-09-29): standing on the start view as the game begins, it runs out from
+    // behind you to in front, faces you, sits, says hello; waits there while you stay; leads when you walk off.
+    // Nothing is remembered (no localStorage).
+    try { localStorage.removeItem('hachi-intro'); } catch {}
+    g.reset(); g.introReset();
+    P.x = 0; P.z = 16.5; P.yaw = 0; sync();
+    const pitch = 0.16;                                   // the start view's lens looks up at Fuji (HERO_VIEWS.golden.play)
+    const bottom = 21.5 - pitch * 180 / Math.PI;          // degrees below the horizon at the frame's bottom edge (hfov 70, 16:9)
+    let fired = null, sat = null, inLensFrames = 0, runFrames = 0, home = false;
+    for (let k = 0; k < 16 * 30; k++) {
+      step();
       if (fired === null && g.intro() === 1) fired = +t.toFixed(1);
-      if (fired !== null && S.state === 'intro' && S.posture > 0.8 && saidAt === null) saidAt = { t: +t.toFixed(1), d: +dist(P, S).toFixed(1), posture: +S.posture.toFixed(2) };
+      if (S.state === 'home' && fired !== null) home = true;
+      if (fired !== null && S.state === 'intro' && S.posture > 0.8 && sat === null) {
+        const dx = S.x - P.x, dz = S.z - P.z, d = Math.hypot(dx, dz);
+        const face = Math.abs(((Math.atan2(P.x - S.x, P.z - S.z) - S.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+        sat = { t: +t.toFixed(1), d: +d.toFixed(1), off: +(Math.acos(-dz / d) * 180 / Math.PI).toFixed(0), below: +(Math.atan2(1.6 - 0.35, d) * 180 / Math.PI).toFixed(1), faceDeg: +(face * 180 / Math.PI).toFixed(0) };
+      }
+      if (fired !== null && sat === null && S.state === 'intro') { runFrames++; const dx = S.x - P.x, dz = S.z - P.z, d = Math.hypot(dx, dz) || 1; if (-dz / d > Math.cos(33 * Math.PI / 180) && Math.atan2(1.25, d) * 180 / Math.PI < bottom) inLensFrames++; }
     }
-    introCount.off = g.intro();
-    const card = typeof document !== 'undefined' && document.getElementById('hachi-card');
+    const card = document.getElementById('hachi-card');
     const cardText = card ? card.textContent : null;
-    // wander on 20 s, looking at it: still once; then a "reload" with the flag kept: never
-    look(20, S);
-    const stillOnce = g.intro() === 2;
-    g.reset(); g.introReset(); g.introMark();
-    P.x = 0; P.z = 16.5;
-    for (let k = 0; k < 60; k++) { lookAt(P.x, P.z - 2); walk({ x: P.x, z: P.z - 1 }, 2.3); sync(); step(); }
-    look(12, S);
-    introCount.again = g.intro();
-    g.introReset();
-    res.introCount = introCount; res.fired = fired; res.sat = saidAt; res.card = cardText; res.stillOnce = stillOnce;
-    res.ok = introCount.onView === 0 && fired !== null && introCount.off >= 1 && stillOnce && introCount.again === 0 && !!saidAt && saidAt.d < 3.5 && !!cardText;
+    const waiting = S.state;                               // still on the view: sitting where it said hello
+    // walk off the view: it leads
+    let led = null;
+    for (let k = 0; k < 5 * 30; k++) { lookAt(P.x, P.z - 2); walk({ x: P.x, z: P.z - 1 }, 2.3); step(); if (led === null && S.state === 'lead') led = +t.toFixed(1); }
+    let stored = null; try { stored = localStorage.getItem('hachi-intro'); } catch {}
+    res.fired = fired; res.sat = sat; res.card = cardText; res.waiting = waiting; res.led = led; res.home = home; res.stored = stored; res.runSeen = +(inLensFrames / Math.max(1, runFrames)).toFixed(2);
+    res.ok = fired !== null && fired <= 1.0 && !!sat && sat.t - fired <= 5 && sat.off <= 20 && sat.d >= 2 && sat.d <= 4.5 && sat.faceDeg <= 25   /* (on screen: the view eases down to it, main.js; _play 45-hachi-hello) */
+      && !!cardText && cardText.includes('F') && waiting === 'ready' && !home && led !== null && stored === null;
   } else if (kind === 'turnaway') {
     // Tan (2026-09-29): a guide, not a follower.  Off the view until the pup leads; follow 2 s; then turn away and
     // walk: it stops and waits where it is (never after you).  Walk back to it: it takes you on.  Away again, then F:

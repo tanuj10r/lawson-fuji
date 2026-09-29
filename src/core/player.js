@@ -53,6 +53,7 @@ export class Player {
      * deliberate look clears it and calls `onReleaseLook`. */
     this.holdLook = false;
     this.onReleaseLook = null;
+    this.looked = 0;
     this._slack = 0;
     /* Seated (Tan's experiences): see sit() / stand().  null when walking. */
     this.seat = null;
@@ -64,6 +65,7 @@ export class Player {
   _bind() {
     const onMove = (e) => {
       if (!this.locked || this.suspended) return;     // suspended: the full map is open
+      this.looked += Math.abs(e.movementX) + Math.abs(e.movementY);   // (main.js: a look of your own takes the view back from a guided one)
       if (this.seat) {
         // seated (once settled), the mouse looks around from the bench: a wide
         // turn either way, up and down; standing is the walking keys' job

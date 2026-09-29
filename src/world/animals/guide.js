@@ -47,7 +47,7 @@ import { STRINGS } from '../../data/strings.js';
 
 const A = ANIMALS.guide;
 /** The pup, for main.js: `whistle()` (F) calls it to you from anywhere; set once it is built. */
-export const GUIDE = { whistle: () => false, tipsy: () => {} };
+export const GUIDE = { whistle: () => false, tipsy: () => {}, greeting: () => null };
 const INF = Infinity;
 const ENGAGE = A.engage;
 
@@ -659,6 +659,13 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     enterView(f, A.party.from, 30);
   };
   GUIDE.tipsy = tipsy;
+  /** Its hello, for main.js's view: where its head is while it runs in front of you and says hello, else null. */
+  const _head = { x: 0, y: 0, z: 0 };
+  GUIDE.greeting = () => {
+    if (G.state !== 'intro' || !(G.introSaid || (inCone(40) && dist(P, G) < 12))) return null;
+    _head.x = G.x; _head.z = G.z; _head.y = G.y + 0.3;
+    return _head;
+  };
   GUIDE.whistle = whistle;
   /** "Not interested": it stops and waits where it is (the leg counts as skipped); a tilt of the head, "okay". */
   const drop = () => {
@@ -694,10 +701,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     const dx = G.x - P.x, dz = G.z - P.z, d = Math.hypot(dx, dz) || 1;
     return (dx * f.x + dz * f.z) / d > Math.cos(deg * Math.PI / 180);
   };
-  /* the introduction's caption: a small card near the bottom of the screen, two lines, fades by itself */
-  const INTRO_KEY = 'hachi-intro';
-  const introSeen = () => { if (G.introSeenNow) return true; try { return localStorage.getItem(INTRO_KEY) === '1'; } catch { return false; } };
-  const markIntro = () => { G.introSeenNow = true; try { localStorage.setItem(INTRO_KEY, '1'); } catch {} };
+  /* the introduction's caption: a small card just above where it sits in your view (the view eases down to it, so it
+   * sits in the lower third: a card lower would cover it), two lines, fades by itself */
   let cardEl = null, cardT = -1;
   const showCard = () => {
     if (typeof document === 'undefined') return;
@@ -705,7 +710,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       cardEl = document.createElement('div');
       cardEl.id = 'hachi-card';
       cardEl.setAttribute('aria-live', 'polite');
-      cardEl.style.cssText = 'position:fixed;left:50%;bottom:15%;transform:translateX(-50%) translateY(6px);z-index:7;pointer-events:none;'
+      cardEl.style.cssText = 'position:fixed;left:50%;bottom:36%;transform:translateX(-50%) translateY(6px);z-index:7;pointer-events:none;'
         + 'max-width:min(560px,86vw);padding:11px 20px 12px;border-radius:14px;background:rgba(24,20,34,.74);color:#fff6e6;'
         + 'font:500 16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;text-align:center;'
         + 'box-shadow:0 6px 24px rgba(0,0,0,.25);opacity:0;transition:opacity .45s ease,transform .45s ease;';
@@ -1012,7 +1017,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     // put you there in a jump: it is home at once; walking on, it trots out)
     const view = onView() && (P.speed < 0.6 || jumped);
     if (view && jumped) { const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.speed = 0; G.state = 'home'; G.field = null; G.act = null; G.roll = G.pitch = 0; G.yaw = Math.atan2(P.x - G.x, P.z - G.z); }
-    else if (view && G.state !== 'home' && G.state !== 'nap' && inFrame()) { G.resumeK = G.state === 'lead' || G.state === 'atSpot' || G.state === 'gate' ? G.leg : null; G.act = null; goTo('home', HOME); }
+    else if (view && G.state !== 'home' && G.state !== 'nap' && G.state !== 'intro' && G.state !== 'ready' && inFrame()) { G.resumeK = G.state === 'lead' || G.state === 'atSpot' || G.state === 'gate' ? G.leg : null; G.act = null; goTo('home', HOME); }
     // Han's show: off the car's way, sitting, watching it go by
     const show = HAN_SHOW.running();
     if (show && G.state !== 'hazard') {
@@ -1021,15 +1026,14 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     }
     if (!show && G.state === 'hazard') { G.state = 'home'; if (G.resumeK !== null) { const k = G.resumeK; G.resumeK = null; lead(k); } else nextOrNap(); }
 
-    /* the introduction (Tan): the first time you see Hachi near the middle of your view, within 8 m, off the famous
-     * view: it comes up, sits and says hello (a caption); once per visit, and never again once it has been seen */
-    if (!G.intro && !view && !show && dist(P, VIEW) > 1.5 && !inStore(P) && dist(P, G) < 8 && inCone(25) && !['hazard', 'come', 'staged', 'party'].includes(G.state) && G.act?.name !== 'greet' && !introSeen()) {
-      const f = facing?.();
-      const fx = f && f.lengthSq() > 0.5 ? f.x : (G.x - P.x) / (dist(P, G) || 1), fz = f && f.lengthSq() > 0.5 ? f.z : (G.z - P.z) / (dist(P, G) || 1);
-      const c = W.nearest(P.x + fx * 2, P.z + fz * 2, 2);
-      G.introSpot = c >= 0 ? W.at(c) : { x: G.x, z: G.z };
-      G.intro = 1; G.introT = 0; G.introSaid = false; G.resumeK = G.state === 'lead' || G.state === 'atSpot' || G.state === 'gate' ? G.leg : G.resumeK;
-      G.state = 'intro'; G.field = null; G.act = null;
+    /* the introduction (Tan, 2026-09-29: every time the game begins, nothing remembered): a moment after you press
+     * Start it runs out from behind you to `A.intro.d` m in front (nearer, it is under the start view's frame: the lens
+     * looks up at Fuji), turns to face you, sits and says hello (a caption); then it waits there until you walk off */
+    if (!G.intro && G.t > A.intro.after && !show && !inStore(P) && ['home', 'nap'].includes(G.state)) {
+      const fs = frontSpot(A.intro.d);
+      G.introSpot = fs ?? { x: G.x, z: G.z };
+      G.intro = 1; G.introT = 0; G.introSaid = false;
+      G.state = 'intro'; G.field = aim('goal', G.introSpot.x, G.introSpot.z, 0.3); G.act = null;
     }
     // the field grows a little each frame while it is wanted; the others are grown ahead, one at a time
     // (not while a whistle is pending: its own way is growing, and two fields grown in turn undo each other's work)
@@ -1135,15 +1139,26 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         break;
       }
       case 'intro': {
-        // "Hi, I'm Hachi": up to two metres in front of you, sit, look up, a happy double yip, a wag and a head tilt
+        // "Hi, I'm Hachi": a happy bounding run out in front of you, a turn to face you, sit, look up, a double yip, the
+        // caption, a wag and a head tilt
         G.introT += dt;
         const spot = G.introSpot;
-        const there = dist(G, spot) < 0.35 || G.introT > 6;
-        if (!there) { r = move(dt, spot, A.trot); lookAt = 'way'; break; }
-        if (!G.introSaid) { G.introSaid = true; G.introAt = G.introT; say('dog-yip', 0.9, true); G.tiltNext = 0.8; showCard(); }
+        const there = dist(G, spot) < 0.4 || G.introT > 8;
+        if (!there) { r = G.field?.ready ? steer(dt, A.whistle.gallop) : 'thinking'; if (r === 'there' || r === 'lost') r = move(dt, spot, A.whistle.gallop); lookAt = 'way'; pose.bound = 1; pose.perk = 0.6; pose.wag = 0.9; break; }
+        G.yaw += turn(G.yaw, Math.atan2(P.x - G.x, P.z - G.z)) * Math.min(1, dt * 6);
+        if (!G.introSaid) { G.introSaid = true; G.introAt = G.introT; say('dog-yip', 0.9, true, 30); G.tiltNext = 0.8; showCard(); }
         pose.posture = 1; pose.wag = 0.8; pose.perk = 1.3; pose.look = toYou; pose.nod = nodYou;
         const shown = G.introT - G.introAt;
-        if (shown > 5.5 || dP > 7) { markIntro(); G.intro = 2; lead(G.resumeK ?? G.leg ?? 0); G.resumeK = null; }
+        if (shown > A.intro.hold) { G.intro = 2; G.state = 'ready'; G.waitT = 0; G.field = null; }
+        break;
+      }
+      case 'ready': {
+        // introduced: sitting where it said hello, watching you, until you walk off; then the tour
+        G.waitT += dt;
+        G.yaw += turn(G.yaw, Math.atan2(P.x - G.x, P.z - G.z)) * Math.min(1, dt * 3);
+        pose.posture = 1; pose.wag = dP < 9 ? 0.5 : 0.25; pose.look = toYou; pose.nod = nodYou;
+        if (!G.act && (G.idleT += dt) > 4 + Math.random() * 3) { const k = ['tilt', 'sneeze', 'bow'][Math.floor(Math.random() * 3)]; play(k); }
+        if (dist(P, VIEW) > 1.5 && !view) { G.act = null; lead(G.leg ?? 0); }
         break;
       }
       case 'linger': {
@@ -1351,11 +1366,11 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       step(dt, p) { update(dt, p); },
       whistle,
       tipsy,
-      /** the introduction: 0 not yet, 1 running, 2 done; introReset forgets it (localStorage too) for a check */
+      /** the introduction: 0 not yet, 1 running, 2 done (reset() counts it done; introReset() makes it due again) */
       intro: () => G.intro,
-      introReset() { G.intro = 0; G.introSeenNow = false; try { localStorage.removeItem('hachi-intro'); } catch {} },
-      introMark() { markIntro(); },
-      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 0, introT: 0 }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
+      introReset() { G.intro = 0; },
+      introMark() { G.intro = 2; },
+      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 2, introT: 0 }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
     };
   }
   return { update, herd, G };

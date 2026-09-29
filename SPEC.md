@@ -82,7 +82,7 @@ are ours. No Sakura Crossing place or shop names appear.
 | Audio | Web Audio API (`src/core/sound.js`, `soundBus.js`); AAC files in `public/audio/` from `assets/audio/` (`npm run audio`) |
 | Input | Keyboard and mouse, pointer lock |
 | UI | HTML/CSS overlay; all text in `src/data/strings.js` |
-| Storage | `localStorage` (try/catch) for the volume and Hachi's first hello only |
+| Storage | `localStorage` (try/catch) for the volume only |
 | Hosting | A static host serving `dist/` at takemebacktojapan.com (section 13) |
 | Runtime requests | Our own domain only. Nothing is fetched from anywhere else |
 
@@ -263,8 +263,6 @@ names):
   (M): an illustrated map drawn from the game's own data, with diamonds for
   things to do and speakers for things to hear. Hidden on the famous view.
 - **Toasts:** short, above the card, 15 px.
-- `?fresh` in the URL plays as if for the first time: it forgets Hachi's
-  hello, then cleans the URL.
 
 ## 6. The experiences
 
@@ -332,9 +330,11 @@ facing Fuji: sit, look around with the mouse, and hear the flute theme.
 **Hachi, the guide** (animals/guide.js, shiba.js). A 3-4-month red shiba
 pup, about 24 cm at the shoulder, with sit, lie, trot, tilt, shake and nap:
 
-- **The hello:** the first time you look at him, "Hi, I'm Hachi!" with a
-  caption that tells you to follow him and that F whistles for him, stored
-  so it shows once.
+- **The hello:** every time the game starts, he runs out from behind you,
+  sits 3 m in front facing you, and says "Hi, I'm Hachi!" with a caption
+  that tells you to follow him and that F whistles for him. The view eases
+  down to him and back (your mouse takes it back at once). He waits there
+  until you walk off. Nothing is saved between visits.
 - **The tour:** he leads a town tour along the main streets at a jog, 4-9 m
   ahead, stopping to look back when you fall behind. There are no water
   crossings, no alleys, and he takes stairs like a person.
@@ -516,7 +516,7 @@ Tan deploys `dist/` from `npm run build` to takemebacktojapan.com. In order:
    (origin: tanuj10r/lawson-fuji) and has never been pushed. Push it. Decide
    whether the repo is public (it carries no audio, so it can be).
 2. **Final QA pass.** Play every experience at all three times of day, from
-   a fresh visit (`?fresh`) and a return visit. Also: the cards at 1280x720
+   a fresh start and a reload. Also: the cards at 1280x720
    and 2560x1440, R, F, M, N, Space, Esc, and a long idle. Fix what's found
    (the fix-known-gaps rule). Then run the whole suite: `_play`, `_konbini`,
    `_guide`, `_han-route`, `_cards`, `_audio`, the hero guard, the walks,

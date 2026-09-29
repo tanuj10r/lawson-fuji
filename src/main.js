@@ -20,7 +20,7 @@ import { STRINGS } from './data/strings.js';
 import { PRODUCT } from './data/catalog.js';
 import { hanShow } from './world/han/index.js';
 import { GUIDE } from './world/animals/guide.js';
-import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain, HAN_WATCH } from './config.js';
+import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain, HAN_WATCH, ANIMALS } from './config.js';
 
 /* ------------------------------------------------------------------ *
  * Lawson Fuji -- entry point.  Rendering is inherited from Sakura Crossing (MIT).
@@ -94,12 +94,6 @@ const sky = buildSky(scene, 2900, { avoidYaw: FUJI.bearing });
 /* Dev only: ?kit swaps the town for the M2a kit test street, and ?shots
  * (scripts/shots.mjs) freezes time so every frame it takes repeats exactly. */
 const devParams = new URLSearchParams(location.search);
-/* ?fresh: play as if for the first time (Tan): forget what the game remembers
- * about a visit (Hachi's hello; the volume stays).  Works on the live site too. */
-if (devParams.has('fresh')) {
-  try { localStorage.removeItem('hachi-intro'); } catch { /* storage is optional */ }
-  history.replaceState(null, '', location.pathname);      // a reload after that is an ordinary visit
-}
 const KIT = import.meta.env.DEV && devParams.has('kit');
 const FROZEN = import.meta.env.DEV && devParams.has('shots');
 const world = KIT ? buildKitTest(scene) : buildTown(scene);
@@ -408,6 +402,36 @@ function watchCar(dt) {
 }
 if (import.meta.env?.DEV) window.__watch = watch;
 
+/* Hachi's hello (Tan, 2026-09-29: every start, it runs out in front of you and introduces itself).  The start view
+ * looks up at Fuji, so a pup in front of you is under the frame: while it runs in and says hello the view eases down
+ * to it, then back to where it was.  Nothing holds you: move the mouse or walk and the view is yours at once. */
+const pupLook = { on: false, back: false, pitch0: 0, looked: 0, at: { x: 0, z: 0 } };
+function watchPup(dt) {
+  if (dt <= 0) return;
+  const A = ANIMALS.guide.intro;
+  const free = !player.scripted && !player.seat && !player.suspended && !hero && !gliding && player.locked;
+  const mine = () => player.looked - pupLook.looked > 40 || Math.hypot(player.pos.x - pupLook.at.x, player.pos.z - pupLook.at.z) > 0.3;
+  const t = free ? GUIDE.greeting() : null;
+  if (t && !pupLook.on && !pupLook.back) {
+    pupLook.on = true; pupLook.pitch0 = player.pitch; pupLook.looked = player.looked;
+    pupLook.at.x = player.pos.x; pupLook.at.z = player.pos.z;
+  }
+  if (!pupLook.on && !pupLook.back) return;
+  if (!free || mine()) { pupLook.on = pupLook.back = false; return; }
+  const k = 1 - Math.exp(-A.follow * dt);
+  if (t) {
+    const c = camera.position, dx = t.x - c.x, dz = t.z - c.z;
+    const yaw = Math.atan2(-dx, -dz), pitch = Math.max(A.pitchMin, Math.atan2(t.y - c.y, Math.hypot(dx, dz)) + A.above);
+    player.yaw += Math.atan2(Math.sin(yaw - player.yaw), Math.cos(yaw - player.yaw)) * k * 0.5;
+    player.pitch += (pitch - player.pitch) * k;
+  } else if (pupLook.on) { pupLook.on = false; pupLook.back = true; }
+  else {
+    player.pitch += (pupLook.pitch0 - player.pitch) * k * 0.6;
+    if (Math.abs(pupLook.pitch0 - player.pitch) < 0.01) pupLook.back = false;
+  }
+}
+if (import.meta.env?.DEV) window.__pupLook = pupLook;
+
 /* The Strong Nine (Tan: "just a fun add-on"): ten seconds of a soft blur
  * and a slow sway after you drink it.  A CSS filter on the canvas, so it
  * costs nothing when it's over. */
@@ -605,6 +629,7 @@ function frame(now = 0) {
   const dt = FROZEN ? 0 : Math.min(clock.getDelta(), 1 / 20);
 
   watchCar(dt);
+  watchPup(dt);
   if (!player.scripted) player.update(dt);
   /* watching the drive you stay put: the car's collider is a box round the
    * turned car, bigger than it as it swings out of the bay, and would shove

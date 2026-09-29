@@ -777,6 +777,9 @@ export const ANIMALS = {
     tripEvery: 45,                            // trips over its own paws about once in this many seconds at a trot
     fields: 6,                                // distance fields kept grown at once (2.6 MB each)
     introCard: 7,                             // the "Hi, I'm Hachi" caption stays this long (s: two lines, the whistle's key)
+    /* the hello, every start: `after` s into play it runs to `d` m in front of you and sits `hold` s; your view eases
+     * down to it meanwhile (main.js watchPup: `follow` 1/s, the pitch no lower than `pitchMin`) and back after */
+    intro: { after: 0.6, d: 3.2, hold: 5.5, follow: 3, pitchMin: -0.55, above: 0.18 },   // (`above`: the view aims this much over it: it sits in the lower third, the store still in the frame)
     /* F (Tan: it must be seen running to you, wherever you look): it answers `answer` s after the whistle starts (the whistle
      * is 0.52 s long).  If you can see it (within `see` m, `cone` degrees of the lens, nothing between) it runs from there;
      * else it is set out of sight of nothing: on a street `from` m ahead of you, in view, with a clear run to you, and

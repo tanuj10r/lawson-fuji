@@ -432,6 +432,34 @@ try {
     return { at: [+player.pos.x.toFixed(2), +player.pos.z.toFixed(2)], yaw: +player.yaw.toFixed(2) };
   }, (r) => Math.hypot(r.at[0] - 0, r.at[1] - 16.5) < 0.1 && Math.abs(r.yaw) < 0.01);
 
+  await step('45-hachi-hello', async () => {
+    // every start (Tan): it runs out in front of you, faces you, sits and says hello; the view eases down to it and
+    // back up after; on screen while it sits
+    const { player, camera, THREE } = window.__scene;
+    window.__press('KeyR');
+    await window.__wait(500);
+    const pitch0 = +player.pitch.toFixed(2);
+    window.__guide.introReset();
+    let waited = 0;
+    while (window.__guide.G.state !== 'intro' && waited < 30000) { await window.__wait(250); waited += 250; }   // (Han's show from an earlier step may still be running: the hello waits for it)
+    let minPitch = 9, onScreen = 0, satFrames = 0, card = false;
+    const v = new THREE.Vector3();
+    for (let k = 0; k < 70; k++) {
+      await window.__wait(100);
+      const G = window.__guide.G;
+      minPitch = Math.min(minPitch, player.pitch);
+      if (G.state === 'intro' && G.introSaid) {
+        satFrames++;
+        // its head in normalised screen coordinates (world frame: the guide works in it)
+        v.set(G.x, G.y + 0.2, G.z).project(camera);
+        if (Math.abs(v.x) < 0.9 && v.y > -0.9 && v.y < 0.9 && v.z < 1) onScreen++;
+      }
+      if (document.getElementById('hachi-card')?.style.opacity === '1') card = true;
+    }
+    await window.__wait(6000);
+    return { waited, pitch0, minPitch: +minPitch.toFixed(2), satFrames, onScreen, card, after: +player.pitch.toFixed(2), state: window.__guide.G.state, stored: localStorage.getItem('hachi-intro') };
+  }, (r) => r.minPitch < r.pitch0 - 0.2 && r.satFrames > 10 && r.onScreen >= r.satFrames * 0.8 && r.card && Math.abs(r.after - r.pitch0) < 0.05 && r.state === 'ready' && r.stored === null);
+
   await step('30-minimap', async () => {
     const { player, world } = window.__scene;
     const list = world.experiences.list;

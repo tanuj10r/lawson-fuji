@@ -667,10 +667,10 @@ export const osakaPosterTex = (shape = 'tall') =>
  *     the material (POKE_ART.swatch)
  */
 export const POKE_ART = {
-  w: 4096, h: 1024, rowH: 368, y0: 0.86, y1: 3.85,           // car y -> row v
-  front: { x: 0, y: 736, w: 1024, h: 264 },
-  ceiling: { x: 1024, y: 736, w: 2048, h: 264 },
-  floor: { x: 3072, y: 736, w: 1024, h: 264 },
+  w: 3072, h: 1024, rowH: 368, y0: 0.86, y1: 3.85,           // car y -> row v (158 px/m along, 123 px/m up: 16 MB with mips)
+  front: { x: 0, y: 736, w: 768, h: 264 },
+  ceiling: { x: 768, y: 736, w: 1536, h: 264 },
+  floor: { x: 2304, y: 736, w: 768, h: 264 },
   swatch: { y: 1000, h: 24, w: 64, colours: ['#f9d83b', '#8a4a1c', '#24242c', '#ffe66a', '#f2c23c', '#6b4a2c', '#f6f4ee', '#e8362a'] },
 };
 export const pokeArtTex = () =>
@@ -687,10 +687,6 @@ export const pokeArtTex = () =>
       // the brown skirt band under the floor line, and Pikachu's back stripes over it
       c.fillStyle = BR; c.fillRect(0, y(1.06), w, y(0.86) - y(1.06));
       c.fillStyle = PIKA.yellowLo; c.fillRect(0, y(1.2), w, y(1.06) - y(1.2));
-      // faint silhouettes behind everything on the band: a running row, a paler yellow
-      c.save(); c.globalAlpha = 0.14;
-      for (let xm = -9; xm < 9.4; xm += 1.15) pikachu(c, X(xm + 0.4), y(1.2), 0.62 * pym, { pose: 'wave', silhouette: BR, dir: 1 });
-      c.restore();
       // the parade under the windows: Pikachus of every pose between the doors
       const poses = ['wave', 'stand', 'cheer', 'sit', 'wave', 'cheer', 'stand', 'sit'];
       const spots = [-8.75, -5.6, -3.8, -0.9, 0.9, 3.8, 5.6, 8.75];
@@ -731,8 +727,9 @@ export const pokeArtTex = () =>
     {
       const C2 = A.ceiling;
       c.fillStyle = '#f5efe2'; c.fillRect(C2.x, C2.y, C2.w, C2.h);
-      for (let k = 0; k < 9; k++) {
-        const x = C2.x + 110 + k * 220, up = k % 2 ? 1 : -1;
+      const n = Math.floor(C2.w / 220);
+      for (let k = 0; k < n; k++) {
+        const x = C2.x + 70 + k * (C2.w / n), up = k % 2 ? 1 : -1;
         pikachu(c, x, C2.y + C2.h * (up > 0 ? 0.92 : 0.6), 150, { pose: ['wave', 'sit', 'cheer', 'stand'][k % 4], silhouette: '#c9b98e', dir: up });
         pokeball(c, x + 110, C2.y + C2.h * 0.5, 34, { silhouette: '#c9b98e' });
       }
@@ -741,8 +738,9 @@ export const pokeArtTex = () =>
     {
       const F = A.floor;
       c.fillStyle = '#f0c93a'; c.fillRect(F.x, F.y, F.w, F.h);
-      for (let k = 0; k < 12; k++) pawprint(c, F.x + 40 + k * 82, F.y + F.h * (0.3 + 0.4 * (k % 2)), 34, '#a8761e');
-      for (let k = 0; k < 4; k++) bolt(c, F.x + 140 + k * 250, F.y + F.h * 0.5, 160, 'rgba(255,255,255,0.4)', 0.3);
+      const np = Math.floor(F.w / 82);
+      for (let k = 0; k < np; k++) pawprint(c, F.x + 40 + k * (F.w / np), F.y + F.h * (0.3 + 0.4 * (k % 2)), 34, '#a8761e');
+      for (let k = 0; k < Math.floor(F.w / 250); k++) bolt(c, F.x + 140 + k * 250, F.y + F.h * 0.5, 160, 'rgba(255,255,255,0.4)', 0.3);
     }
     // the swatches
     A.swatch.colours.forEach((col, k) => { c.fillStyle = col; c.fillRect(k * A.swatch.w, A.swatch.y, A.swatch.w, A.swatch.h); });

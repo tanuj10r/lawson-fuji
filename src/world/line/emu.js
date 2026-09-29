@@ -927,6 +927,8 @@ export function makeFleet(ctx, { slots = 2, cars = 2 } = {}) {
   return {
     slots: slotList,
     types: Object.keys(TYPES),
+    /** Build these types now (at load), so no run's first appearance costs a frame (~60 ms a type). */
+    prime(types) { for (const t of types) if (TYPES[t]) get(t).group.visible = false; },
     setNight(k) { night = k; for (const s of built.values()) s.setNight(k); },
     /** Dev: what is built and what each slot shows. */
     get state() { return { built: [...built.keys()], showing: slotList.map((s) => s.type) }; },

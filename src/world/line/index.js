@@ -36,6 +36,7 @@ export function buildLine(ctx, { kit }) {
   ctx.experiences?.add({ kind: 'sound', id: 'crossing', name: 'Level crossing bells', jp: '踏切', x: R.crossX, z: LINE_Z });
   // the fleet: a slot per track, showing whichever of the three types its run needs (config TOWN.rail.trains)
   const fleet = makeFleet(ctx, { slots: 2 });
+  fleet.prime(R.trains ?? ['box']);       // built at load, hidden until their run: no hitch when one first appears
   const sets = fleet.slots;
   const listeners = [];
   const service = makeService({ sets, crossing, onEvent: (name, run) => listeners.forEach((f) => f(name, run)) });

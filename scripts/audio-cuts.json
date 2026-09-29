@@ -153,17 +153,21 @@
     "theme": {
       "src": "title bgm",
       "song": true,
+      "start": 0,
+      "len": 45,
+      "fadeOut": 2.5,
       "he": true,
       "kbps": 48,
-      "_": "Tan's song, Nippon Let's Go (made with Suno, their own lyrics): loops on the start and pause cards (core/sound.js setMenu); the whole track, stereo, streamed"
+      "_": "Tan's song, Nippon Let's Go (made with Suno, their own lyrics): its first 45 s loop on the start and pause cards (Tan), fading out over the last 2.5 s into the opening again (core/sound.js setMenu); stereo, streamed"
     },
     "store-bgm": {
       "start": 0.0,
       "len": 0,
       "loop": 2.0,
       "peak": 0.7,
-      "kbps": 40,
-      "_": "the whole track (len 0), looping"
+      "he": true,
+      "kbps": 32,
+      "_": "the whole track (len 0), looping; HE-AAC 32 kbps (2026-09-29: 1.72 -> about 1.37 MB, room for Tan's title song under the 5 MB budget; HE-AAC keeps music better than plain AAC at 40)"
     },
     "han-drift": {
       "src": "Han-tokyodrift-sixdays",

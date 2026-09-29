@@ -33,11 +33,11 @@ function readWav(file) {
   }
   throw new Error('no data chunk in ' + file);
 }
-function writeWav(file, x) {
+function writeWav(file, x, ch = 1) {
   const n = x.length, b = Buffer.alloc(44 + n * 2);
   b.write('RIFF', 0); b.writeUInt32LE(36 + n * 2, 4); b.write('WAVE', 8);
-  b.write('fmt ', 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22);
-  b.writeUInt32LE(SR, 24); b.writeUInt32LE(SR * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34);
+  b.write('fmt ', 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(ch, 22);
+  b.writeUInt32LE(SR, 24); b.writeUInt32LE(SR * 2 * ch, 28); b.writeUInt16LE(2 * ch, 32); b.writeUInt16LE(16, 34);
   b.write('data', 36); b.writeUInt32LE(n * 2, 40);
   for (let i = 0; i < n; i++) b.writeInt16LE(Math.max(-32767, Math.min(32767, Math.round(x[i] * 32767))), 44 + i * 2);
   fs.writeFileSync(file, b);
@@ -73,8 +73,24 @@ for (const [name, c] of Object.entries(files)) {
   /* `song`: a piece of music played whole (the theme): kept in stereo, no cut or levelling, only re-encoded */
   if (c.song) {
     const m4a = path.join(OUT, name + '.m4a');
+    /* `len`: only this much of it, from `start` (s), stereo; `fadeOut` s at the end, so the loop comes back round to
+     * the opening cleanly (a crossfade would blur the cut's loud bar into the quiet intro) */
+    let src = mp3;
+    if (c.len) {
+      const wav = path.join(tmp, name + '-st.wav');
+      execFileSync('afconvert', ['-f', 'WAVE', '-d', `LEI16@${SR}`, '-c', '2', mp3, wav]);
+      const x = readWav(wav), s0 = Math.round((c.start ?? 0) * SR) * 2, n = Math.min(x.length - s0, Math.round(c.len * SR) * 2);
+      const y = x.slice(s0, s0 + n), fr = n / 2, fi = Math.round(0.01 * SR), fo = Math.round((c.fadeOut ?? 2) * SR);
+      for (let f = 0; f < fr; f++) {
+        const k = Math.min(1, f / fi, (fr - 1 - f) / fo);
+        const e = k < 1 && f > fi ? k * k * (3 - 2 * k) : k;       // a smooth fade out
+        y[2 * f] *= e; y[2 * f + 1] *= e;
+      }
+      src = path.join(tmp, name + '-cut.wav');
+      writeWav(src, y, 2);
+    }
     // HE-AAC (`aach`) for a song: half the bytes of plain AAC for music at the same ear (every desktop browser plays it)
-    execFileSync('afconvert', ['-f', 'm4af', '-d', c.he ? 'aach' : 'aac', '-b', String((c.kbps ?? 96) * 1000), ...(c.he ? [] : ['-q', '127']), mp3, m4a]);
+    execFileSync('afconvert', ['-f', 'm4af', '-d', c.he ? 'aach' : 'aac', '-b', String((c.kbps ?? 96) * 1000), ...(c.he ? [] : ['-q', '127']), src, m4a]);
     const info = execFileSync('afinfo', [m4a]).toString();
     const dur = +(info.match(/estimated duration: ([0-9.]+)/)?.[1] ?? 0);
     const size = fs.statSync(m4a).size;
@@ -130,7 +146,7 @@ for (const [name, c] of Object.entries(files)) {
   for (let i = 0; i < n; i++) y[i] *= g;
   const cut = path.join(tmp, name + '-cut.wav'), m4a = path.join(OUT, name + '.m4a');
   writeWav(cut, y);
-  execFileSync('afconvert', ['-f', 'm4af', '-d', 'aac', '-b', String((c.kbps ?? 40) * 1000), '-q', '127', cut, m4a]);
+  execFileSync('afconvert', ['-f', 'm4af', '-d', c.he ? 'aach' : 'aac', '-b', String((c.kbps ?? 40) * 1000), ...(c.he ? [] : ['-q', '127']), cut, m4a]);   // `he`: HE-AAC, for long music
   const size = fs.statSync(m4a).size;
   total += size;
   manifest[name] = { file: name + '.m4a', duration: +len.toFixed(4), loop: !!c.loop };

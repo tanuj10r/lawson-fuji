@@ -42,10 +42,13 @@ const th = await page.evaluate(async () => {
   const off = { paused: !T.el || T.el.paused, world: +d._world.gain.value.toFixed(2), at: +(T.el?.currentTime ?? 0).toFixed(1) };
   p.locked = false; await wait(1800);
   const again = { playing: !T.el.paused, at: +T.el.currentTime.toFixed(1) };
+  // its end comes round to its start (45 s, looped), still playing
+  T.el.currentTime = Math.max(0, T.el.duration - 0.6); await wait(1500);
+  again.wrapped = !T.el.paused && T.el.currentTime < 1.5;
   p.locked = true; await wait(2600);
   return { on, off, again, end: { paused: T.el.paused, world: +d._world.gain.value.toFixed(2) } };
 });
-check("Tan's song loops on the start and pause cards, picks up where it left off, off in play", !!th.skip || (th.on.playing && th.on.at > 1 && th.on.world <= 0.2 && th.on.rms > 0.003 && th.off.paused && th.off.world >= 0.95 && th.again.playing && th.again.at >= th.off.at && th.end.paused && th.end.world >= 0.95), th);
+check("Tan's song loops on the start and pause cards, picks up where it left off, off in play", !!th.skip || (th.on.playing && th.on.at > 1 && th.on.world <= 0.2 && th.on.rms > 0.003 && th.off.paused && th.off.world >= 0.95 && th.again.playing && th.again.at >= th.off.at && th.again.wrapped && th.end.paused && th.end.world >= 0.95), th);
 
 // every file decodes, and its loop span fits
 const dec = await page.evaluate(async () => {

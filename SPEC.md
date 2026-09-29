@@ -259,7 +259,7 @@ names):
   (`scripts/_cards.mjs` checks 1280x720 to 2560x1440).
 - **Pause:** the same card with a PAUSED chip, the volume (five steps) and
   Resume. The game keeps drawing, blurred, at 10 fps.
-- **The song:** Tan's "Nippon Let's Go" (made with Suno) loops on the start
+- **The song:** the first 45 s of Tan's "Nippon Let's Go" (made with Suno) loop on the start
   and pause cards, with the game's own sound down under it, and fades out as
   play starts or resumes; paused again, it carries on where it left off. The
   browser allows sound only after a first click or key, so on the start card
@@ -418,8 +418,8 @@ facings out of place).
   - Han's song (han-drift), ドンペン堂's theme, shrine chimes, the rural
     flute;
   - birds, crows, night insects, wind, ui-tap, stamp.
-  - Tan's song for the cards, `title bgm.mp3` (kept whole and in stereo,
-    HE-AAC 48 kbps, 1.03 MB).
+  - Tan's song for the cards, `title bgm.mp3`: its first 45 s looped, in
+    stereo, HE-AAC 48 kbps, 276 KB.
 - **Rules:**
   - audio files are never committed;
   - no soundboard or sound gallery (効果音ラボ's terms);
@@ -452,7 +452,7 @@ facings out of place).
 
 | Measure | Target | Now |
 | --- | --- | --- |
-| First-visit download (`npm run size`) | < 5 MB | 5.91 MB with the title song (1.03 MB, streamed only when a card plays it); 4.90 MB without; 1.53 MB before the first click |
+| First-visit download (`npm run size`) | < 5 MB | 4.87 MB (1.53 MB before the first click; key art 0.15 MB; the title song 0.28 MB) |
 | Ready to play | < 5 s | about 4 s |
 | Famous view frame, 1440p | 60 fps | 9.5 ms |
 | Worst spots, 1440p | 60 fps | 9-11 ms (the far bank, the paddies from the lane end) |

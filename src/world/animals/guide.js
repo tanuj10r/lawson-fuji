@@ -1,11 +1,14 @@
 import * as THREE from 'three';
 import { TOWN, STREET, LAWSON, HERO_VIEWS, SLOWLIFE, ANIMALS } from '../../config.js';
 import { pondShore } from '../land/pond.js';
+import { planPaddies } from '../land/paddies.js';
+import { SPECIALS } from '../town-plan.js';
 import { HAN_BAY, HAN_SHOW } from '../han/index.js';
 import { buildDrive, driveAt, T_DRIVE } from '../han/drive.js';
 import { shibaGeometry, RIG, SHADOW, BODY_R } from './shiba.js';
 import { animalMaterial, Herd, ease, turn } from './shade.js';
 import { soundBus } from '../../core/soundBus.js';
+import { STRINGS } from '../../data/strings.js';
 
 /* ------------------------------------------------------------------ *
  * The guide (Tan, 2026-09-28): a shiba that leads you to the town's
@@ -65,9 +68,12 @@ class Walk {
     const nx = this.nx = Math.ceil((B.x1 - B.x0) / C), nz = this.nz = Math.ceil((B.z1 - B.z0) / C);
     const N = this.N = nx * nz;
     const K = A.costs;
-    const cost = this.cost = new Uint8Array(N).fill(K.ground);
+    // everything is an alley until a street, a plaza, the land's paths or a lot says otherwise
+    const cost = this.cost = new Uint8Array(N).fill(K.alley);
     const h = this.h = new Int16Array(N);
     this.haz = new Uint8Array(N);
+    this.stair = new Uint8Array(N);      // 1: a flight climbing along x, 2: along z (entered only along that axis)
+    this.water = new Uint8Array(N);      // for the checks: cells that are water (all blocked)
     this.C = C;
     const rect = (x0, z0, x1, z1, fn) => {
       const ix0 = Math.max(0, Math.floor((Math.min(x0, x1) - X0) / C)), ix1 = Math.min(nx - 1, Math.floor((Math.max(x0, x1) - X0) / C));
@@ -86,6 +92,12 @@ class Walk {
       h[i] = Math.round(y * 100);
       if (y < -0.05) cost[i] = 0;
     }
+    /* open ground you may cross: the land north of the main road (the car park, the river walks, the bridge
+     * road's verges), the paddies' paths and the pond's grounds; the plaza and the station's strip */
+    wrect(TOWN.bounds.x0, TOWN.bounds.z0, TOWN.bounds.x1, TOWN.grid.main - 2.5, K.ground);
+    { const [x0, z0, x1, z1] = TOWN.land.paddies.box; wrect(x0 - 1.5, z0 - 1.5, x1 + 1.5, z1 + 1.5, K.ground); }
+    { const [x0, z0, x1, z1] = TOWN.land.pond.box; wrect(x0 - 1.5, z0 - 1.5, x1 + 1.5, z1 + 1.5, K.ground); }
+    for (const s of SPECIALS) if (s.kind === 'plaza' || s.kind === 'station') wrect(s.x0, s.z0, s.x1, s.z1, K.plaza);
     /* the roads: pavements cheap, asphalt dear, the zebras cheap again */
     const net = this.core?.kit?.net, feats = this.core?.kit?.features;
     if (net) {
@@ -133,8 +145,67 @@ class Walk {
       };
       rect(x0 - m, z0 - m, x1 + m, z1 + m, (i) => {
         const x = X0 + ((i % nx) + 0.5) * C, z = Z0 + (((i / nx) | 0) + 0.5) * C;
-        if (inside(x, z) || inside(x + m, z) || inside(x - m, z) || inside(x, z + m) || inside(x, z - m)) cost[i] = 0;
+        if (inside(x, z) || inside(x + m, z) || inside(x - m, z) || inside(x, z + m) || inside(x, z - m)) { cost[i] = 0; this.water[i] = 1; }
       });
+    }
+    /* the paddies: the plots themselves are dear (the paths between them are the way), the flooded ones and the
+     * feeder channel are water: blocked, with a margin (Tan saw the pup half under in the channel) */
+    {
+      const plan = planPaddies();
+      const inPlot = (p, x, z) => x >= p.sw - 0.2 && x <= p.se + 0.2 && z >= p.S(x) - 0.2 && z <= p.N(x) + 0.2;
+      const [bx0, bz0, bx1, bz1] = TOWN.land.paddies.box;
+      const a = W({ x: bx0 - 1, z: bz0 - 1 }), b = W({ x: bx1 + 1, z: bz1 + 1 });
+      rect(a.x, a.z, b.x, b.z, (i) => {
+        const p = ctx.toLocal({ x: X0 + ((i % nx) + 0.5) * C, z: Z0 + (((i / nx) | 0) + 0.5) * C });
+        for (const q of plan.plots) {
+          if (!inPlot(q, p.x, p.z)) continue;
+          if (q.kind === 'flood') { cost[i] = 0; this.water[i] = 1; } else if (cost[i]) cost[i] = K.plot;
+          break;
+        }
+      });
+      for (const c of plan.channels) {
+        const m = 0.45;
+        const a = W({ x: c.x0 - m, z: c.z0 - m }), b = W({ x: c.x1 + m, z: c.z1 + m });
+        rect(a.x, a.z, b.x, b.z, (i) => { cost[i] = 0; this.water[i] = 1; });
+      }
+    }
+    // the river's water (the sunken walks are blocked already, being below street level)
+    for (let i = 0; i < N; i++) if (h[i] < -250) this.water[i] = 1;
+    /* stairs: a run of three or more risers (8-45 cm each) along one axis is a flight; its cells are entered
+     * only along that axis (from the foot or the head, as a person does), and the cells beside a flight at
+     * another level are shut, so it cannot be climbed from the side or walked into (Tan: the station's steps) */
+    {
+      const stair = this.stair, step = Math.round(A.step * 100);
+      const riser = (d) => Math.abs(d) >= 8 && Math.abs(d) <= step;
+      for (const [axis, di, len] of [[1, 1, nx], [2, nx, nz]]) {
+        const other = axis === 1 ? nz : nx;
+        for (let k = 0; k < other; k++) {
+          const base = axis === 1 ? k * nx : k;
+          let j = 1;
+          while (j < len) {
+            // a maximal run of risers of one sign, starting at cell j-1
+            const start = j - 1;
+            let run = 0, sign = 0;
+            while (j < len) {
+              const c = base + j * di, d = h[c] - h[c - di];
+              if (!(cost[c] && cost[c - di] && riser(d) && (sign === 0 || Math.sign(d) === sign))) break;
+              sign = Math.sign(d); run++; j++;
+            }
+            if (run >= 3) for (let m = 0; m <= run; m++) stair[base + (start + m) * di] = axis;
+            if (run === 0) j++;
+          }
+        }
+      }
+      // the sides: a non-stair neighbour across the axis at another level is shut
+      const side = [];
+      for (let i = 0; i < N; i++) {
+        if (!stair[i]) continue;
+        const cx = i % nx, cz = (i / nx) | 0;
+        const nb = stair[i] === 1 ? [i - nx, i + nx] : [i - 1, i + 1];
+        const on = stair[i] === 1 ? [cz > 0, cz < nz - 1] : [cx > 0, cx < nx - 1];
+        nb.forEach((q, k) => { if (on[k] && !stair[q] && cost[q] && Math.abs(h[q] - h[i]) > 6) side.push(q); });
+      }
+      for (const q of side) cost[q] = 0;
     }
     /* the RX-7's way (han/drive.js), in the town frame: kept off while the show runs */
     {
@@ -154,6 +225,12 @@ class Walk {
   }
   at(i) { return { x: this.X0 + ((i % this.nx) + 0.5) * this.C, z: this.Z0 + (((i / this.nx) | 0) + 0.5) * this.C }; }
   free(x, z) { const i = this.cell(x, z); return i >= 0 && this.cost[i] > 0; }
+  /** May a step go from cell c to its neighbour q (offset dx, dz)?  Stairs only along their axis. */
+  can(c, q, dx, dz) {
+    const s = this.stair[c] || this.stair[q];
+    if (!s) return true;
+    return s === 1 ? dz === 0 : dx === 0;
+  }
   /** The free cell nearest (x, z), within `r` metres; -1 if none. */
   nearest(x, z, r = 3, ok = null) {
     const c0 = this.cell(x, z);
@@ -174,9 +251,16 @@ class Walk {
   sight(ax, az, bx, bz) {
     const L = Math.hypot(bx - ax, bz - az) || 1, n = Math.ceil(L / (this.C * 0.4));
     const px = (-(bz - az) / L) * 0.14, pz = ((bx - ax) / L) * 0.14;
+    // a line that touches a flight must run along the flight's axis (within ~15 degrees), and never up a big step
+    const ux = Math.abs(bx - ax) / L, uz = Math.abs(bz - az) / L;
+    let last = this.cell(ax, az);
     for (let k = 1; k <= n; k++) {
       const t = k / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t;
       if (!this.free(x, z) || !this.free(x + px, z + pz) || !this.free(x - px, z - pz)) return false;
+      const c = this.cell(x, z);
+      const s = this.stair[c];
+      if (s && (s === 1 ? uz > 0.26 : ux > 0.26)) return false;
+      if (c !== last) { if (last >= 0 && Math.abs(this.h[c] - this.h[last]) > A.step * 100) return false; last = c; }
     }
     return true;
   }
@@ -232,7 +316,7 @@ class Field {
         const ix = cx + dx, iz = cz + dz;
         if (ix < 0 || iz < 0 || ix >= nx || iz >= nz) continue;
         const q = iz * nx + ix;
-        if (!cost[q] || shut[q] || Math.abs(h[q] - h[c]) > step) continue;
+        if (!cost[q] || shut[q] || Math.abs(h[q] - h[c]) > step || !W.can(c, q, dx, dz)) continue;
         if (dx && dz && (!cost[cz * nx + ix] || !cost[iz * nx + cx])) continue;     // no corner cutting
         const len = (dx && dz ? Math.SQRT2 : 1) * C;
         const nd = d[c] + len * (cost[c] + cost[q]) / (2 * A.costs.pavement);
@@ -262,6 +346,7 @@ class Field {
       if (ix < 0 || iz < 0 || ix >= nx || iz >= nz) continue;
       const q = iz * nx + ix;
       if (dx && dz && (!W.cost[cz * nx + ix] || !W.cost[iz * nx + cx])) continue;
+      if (!W.can(c, q, dx, dz) || Math.abs(W.h[q] - W.h[c]) > A.step * 100) continue;
       if (d[q] < bd) { bd = d[q]; best = q; }
     }
     return best;
@@ -292,7 +377,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     ph: 0, amp: 0, look: 0, nod: 0, tilt: 0, wag: 0, wagA: 0, wagPh: 0, posture: 0, perk: 1, hop: 0, hopT: -1, shakeT: -1,
     state: 'home', target: null, done: new Set(['view']), skipped: new Set(), t: 0, waitT: 0, sat: 0, glance: 0, tiltT: -1, tiltNext: 3,
     lostT: 0, offT: 0, waitD0: null, minD: INF, hopped: null, field: null, goal: null, since: 0, resume: null, aside: null, moved: 0, thinkT: 0,
-    drops: 0, sinceInvite: 99, invites: 0, act: null, last: '', idleT: 0, energy: 0.7, stillT: 0, chaseT: 0, circ: null, inviteE: null,
+    drops: 0, sinceInvite: 99, invites: 0, act: null, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 0, introT: 0, last: '', idleT: 0, energy: 0.7, stillT: 0, chaseT: 0, circ: null, inviteE: null,
   };
   const P = { x: VIEW.x, z: VIEW.z, y: 1.6, vx: 0, vz: 0, speed: 0, first: true, hx: 0, hz: -1 };
   /* Its voice (Tan: "very cute, adorable sounds"; core/sound.js dog-* recipes):
@@ -305,22 +390,25 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   };
   let list = [], listT = 0;
   const fields = { follow: null };
-  const ready = new Map();            // goal key -> a finished Field (every engagement's, grown ahead of need)
-  const queue = [];                   // keys still to grow while nothing else is wanted
+  const ready = new Map();            // goal key -> a Field; the last few kept (each is 2.6 MB of Float32 for the town)
+  const queue = [];                   // fields to grow ahead while nothing else is wanted
   const dbg = { paths: 0 };
+  const TOUR = A.tour;
 
   const rOf = (e) => e.r ?? ENGAGE[e.id] ?? 1.2;
   const isEngage = (e) => (e.kind ? e.kind === 'engage' : ENGAGE[e.id] !== undefined);
   const refresh = () => { list = (spots?.() ?? []).filter(isEngage); };
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+  const keyOf = (x, z) => `${x.toFixed(1)},${z.toFixed(1)}`;
 
   /** Grow a field from a disc round (x, z); the pup thinks until it is ready (unless it was grown ahead). */
   const aim = (which, x, z, r, limit = INF) => {
     if (which !== 'follow') {
-      const key = `${x.toFixed(1)},${z.toFixed(1)}`;
-      if (ready.has(key)) return ready.get(key);
+      const key = keyOf(x, z);
+      if (ready.has(key)) { const f = ready.get(key); ready.delete(key); ready.set(key, f); return f; }   // freshest last
       const f = new Field(W);
       ready.set(key, f);
+      while (ready.size > A.fields) { const [k0, f0] = ready.entries().next().value; if (f0 === G.field) { ready.delete(k0); ready.set(k0, f0); } else ready.delete(k0); }
       grow(f, x, z, r, limit);
       dbg.paths++;
       return f;
@@ -343,16 +431,31 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     f.goalAt = { x, z };
     return f;
   };
-  const fieldOf = (e) => aim('goal', e.x, e.z, rOf(e) * 0.7);
-  /** Ahead of need: every engagement's field, home's and the nap's, one at a time while the pup isn't waiting on one. */
+  const fieldOf = (e) => aim('goal', e.x, e.z, e.leg && !isStop(e) ? 0.6 : rOf(e) * 0.7);
+  /** A field already grown for e, if any (scoring never grows one). */
+  const fieldIf = (e) => ready.get(keyOf(e.x, e.z));
+
+  /* ---- the tour: an ordered chain of street waypoints (config.js ANIMALS.guide.tour); engagements are stops ---- */
+  const isStop = (t) => !!(t?.leg?.id && t.leg.id !== 'gate');
+  /** The leg's target: the engagement's own entry (its ring) for a stop, else the waypoint. */
+  const legTarget = (k) => {
+    const L = TOUR[k];
+    if (!L) return null;
+    if (L.id && L.id !== 'gate') { refresh(); const e = list.find((q) => q.id === L.id); return e ? { ...e, k, leg: L } : null; }
+    return { x: L.x, z: L.z, id: L.id ?? null, k, leg: L };
+  };
+  const legDone = (k) => { const L = TOUR[k]; return !L || (!!L.id && L.id !== 'gate' && (G.done.has(L.id) || !legTarget(k))); };
+  /** The first leg from `from` on that still wants doing. */
+  const nextLeg = (from) => { let k = from; while (k < TOUR.length && legDone(k)) k++; return k; };
+  /** Ahead of need: this leg's field and the next one's, one at a time while the pup isn't waiting on one. */
   const prefetch = () => {
-    refresh();
-    for (const e of list) if (!G.done.has(e.id)) queue.push(() => fieldOf(e));
+    const k = nextLeg(G.leg ?? 0);
+    for (const j of [k, nextLeg(k + 1)]) { const t = legTarget(j); if (t) queue.push(() => fieldOf(t)); }
     queue.push(() => aim('goal', NAP.x, NAP.z, 0.3));
   };
   let growing = null;
-  /** How far you are from e along the way (the field's metres, or the crow's when it isn't grown yet). */
-  const wayTo = (e) => { const f = fieldOf(e); const m = f.ready ? f.near(P.x, P.z) : INF; return m === INF ? dist(P, e) * 1.3 : m; };
+  /** How far you are from e along the way (a grown field's metres, else the crow's and a bit). */
+  const wayTo = (e) => { const f = fieldIf(e); const m = f?.ready ? f.near(P.x, P.z) : INF; return m === INF ? dist(P, e) * 1.3 : m; };
   /** Which way you mean to go: your walk, or where you look when you stand. */
   const intent = () => {
     if (P.speed > 0.5) { const l = Math.hypot(P.vx, P.vz) || 1; return { x: P.vx / l, z: P.vz / l }; }
@@ -360,7 +463,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     return f && f.lengthSq() > 0.5 ? { x: f.x, z: f.z } : { x: P.hx, z: P.hz };
   };
   const angleOff = (dir, e) => { const dx = e.x - P.x, dz = e.z - P.z, d = Math.hypot(dx, dz) || 1; return Math.acos(THREE.MathUtils.clamp((dx * dir.x + dz * dir.z) / d, -1, 1)); };
-  /** The nearest engagement not done (the skipped ones last), or the one that lies your way when `byIntent`. */
+  /** The nearest engagement not done (the skipped ones last), or the one that lies your way when `byIntent`: the leftovers after the tour. */
   const pickTarget = (byIntent = false) => {
     refresh();
     const dir = intent();
@@ -377,11 +480,39 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     }
     return best;
   };
-  const lead = (e) => {
-    G.target = e; G.state = 'lead'; G.hopped = null; G.aside = null; G.since = 0; G.lostT = 0; G.offT = 0; G.waitD0 = null; G.minD = INF;
-    G.sinceInvite = 0; G.invites++; G.skipped.delete(e.id);
-    G.field = fieldOf(e);
+  /** The tour leg to pick up from where you are: the nearest sensible one (the way you are heading, when `byIntent`);
+   * the legs of a stretch you already walked count too, so it can take you back the way it meant to. */
+  const pickLeg = (byIntent = false) => {
+    const dir = intent();
+    let best = -1, bd = INF;
+    for (let k = 1; k < TOUR.length; k++) {
+      if (legDone(k) || (TOUR[k].id && G.skipped.has(TOUR[k].id) && G.drops > 0 && k === G.leg)) continue;
+      const t = legTarget(k);
+      if (!t) continue;
+      const ang = angleOff(dir, t);
+      if (byIntent && ang > D.way * Math.PI / 180) continue;
+      const d = wayTo(t) + (byIntent ? 12 * (1 - Math.cos(ang)) : 0) + (k < (G.leg ?? 0) ? 6 : 0);   // a little against going back over old ground
+      if (d < bd - 1e-6) { bd = d; best = k; }
+    }
+    return best;
   };
+  const startLead = (t) => {
+    G.target = t; G.state = 'lead'; G.hopped = null; G.aside = null; G.since = 0; G.lostT = 0; G.offT = 0; G.waitD0 = null; G.minD = INF;
+    G.sinceInvite = 0; G.invites++; if (t.id) G.skipped.delete(t.id);
+    G.field = fieldOf(t);
+  };
+  /** Lead along the tour from leg k (skipping what is done). */
+  const lead = (k) => {
+    k = nextLeg(k);
+    if (k >= TOUR.length) { leftovers(); return; }
+    G.leg = k;
+    startLead(legTarget(k));
+    const n = legTarget(nextLeg(k + 1));
+    if (n) queue.push(() => fieldOf(n));
+  };
+  /** After the tour: any engagement still not done (a skipped one), else the nap. */
+  const leftovers = () => { G.leg = TOUR.length; const e = pickTarget(); if (e) startLead({ ...e, k: TOUR.length, leg: { id: e.id } }); else goTo('nap', NAP, 0.3); };
+  const advance = () => lead((G.leg ?? 0) + 1);
   const goTo = (state, p, r = 0.3) => { G.state = state; G.goal = p; G.field = aim('goal', p.x, p.z, r); G.since = 0; };
   /** The goal is cut off from here: aim instead at the reachable cell nearest it. */
   const nearestReach = (goal) => {
@@ -399,25 +530,33 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     return q;
   };
   const allDone = () => { refresh(); return list.every((e) => G.done.has(e.id)); };
-  /** After an engagement, or when it is asked to: the next one (the nearest), or the nap when all are done. */
-  const nextOrNap = () => { const e = pickTarget(); if (e) lead(e); else goTo('nap', NAP, 0.3); };
-  /** You went your own way: suggest what lies that way (skipped ones last), else keep you company. */
+  /** After a stop: the tour goes on; after the tour, the leftovers, then the nap. */
+  const nextOrNap = () => advance();
+  /** You went your own way: pick the tour up from the nearest leg that lies your way, else keep you company. */
   const replan = () => {
     if (allDone()) { goTo('nap', NAP, 0.3); return; }
-    const e = G.drops < 2 || G.sinceInvite >= INV.every ? pickTarget(true) : null;
-    if (e) lead(e); else company();
+    const k = G.drops < 2 || G.sinceInvite >= INV.every ? pickLeg(true) : -1;
+    if (k >= 0) lead(k); else company();
   };
   const company = () => { G.state = 'company'; G.field = null; G.since = 0; G.waitT = 0; G.thinkT = -9; };
-  /** "Not interested": the proposal is dropped (skipped, not done) and it comes after you. */
-  /** Your whistle (F): ears up, a yip from wherever it is, and it comes at a gallop; from very far, it appears from the nearest corner out of view. */
+  /** Your whistle (F): the two notes sound at you; Hachi answers once they are over (ears up meanwhile): a yip, and
+   * it comes at a gallop, or, already beside you, a happy hop.  From very far it appears from the nearest corner
+   * out of view.  A second press while one is pending, or within a second, does nothing (no stacked whistles or yips). */
   const whistle = () => {
-    if (!W.built || G.state === 'come') return false;
+    if (!W.built || G.whistleAt !== null || G.t - G.lastWhistle < 1.0) return false;
     soundBus.oneShot('whistle', { x: P.x, z: P.z, y: P.y, near: 4, far: 30, gain: 0.8, recipe: 'whistle' });
+    G.lastWhistle = G.t; G.whistleAt = G.t + A.whistle.answer;
+    return true;
+  };
+  const answer = () => {
     say('dog-yip', 0.9, true);
-    G.act = null; G.roll = G.pitch = 0; G.target = null; G.resume = null; G.drops = 0;
+    const dP = dist(P, G);
+    G.act = null; G.roll = G.pitch = 0;
+    if (dP <= A.whistle.near + 1.5 && G.state !== 'nap' && G.state !== 'home') { play('hop'); G.wagA = Math.max(G.wagA, 0.7); return; }
+    G.target = null; G.resume = null; G.drops = 0;
     G.state = 'come'; G.since = 0; G.thinkT = -9; G.waitT = 0; G.awooed = false;
     G.field = aim('follow', P.x, P.z, 0.6, A.whistle.far * 1.5); G.thinkT = 0;
-    if (dist(P, G) > A.whistle.far) {
+    if (dP > A.whistle.far) {
       // too far to watch it cross the whole town: it turns up from a street 25-40 m off, out of your view
       const f = G.field;
       while (!f.ready) f.work(50);
@@ -432,11 +571,11 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       }
       if (best >= 0) { const q = W.at(best); G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); G.speed = 0; }
     }
-    return true;
   };
   GUIDE.whistle = whistle;
+  /** "Not interested": the leg is dropped (an engagement is skipped, not done) and it comes after you. */
   const drop = () => {
-    if (G.target) G.skipped.add(G.target.id);
+    if (G.target?.id && G.target.id !== 'gate') G.skipped.add(G.target.id);
     G.drops++; G.dropT = G.t;
     G.state = 'chase'; G.field = null; G.since = 0; G.chaseT = 0; G.thinkT = -9;
     G.act = null;
@@ -462,6 +601,41 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   };
   /** Player on a famous view, and is the pup in the picture? */
   const onView = () => heroes.some((h) => dist(P, h) < 1.4);
+  /** Is Hachi within `deg` of the middle of your view? */
+  const inCone = (deg) => {
+    const f = facing?.();
+    if (!f || f.lengthSq() < 0.5) return false;
+    const dx = G.x - P.x, dz = G.z - P.z, d = Math.hypot(dx, dz) || 1;
+    return (dx * f.x + dz * f.z) / d > Math.cos(deg * Math.PI / 180);
+  };
+  /* the introduction's caption: a small card near the bottom of the screen, two lines, fades by itself */
+  const INTRO_KEY = 'hachi-intro';
+  const introSeen = () => { if (G.introSeenNow) return true; try { return localStorage.getItem(INTRO_KEY) === '1'; } catch { return false; } };
+  const markIntro = () => { G.introSeenNow = true; try { localStorage.setItem(INTRO_KEY, '1'); } catch {} };
+  let cardEl = null, cardT = -1;
+  const showCard = () => {
+    if (typeof document === 'undefined') return;
+    if (!cardEl) {
+      cardEl = document.createElement('div');
+      cardEl.id = 'hachi-card';
+      cardEl.setAttribute('aria-live', 'polite');
+      cardEl.style.cssText = 'position:fixed;left:50%;bottom:15%;transform:translateX(-50%) translateY(6px);z-index:7;pointer-events:none;'
+        + 'max-width:min(560px,86vw);padding:11px 20px 12px;border-radius:14px;background:rgba(24,20,34,.74);color:#fff6e6;'
+        + 'font:500 16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;text-align:center;'
+        + 'box-shadow:0 6px 24px rgba(0,0,0,.25);opacity:0;transition:opacity .45s ease,transform .45s ease;';
+      const a = document.createElement('div'); a.style.cssText = 'font-weight:700;font-size:18px;margin-bottom:2px;'; a.textContent = STRINGS.hachi.hi;
+      const b = document.createElement('div'); b.style.cssText = 'opacity:.92;'; b.textContent = STRINGS.hachi.line;
+      cardEl.append(a, b);
+      document.body.appendChild(cardEl);
+    }
+    requestAnimationFrame(() => { cardEl.style.opacity = '1'; cardEl.style.transform = 'translateX(-50%)'; });
+    cardT = 0;
+  };
+  const tickCard = (dt) => {
+    if (cardT < 0 || !cardEl) return;
+    cardT += dt;
+    if (cardT > A.introCard) { cardEl.style.opacity = '0'; cardEl.style.transform = 'translateX(-50%) translateY(6px)'; cardT = -1; }
+  };
   const inFrame = () => {
     const f = facing?.();
     if (!f || f.lengthSq() < 0.5) return true;
@@ -733,15 +907,25 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     // put you there in a jump: it is home at once; walking on, it trots out)
     const view = onView() && (P.speed < 0.6 || jumped);
     if (view && jumped) { const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.speed = 0; G.state = 'home'; G.field = null; G.act = null; G.roll = G.pitch = 0; G.yaw = Math.atan2(P.x - G.x, P.z - G.z); }
-    else if (view && G.state !== 'home' && G.state !== 'nap' && inFrame()) { G.resume = G.state === 'lead' || G.state === 'atSpot' ? G.target : null; G.act = null; goTo('home', HOME); }
+    else if (view && G.state !== 'home' && G.state !== 'nap' && inFrame()) { G.resumeK = G.state === 'lead' || G.state === 'atSpot' || G.state === 'gate' ? G.leg : null; G.act = null; goTo('home', HOME); }
     // Han's show: off the car's way, sitting, watching it go by
     const show = HAN_SHOW.running();
     if (show && G.state !== 'hazard') {
       const c = W.cell(G.x, G.z);
-      if (c >= 0 && W.haz[c]) { G.resume = G.state === 'lead' || G.state === 'atSpot' ? G.target : G.resume; const n = W.nearest(G.x, G.z, 8, (i) => !W.haz[i]); G.state = 'hazard'; G.aside = n >= 0 ? W.at(n) : null; G.field = null; G.waitT = 0; G.act = null; }
+      if (c >= 0 && W.haz[c]) { G.resumeK = G.state === 'lead' || G.state === 'atSpot' || G.state === 'gate' ? G.leg : G.resumeK; const n = W.nearest(G.x, G.z, 8, (i) => !W.haz[i]); G.state = 'hazard'; G.aside = n >= 0 ? W.at(n) : null; G.field = null; G.waitT = 0; G.act = null; }
     }
-    if (!show && G.state === 'hazard') { G.state = 'home'; if (G.resume) lead(G.resume); else nextOrNap(); }
+    if (!show && G.state === 'hazard') { G.state = 'home'; if (G.resumeK !== null) { const k = G.resumeK; G.resumeK = null; lead(k); } else nextOrNap(); }
 
+    /* the introduction (Tan): the first time you see Hachi near the middle of your view, within 8 m, off the famous
+     * view: it comes up, sits and says hello (a caption); once per visit, and never again once it has been seen */
+    if (!G.intro && !view && !show && dist(P, VIEW) > 1.5 && !inStore(P) && dist(P, G) < 8 && inCone(25) && !['hazard', 'come', 'chase', 'staged'].includes(G.state) && !introSeen()) {
+      const f = facing?.();
+      const fx = f && f.lengthSq() > 0.5 ? f.x : (G.x - P.x) / (dist(P, G) || 1), fz = f && f.lengthSq() > 0.5 ? f.z : (G.z - P.z) / (dist(P, G) || 1);
+      const c = W.nearest(P.x + fx * 2, P.z + fz * 2, 2);
+      G.introSpot = c >= 0 ? W.at(c) : { x: G.x, z: G.z };
+      G.intro = 1; G.introT = 0; G.introSaid = false; G.resumeK = G.state === 'lead' || G.state === 'atSpot' || G.state === 'gate' ? G.leg : G.resumeK;
+      G.state = 'intro'; G.field = null; G.act = null;
+    }
     // the field grows a little each frame while it is wanted; the others are grown ahead, one at a time
     if (G.field && !G.field.ready) G.field.work(dt > 0 ? 4 : 40);
     else if (dt > 0) {
@@ -789,7 +973,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         pose.wag = dP < 6 ? 0.5 : 0.2;
         pose.posture = there && G.waitT > A.waitSit ? 1 : 0;
         // you walk off the view: it comes and suggests the first place
-        if (!view && dist(P, VIEW) > 1.5 && !inStore(P)) { const e = G.resume && !G.done.has(G.resume.id) ? G.resume : pickTarget(); G.resume = null; if (e) lead(e); else goTo('nap', NAP, 0.3); }
+        if (!view && dist(P, VIEW) > 1.5 && !inStore(P)) { const k = G.resumeK ?? G.leg ?? 0; G.resumeK = null; lead(k); }
         break;
       }
       case 'lead': {
@@ -797,7 +981,13 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         G.since += dt;
         const g = gap();
         const [lo, hi] = A.lead;
-        if (G.field?.ready && G.field.at(G.x, G.z) < 1.2 && G.field.at(G.x, G.z) !== INF) { G.state = 'atSpot'; G.aside = beside(G.target); G.waitT = 0; G.minD = INF; break; }
+        if (G.field?.ready && G.field.at(G.x, G.z) < 1.2 && G.field.at(G.x, G.z) !== INF) {
+          if (isStop(G.target) || G.leg >= TOUR.length) { G.state = 'atSpot'; G.aside = beside(G.target); G.waitT = 0; G.minD = INF; break; }
+          if (G.target.leg?.wait) { G.state = 'gate'; G.waitT = 0; G.since = 0; break; }
+          // a waypoint passed: a glance back where there is something to hear, and on
+          if (G.target.leg?.hear) { G.glance = -1.3; if (Math.random() < 0.5) say('dog-boof', 0.6); }
+          advance(); break;
+        }
         if (g < lo) wantSpeed = Math.min(A.run, Math.max(A.trot, P.speed + 1.2));
         else if (g < hi) wantSpeed = Math.max(1.4, P.speed);
         else wantSpeed = 0;
@@ -823,6 +1013,28 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         pose.wag = dP < 6 ? 0.55 : 0.2;
         if (G.since > 1.0 && notInterested(true)) { drop(); break; }
         if (!G.act && G.speed < 0.1 && (G.idleT += dt) > 2.5 + Math.random() * 3) idle(dP, G.waitT > 10);
+        break;
+      }
+      case 'gate': {
+        // the Deer Park gate: it waits for you to come up (a hop when you do), then turns back with you
+        G.since += dt; G.waitT += dt;
+        pose.wag = dP < 6 ? 0.55 : 0.25;
+        pose.posture = G.waitT > A.waitSit + 1 ? 1 : 0;
+        if (dist(P, G.target) < (G.target.leg.wait ?? 6)) { play('hop'); advance(); break; }
+        if (G.since > 1.0 && notInterested(true)) { drop(); break; }
+        if (!G.act && G.speed < 0.1 && (G.idleT += dt) > 2.5 + Math.random() * 3) idle(dP, G.waitT > 10);
+        break;
+      }
+      case 'intro': {
+        // "Hi, I'm Hachi": up to two metres in front of you, sit, look up, a happy double yip, a wag and a head tilt
+        G.introT += dt;
+        const spot = G.introSpot;
+        const there = dist(G, spot) < 0.35 || G.introT > 6;
+        if (!there) { r = move(dt, spot, A.trot); lookAt = 'way'; break; }
+        if (!G.introSaid) { G.introSaid = true; G.introAt = G.introT; say('dog-yip', 0.9, true); G.tiltNext = 0.8; showCard(); }
+        pose.posture = 1; pose.wag = 0.8; pose.perk = 1.3; pose.look = toYou; pose.nod = nodYou;
+        const shown = G.introT - G.introAt;
+        if (shown > 5.5 || dP > 7) { markIntro(); G.intro = 2; lead(G.resumeK ?? G.leg ?? 0); G.resumeK = null; }
         break;
       }
       case 'linger': {
@@ -868,10 +1080,10 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         if (G.sinceInvite >= INV.every && dP < 8 && !inStore(P) && !view) {
           G.drops = 0;
           if (allDone()) { goTo('nap', NAP, 0.3); break; }
-          const byWay = pickTarget(true);
-          if (byWay && P.speed > 0.5) { lead(byWay); break; }
-          const e = pickTarget();
-          if (e) { G.inviteE = e; G.state = 'invite'; G.since = 0; G.sinceInvite = 0; G.invites++; G.field = fieldOf(e); G.inviteD0 = wayTo(e); G.act = null; play('bow'); G.waitT = 0; }
+          const byWay = pickLeg(true);
+          if (byWay >= 0 && P.speed > 0.5) { lead(byWay); break; }
+          const ek = pickLeg(false), e = ek >= 0 ? legTarget(ek) : pickTarget();
+          if (e) { G.inviteE = e; G.inviteK = ek; G.state = 'invite'; G.since = 0; G.sinceInvite = 0; G.invites++; G.field = fieldOf(e); G.inviteD0 = wayTo(e); G.act = null; play('bow'); G.waitT = 0; }
         }
         break;
       }
@@ -885,7 +1097,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         pose.wag = 0.6; pose.perk = 1.2;
         const now = wayTo(e);
         const coming = now < G.inviteD0 - 1.0 || (P.speed > 0.6 && angleOff(intent(), e) < Math.PI / 3);
-        if (coming && G.since > ACTS.bow) { G.inviteM = undefined; lead(e); G.sinceInvite = 0; break; }
+        if (coming && G.since > ACTS.bow) { G.inviteM = undefined; if (G.inviteK >= 0) lead(G.inviteK); else startLead({ ...e, k: TOUR.length, leg: { id: e.id } }); G.sinceInvite = 0; break; }
         if (G.waitT > INV.wait || dP > 10) { G.inviteM = undefined; company(); break; }
         break;
       }
@@ -915,6 +1127,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       }
     }
     G.r = r;
+    // your whistle: ears up until the notes are over (whatever it was doing), then the answer
+    if (G.whistleAt !== null) { pose.perk = 1.2; if (G.t >= G.whistleAt) { G.whistleAt = null; answer(); } }
     // the acts shape the pose (and some of them move it)
     const acting = act(dt, pose);
     if (!acting && r !== 'moving') G.speed += (0 - G.speed) * Math.min(1, dt * 6);
@@ -988,6 +1202,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     G.pitch += (G.pitchTo - G.pitch) * Math.min(1, dt * 8);
     // the bouncy puppy trot: a high bob at two beats a stride
     G.y = ground(G.x, G.z) + G.amp * 0.036 * (0.5 + 0.5 * Math.sin(2 * G.ph + 1)) + G.hop + G.dip;
+    tickCard(dt);
     place();
   }
 
@@ -999,8 +1214,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   /* dev: state, staged poses for the screenshots, and a headless run */
   if (import.meta.env?.DEV && typeof window !== 'undefined') {
     window.__guide = {
-      state: () => ({ state: G.state, target: G.target?.id ?? null, done: [...G.done], skipped: [...G.skipped], act: G.act?.name ?? null, x: +G.x.toFixed(2), z: +G.z.toFixed(2), yaw: +G.yaw.toFixed(2), speed: +G.speed.toFixed(2), posture: +G.posture.toFixed(2), energy: +G.energy.toFixed(2), gridMs: +W.ms.toFixed(0), cells: W.N, paths: dbg.paths, ready: !!G.field?.ready }),
-      walk: W, G, P,
+      state: () => ({ state: G.state, leg: G.leg, target: G.target?.id ?? null, done: [...G.done], skipped: [...G.skipped], act: G.act?.name ?? null, x: +G.x.toFixed(2), z: +G.z.toFixed(2), yaw: +G.yaw.toFixed(2), speed: +G.speed.toFixed(2), posture: +G.posture.toFixed(2), energy: +G.energy.toFixed(2), gridMs: +W.ms.toFixed(0), cells: W.N, paths: dbg.paths, ready: !!G.field?.ready }),
+      walk: W, G, P, A,
       /** Stand the pup in a pose `d` metres in front of a player { pos, yaw } for a frame: `kind` or `kind@d`:
        *  trot | look | sit | tilt | nap | hop | stand | side | behind | bow | roll | lie | zoom | chase | tail */
       stage(spec, player, d = 1.6) {
@@ -1032,7 +1247,11 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       /** Step the pup by `dt` with the player at `p` (the headless run drives it). */
       step(dt, p) { update(dt, p); },
       whistle,
-      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, sinceInvite: 99, invites: 0, energy: 0.7 }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
+      /** the introduction: 0 not yet, 1 running, 2 done; introReset forgets it (localStorage too) for a check */
+      intro: () => G.intro,
+      introReset() { G.intro = 0; G.introSeenNow = false; try { localStorage.removeItem('hachi-intro'); } catch {} },
+      introMark() { markIntro(); },
+      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, sinceInvite: 99, invites: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 0, introT: 0 }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
     };
   }
   return { update, herd, G };

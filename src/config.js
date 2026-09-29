@@ -596,6 +596,12 @@ export const SHOT_SPOTS = [
   { name: 'guide-low-roll', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.12, lift: -1.3, looks: ['day'], guide: 'roll@1.9' },
   { name: 'guide-low-tail', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.04, lift: -1.32, looks: ['day'], guide: 'tail@1.5' },
   { name: 'guide-low-lie', scene: 'town', frame: 'world', pos: [7.0, 0, 19.0], yaw: 1.5708, pitch: 0.1, lift: -1.34, looks: ['blue'], guide: 'lie@1.9' },
+  // Hachi on the town tour (ANIMALS.guide.tour): the shopping street, the level crossing, the bridge, the station's front steps, the gate
+  { name: 'tour-shopping', scene: 'town', frame: 'world', pos: [50.5, 0, -30], yaw: 0, pitch: -0.2, looks: ['day', 'golden'], guide: 'behind@3.4' },
+  { name: 'tour-crossing', scene: 'town', frame: 'world', pos: [80, 0, -121], yaw: 0, pitch: -0.18, looks: ['day'], guide: 'look@3.2' },
+  { name: 'tour-bridge', scene: 'town', frame: 'world', pos: [-30, 0, 38], yaw: 3.1416, pitch: -0.2, looks: ['day', 'golden'], guide: 'behind@3.4' },
+  { name: 'tour-stairs', scene: 'town', frame: 'world', pos: [51, 0, -110.5], yaw: 0, pitch: -0.22, looks: ['day'], guide: 'behind@6.6' },
+  { name: 'tour-gate', scene: 'town', frame: 'world', pos: [-30, 0, 58], yaw: 3.1416, pitch: -0.2, looks: ['golden'], guide: 'look@3.2' },
 
   { name: 'kit-main-road', scene: 'kit', pos: [-54, 0, -1.6], yaw: -1.5708, pitch: 0.02, looks: ['day', 'golden'], ref: '01-main-road-cycle-lanes.png' },
   { name: 'kit-lane-poles', scene: 'kit', pos: [31, 0, -6], yaw: 0, pitch: 0.06, looks: ['day'], ref: '03-street-shrine-house.png' },
@@ -743,11 +749,53 @@ export const ANIMALS = {
     circle: 0.9,                              // the radius of its lap round your legs when it catches up (m)
     zoom: { r: 1.5, speed: 4.6 },             // zoomies: the circle's radius and speed
     tripEvery: 45,                            // trips over its own paws about once in this many seconds at a trot
-    whistle: { far: 80, near: 2.2 },          // F: beyond `far` m it comes from the nearest corner out of view; it stops `near` m from you
+    fields: 6,                                // distance fields kept grown at once (2.6 MB each)
+    introCard: 4.5,                           // the "Hi, I'm Hachi" caption stays this long (s)
+    whistle: { far: 80, near: 2.2, answer: 0.85 },   // F: beyond `far` m it comes from the nearest corner out of view; it stops `near` m from you; it answers `answer` s after the whistle starts (the whistle is 0.52 s long)
     engage: { konbini: 1.2, view: 1.0, han: 0.85, train: 1.1, slowlife: 1.1 },   // the engagements' ring radii (and which ids count until the list says `kind`)
     cell: 0.4, radius: 0.25,                  // its map of the town: cell size, and clearance from anything solid (its own half-width and a little)
     step: 0.45,                               // the biggest step between neighbouring cells it will take: kerbs yes, the channel no
-    costs: { pavement: 10, ground: 15, asphalt: 200, lane: 30, lot: 20 },   // a metre of each, relative: it keeps to pavements and crosses kerbed roads on the zebras; lanes have no pavement
+    /* a metre of each, relative: it keeps to pavements, plazas and lanes, crosses kerbed roads on the zebras (main-road
+     * asphalt is dear), keeps off paddy plots, and never takes an alley or a gap between houses (`alley`: every cell
+     * that is not a street, a plaza, the land's paths or a lot; forty pavements a metre, so only where nothing else leads) */
+    costs: { pavement: 10, plaza: 12, ground: 15, lot: 20, lane: 30, plot: 120, asphalt: 200, alley: 400 },
+    /* The town tour (Tan, 2026-09-29: "take the player through the streets so that they experience all aspects of the
+     * town"): an ordered chain of street waypoints, world frame, that Hachi leads along instead of the shortest way.
+     * `id`: an engagement it waits at (done = you step into its ring), or `gate` (it waits until you are `wait` m off);
+     * `hear`: a sound place passed within earshot (a glance back there; no stop). Legs are routed on the walk grid. */
+    tour: [
+      { id: 'view', x: 0, z: 16.5 },
+      { id: 'konbini', x: -2.3, z: 2.3 },
+      { x: -35, z: 8.5, hear: 'walk0' },          // the main road's zebra (kakko), south end
+      { x: -35, z: 19 },                          // its north end
+      { id: 'han', x: -21.7, z: 23.5 },           // the car park: Han and the RX-7
+      { x: -30, z: 36 },                          // the bridge road
+      { x: -30, z: 50, hear: 'bridge' },          // 富士見橋
+      { id: 'gate', x: -30, z: 65, wait: 7 },     // 鹿公園, coming soon: to the gate and back
+      { x: -30, z: 36 },
+      { x: -30, z: 4, hear: 'walk3' },            // the master junction's lane zebra (piyo)
+      { x: -12, z: 19.3 },                        // east along the far pavement, behind the famous view
+      { x: 20, z: 19.3 },
+      { x: 50, z: 17 },                           // the shopping street's mouth
+      { x: 50, z: -2.3, hear: 'walk1' },          // its first zebra
+      { x: 50, z: -40, hear: 'donki' },           // ドンペン堂's theme
+      { x: 50, z: -72.3, hear: 'walk2' },         // the halfway zebra
+      { x: 50, z: -101, hear: 'station' },        // the plaza: the station's announcements
+      { x: 51, z: -115.5 },                       // the foot of the station's steps
+      { id: 'train', x: 53, z: -129.2 },          // platform 1, up the front steps: the train's listening spot
+      { x: 51, z: -115.5 },                       // back down
+      { x: 76, z: -106 },                         // the plaza's east end
+      { x: 80, z: -130.5, hear: 'crossing' },     // the level crossing's bells (the follower lags a few metres: near enough for the bells)
+      { x: 80, z: -84.3 },                        // back up lane x 80 to lane z 112
+      { x: -30, z: -84.3 },                       // west along it, past the park
+      { x: -30, z: -52.3 },                       // north to lane z 80
+      { x: -13, z: -52.3, hear: 'shrine' },       // the shrine's front: its wind chimes
+      { x: -30, z: -52.3 },
+      { x: -30, z: -84.3 },
+      { x: -53, z: -84.3 },                       // the lane's end: the pond's gate
+      { id: 'slowlife', x: -73, z: -74.8 },       // the slow-life bench, where the paddies meet the pond
+    ],
+    hear: { walk0: [-35, 13.8, 14], walk1: [50, -5, 14], walk2: [50, -75, 14], walk3: [-30, 1.5, 14], donki: [55.9, -41.4, 12], station: [51, -125.5, 14], crossing: [80, -134.3, 10], shrine: [-13, -64.4, 14] },   // each sound place and how near the tour must pass (m)
     nap: [75.6, 103.6],                       // town frame: beside the slow-life bench, where it sleeps once everything is done
   },
   butterflies: { size: 1.15, beatHz: 9, speed: 0.9, near: 45, shy: 1.0 },

@@ -158,3 +158,72 @@ main.js `__shot` stages the dog for a spot's `guide:` pose; shots.mjs passes it.
   115 m away: appears 22 m off at 99° from the lens, reaches you in 4.2 s;
   from 35 m up the road: runs it in 10.6 s). Cost: 0.06-0.75 ms a step
   headless (the field growth), hero-1 733 calls / 9.0 ms unchanged.
+
+## Hachi, and the town tour (Tan, 2026-09-29)
+- **The name.** ハチ / Hachi: only in the controls ("Whistle for Hachi"),
+  the hello, the docs. Nothing else on screen.
+- **A tour, not the shortest way.** `ANIMALS.guide.tour` (config.js,
+  world frame) is an ordered chain of 30 street waypoints: the konbini,
+  the main road's zebra (kakko), Han in the car park, up the bridge road
+  over 富士見橋 to the Deer Park gate (it waits there until you are 7 m
+  off, then turns back), the master junction's lane zebra (piyo), east
+  along the far pavement behind the famous view, down the shopping street
+  (its first zebra, ドンペン堂's theme, the halfway zebra) to the plaza and
+  the station's announcements, up the front steps to the train's listening
+  spot and back down, the plaza's east end and down lane x 80 to the level
+  crossing's bells, back up to lane z 112 and west past the park, north to
+  lane z 80 and the shrine's front (its chimes), back west and down to the
+  pond's gate, and the slow-life bench; then the nap. `hear` gives each
+  sound place and how near the tour must pass (walk signals 14 m of their
+  40, ドンペン堂 12 of 24, the station 14 of 42, the crossing 10 of 45, the
+  shrine 14 of 26). Legs are routed on the walk grid between waypoints;
+  engagements are stops (done = you step into the ring), everything else
+  is passed with a glance back where there is something to hear. Measured
+  with a follower at walking pace: 823 m, 7.4 minutes including the four
+  stops and the nap; the walk itself is about 5.5 minutes. The old
+  "nearest engagement" logic survives only for leftovers (spots skipped on
+  the way come back at the end, before the nap).
+- **Player-led, still.** A walk-away drops the *leg* (an engagement is
+  skipped; a waypoint just forgotten), the chase and the lap round your
+  legs are as before, and the re-plan picks the tour up at the nearest
+  leg within 80° of your heading (path metres + the angle penalty, + 6 m
+  against going back over old ground); none that way → company, whose
+  invitations now point at the nearest tour leg.
+- **Alleys were a cost bug.** Plain ground cost 15 a metre and a lane 30,
+  so the grid preferred the gaps between houses to the street beside them
+  (Tan's screenshot 19). Every cell is now an alley (400: forty pavements)
+  unless it is a street, a zebra, the plaza and the station's strip (12),
+  a lot, or the land's open ground (the car park, the river walks' top, the
+  paddies' paths, the pond's grounds: 15). Paddy plots cost 120 (the
+  paths between them are the way). The tour check counts alley and plot
+  cells under the pup: 0 and 0.
+- **Water is blocked, not dear.** The flooded plots and the feeder channel
+  by the paddies (with a 0.45 m margin; Tan's screenshot 16 had the pup
+  half under in it), the pond (as before, 0.5 m margin) and the river.
+  `W.water` marks them so the check can count cells on water: 0.
+- **Stairs like a person.** A run of three or more risers of 8-45 cm along
+  one axis is a flight (found from the grid's own heights, since the
+  animals' context has no platform list); its cells are entered only along
+  that axis (`Walk.can`, used by the field, the descent and the line of
+  sight), and the cells beside a flight at another level are shut, so the
+  pup neither climbs a flight from the side nor walks into its side. The
+  station's front steps and the concourse are climbed from the plaza, as
+  you do. Its feet stay on `heightAt`; the check compares every frame
+  (worst 0.000 m below).
+- **The whistle answers after the whistle.** F sounds the two notes at you
+  (0.52 s); Hachi's ears go up and the answer (the yip, then the run or,
+  already beside you, a hop and a wag) comes 0.85 s after the press, on
+  the main loop. A second press while one is pending, or within a second,
+  does nothing: one whistle, one yip (Tan heard them overlap).
+- **The hello.** The first time Hachi is within 25° of the middle of your
+  view and 8 m, off the famous view (never on it: that is the opening
+  shot), it comes to 2 m in front of you, sits, looks up, a double yip, a
+  wag and a head tilt, and a two-line caption near the bottom of the
+  screen (strings.js `hachi`; 4.5 s, fades by itself). Once per visit,
+  remembered in localStorage (`hachi-intro`, in try/catch) so a returning
+  player is not told again. The card is a small DOM element of the
+  guide's own (src/core/hud.js is not mine and has only a one-line toast).
+- **Memory.** Distance fields are 2.6 MB each; the tour would have kept
+  30. `ready` keeps the last six (the current leg's, the next one's, the
+  nap's and a few recent), and re-plan scoring never grows a field (a
+  grown one's metres, else the crow's and a third).

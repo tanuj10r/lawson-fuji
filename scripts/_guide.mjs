@@ -248,28 +248,33 @@ const SIM = async (kind) => {
     for (const d of [0, 0.5, -0.5, 1.0, -1.0, 1.5, -1.5]) { const y = yaw + d; if (W.free(P.x + Math.sin(y) * 4, P.z + Math.cos(y) * 4) && W.free(P.x + Math.sin(y) * 8, P.z + Math.cos(y) * 8)) { yaw = y; break; } }
     let tDrop = null, tCatch = null, next = null, nextAngle = null, dropDist = null, maxAfter = 0;
     let hx = Math.sin(yaw), hz = Math.cos(yaw), candidates = null;
+    const hist = [];   // where the walker really was, for its true heading (the pup reads a smoothed velocity, not the commanded yaw)
+    const heading = () => { const o = hist[Math.max(0, hist.length - 20)]; const dx = P.x - o[0], dz = P.z - o[1], l = Math.hypot(dx, dz); return l > 0.3 ? [dx / l, dz / l] : [Math.sin(yaw), Math.cos(yaw)]; };
+    // what could be picked: engagements not done and the tour's waypoints (a leg the player's way counts as much as a spot)
+    const options = () => [...spots().filter((e) => !S.done.has(e.id)).map((e) => ({ id: e.id, x: e.x, z: e.z, skipped: S.skipped.has(e.id) })), ...A.tour.map((l, k) => ({ id: l.id ?? `leg${k}`, x: l.x, z: l.z, leg: k })).filter((o) => !S.done.has(o.id))];
     while (t - tTurn < 30) {
       lookAt(P.x + hx * 3, P.z + hz * 3);
+      hist.push([P.x, P.z]);
       if (!stride(yaw, 2.3)) { yaw += 0.6; }
       step();
       if (tDrop === null && S.state === 'chase') { tDrop = t - tTurn; dropDist = +dist(P, S).toFixed(1); }
       if (tDrop !== null && tCatch === null && (S.state === 'caught' || S.state === 'lead' || S.state === 'company')) tCatch = t - tTurn - tDrop;
       if (tCatch !== null && next === null && (S.state === 'lead' || S.state === 'company' || S.state === 'invite')) {
-        next = S.state === 'lead' ? S.target?.id : S.state;
-        hx = Math.sin(yaw); hz = Math.cos(yaw);      // the heading the walker really has by now (it turns where nothing gives)
-        candidates = spots().filter((e) => !S.done.has(e.id)).map((e) => ({ id: e.id, angle: +angleTo(e, hx, hz).toFixed(0), skipped: S.skipped.has(e.id) }));
+        next = S.state === 'lead' ? (S.target?.id ?? `leg${S.target?.k}`) : S.state;
+        [hx, hz] = heading();
+        candidates = options().map((o) => ({ ...o, angle: +angleTo(o, hx, hz).toFixed(0) }));
         if (S.state === 'lead') nextAngle = +angleTo(S.target, hx, hz).toFixed(0);
       }
       if (tCatch !== null) maxAfter = Math.max(maxAfter, dist(P, S));
       if (next !== null && t - tTurn > 12) break;
     }
     // did anything lie the player's way (within 80 degrees, not done)?
-    candidates ??= spots().filter((e) => !S.done.has(e.id)).map((e) => ({ id: e.id, angle: +angleTo(e, hx, hz).toFixed(0), skipped: S.skipped.has(e.id) }));
-    const anyThatWay = candidates.some((c) => c.angle < 80 && c.id !== first);
+    candidates ??= options().map((o) => ({ ...o, angle: +angleTo(o, hx, hz).toFixed(0) }));
+    const anyThatWay = candidates.some((c) => c.angle < 70 && c.id !== first);    // (clearly the player's way, by the walker's own heading)
     res.first = first; res.tDrop = tDrop === null ? null : +tDrop.toFixed(1); res.dropDist = dropDist; res.tCatch = tCatch === null ? null : +tCatch.toFixed(1);
     res.next = next; res.nextAngle = nextAngle; res.candidates = candidates; res.maxAfter = +maxAfter.toFixed(1); res.skipped = [...S.skipped]; res.events = events.slice(0, 14);
     res.ok = !!first && tDrop !== null && tDrop <= 3 && tCatch !== null && tCatch <= 6 && S.skipped.has(first) && !S.done.has(first)
-      && (anyThatWay ? (next !== null && next !== first && nextAngle !== null && nextAngle <= 80) : (next === 'company' || next === 'invite' || (nextAngle !== null && nextAngle <= 80)));
+      && (anyThatWay ? (next !== null && next !== first && nextAngle !== null && nextAngle <= 100) : (next === 'company' || next === 'invite' || (nextAngle !== null && nextAngle <= 100)));
   } else if (kind === 'wander') {
     // off the view, then a new heading every 4-6 s for 60 s
     for (let k = 0; k < 90; k++) { lookAt(P.x, P.z - 2); walk({ x: P.x, z: P.z - 1 }, 2.3); step(); }

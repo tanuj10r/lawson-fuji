@@ -639,7 +639,7 @@ export function buildStation(ctx, { kit, service, sets }) {
   const trainSpot = ctx.experiences?.add({
     id: 'train', name: RIDE.say.listen, jp: '電車', x: listen.x, z: listen.z, y: PH, r: listen.r, h: 2.0, interact: false,
   });
-  let inSpot = false, warmed = false, ambLvl = SOUND.station.level;
+  let inSpot = false, warmed = false, ambLvl = SOUND.station.level, shown = true;
   return {
     group: g, boards, platforms: PLAT, PH,
     /** Each frame (line/index.js): `me` the camera in this frame. */
@@ -654,7 +654,12 @@ export function buildStation(ctx, { kit, service, sets }) {
       const k = Math.min(1, Math.max(0, (d - 1.5) / 4.5));
       const lvl = SOUND.station.level * (SOUND.station.duck + (1 - SOUND.station.duck) * k);
       if (Math.abs(lvl - ambLvl) > 0.004) { ambLvl = lvl; ambience.set({ level: lvl }); }
-      const inside = d < listen.r;
+      /* the ring and the announcement only while platform 1's train stands with its doors open (Tan, 2026-09-29): the
+       * announcement is the one you hear aboard, so it plays once each time you step in then */
+      const run = service.runs[0];
+      const open = !!run && (run.phase === 'dwell' || (run.phase === 'opening' && run.doors > 0.9));
+      if (open !== shown) { shown = open; trainSpot?.show(open); }
+      const inside = open && d < listen.r;
       if (inside && !inSpot) {
         soundBus.oneShot('train-nextstop', { x: listenW.x, z: listenW.z, y: PH + 2.2, ...SOUND.trainListen, gain: 1 });
         trainSpot?.done();

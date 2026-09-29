@@ -34,6 +34,17 @@ export function buildCore(ctx) {
   const kit = buildKit(ctx, def);
   const net = kit.net;
   const C = TOWN.core;
+  /* on a carriageway (or within `pad` m of one), in this frame: the trees that slide clear of buildings must not
+   * slide into a road (kit/canopy.js; Tan found two in the lane by the small park) */
+  ctx.onRoad = (x, z, pad = 0.6) => {
+    for (const e of net.edges) {
+      if (e.opts.surface === false) continue;
+      const s = e.axis === 'x' ? x : z, o = e.axis === 'x' ? z : x;
+      if (s > e.a0 - pad && s < e.a1 + pad && Math.abs(o - e.c) < e.a + pad) return true;
+    }
+    for (const n of Object.values(net.nodes)) if (!n.external && n.ax > 0 && Math.abs(x - n.x) < n.ax + pad && Math.abs(z - n.z) < n.az + pad) return true;
+    return false;
+  };
 
   const reserved = [
     ...SPECIALS.map((s) => [s.x0, s.z0, s.x1, s.z1]),

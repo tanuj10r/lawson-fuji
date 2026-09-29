@@ -351,6 +351,8 @@ export function buildTrack(ctx, parts) {
     const uv = g.attributes.uv;
     for (let i = 0; i < uv.count; i++) uv.setXY(i, (g.attributes.position.getX(i) - tx0) / T.w, g.attributes.position.getZ(i) / (TILE.track * 2));
     parts.add('track', g);
+    // walked on at its own height (it wasn't: Hachi stood 12 cm into it at the gate, Tan 2026-09-29)
+    ctx.platform({ x0: tx0, x1: tx1, z0: Math.min(z0, z1), z1: Math.max(z0, z1), top: T.top });
     for (const [a, b] of [[tx0 - 0.8, tx0], [tx1, tx1 + 0.8]]) parts.add('grass', sheetGeo(a, b, z0, z1, 0.05, TILE.grass));
   }
 }

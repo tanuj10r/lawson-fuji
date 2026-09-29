@@ -172,8 +172,14 @@ try {
         if (c) hits.push([o.name, +p.x.toFixed(1), +p.z.toFixed(1)]);
       }
     });
-    return { buildings: bldg.length, hits: hits.length, first: hits.slice(0, 5) };
-  }, (r) => r.buildings > 50 && r.hits === 0);
+    // and no trunk on a carriageway (Tan: two trees in the lane by the small park, slid there off a building)
+    const net = window.__guide.walk.core.kit.net, F = W.frame, road = [];
+    const onRoad = (x, z) => net.edges.some((e) => e.opts.surface !== false && ((e.axis === 'x' ? x : z) > e.a0 && (e.axis === 'x' ? x : z) < e.a1 && Math.abs((e.axis === 'x' ? z : x) - e.c) < e.a + 0.3))
+      || Object.values(net.nodes).some((n) => !n.external && n.ax > 0 && Math.abs(x - n.x) < n.ax + 0.3 && Math.abs(z - n.z) < n.az + 0.3);
+    for (const t of window.__trees ?? []) { if (t.dropped) continue; const l = F.toLocal(t.w); if (onRoad(l.x, l.z)) road.push([+l.x.toFixed(1), +l.z.toFixed(1)]); }
+    const dropped = (window.__trees ?? []).filter((t) => t.dropped).map((t) => { const l = F.toLocal(t.w0); return [+l.x.toFixed(1), +l.z.toFixed(1)]; });
+    return { buildings: bldg.length, hits: hits.length, first: hits.slice(0, 5), trees: (window.__trees ?? []).length, onRoad: road, dropped };
+  }, (r) => r.buildings > 50 && r.hits === 0 && r.trees > 300 && r.onRoad.length === 0 && r.dropped.length <= 8);
 
   await step('02-spawn', async () => {
     window.__scene.enterHero('morning');
@@ -321,6 +327,15 @@ try {
     const { player, world, sound } = window.__scene;
     const s = window.__spotOf('train');
     const svc = world.line.local.service;
+    // no train standing (doors shut, about to go): no ring on offer, and stepping on the spot plays nothing (Tan)
+    svc.stage('platform-shut');
+    await window.__wait(800);
+    player.pos.set(s.x, world.heightAt(s.x, s.z), s.z);
+    const nShut = sound.debug.log.length;
+    await window.__wait(900);
+    const shut = { hidden: !!s.hidden, played: sound.debug.log.slice(nShut).filter((l) => l.name === 'train-nextstop').length };
+    window.__standBy(s.x, s.z, 6.0, 0.9);
+    await window.__wait(400);
     svc.stage('platform');
     await window.__wait(1500);
     window.__standBy(s.x, s.z, 3.0, 0.9);
@@ -337,8 +352,8 @@ try {
     const doorZ = r0.z;
     for (let i = 0; i < 40; i++) { player.vel.set(0, 0, Math.sign(doorZ - player.pos.z) * 3); await window.__wait(50); }
     const reached = +Math.abs(player.pos.z - s.z).toFixed(2);
-    return { prompt, played, toasts: window.__toasts.slice(), reached, phase: r0.phase, frame };
-  }, (r) => r.prompt === '' && r.played >= 1 && r.toasts.length === 0 && r.reached < 1.6);
+    return { shut, open: { hidden: !!s.hidden }, prompt, played, toasts: window.__toasts.slice(), reached, phase: r0.phase, frame };
+  }, (r) => r.shut.hidden && r.shut.played === 0 && !r.open.hidden && r.prompt === '' && r.played >= 1 && r.toasts.length === 0 && r.reached < 1.6);
 
   // Tan: "Midway, I ran outside ... away from the station, and I could still hear that at the same intensity":
   // a placed sound follows you for as long as it plays (it was 8 s)
@@ -369,8 +384,10 @@ try {
     const what = { a: window.__what(420, 200), b: window.__what(1110, 60), c: window.__what(560, 420) };
     window.__press('KeyW');
     await window.__wait(2500);
-    return { what, seated, standing: !player.seat, toasts: window.__toasts.slice(), audible: window.__audible(), frame };
-  }, (r) => r.seated && r.standing && r.toasts.every(english));
+    // sitting counts as having been there, wherever the seat is (Hachi took Tan back to a bench they'd sat on)
+    const used = !!window.__spotOf('slowlife').used, hachiDone = window.__guide.G.done.has('slowlife');
+    return { what, seated, standing: !player.seat, used, hachiDone, toasts: window.__toasts.slice(), audible: window.__audible(), frame };
+  }, (r) => r.seated && r.standing && r.used && r.hachiDone && r.toasts.every(english));
 
   /* ---- one experience must not break another ---- */
   // seated (Tan): the mouse looks around, 1 2 3 only change the light, a walking key stands you up

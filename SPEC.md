@@ -316,8 +316,9 @@ the glow and the song starts:
 `scripts/_han-route.mjs` fails if any corner of the car leaves the road or
 touches a parked car.
 
-**4. The train's listening spot.** On platform 1, by a door: stand in it and
-hear the in-train next-stop announcement. It fades as you walk away.
+**4. The train's listening spot.** On platform 1, by a door: while the train
+stands there with its doors open, the ring shows; stand in it and hear the
+in-train next-stop announcement. It fades as you walk away.
 
 **5. The slow-life bench** (land/slowlife.js). By the paddies and the pond,
 facing Fuji: sit, look around with the mouse, and hear the flute theme.
@@ -342,7 +343,7 @@ pup, about 24 cm at the shoulder, with sit, lie, trot, tilt, shake and nap:
   down to him and back (your mouse takes it back at once). He waits there
   until you walk off. Nothing is saved between visits.
 - **The tour:** he leads a town tour along the main streets at a jog, 4-9 m
-  ahead, stopping to look back when you fall behind. There are no water
+  ahead, ending at the Deer Park gate, stopping to look back when you fall behind. There are no water
   crossings, no alleys, and he takes stairs like a person.
 - **A guide, not a follower:** walk away and he stops where he is and waits.
   Walk back to him and he carries on the tour where he left off.

@@ -90,7 +90,7 @@ export function buildTownSakura(ctx, spots, { decals, classic = !decals } = {}) 
   // by index, and the famous views' petals must fall as they did
   const emitters = [];
   let ik = 0, ig = 0;
-  for (let i = 0; i < spots.length; i++) emitters.push(seen[i] ? kept.emitters[ik++] : trees.emitters[ig++]);
+  for (let i = 0; i < spots.length; i++) if (!spots[i].drop) emitters.push(seen[i] ? kept.emitters[ik++] : trees.emitters[ig++]);   // (a tree with no room isn't planted: kit/canopy.js)
   let shower = null;
   if (trees) {
     // the river's surface: land/ lays its water at TOWN.land.river.water

@@ -808,10 +808,6 @@ export const ANIMALS = {
       { x: -35, z: 8.5, hear: 'walk0' },          // the main road's zebra (kakko), south end
       { x: -35, z: 19 },                          // its north end
       { id: 'han', x: -21.7, z: 23.5 },           // the car park: Han and the RX-7
-      { x: -30, z: 36 },                          // the bridge road
-      { x: -30, z: 50, hear: 'bridge' },          // 富士見橋
-      { id: 'gate', x: -30, z: 65, wait: 7 },     // 鹿公園, coming soon: to the gate and back
-      { x: -30, z: 36 },
       { x: -30, z: 4, hear: 'walk3' },            // the master junction's lane zebra (piyo)
       { x: -12, z: 19.3 },                        // east along the far pavement, behind the famous view
       { x: 20, z: 19.3 },
@@ -833,9 +829,17 @@ export const ANIMALS = {
       { x: -30, z: -84.3 },
       { x: -53, z: -84.3 },                       // the lane's end: the pond's gate
       { id: 'slowlife', x: -73, z: -74.8 },       // the slow-life bench, where the paddies meet the pond
+      /* last (Tan, 2026-09-29: "Deer Park can be the last place Hachi takes the players to"): back down lane x 30,
+       * over the master junction and 富士見橋 to the gate; it naps there */
+      { x: -53, z: -84.3 },
+      { x: -30, z: -84.3 },
+      { x: -30, z: 4 },                           // the master junction again
+      { x: -30, z: 36 },                          // the bridge road
+      { x: -30, z: 50, hear: 'bridge' },          // 富士見橋
+      { id: 'gate', x: -30, z: 65, wait: 7 },     // 鹿公園, coming soon
     ],
     hear: { walk0: [-35, 13.8, 14], walk1: [50, -5, 14], walk2: [50, -75, 14], walk3: [-30, 1.5, 14], donki: [55.9, -41.4, 12], station: [51, -125.5, 14], crossing: [80, -134.3, 10], shrine: [-13, -64.4, 14] },   // each sound place and how near the tour must pass (m)
-    nap: [75.6, 103.6],                       // town frame: beside the slow-life bench, where it sleeps once everything is done
+    nap: [27.6, -38.4],                       // town frame: beside the Deer Park gate, the tour's last stop, where it sleeps once everything is done
   },
   butterflies: { size: 1.15, beatHz: 9, speed: 0.9, near: 45, shy: 1.0 },
   pigeons: { plaza: 9, spine: 5, flush: 2.4, flushSpeed: 0.6, shy: 1.3, walkSpeed: 0.2, stepAngle: 0.36, flySpeed: 5, sit: [8, 20], back: 10 },

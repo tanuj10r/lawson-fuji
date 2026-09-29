@@ -171,10 +171,15 @@ export function buildCanopyTrees(ctx, spots, look, { decals, name = look.name } 
   }
   function clearOfBuildings(spot) {
     if (!buildings.length || spot.clear === false) return;
+    // never into a road (ctx.onRoad, the town's carriageways): a slide that would land the trunk on one is not made
+    const road = (x, z) => !!ctx.onRoad?.(x, z) && !ctx.onRoad(spot._x0 ?? x, spot._z0 ?? z);
+    spot._x0 = spot.x; spot._z0 = spot.z;
+    let stuck = false;
     for (let k = 0; k < 14; k++) {
       const hit = clash(spot);
       if (!hit) return;
-      if (k >= 8) { spot.scale = (spot.scale ?? 1) * 0.88; continue; }     // no room to move: smaller
+      if (k === 13) { spot.drop = true; return; }                       // no room anywhere: not planted
+      if (k >= 8 || stuck) { spot.scale = (spot.scale ?? 1) * 0.88; continue; }     // no room to move: smaller
       // away from the building's nearest face, in the tree's own frame
       const w = toW(spot.x, spot.z), c = hit.c;
       const cx = Math.max(c.x0, Math.min(c.x1, w.x)), cz = Math.max(c.z0, Math.min(c.z1, w.z));
@@ -183,12 +188,21 @@ export function buildCanopyTrees(ctx, spots, look, { decals, name = look.name } 
       const n = Math.hypot(ax, az) || 1, step = Math.min(1.2, hit.cut + 0.3);
       const a = toW(0, 0), b = toW(1, 0), d = toW(0, 1);               // the frame's axes in the world
       const ux = { x: b.x - a.x, z: b.z - a.z }, uz = { x: d.x - a.x, z: d.z - a.z };
-      spot.x += (ax * ux.x + az * ux.z) / n * step;
-      spot.z += (ax * uz.x + az * uz.z) / n * step;
+      // straight away from it, or else along the street either way (a tree between a lane and a house)
+      const dx = (ax * ux.x + az * ux.z) / n, dz = (ax * uz.x + az * uz.z) / n;
+      const way = [[dx, dz], [-dz, dx], [dz, -dx]].find(([sx, sz]) => !road(spot.x + sx * step, spot.z + sz * step));
+      if (!way) { stuck = true; continue; }
+      spot.x += way[0] * step; spot.z += way[1] * step;
     }
   }
 
-  for (const spot of spots) { clearOfBuildings(spot); growOne(spot); }
+  for (const spot of spots) {
+    const x0 = spot.x, z0 = spot.z;
+    clearOfBuildings(spot);
+    if (import.meta.env?.DEV) (window.__trees ??= []).push({ w: toW(spot.x, spot.z), w0: toW(x0, z0), moved: +Math.hypot(spot.x - x0, spot.z - z0).toFixed(2), dropped: !!spot.drop });
+    if (spot.drop) continue;
+    growOne(spot);
+  }
 
   /** What every tree leaves round it: its petal fall, its collider, its
    * registry entry and the ground under it. */

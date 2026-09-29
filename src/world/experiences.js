@@ -102,7 +102,9 @@ export function makeExperiences(ctx) {
     add(o) {
       const s = { r: 1.6, h: 2.2, y: 0, kind: 'engage', ...o };
       const w = ctx.toWorld ? ctx.toWorld({ x: s.x, z: s.z }) : { x: s.x, z: s.z };
-      list.push({ id: s.id, kind: s.kind, name: s.name, jp: s.jp, x: w.x, z: w.z });
+      // `used`: the experience was had (its own code says so, done()); `hidden`: not on offer right now (show(false))
+      const entry = { id: s.id, kind: s.kind, name: s.name, jp: s.jp, x: w.x, z: w.z, used: false, hidden: false };
+      list.push(entry);
       if (s.kind === 'sound') return { done() {}, setLabel() {}, get world() { return w; } };
       // the hitbox the player aims at (invisible), only for spots that E does something at
       let item = null;
@@ -141,10 +143,12 @@ export function makeExperiences(ctx) {
         m.name = 'exp-highlight';
         ctx.add(m);
       }
-      const spot = { s, w, R, ring, ripple, beam, motes, seeds, done: false, item };
+      const spot = { s, w, R, ring, ripple, beam, motes, seeds, done: false, item, entry };
       spots.push(spot);
       return {
-        done() { spot.done = true; },
+        done() { spot.done = true; entry.used = true; },
+        /** Offer it or not (the train's spot: only while the train stands with its doors open): no ring, no E. */
+        show(on) { entry.hidden = !on; if (item) item.hitbox.visible = on; },
         setLabel(text) { if (item) item.label = text; },
         get world() { return w; },
       };
@@ -158,7 +162,7 @@ export function makeExperiences(ctx) {
     for (const sp of spots) {
       const d = Math.hypot(sp.w.x - cam.x, sp.w.z - cam.z);
       const far = THREE.MathUtils.smoothstep(60 - d, 0, 15);
-      const k = far * (sp.done ? 0.5 : 1);
+      const k = sp.entry.hidden ? 0 : far * (sp.done ? 0.5 : 1);
       const on = k > 0.01;
       sp.ring.visible = sp.ripple.visible = on;
       if (!on) { sp.beam.visible = sp.motes.visible = false; continue; }

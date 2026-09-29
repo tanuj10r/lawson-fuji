@@ -97,6 +97,10 @@ const SIM = async (kind) => {
   // a step along a heading, sliding; false when nothing gives
   const stride = (yaw, v) => walk({ x: P.x + Math.sin(yaw) * 3, z: P.z + Math.cos(yaw) * 3 }, v);
   const S = g.G;
+  // (the trains don't run in this sim: the listening spot, shown only while a train stands with its doors open, is
+  // left on offer so the tour can pass through it; _play 24-train checks the real timing)
+  world.update(0, camera);
+  for (const e of world.experiences.list.concat(world.lawson.experiences.list)) if (e.id === 'train') e.hidden = false;
   const spots = () => world.experiences.list.concat(world.lawson.experiences.list).filter((e) => e.kind === 'engage');
   const angleTo = (e, hx, hz) => { const dx = e.x - P.x, dz = e.z - P.z, d = Math.hypot(dx, dz) || 1; return Math.acos(Math.max(-1, Math.min(1, (dx * hx + dz * hz) / d))) * 180 / Math.PI; };
   const rows = [], trail = [], events = [];
@@ -403,6 +407,28 @@ const SIM = async (kind) => {
       && (!behind || (behind.reached !== null && behind.reached <= 8 && behind.angle < 52 && behind.seen >= 0.25 && behind.popped === false && behind.greeted && !!behind.resumed && timing(behind)))
       && !!near && near.reached !== null && near.reached <= near.d0 / 3.5 + 3 && Math.abs(near.d1 - near.d0) < 0.5 && near.seen >= 0.85 && near.popped === false && near.greeted && !!near.resumed && timing(near) && near.earsUpFrames > 5
       && here.whistles === 1 && here.yips >= 1 && here.tYip - here.tWhistle >= 0.52 && here.hopped && !here.ran && here.greetAt >= 3.2 && here.greetAt <= 5.2;
+  } else if (kind === 'ground') {
+    // nothing drawn over the ground it stands on along the tour (Tan: sunk into the track at the Deer Park gate, which
+    // was drawn 12 cm up and never walkable): every half metre, the surface under it against the ground it uses
+    const T3 = window.__scene.THREE, scn = window.__scene.scene, Wd = world;
+    scn.updateMatrixWorld(true);
+    const meshes = [];
+    scn.traverse((o) => { if (o.isMesh && o.visible && !o.isInstancedMesh && o.name !== 'exp-highlight' && !/water|mirror|sky|cloud|fuji|hill|night|pool|glow|petal|shadow|decal/i.test(o.name)) { if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); meshes.push([o, o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)]); } });
+    const rc = new T3.Raycaster(); rc.far = 1.0;
+    const pts = [];
+    for (let k = 1; k < A.tour.length; k++) { const a = A.tour[k - 1], b = A.tour[k], d = Math.hypot(b.x - a.x, b.z - a.z); for (let u = 0; u < d; u += 0.5) pts.push({ x: a.x + (b.x - a.x) * u / d, z: a.z + (b.z - a.z) * u / d }); }
+    const bad = [];
+    for (const q of pts) {
+      const c = W.nearest(q.x, q.z, 1.5); if (c < 0) continue;
+      const p = W.at(c), y = W.h[c] / 100;
+      const cand = meshes.filter(([, bb]) => p.x >= bb.min.x && p.x <= bb.max.x && p.z >= bb.min.z && p.z <= bb.max.z && bb.max.y > y + 0.06 && bb.min.y < y + 0.6).map(([o]) => o);
+      if (!cand.length) continue;
+      rc.set(new T3.Vector3(p.x, y + 0.6, p.z), new T3.Vector3(0, -1, 0));
+      const h = rc.intersectObjects(cand, false)[0];
+      if (h && 0.6 - h.distance > 0.06) bad.push([+p.x.toFixed(1), +p.z.toFixed(1), +(0.6 - h.distance).toFixed(2), h.object.name || '?']);
+    }
+    res.samples = pts.length; res.sunk = bad.length; res.first = bad.slice(0, 12);
+    res.ok = bad.length === 0;
   } else if (kind === 'tipsy') {
     // the Strong Nine: the pup napping by the bench far off, you tipsy on the main road looking up it: it comes into
     // view, to just in front of you, and giggles and rolls about until the ten seconds are up
@@ -484,7 +510,7 @@ try {
     if (!loud) bad++;
     console.log(loud ? 'pass' : 'FAIL', 'voice', JSON.stringify(voice));
 
-    for (const kind of ['tour', 'intro', 'turnaway', 'wander', 'whistle', 'tipsy'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
+    for (const kind of ['tour', 'intro', 'turnaway', 'wander', 'whistle', 'tipsy', 'ground'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
       const r = await page.evaluate(SIM, kind);
       if (r.map) { fs.writeFileSync(path.join(out, 'trail.png'), Buffer.from(r.map.split(',')[1], 'base64')); delete r.map; }
       const said = await page.evaluate(() => { const l = [...new Set(window.__scene.sound.debug.log.map((e) => e.name).filter((n) => /^dog-|^whistle/.test(n ?? '')))]; window.__scene.sound.debug.log.length = 0; return l; });

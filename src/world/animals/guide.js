@@ -26,7 +26,7 @@ import { STRINGS } from '../../data/strings.js';
  * you go.  Walk back to it and it takes you on; whistle (F) and it comes
  * running wherever you are, greets you, and rushes you to the nearest place
  * you haven't been.  When every engagement is done it naps beside the
- * slow-life bench.
+ * Deer Park gate, the tour's last stop.
  *
  * Between times it is a puppy: a bouncy trot, zoomies, play bows, hops,
  * rolling over belly-up, chasing its tail, a sneeze, a head tilt, the odd
@@ -501,7 +501,13 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     if (n) queue.push(() => fieldOf(n));
   };
   /** After the tour: any engagement still not done (a skipped one), else the nap. */
-  const leftovers = () => { G.leg = TOUR.length; const e = pickTarget(); if (e) startLead({ ...e, k: TOUR.length, leg: { id: e.id } }); else goTo('nap', NAP, 0.3); };
+  const leftovers = () => { G.leg = TOUR.length; const e = pickTarget(); if (e) startLead({ ...e, k: TOUR.length, leg: { id: e.id } }); else toGateOrNap(); };
+  /** Everything done: the Deer Park gate last (Tan), if you haven't been; then the nap beside it. */
+  const toGateOrNap = () => {
+    const kg = TOUR.findIndex((L) => L.id === 'gate');
+    if (kg >= 0 && !G.gateDone) { G.leg = kg; startLead(legTarget(kg)); return; }
+    goTo('nap', NAP, 0.3);
+  };
   const advance = () => lead((G.leg ?? 0) + 1);
   const goTo = (state, p, r = 0.3) => { G.state = state; G.goal = p; G.field = aim('goal', p.x, p.z, r); G.since = 0; };
   /** The goal is cut off from here: aim instead at the reachable cell nearest it. */
@@ -527,7 +533,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   const rushNext = () => {
     G.drops = 0;
     const e = pickTarget();
-    if (!e) { goTo('nap', NAP, 0.3); return; }
+    if (!e) { toGateOrNap(); return; }
     const k = TOUR.findIndex((L) => L.id === e.id);
     if (k >= 0) { G.leg = k; startLead(legTarget(k) ?? { ...e, k, leg: TOUR[k] }); }
     else { G.leg = TOUR.length; startLead({ ...e, k: TOUR.length, leg: { id: e.id } }); }
@@ -1012,7 +1018,9 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     P.x = cam.x; P.z = cam.z; P.y = cam.y; P.first = false;
     if ((listT += dt) > 2 || !list.length) { listT = 0; refresh(); }
     // stepping into a ring is the engagement: done
-    for (const e of list) if (!G.done.has(e.id) && dist(P, e) < rOf(e) + 0.25) { G.done.add(e.id); G.skipped.delete(e.id); if (G.target?.id === e.id && (G.state === 'lead' || G.state === 'atSpot')) { G.state = 'linger'; G.since = 0; G.act = null; G.drops = 0; } }
+    // done: its own code says it was had (the bench's seat, Han's show, the konbini, the train's announcement), or you
+    // stepped into its ring while it was on offer
+    for (const e of list) if (!G.done.has(e.id) && (e.used || (!e.hidden && dist(P, e) < rOf(e) + 0.25))) { G.done.add(e.id); G.skipped.delete(e.id); if (G.target?.id === e.id && (G.state === 'lead' || G.state === 'atSpot')) { G.state = 'linger'; G.since = 0; G.act = null; G.drops = 0; } }
     // the famous views: never in the picture while you stand on one (keys 1-3
     // put you there in a jump: it is home at once; walking on, it trots out)
     const view = onView() && (P.speed < 0.6 || jumped);
@@ -1118,6 +1126,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       }
       case 'atSpot': {
         // beside the ring, waiting for you to step in; playful when you come close
+        G.since += dt;                       // (its clock runs here too: arrived within a second, it never let you go)
         const q = G.aside ?? G.target;
         if (dist(G, q) > 0.25 && !G.done.has(G.target.id) && !G.act) { r = move(dt, q, A.trot * 0.8); lookAt = 'way'; G.waitT = 0; } else G.waitT += dt;
         if (G.shook !== G.target.id && dist(G, q) <= 0.25) { G.shook = G.target.id; play('shake'); }
@@ -1133,7 +1142,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         G.since += dt; G.waitT += dt;
         pose.wag = dP < 6 ? 0.55 : 0.25;
         pose.posture = G.waitT > A.waitSit + 1 ? 1 : 0;
-        if (dist(P, G.target) < (G.target.leg.wait ?? 6)) { play('hop'); advance(); break; }
+        if (dist(P, G.target) < (G.target.leg.wait ?? 6)) { G.gateDone = true; play('hop'); advance(); break; }
         if (G.since > 1.0 && notInterested(true)) { drop(); break; }
         if (!G.act && G.speed < 0.1 && (G.idleT += dt) > 2.5 + Math.random() * 3) idle(dP, G.waitT > 10);
         break;
@@ -1370,7 +1379,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       intro: () => G.intro,
       introReset() { G.intro = 0; },
       introMark() { G.intro = 2; },
-      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 2, introT: 0, t: 0 }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
+      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 2, introT: 0, t: 0, gateDone: false }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
     };
   }
   return { update, herd, G };

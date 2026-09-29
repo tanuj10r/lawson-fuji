@@ -656,15 +656,14 @@ export const osakaPosterTex = (shape = 'tall') =>
 
 /**
  * One page for the whole Pokémon livery (emu.js maps the body onto it by
- * planar projection).  Layout, in pixels of a 4096 x 1024 page:
- *   rows A and B (y 0..368, 368..736): the two cars' sides, the car's
+ * planar projection).  Layout (POKE_ART, in page pixels):
+ *   rows A and B (rowH each, from the top): the two cars' sides, the car's
  *     length across the full width, from 0.2 m under the floor to the
- *     roof line (POKE_ART.y0..y1)
- *   the front panel (y 736..1000, x 0..1024): under the cab windows
- *   the ceiling strip (x 1024..3072): cream with silhouettes
- *   the floor strip (x 3072..4096): yellow with paw prints
- *   the swatch strip (y 1000..1024): flat colours for parts that share
- *     the material (POKE_ART.swatch)
+ *     roof line (y0..y1)
+ *   `front`: the nose panel under the cab windows
+ *   `ceiling`: cream with silhouettes;  `floor`: yellow with paw prints
+ *   `swatch`: the bottom strip of flat colours for parts that share the
+ *     material (the door leaves' rubber and sticker)
  */
 export const POKE_ART = {
   w: 3072, h: 1024, rowH: 368, y0: 0.86, y1: 3.85,           // car y -> row v (158 px/m along, 123 px/m up: 16 MB with mips)

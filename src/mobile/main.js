@@ -101,7 +101,7 @@ canvas.addEventListener('webglcontextlost', (e) => {
   contextLost = true;
   diag.stage(`CONTEXT LOST (at ${diag.stageName})`);
   // this device lost it once: from the next load on, the light tier
-  if (!MOBILE.keepCpu) { try { localStorage.setItem('lawson-fuji-lost', '1'); } catch { /* optional */ } }
+  try { localStorage.setItem('lawson-fuji-lost', '1'); } catch { /* optional */ }
   sound?.setAwake(false);
   showGate('lost');
 });

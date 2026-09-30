@@ -97,6 +97,44 @@ on the sound ... Don't disturb or change the desktop build."  AGENTS.md's
 - Phones that report little memory (`deviceMemory <= 3`, Android) draw
   90 m, textures 512/1024.
 
+## After Tan's iPhones (2026-09-30, second round)
+Tan saw: Chrome for iOS (dev build) lost the GPU context ("The town was
+put away"), and the production build didn't load in it; Safari on an
+iPhone 15 played but looked "a little pixelated"; the paw, map and sun
+needed several taps.
+- **?diag** (src/mobile/diag.js): the context is made by us and its
+  allocating calls wrapped, so every texture, buffer and renderbuffer byte
+  is counted (an estimate: drivers pad). The panel shows the stage reached
+  (with the JS heap at each stage on Chrome), renderer.info, the GPU
+  estimate and peak, heap, DPR and canvas; it sits over the lost card, and
+  the last reading is kept in localStorage (stages are written while the
+  town builds too), so a load that dies says where on the next ?diag load.
+- **Tiers.** light: any iOS browser that isn't Safari (Chrome, Firefox,
+  Edge and the in-app ones social links open in), iPhones below the 14 Pro/
+  15 screen (the 4 GB ones), Android web views and <= 4 GB, and any device
+  that has lost the context here before (remembered). Textures 512 (konbini
+  1024), no shadow map, 85 m, canvas at DPR 1 drawn inside at up to 0.7 Mpx.
+  full: everything else; renders up to 2x / 2.5 Mpx, stepping down when
+  frames run long. `?tier=light|full` overrides.
+- **Streaming by distance** (both tiers): batches, moving things (trains,
+  Han, the car) and the konbini's goods give their GPU copy back past
+  far + stream (and the goods past 45 m from the store) and upload again as
+  you come near. The CPU copies are kept for this, which is also what lets
+  a restored context (webglcontextrestored) upload everything again and
+  carry on: tested with WEBGL_lose_context. What's cut is GPU residency, not
+  the build: the town is still built whole at load (its builders are
+  monolithic; building per place would mean rewriting them), but its
+  painted pages are shrunk as each part is built (the konbini, then the
+  town before the atlas packs them), so the desktop-sized pages never all
+  exist at once.
+- **Programs**: core/toon.js keys every toon program by its shadow tint,
+  which is a uniform: sharing one program per style cut 326 to 151 and the
+  compile from 3.0 s to 0.2 s. Static batches' normals, colours and tints
+  packed (48 -> 27 bytes a vertex).
+- **Buttons** act on the finger's lift (pointerup, captured, a pressed
+  state, a wider hit area): iOS sends no click for a tap made while another
+  finger holds the stick or drags.
+
 ## Judgement calls
 - Draw calls: the target was ~250. Measured 434 at the famous view, 375 in
   the konbini, 172-386 elsewhere. The rest is the town's material variety per

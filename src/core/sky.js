@@ -10,7 +10,7 @@ import { mergeStatic } from '../world/merge.js';
  * Slight banding is intentional -- it reads as airbrushed background art
  * rather than a physical sky.
  *
- * Lawson Fuji: the dome sits behind Mt. Fuji (which is drawn ~1.4 km out),
+ * Take Me Back to Japan: the dome sits behind Mt. Fuji (which is drawn ~1.4 km out),
  * takes its colours from a look (config.js LOOKS), and carries a low glow
  * band toward one bearing -- the bright sky behind Fuji at golden hour.
  * Clouds sit beyond the mountain so it always occludes them, and never in the

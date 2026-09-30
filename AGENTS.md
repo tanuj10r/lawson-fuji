@@ -1,4 +1,4 @@
-# Lawson Fuji: agent rules
+# Take Me Back to Japan: agent rules
 
 First-person, anime-style browser game: Fujikawaguchikko (富士川口湖町),
 a compact town under Mt. Fuji, as experiences (docs/EXPERIENCES.md): to

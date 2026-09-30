@@ -60,7 +60,7 @@ const url = await page.evaluate(async () => {
   // legend strip
   c.fillStyle = '#1b1b28'; c.fillRect(0, H, W, 150);
   c.fillStyle = '#fff'; c.font = 'bold 40px "Hiragino Sans", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
-  c.fillText('Lawson Fuji: the town moved between the Lawson and Fuji (M2e.3)', 30, H + 50);
+  c.fillText('Take Me Back to Japan: the town moved between the store and Fuji (M2e.3)', 30, H + 50);
   c.font = '26px "Hiragino Sans", sans-serif'; c.fillStyle = '#cfd0dc';
   c.fillText('Top-down render from the game. Up is north, toward Mt. Fuji. You start at 2 facing north: the town and the station lie ahead, past the store.', 30, H + 100);
   return cv.toDataURL('image/jpeg', 0.9);

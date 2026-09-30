@@ -43,7 +43,7 @@ const CANDIDATES = {
 const SHOT = 'bay';
 
 /* ---- one run at a time on this machine (the shots.mjs lock) ---- */
-const LOCK = path.join(os.tmpdir(), 'lawson-fuji-shots.lock');
+const LOCK = path.join(os.tmpdir(), 'takemebacktojapan-shots.lock');
 for (;;) {
   try { fs.mkdirSync(LOCK); fs.writeFileSync(path.join(LOCK, 'pid'), String(process.pid)); break; } catch {
     let pid = 0;

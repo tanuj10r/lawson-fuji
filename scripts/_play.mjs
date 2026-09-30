@@ -22,7 +22,7 @@ const args = process.argv.slice(2);
 const out = path.resolve(args.find((a) => !a.startsWith('--')) ?? path.join(ROOT, '.shots', 'play'));
 fs.mkdirSync(out, { recursive: true });
 
-const LOCK = path.join(os.tmpdir(), 'lawson-fuji-shots.lock');
+const LOCK = path.join(os.tmpdir(), 'takemebacktojapan-shots.lock');
 for (;;) {
   try { fs.mkdirSync(LOCK); fs.writeFileSync(path.join(LOCK, 'pid'), String(process.pid)); break; } catch {
     let pid = 0, alive = false;

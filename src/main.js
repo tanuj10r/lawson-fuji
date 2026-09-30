@@ -23,7 +23,7 @@ import { GUIDE } from './world/animals/guide.js';
 import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain, HAN_WATCH, ANIMALS } from './config.js';
 
 /* ------------------------------------------------------------------ *
- * Lawson Fuji -- entry point.  Rendering is inherited from Sakura Crossing (MIT).
+ * Take Me Back to Japan -- entry point.  Rendering is inherited from Sakura Crossing (MIT).
  *
  * Lighting is the classic two-light anime setup: one warm quantised key
  * for the sun, one cool bounce fill from the opposite side, and a
@@ -157,8 +157,16 @@ if (shop) {
 }
 /* The sound setting: one of the five (config VOLUME_STEPS), not a free
  * slider.  What is saved is the setting; volumeGain turns it into gain. */
-const VOLUME_STORAGE_KEY = 'lawson-fuji-volume';
+const VOLUME_STORAGE_KEY = 'takemebacktojapan-volume';
+const OLD_VOLUME_KEY = 'lawson-fuji-volume';   // the working title's key: read once, then moved
 let volumeStep = DEFAULT_VOLUME;
+try {
+  const old = localStorage.getItem(OLD_VOLUME_KEY);
+  if (old !== null) {
+    if (localStorage.getItem(VOLUME_STORAGE_KEY) === null) localStorage.setItem(VOLUME_STORAGE_KEY, old);
+    localStorage.removeItem(OLD_VOLUME_KEY);
+  }
+} catch { /* optional */ }
 try {
   // only a setting that was really saved counts: an empty store must not read as 0 (muted)
   const saved = localStorage.getItem(VOLUME_STORAGE_KEY);

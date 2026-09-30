@@ -24,7 +24,7 @@ const HALF_DEFAULT = 9.5;
  * @param opts.count   petals in the air (default Sakura Crossing's 980)
  * @param opts.half    half-size of the square field (default: the street band)
  * @param opts.follow  () => {x, z}: the field is centred there every frame
- *                     and petals wrap round it (Lawson Fuji: the player), on
+ *                     and petals wrap round it (here: the player), on
  *                     flat ground at y = 0
  * @param opts.trackZ  z of the railway, for the lift a passing train gives
  */

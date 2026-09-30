@@ -216,6 +216,8 @@ export const RIDE = {
     listen: 'The next-stop announcement',
     station: 'The station',
   },
+  /** The departure boards' countdown line while you wait for platform 1's train (next train, in n seconds) */
+  next: { head: '次の電車', in: (s) => `あと${s}秒`, soon: 'まもなく到着' },
 };
 /** The 駅名標 (station name board): kana, station numbers, the neighbours either side. */
 export const NAME_BOARD = {

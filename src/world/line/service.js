@@ -91,10 +91,21 @@ function stepRun(r, dt, emit) {
   }
 }
 
-/** Seconds of one run: appear -> stop. */
-function approachTime() {
+/** Seconds of one run: appear (`from` m out) -> stop. */
+function approachTime(from = S.appear) {
   const brakeDist = (S.cruise * S.cruise) / (2 * S.brake);
-  return (S.appear - brakeDist) / S.cruise + S.cruise / S.brake;
+  return (from - brakeDist) / S.cruise + S.cruise / S.brake;
+}
+/** How far out a run sent for you starts (QA-010): `lead` s from its stop, never nearer than `minAppear` m. */
+function summonFrom() {
+  const W = TOWN.trainWait, brakeDist = (S.cruise * S.cruise) / (2 * S.brake);
+  return Math.min(S.appear, Math.max(W.minAppear, brakeDist + (W.lead - S.cruise / S.brake) * S.cruise));
+}
+/** Seconds from a stand at the platform (doors shut) until the set has run out of sight (its run over). */
+function departTime(v = 0, left = S.appear + 40) {
+  const tc = (S.cruise - v) / S.accel, dc = ((v + S.cruise) / 2) * tc;
+  if (left <= dc) return (-v + Math.sqrt(v * v + 2 * S.accel * left)) / S.accel;
+  return tc + (left - dc) / S.cruise;
 }
 
 export function makeService({ sets, crossing, onEvent, rotation = TOWN.rail.trains ?? ['box'] }) {
@@ -120,9 +131,10 @@ export function makeService({ sets, crossing, onEvent, rotation = TOWN.rail.trai
     onEvent?.(name, r);
   };
 
-  function begin(r, type = nextType()) {
+  let staged = false;                      // dev: a staged moment is left alone (no train sent for you)
+  function begin(r, type = nextType(), from = S.appear) {
     r.phase = 'approach';
-    r.x = STOP_X - r.dir * S.appear;
+    r.x = STOP_X - r.dir * from;
     r.v = S.cruise;
     r.t = 0;
     r.doors = 0;
@@ -161,9 +173,45 @@ export function makeService({ sets, crossing, onEvent, rotation = TOWN.rail.trai
     r.emu.setDoors(r.doors);
   }
 
+  /** Seconds until set i stands at the platform (0 while it stands there); a set with nothing planned counts as sent
+   * for you when `sendable` (what `summon` would make of it). */
+  function etaStop(i, sendable = true) {
+    const r = runs[i];
+    const after = sendable && !staged ? approachTime(summonFrom()) : Infinity;   // once it is gone, the next is sent at once
+    switch (r.phase) {
+      case 'approach': {
+        const d = r.dir * (STOP_X - r.x), bd = (r.v * r.v) / (2 * S.brake);
+        return d > bd ? (d - bd) / r.v + r.v / S.brake : r.v / S.brake;
+      }
+      case 'braking': return r.v / S.brake;
+      case 'opening': case 'dwell': return 0;
+      case 'chime': return S.chime - r.t + S.doorClose + S.hold + departTime() + after;
+      case 'closing': return S.doorClose - r.t + S.hold + departTime() + after;
+      case 'hold': return S.hold - r.t + departTime() + after;
+      case 'depart': return departTime(r.v, S.appear + 40 - r.dir * (r.x - STOP_X)) + after;
+      default: {
+        const planned = nextStart.set === i && Number.isFinite(nextStart.at) ? Math.max(0, nextStart.at - clock) + approachTime() : Infinity;
+        return planned <= TOWN.trainWait.due || after === Infinity ? planned : after;
+      }
+    }
+  }
+
   const api = {
     runs, events, cross,
     get clock() { return clock; },
+    etaStop,
+    /** QA-010: you are waiting on the platform.  If set i has nothing due within `due` s, it is sent now, out of
+     * sight, `lead` s from its stop; the crossing sees it coming like any other run.  Once it has run out after
+     * leaving, the next is sent the same way while you stay. */
+    summon(i = 0) {
+      const r = runs[i];
+      if (staged || r.phase !== 'idle') return false;
+      const planned = nextStart.set === i && Number.isFinite(nextStart.at) ? Math.max(0, nextStart.at - clock) + approachTime() : Infinity;
+      if (planned <= TOWN.trainWait.due) return false;
+      if (nextStart.set === i) nextStart = { set: 1 - i, at: Infinity };   // (this is that run, early; the timetable picks up when it leaves)
+      begin(r, nextType(), summonFrom());
+      return true;
+    },
     update(dt) {
       clock += dt;
       if (clock >= nextStart.at && runs[nextStart.set].phase === 'idle') {
@@ -213,7 +261,8 @@ export function makeService({ sets, crossing, onEvent, rotation = TOWN.rail.trai
       return rows.sort((a, b) => a.secs - b.secs);
     },
     /** Dev: stand the service in a given moment, for screenshots: `platform`, `platform-shut`,
-     *  `platform2`, `crossing`, `approach`, each with an optional `:type` (`platform:poke`). */
+     *  `platform2`, `crossing`, `approach`, each with an optional `:type` (`platform:poke`); `quiet` (no train
+     *  about; the service goes on from there).  A staged moment stays put: no train is sent for you. */
     stage(spec) {
       const [kind, type] = String(spec).split(':');
       for (const r of runs) { r.phase = 'idle'; r.v = 0; r.doors = 0; }
@@ -238,6 +287,9 @@ export function makeService({ sets, crossing, onEvent, rotation = TOWN.rail.trai
       }
       for (const r of runs) place(r);
       nextStart = { set: 0, at: Infinity };
+      staged = true;
+      // `quiet`: nothing about, platform 2's train two minutes off: the service runs on, and sends one for you (QA-010)
+      if (kind === 'quiet') { nextStart = { set: 1, at: clock + 120 }; staged = false; }
       // settle the crossing straight into its state
       let soonest = Infinity, east = false, west = false;
       for (const r of runs) { const tc = timeToCrossing(r); if (tc < S.warn) { soonest = Math.min(soonest, tc); if (r.dir > 0) east = true; else west = true; } }

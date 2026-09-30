@@ -249,6 +249,12 @@ export const TOWN = {
   /* `trains`: the types that take turns, run by run (line/emu.js TYPES: `box` the Fujimi
    * Line's own EMU, `jr` the E233-style JR commuter, `poke` the Pokémon train) */
   rail: { crossX: -80, z: 162, gauge: 1.067, spacing: 3.8, trains: ['box', 'jr', 'poke'] },
+  /* Waiting for platform 1's train (QA-010: the listening spot only lights while it stands there, and the timetable
+   * could leave you 4 minutes with nothing).  On the platforms or the concourse (or within `near` m of the spot) with
+   * no platform-1 train due within `due` s, the next one is sent now, `lead` s from its stop (it starts out of sight:
+   * never nearer than `minAppear` m, past every look's fog); the dimmed ring and "Next train · 0:25" count it down.
+   * `hear`: the arriving train is this near the spot (its sound has come up), Hachi's ears go up and he boofs. */
+  trainWait: { due: 30, lead: 26, minAppear: 330, near: 14, hear: 70 },
   crosswalk: { x: -35, width: 4 },              // the main road's zebra, by the master junction (lane x 30 = world x -30); its perpendicular partner crosses the lane (town-plan.js)
   petals: { air: 150, trees: 250 },               // SPEC 11: 400 on Ultra -- M2's field, plus the fall from the town's sakura
   /* Grid lines of the core.  `ns` run south from the main road (z = main)
@@ -770,6 +776,7 @@ export const ANIMALS = {
     lead: [4, 9], jog: 3.6,
     trot: 2.4, run: 5.4,                      // m/s (you walk at 2.55, run at 5.1: it can always catch you)
     waitSit: 3,                               // stands waiting this long, then sits
+    trainCheer: 3,                            // s of happy wag when the train's doors open after waiting for it with you (QA-010)
     /* "not interested" (the pup suggests, you decide): your heading more than `angle` degrees off its way for
      * `angleT` s, your distance to the spot grown by `grow` m while it waits, or you `away` m off (it leads from up to 9
      * m ahead): it stops and waits

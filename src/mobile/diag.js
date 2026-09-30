@@ -79,12 +79,17 @@ export function gpuMeter(gl) {
   return m;
 }
 
-const KEY = 'lawson-fuji-diag';
+const KEY = 'takemebacktojapan-diag';
 const MB = (n) => (n / 1048576).toFixed(0);
 
 export function createDiag({ on }) {
   let last = null;
-  try { last = localStorage.getItem(KEY); } catch { /* optional */ }
+  try {
+    // the working title's key, read once and moved
+    const old = localStorage.getItem('lawson-fuji-diag');
+    if (old !== null) { if (localStorage.getItem(KEY) === null) localStorage.setItem(KEY, old); localStorage.removeItem('lawson-fuji-diag'); }
+    last = localStorage.getItem(KEY);
+  } catch { /* optional */ }
   const state = { stage: 'boot', t0: performance.now(), stages: [] };
   let el = null;
   if (on) {

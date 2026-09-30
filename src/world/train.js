@@ -8,7 +8,7 @@ import { RAIL_TOP, X_MIN, X_MAX } from './railway.js';
 
 /* ------------------------------------------------------------------ *
  * A suburban EMU: by default Sakura Crossing's three-car cream-and-blue
- * set; Lawson Fuji runs it as a two-car green-and-cream local (`livery`,
+ * set; Take Me Back to Japan runs it as a two-car green-and-cream local (`livery`,
  * `cars`) that comes through every few minutes (`interval`).  Dark strip
  * windows.  Interiors are painted rather than modelled -- flat silhouette
  * blocks and a soft highlight sit directly on the glass, which is how a

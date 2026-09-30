@@ -66,8 +66,19 @@ const ios = /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && n
 const inApp = /CriOS|FxiOS|EdgiOS|OPiOS|GSA\/|Instagram|FBAN|FBAV|FB_IAB|FBIOS|LinkedInApp|\bLine\/|Twitter|MicroMessenger|Snapchat|Pinterest|musical_ly|TikTok|; wv\)/i.test(ua)
   || (ios && !/Safari\//.test(ua));                  // an iOS web view without Safari's own token
 const bigIphone = Math.max(screen.width, screen.height) >= 852;    // 14 Pro, 15, 16 and up (and every iPad)
+/* Saved settings took the working title's names ('lawson-fuji-*'): each is
+ * read once, moved to its takemebacktojapan-* key, and the old one dropped,
+ * so nobody's volume or light tier resets. */
+try {
+  for (const k of ['lost', 'volume']) {
+    const old = localStorage.getItem(`lawson-fuji-${k}`);
+    if (old === null) continue;
+    if (localStorage.getItem(`takemebacktojapan-${k}`) === null) localStorage.setItem(`takemebacktojapan-${k}`, old);
+    localStorage.removeItem(`lawson-fuji-${k}`);
+  }
+} catch { /* optional */ }
 let lostBefore = false;
-try { lostBefore = localStorage.getItem('lawson-fuji-lost') === '1'; } catch { /* optional */ }
+try { lostBefore = localStorage.getItem('takemebacktojapan-lost') === '1'; } catch { /* optional */ }
 const tier = params.get('tier') ?? (lostBefore || inApp || (ios ? !bigIphone : (navigator.deviceMemory ?? 8) <= 4) ? 'light' : 'full');
 if (MOBILE.tiers[tier]) Object.assign(MOBILE, MOBILE.tiers[tier]);
 diag.stage(`tier ${tier}`);
@@ -101,7 +112,7 @@ canvas.addEventListener('webglcontextlost', (e) => {
   contextLost = true;
   diag.stage(`CONTEXT LOST (at ${diag.stageName})`);
   // this device lost it once: from the next load on, the light tier
-  try { localStorage.setItem('lawson-fuji-lost', '1'); } catch { /* optional */ }
+  try { localStorage.setItem('takemebacktojapan-lost', '1'); } catch { /* optional */ }
   sound?.setAwake(false);
   showGate('lost');
 });
@@ -190,7 +201,7 @@ if (shop) {
   world.interactables.push(...(world.lawson.interactables ?? []));
 }
 
-const VOLUME_STORAGE_KEY = 'lawson-fuji-volume';
+const VOLUME_STORAGE_KEY = 'takemebacktojapan-volume';
 let volumeStep = DEFAULT_VOLUME;
 try {
   const saved = localStorage.getItem(VOLUME_STORAGE_KEY);

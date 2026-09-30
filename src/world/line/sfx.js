@@ -15,12 +15,9 @@ import { falloff } from '../../core/sound.js';
  *
  * Everything is local to where it happens (config SOUND-style near/far).
  *
- * The engine (core/sound.js) takes only named files and its own recipes,
- * so these run on a small graph of their own, made after the first click
- * (soundBus.ready), following the engine's volume and mute, silent while
- * the tab is hidden.  HOOK WANTED: a `soundBus.graph()` (the engine's
- * context and its sfx bus) would let this join the engine's mix; see the
- * report.
+ * They are built on the engine's own context and go into its outdoor bus
+ * (soundBus.graph(), QA-007): the engine's volume and mute, the pause
+ * card's silence, the store's walls and the hidden tab all reach them.
  * ------------------------------------------------------------------ */
 
 export const TRAIN_SOUND = { near: 14, far: 80 };
@@ -28,33 +25,21 @@ export const TRAIN_SOUND = { near: 14, far: 80 };
 let ac = null, out = null, noise = null;
 const listener = { x: 0, z: 0 };
 
-function host() {
-  const s = typeof window !== 'undefined' ? window.__scene?.sound : null;
-  return s ? (s.muted ? 0 : s.volume) : 0;
-}
 function ensure() {
-  if (!soundBus.ready) return null;
-  if (!ac) {
-    try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; }
-    const comp = ac.createDynamicsCompressor();
-    comp.threshold.value = -14; comp.ratio.value = 3;
-    comp.connect(ac.destination);
-    out = ac.createGain(); out.gain.value = 0; out.connect(comp);
-    const n = ac.sampleRate, b = ac.createBuffer(1, n * 2, n), d = b.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    noise = b;
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { if (ac.state === 'running') ac.suspend(); } else ac.resume();
-    });
-  }
-  if (ac.state === 'suspended' && !document.hidden) ac.resume();
+  if (ac) return ac;
+  const G = soundBus.graph();                     // null before the first click
+  if (!G) return null;
+  ac = G.ac;
+  out = ac.createGain(); out.gain.value = 0.9; out.connect(G.out);
+  const n = ac.sampleRate, b = ac.createBuffer(1, n * 2, n), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  noise = b;
   return ac;
 }
 
-/** Each frame: where the listener is (world), and the engine's volume. */
+/** Each frame: where the listener is (world). */
 export function sfxListen(p) {
   listener.x = p.x; listener.z = p.z;
-  if (out) out.gain.setTargetAtTime(host() * 0.9, ac.currentTime, 0.1);
 }
 
 /**

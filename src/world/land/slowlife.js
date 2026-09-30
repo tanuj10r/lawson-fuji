@@ -266,7 +266,7 @@ export function buildSlowLife(ctx, scatter) {
   const seatAt = ctx.toWorld({ x: B.x + Math.sin(B.ry) * 0.04, z: B.z + Math.cos(B.ry) * 0.04 });
   const spot = ctx.experiences.add({
     id: 'slowlife', name: 'Sit a while', jp: 'ひと休み',
-    x: B.x + Math.sin(B.ry) * 0.3, z: B.z + Math.cos(B.ry) * 0.3, r: 1.1, h: 1.0,
+    x: B.x + Math.sin(B.ry) * 0.3, z: B.z + Math.cos(B.ry) * 0.3, r: 1.1, h: 1.0, hitInside: true,
     action: ({ player, hud } = {}) => {
       if (!player?.sit || seated) return;
       seated = true;

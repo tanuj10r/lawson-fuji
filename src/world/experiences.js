@@ -21,7 +21,7 @@ import * as THREE from 'three';
  * It shows from 60 m.  A spot you've done dims but stays.
  *
  *   const spot = experiences.add({ id, name, jp, x, z, r, h, y, action,
- *                                  label, interact })
+ *                                  label, interact, hitInside })
  *   spot.done()          // dim it (the player has had this experience)
  *   spot.setLabel(text)  // change the E prompt
  *   experiences.add({ kind: 'sound', id, name, jp, x, z })   // a sound: the map only
@@ -109,8 +109,12 @@ export function makeExperiences(ctx) {
       // the hitbox the player aims at (invisible), only for spots that E does something at
       let item = null;
       if (s.action && s.interact !== false) {
-        const hit = new THREE.Mesh(new THREE.BoxGeometry(s.r * 2, s.h, s.r * 2), new THREE.MeshBasicMaterial({ visible: false }));
-        hit.position.set(s.x, s.y + s.h / 2, s.z);
+        /* `hitInside`: E works standing in the ring too (the bench, QA-009): the box stands above the eye and is
+         * seen from inside (a ray from inside a box meets only its back faces) */
+        const hh = s.hitInside ? Math.max(s.h, 2.4) : s.h;
+        const hit = new THREE.Mesh(new THREE.BoxGeometry(s.r * 2, hh, s.r * 2),
+          new THREE.MeshBasicMaterial({ visible: false, side: s.hitInside ? THREE.DoubleSide : THREE.FrontSide }));
+        hit.position.set(s.x, s.y + hh / 2, s.z);
         hit.userData.keep = true;
         hit.userData.noOutline = true;
         ctx.add(hit);

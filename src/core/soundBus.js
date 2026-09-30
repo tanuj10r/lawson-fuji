@@ -25,8 +25,11 @@ export const soundBus = {
     else pending.push(['zone', name, o, h]);
     return h;
   },
-  /** A placed one-off; dropped if the engine isn't running yet (before the first click). */
-  oneShot(name, o) { engine?.oneShot(name, o); },
+  /** A placed one-off; dropped if the engine isn't running yet (before the first click).
+   * Returns a handle ({ ended }) while the engine runs, else null. */
+  oneShot(name, o) { return engine?.oneShot(name, o) ?? null; },
+  /** The engine's context and outdoor bus (null before the first click): see sound.graph. */
+  graph() { return engine?.graph?.() ?? null; },
   /** Fetch and decode files ahead of need (resolves false before the first click). */
   preload(names) { return engine?.preload ? engine.preload(names) : Promise.resolve(false); },
   get ready() { return !!engine?.ready; },

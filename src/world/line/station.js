@@ -639,29 +639,30 @@ export function buildStation(ctx, { kit, service, sets }) {
   const trainSpot = ctx.experiences?.add({
     id: 'train', name: RIDE.say.listen, jp: '電車', x: listen.x, z: listen.z, y: PH, r: listen.r, h: 2.0, interact: false,
   });
-  let inSpot = false, warmed = false, ambLvl = SOUND.station.level, shown = true;
+  let inSpot = false, warmed = false, ambLvl = SOUND.station.level, shown = true, said = null;
   return {
     group: g, boards, platforms: PLAT, PH,
     /** Each frame (line/index.js): `me` the camera in this frame. */
     update(dt, cam, me) {
       const d = Math.hypot(me.x - listen.x, me.z - listen.z);
-      // warm the file as you come near (the engine plays a file on its second asking)
+      // fetch and decode the file as you come near, so its first play is on time
       if (!warmed && d < 80 && soundBus.ready) {
         warmed = true;
-        soundBus.oneShot('train-nextstop', { x: cam.x, z: cam.z, gain: 0.0001, near: 1, far: 400 });   // silent: it only fetches the file
+        soundBus.preload(['train-nextstop']);
       }
       // the station's own announcements dim while you listen at the spot (full dim within 1.5 m, back by 6 m)
       const k = Math.min(1, Math.max(0, (d - 1.5) / 4.5));
       const lvl = SOUND.station.level * (SOUND.station.duck + (1 - SOUND.station.duck) * k);
       if (Math.abs(lvl - ambLvl) > 0.004) { ambLvl = lvl; ambience.set({ level: lvl }); }
       /* the ring and the announcement only while platform 1's train stands with its doors open (Tan, 2026-09-29): the
-       * announcement is the one you hear aboard, so it plays once each time you step in then */
+       * announcement is the one you hear aboard, so it plays each time you step in then; one at a time: stepping out
+       * and back in while it plays neither restarts it nor starts a second (QA-006) */
       const run = service.runs[0];
       const open = !!run && (run.phase === 'dwell' || (run.phase === 'opening' && run.doors > 0.9));
       if (open !== shown) { shown = open; trainSpot?.show(open); }
       const inside = open && d < listen.r;
-      if (inside && !inSpot) {
-        soundBus.oneShot('train-nextstop', { x: listenW.x, z: listenW.z, y: PH + 2.2, ...SOUND.trainListen, gain: 1 });
+      if (inside && !inSpot && (!said || said.ended)) {
+        said = soundBus.oneShot('train-nextstop', { x: listenW.x, z: listenW.z, y: PH + 2.2, ...SOUND.trainListen, gain: 1 });
         trainSpot?.done();
       }
       inSpot = inside;

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { cel } from '../../core/toon.js';
 import { soundBus } from '../../core/soundBus.js';
-import { TOWN } from '../../config.js';
+import { TOWN, SOUND } from '../../config.js';
 import { makeRX7, RX7 } from './rx7.js';
 import { makeHan, POSES, blendPose } from './han.js';
 import { buildDrive, driveAt, T_DRIVE } from './drive.js';
@@ -296,8 +296,17 @@ export function buildHan(ctx) {
     return pos;
   }
 
+  /* the song is fetched and decoded on the way here (QA-014); stepped in before it is ready, the show waits for it
+   * (up to SOUND.hanSong.wait s), so the car and the song start together */
+  let songAsked = false, songReady = false;
   function start() {
     if (S.run) return;
+    if (!songReady && soundBus.ready) {
+      const t = performance.now();
+      S.songWait ??= t;
+      if (t - S.songWait < SOUND.hanSong.wait * 1000) { S.pending = true; return; }
+    }
+    S.pending = false; S.songWait = null;
     S.run = true; S.t = 0; S.held = 0; S.rate = 1; S.songT = 0; S.armed = false;
     // from the top, with the animation; local: full to 6 m, gone by 24 m (the famous view is 22.8 m off)
     soundBus.oneShot('han-drift', { x: spotW.x, z: spotW.z, y: 1.2, near: 6, far: 24, gain: songLevel });
@@ -316,23 +325,28 @@ export function buildHan(ctx) {
     if (!cam) return;
     const p = ctx.toLocal({ x: cam.x, z: cam.z });
     const dCar = Math.hypot(p.x - cg.position.x, p.z - cg.position.z);
+    if (!songAsked && dCar < SOUND.hanSong.preload && soundBus.ready) {
+      songAsked = true;
+      soundBus.preload(['han-drift']).then(() => { songReady = true; });   // (no file: the show goes on without waiting)
+    }
     if (!S.run && dCar > NEAR) return;
     if (sun) {
       const k = THREE.MathUtils.clamp(sun.intensity / 2.2, 0.22, 1.1);
       if (Math.abs(k - envK) > 0.01) { envK = k; car.setEnv(k); }
     }
-    /* The show keeps the song's time, not the game's: the game slows its
-     * clock when paused (10 frames a second, each capped at 1/20 s), the
-     * music plays on.  A frozen capture (dt 0) stays frozen. */
+    /* The show keeps the song's time, not the game's (the game's clock is
+     * capped at 1/20 s a frame).  Paused (dt 0) both stand still: the engine
+     * holds the song where it is (QA-013), and the show picks up with it on
+     * the frame after resume.  A frozen capture (dt 0) stays frozen. */
     const now = performance.now();
-    if (dt > 0) dt = Math.min(0.25, (now - (S.wall ?? now - dt * 1000)) / 1000);
-    S.wall = now;
+    if (dt > 0) { const w = S.wall; S.wall = now; dt = w == null ? 0 : Math.min(0.25, (now - w) / 1000); }
+    else S.wall = null;
 
     // the trigger: step into the glow; it re-arms once you have stepped out again
     const dSpot = Math.hypot(p.x - HAN_SPOT.x, p.z - HAN_SPOT.z);
     if (!S.run) {
       if (dSpot > HAN_SPOT.r + 0.6) S.armed = true;
-      if (S.armed && dSpot < HAN_SPOT.r && dt > 0) start();
+      if ((S.pending || (S.armed && dSpot < HAN_SPOT.r)) && dt > 0) start();
     }
 
     if (S.run && !S.frozen) {

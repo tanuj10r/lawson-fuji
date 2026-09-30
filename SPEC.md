@@ -259,7 +259,7 @@ names):
   (`scripts/_cards.mjs` checks 1280x720 to 2560x1440).
 - **Pause:** the same card with a PAUSED chip, the volume (five steps) and
   Resume. The game keeps drawing, blurred, at 10 fps.
-- **The song:** the first 45 s of Tan's "Nippon Let's Go" (made with Suno) loop on the start
+- **The song:** the first 45 s of the title tune (a copyright-free track Tan found; not credited, per Tan) loop on the start
   and pause cards, with the game's own sound down under it, and fades out as
   play starts or resumes; paused again, it carries on where it left off. The
   browser allows sound only after a first click or key, so on the start card

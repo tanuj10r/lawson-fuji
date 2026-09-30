@@ -491,7 +491,7 @@ export function createSound({ volume = 0.5 } = {}) {
       // the short sounds are fetched now, quietly, so the first of each is ready
       for (const k of ['lawson-chime', 'auto-door', 'fridge-door', 'railway-bells', 'walk-kakko', 'walk-piyo']) buffer(k);
     },
-    /** The start and pause cards (Tan's song, Nippon Let's Go): the song loops while one shows, picking up where it
+    /** The start and pause cards (the title tune): the song loops while one shows, picking up where it
      * left off, and the game's own sound steps back under it; off, the song fades out and the game comes back. */
     setMenu(on) {
       menuOn = on;

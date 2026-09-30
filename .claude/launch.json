@@ -4,8 +4,39 @@
     {
       "name": "fujikawaguchikko",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 5178
+    },
+    {
+      "name": "mobile-lite",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/tanujr/DevSpace/lawson-fuji/.claude/worktrees/agent-a3099ca05fb425c93",
+        "run",
+        "dev:phone"
+      ],
+      "port": 5195
+    },
+    {
+      "name": "mobile-lite-prod",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/tanujr/DevSpace/lawson-fuji/.claude/worktrees/agent-a3099ca05fb425c93",
+        "vite",
+        "preview",
+        "/Users/tanujr/DevSpace/lawson-fuji/.claude/worktrees/agent-a3099ca05fb425c93",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "5196",
+        "--strictPort"
+      ],
+      "port": 5196
     }
   ]
 }

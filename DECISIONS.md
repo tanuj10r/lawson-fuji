@@ -1807,3 +1807,7 @@ Tan: "whenever or wherever I whistle from, the pup magically appears next to me 
 - **The konbini:** the free-roam shop was replaced by the scene (choose at the door, keys 1-5; the self-checkout; eat outside) on 2026-09-28, but its parts stayed: the carry limit and the wallet check (QA-028: they flashed strings that no longer existed), the hidden left hand, the ¥1,000 note, the change in coins, the basket you carried, the aim boxes, the register display, the subtitles. All out; the store and the scene look and play the same (every store shot pixel-identical, `_konbini` the same timings).
 - **The parts library:** Sakura Crossing's world modules that nothing imported (world/index.js, shop.js, shotengai.js, showa.js, train.js, details.js) are deleted, and every top-level declaration nothing refers to (172, mostly sign textures). They were never in the build; git history keeps them if a milestone wants one back. AGENTS.md's "parts library" line now means what src/ still holds.
 - **Kept on purpose:** the product catalogue in full (every product stands on a shelf), the catalogue's `zone` field (read by nothing, but it is the first argument of every family row), shop.wallet (the konbini check prints it), window.__scene in production (tools read it from a build), and the dev tools the checks use.
+
+
+## Title tune: not Suno (2026-09-30)
+- Correction from Tan: the title tune ("title bgm.mp3") is a copyright-free track Tan found online, not a Suno song; Suno was never used. The Suno notes above are wrong. Per Tan, it is not credited.

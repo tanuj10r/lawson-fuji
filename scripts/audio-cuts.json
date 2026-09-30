@@ -135,7 +135,7 @@
       "fadeOut": 2.5,
       "he": true,
       "kbps": 48,
-      "_": "Tan's song, Nippon Let's Go (made with Suno, their own lyrics): its first 45 s loop on the start and pause cards (Tan), fading out over the last 2.5 s into the opening again (core/sound.js setMenu); stereo, streamed"
+      "_": "the title tune (a copyright-free track Tan found): its first 45 s loop on the start and pause cards (Tan), fading out over the last 2.5 s into the opening again (core/sound.js setMenu); stereo, streamed"
     },
     "store-bgm": {
       "start": 0.0,

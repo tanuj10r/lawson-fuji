@@ -57,7 +57,6 @@ Also on the site: [credits.html](public/credits.html), linked from the start car
   https://github.com/Kenton-GMI/sakura-crossing
 - Mt. Fuji elevation data: 出典：国土地理院. 「標高タイル」（国土地理院）
   （https://maps.gsi.go.jp/development/demtile.html）を加工して作成
-- Title song "Nippon Let's Go": by Tan, made with Suno
 - Sound effects: 効果音ラボ (soundeffect-lab.info)
 - Sign fonts (SIL Open Font License 1.1, subset): M PLUS Rounded 1c by
   the Rounded M+ Project Authors; Yuji Syuku by the Yuji Project Authors

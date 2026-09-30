@@ -107,8 +107,8 @@ export const STRINGS = {
     ready: 'Almost there…',
   },
   gate: {
-    phoneTitle: 'Made for a computer',
-    phone: 'A small town under Mt. Fuji, made for a keyboard and mouse. Open this link on a desktop or laptop to play.',
+    phoneTitle: 'Best on a computer',
+    phone: 'A small town under Mt. Fuji, made to be walked with a keyboard and mouse. Open this link on a desktop or laptop for the full stroll.',
     copy: 'Copy link',
     share: 'Share',
     copied: 'Link copied',

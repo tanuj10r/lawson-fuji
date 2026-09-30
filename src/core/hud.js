@@ -69,7 +69,7 @@ export function createHud({ volume = 50 } = {}) {
             <span class="start-only">${STRINGS.start}</span>
             <span class="pause-only">${STRINGS.resume}</span>
           </button>
-          <p class="menu-url">${STRINGS.url}<span class="menu-credit">${STRINGS.credit}</span></p>
+          <p class="menu-url">${STRINGS.url}<span class="menu-credit">${STRINGS.credit} · <a href="credits.html" target="_blank" rel="noopener">${STRINGS.credits}</a></span></p>
         </div>
       </div>
     </section>`;
@@ -207,7 +207,7 @@ export function createHud({ volume = 50 } = {}) {
     api.onStart?.();
   });
   overlay.addEventListener('click', (e) => {
-    if (e.target.closest('.audio-control')) return;
+    if (e.target.closest('.audio-control, a')) return;   // the Credits link opens its page, not the game
     api.onStart?.();
   });
   for (const event of ['click', 'pointerdown', 'pointerup']) {

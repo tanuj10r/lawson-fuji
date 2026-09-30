@@ -1,0 +1,49 @@
+# Response headers for Cloudflare Pages (and Netlify): QA-018, SPEC 13 A8.
+# The CSP allows this origin only (AGENTS.md: no requests to other domains).
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+
+# Vite's hashed bundles, fonts and data: the name changes when the file does
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# sounds and their manifest: not hashed, so a day
+/audio/*
+  Cache-Control: public, max-age=86400
+
+/audio/*.m4a
+  Content-Type: audio/mp4
+
+# images beside the page: not hashed, so a day
+/keyart.webp
+  Cache-Control: public, max-age=86400
+/og.jpg
+  Cache-Control: public, max-age=86400
+/og-square.jpg
+  Cache-Control: public, max-age=86400
+/favicon.ico
+  Cache-Control: public, max-age=86400
+/favicon.svg
+  Cache-Control: public, max-age=86400
+/favicon-32.png
+  Cache-Control: public, max-age=86400
+/apple-touch-icon.png
+  Cache-Control: public, max-age=86400
+/icon-192.png
+  Cache-Control: public, max-age=86400
+/icon-512.png
+  Cache-Control: public, max-age=86400
+
+# the pages: always revalidated, so a new build is seen at once
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/credits.html
+  Cache-Control: no-cache
+/404.html
+  Cache-Control: no-cache

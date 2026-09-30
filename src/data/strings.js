@@ -39,6 +39,7 @@ export const STRINGS = {
   volumeAria: 'Volume',
   controlsTitle: 'Controls',
   credit: 'Built on Sakura Crossing (MIT)',
+  credits: 'Credits',
   artAlt: 'Golden hour under Mt. Fuji: Han leans on his orange RX-7 with a shiba beside him, across the road from the NIPPON konbini, cherry trees in bloom.',
   /* The cards' list, in order (every key). */
   controls: Object.values(CONTROLS),

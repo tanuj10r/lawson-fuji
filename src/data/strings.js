@@ -99,4 +99,24 @@ export const STRINGS = {
   },
   refOn: 'reference overlay on',
   refOff: 'reference overlay off',
+  /* The cards index.html paints before the game's code runs (QA-001/003/004/012).
+   * vite.config.js writes these into index.html at build time (%S:boot.loading%),
+   * so a phone reads them without downloading the game. */
+  boot: {
+    loading: 'Loading the town…',
+    building: 'Building the town…',
+    ready: 'Almost there…',
+  },
+  gate: {
+    phoneTitle: 'Made for a computer',
+    phone: 'A small town under Mt. Fuji, made for a keyboard and mouse. Open this link on a desktop or laptop to play.',
+    copy: 'Copy link',
+    share: 'Share',
+    copied: 'Link copied',
+    noglTitle: 'Your browser can’t draw the town',
+    nogl: 'This game needs WebGL 2, which is turned off or not available here. Try the latest Chrome, Edge, Firefox or Safari on a computer, with hardware acceleration on.',
+    lostTitle: 'The graphics card reset',
+    lost: 'Reload to continue.',
+    reload: 'Reload',
+  },
 };

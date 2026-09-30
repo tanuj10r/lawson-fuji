@@ -237,13 +237,223 @@
   }
   .menu-credit { display: block; margin-top: .3cqw; font-size: max(10px, .78cqw); font-weight: 500; letter-spacing: .02em; opacity: .75; }
   .menu-credit a { color: inherit; text-underline-offset: 2px; }
+  /* A small desktop window (QA-023): the card was 760 px at least and ran off
+   * the screen under that.  Below 800 px it takes the window's width, the art
+   * gives up some height, the keys stack over Start, and if it still can't
+   * fit, the card scrolls rather than hide Start.  Normal windows unchanged. */
+  @media (max-width: 800px), (max-height: 560px) {
+    .overlay { display: flex; flex-direction: column; align-items: center; justify-content: safe center; overflow-y: auto; padding: 16px; }
+    .menu { flex: none; min-width: 0; width: min(100%, 760px); }
+    .menu-art { aspect-ratio: auto; height: min(56.25cqw, 42vh); }
+    .menu-art img { object-position: 50% 12%; }   /* cropped: keep Fuji's peak and the sky the name sits in */
+  }
+  @media (max-width: 800px) {
+    .menu-body { grid-template-columns: 1fr; gap: 16px; padding: 16px 20px 16px; }
+    .menu-keys { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 16px; }
+    .menu-right { gap: 10px; }
+    .menu-action { padding: 11px 16px; border-radius: 8px; }
+    .menu h1 { font-size: max(26px, 4.1cqw); }
+  }
+
+  /* ---------- the loading card (QA-004) ----------
+   * Painted by this page before any game code: the start card's art and name,
+   * a line and a bar where the keys will be (main.js steps them).  The game's
+   * own card takes over in the same place. */
+  .boot { position: fixed; z-index: 20; cursor: progress; backdrop-filter: none;
+    background: radial-gradient(ellipse at 50% 40%, #6e5b8f, #2c2346); }
+  .boot-body {
+    display: flex; align-items: center; gap: 2.4cqw;
+    padding: 2.3cqw 3cqw 2.2cqw;
+    border-top: 3px solid var(--sakura);
+    background: linear-gradient(180deg, #fffaf5, var(--paper));
+  }
+  .boot-line { margin: 0; flex: none; font-size: max(13px, 1.3cqw); font-weight: 600; color: var(--ink-soft); }
+  .boot-bar {
+    position: relative; flex: 1; height: max(6px, .5cqw); overflow: hidden;
+    border-radius: 999px; background: #efe5e8;
+  }
+  .boot-bar > span {
+    position: absolute; inset: 0 auto 0 0; width: var(--p, 15%);
+    border-radius: inherit; background: var(--action); transition: width .6s ease;
+  }
+  /* a glint running along the bar, on the compositor: it keeps moving while the town builds */
+  .boot-bar::after {
+    content: ''; position: absolute; inset: 0; width: 30%;
+    background: linear-gradient(90deg, transparent, rgba(229,155,176,.95), transparent);
+    animation: boot-glint 1.4s linear infinite;
+  }
+  @keyframes boot-glint { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+
+  /* ---------- the gate: a card instead of the game (QA-001, QA-003, QA-012) ----------
+   * html.gate-phone: a phone or tablet (checked below, before any game code loads).
+   * html.gate-nogl: no WebGL 2.   html.gate-lost: the GPU reset mid-game (main.js). */
+  .gate {
+    --ink: #2b2542; --ink-soft: #6c6482; --paper: #fbf6f0; --sakura: #e59bb0; --action: #3b3263;
+    display: none; position: fixed; inset: 0; z-index: 30; overflow-y: auto;
+    flex-direction: column; align-items: center; justify-content: safe flex-end;
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+    background: #2c2346; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+  .gate-phone .gate, .gate-nogl .gate, .gate-lost .gate { display: flex; }
+  .gate-phone #boot, .gate-nogl #boot, .gate-phone #view, .gate-nogl #view { display: none; }
+  .gate-art { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 40% 0; }
+  .gate-shade { position: fixed; inset: 0; background: linear-gradient(180deg, rgba(28,20,48,0) 30%, rgba(28,20,48,.6)); }
+  .gate-card {
+    position: relative; flex: none; width: min(100%, 520px);
+    border-radius: 18px; overflow: hidden; background: var(--paper);
+    box-shadow: 0 30px 80px -24px rgba(8,4,24,.8), 0 0 0 1px rgba(255,255,255,.08);
+  }
+  .gate-head { padding: 22px 24px 18px; background: linear-gradient(180deg, #fffaf5, var(--paper)); }
+  .gate-place { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: rgba(43,37,66,.66); }
+  .gate-place [lang='ja'] { letter-spacing: .1em; }
+  .gate [lang='ja'] { font-family: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', Meiryo, sans-serif; }
+  .gate h1 {
+    margin: 0; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    font-size: 31px; line-height: 1.08; font-weight: 600; color: #2a2140;
+  }
+  .gate-jp { margin: 8px 0 0; font-size: 14px; font-weight: 700; letter-spacing: .3em; color: rgba(43,37,66,.8); }
+  .gate-jp::before {
+    content: ''; display: inline-block; width: 26px; height: 2px; margin: 0 10px 4px 0;
+    vertical-align: middle; background: linear-gradient(90deg, transparent, var(--sakura));
+  }
+  .gate-body { padding: 18px 24px 22px; border-top: 3px solid var(--sakura); }
+  .gate-msg { display: none; }
+  .gate-phone .for-phone, .gate-nogl .for-nogl, .gate-lost .for-lost { display: block; }
+  .gate-msg h2 { margin: 0 0 6px; font-size: 16px; font-weight: 700; color: var(--ink); }
+  .gate-msg p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink-soft); }
+  .gate-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .gate-actions:empty { display: none; }
+  .gate-btn {
+    flex: 1 1 140px; padding: 13px 18px; border-radius: 10px;
+    border: 1.5px solid var(--action); background: var(--action); color: #fff;
+    font: inherit; font-size: 15px; font-weight: 700; letter-spacing: .06em; cursor: pointer;
+  }
+  .gate-btn.soft { background: transparent; color: var(--action); }
+  .gate-btn:focus-visible { outline: 3px solid var(--sakura); outline-offset: 3px; }
+  .gate-share { display: none; }
+  .can-share .gate-share { display: block; }
+  .gate-note { min-height: 1.4em; margin: 10px 0 0; font-size: 13px; font-weight: 600; text-align: center; color: var(--ink-soft); }
+  .gate-url { margin: 14px 0 0; text-align: center; font-size: 12px; font-weight: 600; letter-spacing: .08em; color: var(--ink-soft); }
+  /* on a computer (no WebGL, a GPU reset) the card sits in the middle */
+  @media (min-width: 700px) and (min-height: 500px) { .gate { justify-content: safe center; } }
+
   @media (prefers-reduced-motion: reduce) {
     .overlay, .menu-action { transition: none; }
+    .boot-bar::after { animation: none; }
   }
 </style>
+<script>
+  /* Before anything loads or paints: can this device play?  A phone or tablet
+   * (a coarse pointer and no fine one, or a touch screen smaller than a
+   * laptop's, or no pointer lock) gets the "made for a computer" card, and the
+   * game's code is never downloaded (QA-001).  A computer without WebGL 2
+   * gets its own card (QA-003).  Desktop only: no touch version. */
+  (function () {
+    var d = document.documentElement, mq = function (q) { return !!(window.matchMedia && matchMedia(q).matches); };
+    var touch = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+    var phone = (mq('(pointer: coarse)') && !mq('(any-pointer: fine)'))
+      || (touch && Math.min(screen.width, screen.height) < 600)
+      || (touch && !('requestPointerLock' in Element.prototype));
+    if (phone) { d.classList.add('gate-phone'); }
+    else {
+      var gl = null;
+      try { gl = document.createElement('canvas').getContext('webgl2'); } catch (e) { gl = null; }
+      if (!gl) d.classList.add('gate-nogl');
+      else { var x = gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); }   // a test context: give it back
+    }
+    if (navigator.share) d.classList.add('can-share');
+  })();
+</script>
 </head>
 <body class="notranslate">
   <canvas id="view"></canvas>
-  <script type="module" src="./src/main.js"></script>
+
+  <!-- the loading card: the start card's art and name, then the game's card takes over (main.js) -->
+  <div id="boot" class="overlay boot" role="status" aria-live="polite">
+    <section class="menu" aria-label="%S:title%">
+      <figure class="menu-art">
+        <img src="keyart.webp" width="1600" height="900" alt="%S:artAlt%" fetchpriority="high" />
+        <figcaption class="menu-name">
+          <p class="menu-place">%S:town.en%<span class="dot">·</span><span lang="ja">%S:town.jp%</span></p>
+          <h1>%S:title%</h1>
+          <p class="menu-jp" lang="ja">%S:titleJp%</p>
+        </figcaption>
+      </figure>
+      <div class="boot-body">
+        <p class="boot-line">%S:boot.loading%</p>
+        <div class="boot-bar" aria-hidden="true"><span></span></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- the gate: a phone, no WebGL 2, or a GPU reset (the head script and main.js pick) -->
+  <div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+    <img class="gate-art" src="keyart.webp" width="1600" height="900" alt="" />
+    <div class="gate-shade"></div>
+    <section class="gate-card">
+      <header class="gate-head">
+        <p class="gate-place">%S:town.en% · <span lang="ja">%S:town.jp%</span></p>
+        <h1 id="gate-title">%S:title%</h1>
+        <p class="gate-jp" lang="ja">%S:titleJp%</p>
+      </header>
+      <div class="gate-body">
+        <div class="gate-msg for-phone">
+          <h2>%S:gate.phoneTitle%</h2>
+          <p>%S:gate.phone%</p>
+          <div class="gate-actions">
+            <button class="gate-btn" type="button" data-gate="copy">%S:gate.copy%</button>
+            <button class="gate-btn soft gate-share" type="button" data-gate="share">%S:gate.share%</button>
+          </div>
+          <p class="gate-note" aria-live="polite"></p>
+        </div>
+        <div class="gate-msg for-nogl">
+          <h2>%S:gate.noglTitle%</h2>
+          <p>%S:gate.nogl%</p>
+        </div>
+        <div class="gate-msg for-lost">
+          <h2>%S:gate.lostTitle%</h2>
+          <p>%S:gate.lost%</p>
+          <div class="gate-actions">
+            <button class="gate-btn" type="button" data-gate="reload">%S:gate.reload%</button>
+          </div>
+        </div>
+        <p class="gate-url">%S:url%</p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    /* The gate's buttons.  The link is the page's own, without any query. */
+    (function () {
+      var gate = document.getElementById('gate');
+      var note = gate.querySelector('.gate-note');
+      var link = location.origin + location.pathname;
+      function copied() { note.textContent = '%S:gate.copied%'; }
+      function fallback() {
+        var ta = document.createElement('textarea');
+        ta.value = link; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+        document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, link.length);
+        var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        ta.remove();
+        if (ok) copied();
+      }
+      gate.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-gate]');
+        if (!b) return;
+        var what = b.getAttribute('data-gate');
+        if (what === 'reload') location.reload();
+        if (what === 'copy') {
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(copied, fallback);
+          else fallback();
+        }
+        if (what === 'share') navigator.share({ title: document.title, url: link }).catch(function () {});
+      });
+    })();
+  </script>
+  <!-- the game, only on a computer that can draw it -->
+  <script type="module">
+    if (!/\bgate-/.test(document.documentElement.className)) import('./src/main.js');
+  </script>
 </body>
 </html>

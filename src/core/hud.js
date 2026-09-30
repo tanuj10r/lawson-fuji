@@ -219,7 +219,8 @@ export function createHud({ volume = 50 } = {}) {
     api.onVolumeChange?.(next);
   });
 
-  window.addEventListener('keydown', (e) => {
+  // dev only (QA-011): C toggles the coordinate readout
+  if (import.meta.env.DEV) window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyC') {
       // Shift+C copies the position; plain C toggles the readout
       if (e.shiftKey) {

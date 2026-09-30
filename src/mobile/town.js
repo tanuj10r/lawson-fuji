@@ -19,11 +19,14 @@ import { makeNight } from '../world/kit/night.js';
 
 /* ------------------------------------------------------------------ *
  * The phone build's town: world/town.js, word for word, but for what the
- * lite version changes (marked LITE; docs/decisions/mobile-lite.md).  The
- * same builders place the same town; only the static batching is cut into
- * smaller cells (so distance culling works) with the small props in their
- * own detail cells, and the two petal fields are thinner (config.js
- * MOBILE).  Keep it in step with world/town.js.
+ * lite version changes (marked LITE and POCKET; docs/decisions/
+ * mobile-lite.md).  The same builders place the same places; the core is
+ * mobile/core.js, which builds only the lots of the pocket town (the rest
+ * are kitchen gardens); the static batching is cut into smaller cells (so
+ * distance culling and streaming work) with the small props in their own
+ * detail cells, and its sign atlas is cut up (mergePocket); the two petal
+ * fields are thinner (config.js MOBILE).  Keep it in step with
+ * world/town.js.
  *
  * The town (SPEC section 3).
  *
@@ -36,8 +39,8 @@ import { makeNight } from '../world/kit/night.js';
 
 /* LITE: `stage(name)` is told as each big part is done (the ?diag readout
  * keeps the last, so a phone that dies while building says where), and
- * `shrink(root, store)` makes each part's painted pages phone-sized as soon
- * as it is built, so the desktop-sized pages never all exist at once. */
+ * `shrink(root, store)` caps each part's painted pages as soon as it is
+ * built (MOBILE.maxTexture: the desktop's own sizes in the pocket edition). */
 /* POCKET: the static batching, its sign atlas cut up.  On the desktop
  * every sign's page is packed into one set of atlas pages (4096 x 4496 for
  * this town: ~90 MB, always resident, since some sign on it is always
@@ -45,9 +48,10 @@ import { makeNight } from '../world/kit/night.js';
  *   - a page bigger than MOBILE.atlas.max texels keeps its own texture: it
  *     batches with the others that share it, and gives its GPU memory back
  *     with its batches when you are far from it (lite.js makeCuller)
- *   - so does a page used in more than one region (road signs, pole plates:
- *     packed per region they would be copied into every region's page)
- *   - the rest, the pages that belong to one place (a shop's plates, a
+ *   - a small page used in more than one region (road signs, pole plates)
+ *     goes into one shared page set, packed in a pass of its own (packed
+ *     per region it would be copied into every region's page)
+ *   - the rest, the small pages that belong to one place (a shop's plates, a
  *     house's name board), are packed per region (MOBILE.atlas.z, .x: a
  *     grid in world terms), one mergeStatic pass each, so a far region's
  *     page streams out with its batches.
@@ -81,12 +85,15 @@ function mergePocket(root, opts) {
   });
   for (const m of meshes) {
     const t = Array.isArray(m.o.material) ? null : m.o.material?.map;
-    m.own = !!t && t.image.width * t.image.height <= max && regionsOf.get(t.source).size === 1;
+    const small = !!t && t.image.width * t.image.height <= max;
+    m.own = small && regionsOf.get(t.source).size === 1;
+    // a small page used all over (road signs, pole plates): packed once, in a shared page of its own pass
+    if (small && !m.own) { m.r = count; m.own = true; }
   }
   const known = new Set(), made = [];
   root.traverse((o) => { if (o.isMesh) known.add(o); });
   let out = null;
-  for (let r = 0; r < count; r++) {
+  for (let r = 0; r <= count; r++) {
     for (const m of meshes) {
       const other = m.r !== r;
       m.o.userData.keep = other || undefined;
@@ -110,7 +117,20 @@ export function buildTown(scene, { cell = 128, detailCell = 0, stage = () => {},
   scene.add(root);
   const ctx = makeCtx(scene, root);
   // the shared painted weather every worn surface reads (M2e, kit/paint.js)
-  setWearTexture(wearAtlas());
+  /* POCKET: the painted weather at MOBILE.wear texels a side (the desktop's 2048): soft grime and
+   * streaks, low in detail, seen magnified on every wall */
+  const wear = wearAtlas();
+  if (MOBILE.wear && wear.image.width > MOBILE.wear) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = MOBILE.wear;
+    const c = cv.getContext('2d');
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(wear.image, 0, 0, MOBILE.wear, MOBILE.wear);
+    wear.image.width = wear.image.height = 1;
+    wear.image = cv;
+    wear.needsUpdate = true;
+  }
+  setWearTexture(wear);
 
   /* --- the Lawson and the road in front of it (M1) --- */
   const lawson = buildLawson(root);

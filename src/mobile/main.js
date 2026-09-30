@@ -173,7 +173,7 @@ liteConfig();
 const sky = buildSky(scene, 2900, { avoidYaw: FUJI.bearing });
 let culler = null, renderScale = 1, viewW = 0, viewH = 0;
 const world = buildTown(scene, {
-  cell: MOBILE.cell, detailCell: 16, stage: (n) => diag.stage(n),
+  cell: MOBILE.cell, detailCell: MOBILE.detailCell, stage: (n) => diag.stage(n),
   shrink: (root, store) => shrinkCanvases(root, { store, real: renderer.capabilities.maxTextureSize }),
 });
 mark('built');
@@ -644,7 +644,13 @@ document.addEventListener('click', wake);
 
 /* --------------------------------- loop --------------------------------- */
 const clock = new THREE.Clock();
-let lastDraw = 0, menuShown = null, storeWhole = false;
+let lastDraw = 0, menuShown = null, storeWhole = false, visitId = null;
+/* the visit chosen: its own level of the konbini's pages (konbini.js), packed as you choose it, while you
+ * still stand at the door */
+if (shop) {
+  const play = shop.play;
+  shop.play = (id) => { const ok = play(id); if (ok) { visitId = id; lite.store?.prepare(id); } return ok; };
+}
 // adaptive resolution: the frame rate over the last couple of seconds sets the scale
 const perf = { n: 0, t: 0, fps: 60 };
 function adapt(rawDt) {
@@ -684,7 +690,6 @@ function frame(now = 0) {
   tipsyStep(dt);
   timeFade(dt);
   world.update(dt, camera);
-  culler.update(camera.position, 3, shop?.inside(camera) ? MOBILE.store.behind : null);   // in the store, what is behind its walls goes
   seatLights(dt);
   if (world.line) {
     const c = world.line.crossingPos;
@@ -706,10 +711,14 @@ function frame(now = 0) {
   hud.setAction(hovered ? hovered.label.replace(/^.*?·\s*/, '') : null);
   hud.setCrosshair(!choosing && !famousView);
   const inStore = !!shop?.inside(camera);
-  /* the konbini's pages: whole from the moment the visit walks you in (the town behind the store has
-   * streamed out by then) until the visit is over (you eat outside with it in your hand) */
+  /* the konbini's pages (konbini.js): the visit's level from the moment it walks you in (the town
+   * behind the store streams out in the same frame); out again, eating what it gave you, the near
+   * level with that product whole, until the visit is over */
   storeWhole = inStore || (storeWhole && !!shop?.visiting);
-  lite.store?.update(camera.position, storeWhole);
+  /* (after the visit has moved the camera, and before the store's pages change: stepping in, the town
+   * behind the walls goes in the same frame as the store's whole pages come, never both at once) */
+  culler.update(camera.position, 3, inStore ? MOBILE.store.behind : null);   // in the store, what is behind its walls goes
+  lite.store?.update(camera.position, storeWhole ? visitId : null, inStore);
   sound.update(dt, { camera, inside: inStore, look: lookName, cooler: shop?.coolerAt });
   walkAt.forEach(({ w }, i) => { walkList[i].on = w.walk(); });
   sound.walkSignals(walkList);
@@ -728,7 +737,7 @@ world.fuji.ready?.then((m) => { lite.fuji = liteFuji(m); });
 enterHero(SPAWN.view);
 resize();
 world.update(0, camera);
-culler.update(camera.position, 1);
+culler.update(camera.position, 1, null, true);   // (and streamed at once: what is far never uploads at load, the far pages start small)
 lite.store?.update(camera.position);          // (the konbini's small pages from the famous view: the whole ones never upload at load)
 seatLights();
 sky.dome.position.copy(camera.position);

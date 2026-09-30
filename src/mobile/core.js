@@ -174,6 +174,20 @@ export function buildCore(ctx) {
   const def = planNetwork();
   const kit = buildKit(ctx, def);
   const net = kit.net;
+  /* POCKET: about half the street clutter (Tan): every other parked bicycle, crate, cone and capsule
+   * bank the dressing puts down, except within MOBILE.pocket.clutter.keep of the famous views (their
+   * frame is the desktop's) */
+  const CL = MOBILE.pocket?.clutter;
+  if (kit.clutter && CL) {
+    const put = kit.clutter.put, n = {};
+    kit.clutter.put = (kind, x, y, z, ry, o) => {
+      if (CL.kinds.includes(kind)) {
+        const w = ctx.toWorld({ x, z });
+        if (Math.hypot(w.x - CL.keep[0], w.z - CL.keep[1]) > CL.keep[2] && (n[kind] = (n[kind] ?? 0) + 1) % 2 === 0) return;
+      }
+      put(kind, x, y, z, ry, o);
+    };
+  }
   const C = TOWN.core;
   ctx.onRoad = (x, z, pad = 0.6) => {
     for (const e of net.edges) {
@@ -207,6 +221,7 @@ export function buildCore(ctx) {
   // POCKET: only the lots whose middle lies in MOBILE.pocket.keep (world rects) are built
   const kept = (lot) => {
     const a = ctx.toWorld({ x: (lot.rect[0] + lot.rect[2]) / 2, z: (lot.rect[1] + lot.rect[3]) / 2 });
+    if (MOBILE.pocket?.cut?.some(([x, z]) => Math.abs(a.x - x) < 1.5 && Math.abs(a.z - z) < 1.5)) return false;
     return !MOBILE.pocket || MOBILE.pocket.keep.some(([x0, z0, x1, z1]) => a.x >= x0 && a.x <= x1 && a.z >= z0 && a.z <= z1);
   };
   const built = lots.map((lot, i) => {

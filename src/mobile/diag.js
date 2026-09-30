@@ -74,6 +74,8 @@ export function gpuMeter(gl) {
     rb.set(curRb, bytes); m.renderbuffers += bytes - old; bump();
   });
   wrap('deleteRenderbuffer', (r) => { const v = rb.get(r) ?? 0; m.renderbuffers -= v; rb.delete(r); });
+  /** Every live texture and its bytes (a GL handle each): for finding who holds what. */
+  m.textureList = () => [...tex];
   /** A lost context has freed everything: start from zero. */
   m.reset = () => { tex.clear(); buf.clear(); rb.clear(); m.textures = m.buffers = m.renderbuffers = 0; curTex = new Map(); curBuf = new Map(); curRb = null; };
   return m;

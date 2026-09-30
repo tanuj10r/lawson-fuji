@@ -148,3 +148,71 @@ needed several taps.
 - Load: ~3.6 s of town building at 1x on the M2 (15 s at 4x CPU). The card
   shows from 0.35 s; the bar's glint runs on the compositor while it builds.
 - Portrait kept playable rather than blocked (people open links upright).
+
+## The pocket edition (Tan, 2026-09-30, after the iPhone 15 looked "extremely subpar")
+The town smaller, what is left at full, desktop quality ("very crisp").
+- **Kept, at desktop quality:** the famous view (NIPPON, Fuji, the car
+  park), Hachi and his tour, Han's RX-7 show, the zebras and their walk
+  signals, the level crossing and the station (plain local trains), the
+  shrine and torii, the slow-life bench, ドンペン堂, the sakura round the
+  famous view, the lots round the konbini and the zebras. Every place is
+  still built, so Hachi's tour and every sound and place cue are the
+  desktop's, unmoved (no sound needed a new home).
+- **Cut:** the residential filler and the other shops (every lot outside
+  `MOBILE.pocket.keep`, and the few inside it in `pocket.cut`, is a kitchen
+  garden behind a block wall, flat toon colours, no texture: mobile/core.js);
+  the Pokémon train (its 4096 x 1024 wrap); every other parked bicycle,
+  crate, cone and capsule bank beyond 40 m of the famous views
+  (`pocket.clutter`). Kept shops: five (the zebra corner's, the east
+  zebra's two, one behind the store's west corner, the one by the car park);
+  the two past the east corner stay because the famous view sees their walls
+  over the store's shoulder (checked frame by frame against the uncut town).
+- **Textures at the desktop's own sizes**, then each at the size it is seen:
+  - The konbini (konbini.js): scripts/_mobile-seen.mjs plays the five
+    visits, the famous views, the forecourt and the approach, and renders
+    the store in id colours from every pose: the most each label, price tag
+    and painted quad is ever drawn at, per kind of pose. The GPU holds one
+    **level** at a time, packed from a CPU-only master: the visit playing
+    (what it hands you at the whole 192 cell), `near` (outside within 15 m
+    of the middle) or `far`. Each level has its own layout; the stock's,
+    the tags' and the quads' uvs are rewritten from the master's on a change.
+    Before (one scaled copy per distance): 84 MB in the store, 21 at the
+    door, 9 at the famous view; now 58, 26, 8 (labels + tags + signs and
+    posters), and sharper at the glass and from the famous view (the half
+    and quarter copies were below what those poses showed for dozens of
+    labels and most of the signs).
+  - From inside the konbini, every town page is at most a half
+    (texLod.store): the town is seen through the glass, metres off, while
+    the visit walks you to a shelf (-48 MB in the store).
+  - The painted weather (kit/paint.js wearAtlas, soft grime on every wall):
+    1024 instead of 2048 (-16 MB everywhere). Side by side on a wall at 4 m
+    the two can't be told apart.
+- **Vertices in 16 bits**: the static batches', the trees' trunks' and the
+  konbini's stock positions over each mesh's own box (the box's middle and
+  size moved into the mesh's transform: 1 mm over a 64 m cell); the stock's
+  uvs too. A unit taken off the shelf rewrites its float copy, carried into
+  the 16-bit one. -15 to -20 MB of buffers near the store.
+- **Streaming**: into the store, the town behind the walls streams out in the
+  same frame the visit's pages come (they came a frame early: a 352 MB spike);
+  out again eating, the near level with the product in hand whole; at load
+  and on any jump (the start again, a famous view) at once, so a new place's
+  pages never land on top of the old ones (the load peak fell 286 -> 217).
+- **A bug found on the way:** the far tree lines (groveCanopyFar, instanced,
+  under 40 m across) were culled as small props at 36 m, so from anywhere
+  in the town they stood as bare trunks. They are drawn to the draw distance
+  now. Tan's brief said to cut them for a painted backdrop: a flat silhouette
+  mass and a coarse flat-colour version were both tried and both read worse
+  (slabs from along a line; faceted lollipops); the far groves are one
+  shared 512 texture and a few draws, so they stay as the desktop draws them.
+- **Tiers.** full (Safari on the 6 GB iPhones): render 2x, draw 100 m.
+  light (Chrome and the in-app browsers on iOS, the 4 GB phones): the same
+  textures at the sizes its pixels need, render 1.35x (from 1.5), draw 56 m
+  (fog 18-52), shadow map 1024: far detail and pixels go before any texture
+  near you blurs.
+- KTX2/Basis for the konbini's pages: not shipped. The label pages are
+  painted at load from code (AGENTS.md: visuals built in code), so a
+  compressed page would mean either a transcoder in the bundle (~200 KB of
+  wasm) and encoding at runtime (seconds on a phone), or shipping baked
+  images (against the rule). With the levels the store's pages are 51 MB at
+  their largest; UASTC would make that ~13 MB but blur the small text of
+  labels, ETC1S far worse.

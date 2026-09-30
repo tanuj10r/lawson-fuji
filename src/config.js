@@ -869,13 +869,15 @@ export const MOBILE = {
   render: { pixels: 2.2e6, scale: 2, start: 2, minScale: 1.0, fpsLow: 26, fpsHigh: 45 },
   maxTexture: 4096,          // the largest painted texture's side on the GPU: the desktop's own sizes
   storeTexture: 4096,        // ... and in the konbini (konbini.js sizes its labels by what is seen)
+  wear: 1024,                // the painted weather's page (kit/paint.js wearAtlas: 2048 on the desktop; soft grime)
   shadow: { size: 1536, half: 32, every: 2.0 },   // map size, half-width (m), refresh at most every s when still (desktop 2048 over 40; 4.2 cm a texel here, 3.9 there)
   /* Draw distance: batches whose bounds lie past `far` m are not drawn; the
    * fog closes in before it so the edge is never seen. */
   far: 100,
   fog: { near: 30, far: 95 },
   detail: 36,                // small instanced things (clutter, flowers, weeds) only this close
-  cell: 128,                 // static batches per cell (m): small enough to cull by distance
+  cell: 64,                  // static batches per cell (m): small enough to cull and stream by distance
+  detailCell: 32,            // ... and the small props' own cells (drawn within `detail`)
   dt: 1 / 20,                // the longest step a frame may take (s)
   look: 0.0052,              // drag to look: radians per CSS pixel
   stick: { radius: 56, dead: 0.12, run: 0.92 },   // the joystick: px; dead zone and the push that runs (0..1)
@@ -883,20 +885,34 @@ export const MOBILE = {
   /* `stream`: batches and textures farther than far + stream (m) give their
    * GPU copy back, and upload again as you come near (0: never). */
   stream: 8,
-  /* The konbini's painted pages (src/mobile/konbini.js): whole in the store;
-   * outside within `near` m of its middle (the door's spot is ~9 m off; `far`
-   * the way back out) at the first share, farther (the famous view, ~23 m)
-   * at the second: [near, far] for the labels, the tags, the signs and
-   * posters (store-quads).  In the store, what lies wholly north of
-   * `behind` (world z: past its back wall) is neither drawn nor kept. */
-  store: { near: 15, far: 18, behind: -14, labels: [0.5, 0.25], tags: [0.5, 0.25], quads: [0.5, 0.5] },
+  /* A painted page farther than `far` m from you (its nearest user) shows a
+   * copy `k` its size, the whole one again within `near`; in the konbini,
+   * every town page (seen through the glass) at most `store` its size
+   * (lite.js makeCuller). */
+  texLod: { min: 256 * 256, near: 36, far: 44, k: 0.25, store: 0.5 },
+  /* The konbini's painted pages (src/mobile/konbini.js levelPage): in the
+   * store, the level of the visit playing; outside within `near` m of its
+   * middle (the door's spot is ~9 m off; `far` the way back out) the near
+   * level, farther (the famous views, ~23 m) the far one.  In the store,
+   * what lies wholly north of `behind` (world z: the glass; the walls hide
+   * the rest) is neither drawn nor kept; its goods are drawn (and kept)
+   * only within `goods` m. */
+  store: { near: 15, far: 18, behind: -0.5, goods: 45 },
   /* The pocket town (src/mobile/core.js): lots are built only where their
    * middle lies in `keep` (world rects [x0, z0, x1, z1]): the block round
    * the konbini, what the famous views see past its corners, the car park's
    * row and the shops at the zebra and the spine's mouth.  Every other lot
    * is a kitchen garden behind a block wall.  The places (the shrine,
    * ドンペン堂, the station, the park, the land) are all built. */
-  pocket: { keep: [[-52, -52, 46, 35]] },
+  pocket: {
+    keep: [[-52, -52, 46, 35]],
+    /* ... but for these (lot middles, world [x, z]): the shops and houses of the block behind the
+     * store's corners that neither the famous views nor the zebras show much of (Tan: 3-4 shops
+     * near the konbini and the zebras, no residential filler) */
+    cut: [[-10, -25], [38, -44], [-22, -35], [-10, -37], [-10, -47], [-22, -45], [-40, -38]],
+    // about half the street clutter: these kinds, every other one, beyond keep[2] m of the famous views' spot [x, z]
+    clutter: { kinds: ['bike', 'crate', 'cone', 'gashapon'], keep: [0, 16.5, 40] },
+  },
   /* The town's sign atlas (mobile/town.js mergePocket): only pages of at
    * most `max` texels that belong to one region go in, packed per region of
    * a grid cut at these world z and x lines; the rest keep their own. */
@@ -910,9 +926,11 @@ export const MOBILE = {
    * picks one by hand. */
   tiers: {
     light: {
-      far: 85, fog: { near: 24, far: 80 }, detail: 26,
+      far: 56, fog: { near: 18, far: 52 }, detail: 22,
+      texLod: { min: 256 * 256, near: 24, far: 30, k: 0.25, store: 0.5 },
+      store: { near: 15, far: 18, behind: -0.5, goods: 34 },
       shadow: { size: 1024, half: 28, every: 2.5 },
-      render: { pixels: 1.2e6, scale: 1.5, start: 1.5, minScale: 1.0, fpsLow: 26, fpsHigh: 45 },
+      render: { pixels: 0.9e6, scale: 1.35, start: 1.35, minScale: 1.0, fpsLow: 26, fpsHigh: 45 },
       cell: 64, stream: 5, keepCpu: true,
     },
   },

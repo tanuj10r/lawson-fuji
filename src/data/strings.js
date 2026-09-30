@@ -85,8 +85,7 @@ export const STRINGS = {
     },
   },
   /* The konbini (Tan's experience): English only; product names come from
-   * the catalogue, the cashier's lines are Japanese said aloud with an
-   * English subtitle (`jp` shown small beside it, as product names are). */
+   * the catalogue (the Japanese shown small beside them). */
   store: {
     menuTitle: 'What would you like?',
     menuHint: 'Press a number',

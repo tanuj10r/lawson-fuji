@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SHOTENGAI, ROAD_CLOSED } from '../data/town.js';
+import { ROAD_CLOSED } from '../data/town.js';
 
 /* ------------------------------------------------------------------ *
  * Canvas2D signage for the town (AGENTS.md: signs are drawn in code).
@@ -34,29 +34,6 @@ function text(c, str, x, y, maxW, size, color, weight = 'bold') {
   c.textBaseline = 'middle';
   c.fillText(str, x, y);
 }
-
-/** The arch board over the shopping street's entrance. */
-export const archBoard = () =>
-  make('arch', 1536, 256, (c, w, h) => {
-    c.fillStyle = '#f7f1e2';
-    c.fillRect(0, 0, w, h);
-    c.fillStyle = '#b5322f';
-    c.fillRect(0, 0, w, 18);
-    c.fillRect(0, h - 18, w, 18);
-    // a small painted Fuji either side of the name
-    for (const x of [w * 0.08, w * 0.92]) {
-      c.fillStyle = '#5169b8';
-      c.beginPath();
-      c.moveTo(x - 70, h * 0.72); c.lineTo(x, h * 0.26); c.lineTo(x + 70, h * 0.72);
-      c.closePath(); c.fill();
-      c.fillStyle = '#f7f8ff';
-      c.beginPath();
-      c.moveTo(x - 24, h * 0.42); c.lineTo(x, h * 0.26); c.lineTo(x + 24, h * 0.42);
-      c.closePath(); c.fill();
-    }
-    text(c, SHOTENGAI.jp, w / 2, h * 0.44, w * 0.72, 130, '#2b3346');
-    text(c, SHOTENGAI.en, w / 2, h * 0.8, w * 0.5, 40, '#8a8696', '600');
-  });
 
 /** Road-closed board on the barricades where the main road leaves town. */
 export const closedBoard = () =>
@@ -102,24 +79,3 @@ export const noEntryPlate = () =>
     [...'線路内立入禁止'].forEach((ch, i) => c.fillText(ch, w / 2, 140 + i * 52));
   });
 
-/** 畑: a vegetable field seen from the lane -- dark soil ridges, green rows. */
-export const fieldTex = (variant = 0) => {
-  const t = make('field' + variant, 256, 256, (c, w, h) => {
-    c.fillStyle = variant ? '#8f7a5e' : '#9a8266';
-    c.fillRect(0, 0, w, h);
-    const rows = 8;
-    for (let i = 0; i < rows; i++) {
-      const y = (i + 0.5) * (h / rows);
-      c.fillStyle = '#7a654c';
-      c.fillRect(0, y - 9, w, 18);
-      c.fillStyle = variant ? '#6f9f5c' : '#5f9a64';
-      for (let x = 6; x < w; x += 16) {
-        c.beginPath();
-        c.ellipse(x + (i % 2) * 8, y, 7, 6, 0, 0, Math.PI * 2);
-        c.fill();
-      }
-    }
-  });
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  return t;
-};

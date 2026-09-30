@@ -42,12 +42,10 @@ export const VOLUME_STEPS = [0, 25, 50, 75, 100];
 export const volumeGain = (step) => (step / 100) * 0.6;
 export const DEFAULT_VOLUME = 50;                      // 30% of full scale: the level Tan liked
 
-/* Shopping in the store (M3c; SPEC 5 and 6.3). */
+/* The konbini (store/shop.js; SPEC 5 and 6.3). */
 export const STORE = {
-  reach: 2.0,          // metres: what the crosshair can take
-  carry: 2,            // items you can hold: one in each hand (Tan's konbini)
   wallet: 1000,        // yen you start with (Tan: ¥1,000 a visit)
-  flight: 0.35,        // seconds, shelf to basket
+  flight: 0.35,        // seconds, shelf to hand
   slide: 0.25,         // seconds for the next unit to come forward
   door: { open: 1.66, ease: 0.3, away: 2.5 },   // fridge doors: radians, s, m (shut when you walk off)
   /* Tan's konbini (store/shop.js) */
@@ -745,7 +743,7 @@ export const SOUND = {
   menu: { level: 0.3, duck: 0, fadeIn: 1.2, fadeOut: 1.5 },   // (the song is mastered loud: rms 0.22, the store music 0.05; duck 0: paused, the game is silent under it, as it stands still)
   autoDoor: { near: 4, far: 18 },
   fridge: { near: 2.5, far: 9 },           // the cooler: its doors and its compressor
-  shelf: { near: 3, far: 10 },             // taking and putting back
+  shelf: { near: 3, far: 10 },             // taking it off the shelf
 };
 
 /* The animals (town pass, wave 3; src/world/animals/).  Distances in metres,

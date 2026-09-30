@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { cel } from '../../../core/toon.js';
 import { rngKit } from '../../../core/util.js';
-import { boxG, cylG, bentBeam, tubeG, taperTube, xf } from './geo.js';
-import { inscriptionAtlas, inscriptionCell, gakuTex } from './tex.js';
+import { boxG, cylG, bentBeam, taperTube, xf } from './geo.js';
+import { inscriptionAtlas, inscriptionCell } from './tex.js';
 import { SHRINE_TEXT } from '../../../data/town.js';
 
 /* ------------------------------------------------------------------ *

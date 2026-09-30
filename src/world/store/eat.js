@@ -5,8 +5,8 @@ import { ease, easeOut, clamp01 } from './figure.js';
 /* ------------------------------------------------------------------ *
  * Eating outside (Tan's konbini): first person, just the hands.
  *
- * Each thing you bought is eaten in turn, about three and a half seconds
- * each: the hand brings it up, it comes out of its wrapper (the can
+ * What you bought is eaten in about three and a half seconds: the hand
+ * brings it up, it comes out of its wrapper (the can
  * pops), two bites -- each leaving a scalloped bite in it, the filling
  * showing -- and a last one that gobbles the rest; the can is tipped up
  * for two gulps instead.  Then the hand dips and comes back empty.
@@ -205,19 +205,19 @@ export function eatStages(id) {
 /* ------------------------------ the eating ------------------------------ */
 const PER = 3.5;          // seconds an item takes
 /**
- * `hands` (store/hands.js), `material` the hands' own, `sfx(name)` plays
- * a sound at you.  `start(items)` with [{ id, mesh, hand }] in the order
- * to eat; `update(dt)`; `done` when all is eaten.
+ * `hands` (store/hands.js), `material` the hand's own, `sfx(name)` plays
+ * a sound at you.  `start(item)` with { id, mesh, onEaten }; `update(dt)`;
+ * `done` when it is eaten.
  */
 export function makeEating(hands, material, sfx) {
-  let queue = [], cur = null, t = 0, done = true;
+  let cur = null, t = 0, done = true;
   const food = new THREE.Mesh(new THREE.BufferGeometry(), material);
   food.frustumCulled = false; food.renderOrder = 11;
   /* Where the food itself goes, in the camera's frame (the hand follows it):
    * held up in front, then in close under the eyes for each bite. */
-  const PREP = (s) => new THREE.Vector3(s * 0.05, -0.085, -0.38);
-  const MOUTH = (s) => new THREE.Vector3(s * 0.01, -0.07, -0.305);
-  const SIP = (s) => new THREE.Vector3(s * 0.005, -0.07, -0.31);
+  const PREP = new THREE.Vector3(0.05, -0.085, -0.38);
+  const MOUTH = new THREE.Vector3(0.01, -0.07, -0.305);
+  const SIP = new THREE.Vector3(0.005, -0.07, -0.31);
   const _q = new THREE.Quaternion(), _e = new THREE.Euler(0, 0, 0, 'YXZ'), _a = new THREE.Vector3(), _rest = new THREE.Vector3(), _p = new THREE.Vector3();
   /** Offset hand `h` so its anchor (what it holds) sits at `p`, turned by its current `turn`. */
   const _qr = new THREE.Quaternion();
@@ -236,34 +236,26 @@ export function makeEating(hands, material, sfx) {
   const fired = new Set();
   const once = (key, fn) => { if (!fired.has(key)) { fired.add(key); fn(); } };
 
-  function begin(item) {
-    cur = item; t = 0; fired.clear();
-    cur.h = cur.hand === 0 ? hands.R : hands.L;
-    cur.other = cur.hand === 0 ? hands.L : hands.R;
-    cur.stages = eatStages(item.id);
-    cur.side = cur.hand === 0 ? 'R' : 'L';
-  }
+  const h = hands.R;
   const api = {
     get done() { return done; },
     get item() { return cur; },
-    start(items) {
-      queue = items.slice();
-      done = queue.length === 0;
-      if (!done) begin(queue.shift());
+    start(item) {
+      cur = item; t = 0; fired.clear();
+      done = !item;
+      if (item) cur.stages = eatStages(item.id);
     },
     update(dt) {
       if (done || !cur) return;
       t += dt;
-      const { h, other, side } = cur, drink = !cur.stages;
-      const s = side === 'R' ? 1 : -1;
+      const drink = !cur.stages;
       const off = h.off, turn = h.turn;
       restAnchor(h, _rest);
-      // up to the eating height, and the other hand makes room
+      // up to the eating height
       const up = ease(clamp01(t / 0.45));
       turn.set(0.1 * up, 0, 0);
       h.eat = drink ? 0.4 * up : up;
-      _p.copy(_rest).lerp(PREP(s), up);
-      other.off.y = -0.06 * up * (1 - clamp01((t - PER + 0.4) / 0.4));
+      _p.copy(_rest).lerp(PREP, up);
       // out of the wrapper (or the can pops)
       if (t > 0.45) once('open', () => {
         sfx(drink ? 'can-open' : 'wrapper');
@@ -271,7 +263,7 @@ export function makeEating(hands, material, sfx) {
           cur.mesh.visible = false;
           food.geometry = cur.stages[0]; food.scale.setScalar(1);
           const r = TURN[cur.id.includes('sando') ? 'sando' : cur.id.includes('onigiri') ? 'onigiri' : 'wafer'];
-          food.rotation.set(r[0], r[1] * s, r[2] * s);
+          food.rotation.set(r[0], r[1], r[2]);
           food.position.set(0, 0.03, 0.012);          // up out of the fingers, the bite end free
           cur.mesh.parent.add(food);
         }
@@ -279,8 +271,8 @@ export function makeEating(hands, material, sfx) {
       if (drink) {
         // tip it up for two long gulps
         const k = ease(clamp01((t - 0.9) / 0.35)) * (1 - ease(clamp01((t - 2.6) / 0.35)));
-        _p.lerp(SIP(s), k);
-        turn.x += 2.0 * k; turn.z += 0.12 * k * s;          // tipped right up: the top to your mouth, the bottom high
+        _p.lerp(SIP, k);
+        turn.x += 2.0 * k; turn.z += 0.12 * k;          // tipped right up: the top to your mouth, the bottom high
         if (t > 1.45) once('g1', () => sfx('gulp'));
         if (t > 2.05) once('g2', () => sfx('gulp'));
       } else {
@@ -289,7 +281,7 @@ export function makeEating(hands, material, sfx) {
           const t0 = 0.85 + b * 0.72, x = t - t0;
           if (x < 0 || x > 0.62) continue;
           const k = x < 0.16 ? easeOut(x / 0.16) : 1 - ease(clamp01((x - 0.16) / 0.46));
-          _p.lerp(MOUTH(s), k);
+          _p.lerp(MOUTH, k);
           turn.x += 0.1 * k;
           if (x >= 0.16) once('bite' + b, () => {
             sfx('bite');
@@ -309,15 +301,14 @@ export function makeEating(hands, material, sfx) {
       if (drink) off.y -= 0.3 * clamp01((t - 2.95) / 0.25) * (1 - clamp01((t - 3.22) / 0.25));
       if (t > (drink ? 3.2 : PER - 0.4)) once('gone', () => { cur.mesh.visible = false; food.removeFromParent(); cur.onEaten?.(); });
       if (t >= PER) {
-        off.set(0, 0, 0); turn.set(0, 0, 0); other.off.set(0, 0, 0); h.eat = 0;
-        if (queue.length) begin(queue.shift()); else { cur = null; done = true; }
+        off.set(0, 0, 0); turn.set(0, 0, 0); h.eat = 0;
+        cur = null; done = true;
       }
     },
     /** Stop at once (walked back into the store mid-bite, say): what was held is gone. */
     stop() {
-      if (cur) { cur.mesh.visible = false; food.removeFromParent(); cur.h.off.set(0, 0, 0); cur.h.turn.set(0, 0, 0); cur.h.eat = 0; cur.other.off.set(0, 0, 0); cur.onEaten?.(); }
-      for (const q of queue) { q.mesh.visible = false; q.onEaten?.(); }
-      queue = []; cur = null; done = true;
+      if (cur) { cur.mesh.visible = false; food.removeFromParent(); h.off.set(0, 0, 0); h.turn.set(0, 0, 0); h.eat = 0; cur.onEaten?.(); }
+      cur = null; done = true;
     },
   };
   return api;

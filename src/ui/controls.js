@@ -4,9 +4,8 @@ import { STRINGS } from '../data/strings.js';
  * The controls on screen (M4, Tan): only the keys that do something
  * where the player is standing right now.
  *
- * Walking the town it is moving, the map, sound and pause; inside the
- * store it is what E does here and the basket; with the basket panel
- * open it is that panel's own keys.  A key that belongs to the place but
+ * Walking the town it is moving, the map, sound and pause; on the
+ * konbini's spot it is the number keys that choose.  A key that belongs to the place but
  * cannot be used this second (E with nothing under the crosshair) is
  * shown dimmed rather than taken away, so the list does not jump about.
  *

@@ -152,7 +152,6 @@ const handsHud = shop ? createHandsHud() : null;
 const controls = createControls();
 if (shop) {
   scene.add(shop.view, shop.fx);
-  shop.onChange = (s) => handsHud.update(s);
   shop.player = player;
   world.interactables.push(...(world.lawson.interactables ?? []));
 }
@@ -200,8 +199,7 @@ if (shop) {
   shop.onExit = () => sound.storeChime(CHIME_AT);
   shop.doors.onSound = (door, opening) => sound.fridgeDoor({ x: door.box.getCenter(_v).x, y: 1.2, z: _v.z }, opening);
   shop.onSound = (kind, u) => {
-    if (kind === 'take' || kind === 'put') sound.item(PRODUCT[u.id].sound, shop.unitAt(u));
-    else if (kind === 'refuse') sound.refuse();
+    if (kind === 'take') sound.item(PRODUCT[u.id].sound, shop.unitAt(u));
   };
 }
 if (world.lawson?.door) world.lawson.door.onMove = (opening) => sound.autoDoor(DOOR_AT, opening);
@@ -706,7 +704,7 @@ function frame(now = 0) {
     minimap.update(player.pos, player.yaw);
   }
 
-  // in the store the shelves are aimed at by the shop; outside, the hitboxes
+  // outside, the hitboxes (in the store there is nothing to aim at: the choice is made at the door)
   let hovered = null;
   if (shop) shop.update(dt, camera, player.bob);   // (0 while paused, like everything)
   if (handsHud) {
@@ -714,9 +712,8 @@ function frame(now = 0) {
     if (want !== handsHud.open) handsHud.menu(want ? shop.menu : null);
   }
   if (player.locked && !shop?.busy && !player.seat && !gliding) {   // not while paying (the till) or seated (ひと休み)
-    hovered = shop?.inside(camera) ? shop.pick(camera) : player.pick(world.interactables);
+    hovered = shop?.inside(camera) ? null : player.pick(world.interactables);
   }
-  if (shop && !hovered) shop.clearAim();
   player.hovered = hovered;
   controls.set(controlRows(hovered));
   // the sound: where you are and what time of day it is; a footstep each stride

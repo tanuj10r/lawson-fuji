@@ -16,7 +16,7 @@ import path from 'node:path';
 const ROOT = new URL('..', import.meta.url).pathname;
 const SRC = path.join(ROOT, 'assets/audio'), OUT = path.join(ROOT, 'public/audio');
 const BUDGET = 4.5 * 1024 * 1024, SR = 44100;   // 3 MB until Tan's experiences (2026-09-28)
-const { files, skip } = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/audio-cuts.json'), 'utf8'));
+const { files } = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/audio-cuts.json'), 'utf8'));
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'audio-'));
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -47,13 +47,6 @@ function envelope(x, win = Math.round(SR * 0.02)) {
   const r = [];
   for (let i = 0; i + win <= x.length; i += win) { let a = 0; for (let k = 0; k < win; k++) a += x[i + k] ** 2; r.push(Math.sqrt(a / win)); }
   return r;
-}
-/** Onsets of separate events (a pack of stamps): seconds. */
-function onsets(x) {
-  const r = envelope(x), th = Math.max(...r) * 0.12, out = [];
-  let on = false;
-  r.forEach((v, i) => { if (!on && v > th) { on = true; out.push(i * 0.02); } else if (on && v < th * 0.5) on = false; });
-  return out;
 }
 /** The bell's period (s), from the envelope's autocorrelation between 0.2 and 1.2 s. */
 function period(x) {
@@ -102,8 +95,7 @@ for (const [name, c] of Object.entries(files)) {
   const wav = path.join(tmp, name + '.wav');
   execFileSync('afconvert', ['-f', 'WAVE', '-d', `LEI16@${SR}`, '-c', '1', mp3, wav]);
   const x = readWav(wav), dur = x.length / SR;
-  let start = c.start ?? 0;
-  if (c.event !== undefined) start = Math.max(0, onsets(x)[c.event] - 0.01);
+  const start = c.start ?? 0;
   let xf = typeof c.loop === 'number' ? c.loop : c.loop ? 0.05 : 0;
   let len = c.len || dur - start - xf;
   if (c.loop === 'period') { const p = period(x.subarray(Math.round(start * SR))); len = Math.max(1, Math.round(c.len / p)) * p; xf = 0.03; }
@@ -158,7 +150,6 @@ for (const f of fs.readdirSync(OUT)) if (f.endsWith('.m4a') && !Object.values(ma
 fs.rmSync(tmp, { recursive: true, force: true });
 
 for (const [n, r] of rows) console.log(`  ${n.padEnd(16)} ${r}`);
-for (const [n, why] of Object.entries(skip ?? {})) console.log(`  ${n.padEnd(16)} skipped: ${why}`);
 const ok = total <= BUDGET;
 console.log(`AUDIO ${(total / 1024 / 1024).toFixed(2)} MB in ${Object.keys(manifest).length} files, budget 4.5 MB: ${ok ? 'pass' : 'FAIL'}`);
 if (!ok) process.exitCode = 1;

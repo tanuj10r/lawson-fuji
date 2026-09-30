@@ -71,11 +71,10 @@ export function buildFridgeDoors(group, specs, { glassMat, lit }) {
     pane.renderOrder = 2;
     leaf.add(pane);
 
-    // the closed leaf's box in the interior's frame, for aiming at it
-    const local = new THREE.Box3(new THREE.Vector3(x0, d.y0, t0 - 0.01), new THREE.Vector3(x1, d.y1, t1 + 0.05));
+    // the closed leaf's box in the interior's frame (where it is, for its sound and for shutting it as you walk off)
     pivot.updateMatrix();
-    const box = local.clone().applyMatrix4(pivot.matrix);
-    return { i, spec: d, pivot, leaf, box, local, openBox: box.clone(), open: 0, want: 0 };
+    const box = new THREE.Box3(new THREE.Vector3(x0, d.y0, t0 - 0.01), new THREE.Vector3(x1, d.y1, t1 + 0.05)).applyMatrix4(pivot.matrix);
+    return { i, spec: d, pivot, leaf, box, open: 0, want: 0 };
   });
 
   /* the cold-air puff: a few soft sprites breathing out of the opening */
@@ -128,9 +127,7 @@ export function buildFridgeDoors(group, specs, { glassMat, lit }) {
         if (d.open === to) continue;
         d.open = to > d.open ? Math.min(to, d.open + dt / STORE.door.ease) : Math.max(to, d.open - dt / (STORE.door.ease * 1.6));
         d.leaf.rotation.y = -d.spec.s * STORE.door.open * ease(d.open);
-        // where the leaf is now, for aiming at it to shut it
-        d.leaf.updateMatrix();
-        d.openBox.copy(d.local).applyMatrix4(_m.multiplyMatrices(d.pivot.matrix, d.leaf.matrix));
+        d.leaf.updateMatrix();          // (the town's static pass may have frozen it)
       }
       for (const q of puffs) {
         if (!q.sp.visible) continue;
@@ -145,4 +142,4 @@ export function buildFridgeDoors(group, specs, { glassMat, lit }) {
   };
   return api;
 }
-const _c = new THREE.Vector3(), _m = new THREE.Matrix4();
+const _c = new THREE.Vector3();

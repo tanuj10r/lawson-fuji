@@ -1,16 +1,13 @@
 import * as THREE from 'three';
-import { figureMaterial, onTopClamped, parts, mirrorX, ellipsoid, easeBack, ease, clamp01 } from './figure.js';
+import { figureMaterial, parts, ellipsoid, easeBack, ease, clamp01 } from './figure.js';
 
 /* ------------------------------------------------------------------ *
- * Your hands (Tan's konbini): two cartoon hands that rise from the bottom
- * of the view as you walk into the store.  The left holds your folded
- * ¥1,000 note; the right takes what you pick.  A second item goes to the
- * left hand, the note tucked under its thumb, so two full hands read as
- * "that's your two".  After paying, the change sits in the left palm.
+ * Your hand (Tan's konbini): a cartoon right hand that rises from the
+ * bottom of the view to take the thing you chose, pay and eat.
  *
  * Painted in store/figure.js's style, drawn on top of the world
- * and near-clamped.  They live in the camera's frame: `view` (shop.js)
- * follows the camera, and each hand is a pivot at the wrist whose offset
+ * and near-clamped.  It lives in the camera's frame: `view` (shop.js)
+ * follows the camera, and the hand is a pivot at the wrist whose offset
  * and turn the choreography (rise, pay, eat) drives.
  *
  * Hand frame: the palm at the origin, fingers +y, palm facing +z, a right
@@ -189,146 +186,67 @@ function rightHandGeometry() {
   return p.build();
 }
 
-/** The folded ¥1,000 note: generic, pale blue-green, 1000 large. */
-function noteTexture() {
-  const c = document.createElement('canvas');
-  c.width = 128; c.height = 128;
-  const g = c.getContext('2d');
-  g.fillStyle = '#cfe2da'; g.fillRect(0, 0, 128, 128);
-  g.fillStyle = '#b4d0c8'; g.fillRect(0, 0, 128, 14); g.fillRect(0, 114, 128, 14);
-  g.strokeStyle = '#6f9a90'; g.lineWidth = 3; g.strokeRect(6, 6, 116, 116);
-  g.fillStyle = 'rgba(111,154,144,0.35)'; g.beginPath(); g.arc(88, 62, 26, 0, 7); g.fill();
-  g.fillStyle = '#2f5a52'; g.font = 'bold 34px ui-sans-serif, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText('1000', 50, 44);
-  g.font = 'bold 22px "Hiragino Kaku Gothic ProN", sans-serif';
-  g.fillText('千円', 50, 84);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
-/** Coins for `yen` of change, piled in a palm: one mesh, the way a konbini counts it back. */
-const COINS = [[500, 0.0132, 0xd8c070], [100, 0.0113, 0xd6d9de], [50, 0.0105, 0xdadde2], [10, 0.0117, 0xc0804e], [5, 0.011, 0xdcb85a], [1, 0.01, 0xe8eaee]];
-export function coinGeometry(yen) {
-  const p = parts();
-  let left = yen, k = 0;
-  for (const [val, r, col] of COINS) {
-    while (left >= val && k < 14) {
-      left -= val;
-      const a = k * 2.1, rr = 0.004 + 0.009 * ((k % 4) / 3);
-      p.add(new THREE.CylinderGeometry(r, r, 0.0024, 14), col, new THREE.Matrix4().makeRotationX(0.25 * Math.sin(k)).setPosition(Math.cos(a) * rr, 0.0028 * Math.floor(k / 3), Math.sin(a) * rr));
-      k++;
-    }
-  }
-  if (!p.length) p.add(new THREE.CylinderGeometry(0.001, 0.001, 0.001, 3), COINS[1][2]);
-  return p.build();
-}
-
 export function makeHands(lit) {
   const view = new THREE.Group();
   view.name = 'hands';
   const skinMat = figureMaterial({ onTop: true });
   lit.push(skinMat);
-  const rightGeo = rightHandGeometry(), leftGeo = mirrorX(rightGeo);
 
-  /* where each hand rests in the camera's frame, and how it is turned */
-  const REST = {
-    R: { pos: v(0.2, -0.108, -0.49), rot: new THREE.Euler(0.42, -2.3, 0.15, 'YXZ') },
-    L: { pos: v(-0.21, -0.113, -0.49), rot: new THREE.Euler(0.42, 2.3, -0.15, 'YXZ') },
-  };
-  const make = (side, geo) => {
-    const pivot = new THREE.Group();
-    pivot.name = 'hand-' + side;
-    const mesh = new THREE.Mesh(geo, skinMat);
-    mesh.frustumCulled = false; mesh.renderOrder = 10;
-    pivot.add(mesh);
-    // where a held thing sits, turned to face you whatever the hand's turn
-    const anchor = new THREE.Group();
-    anchor.position.set(side === 'R' ? 0.006 : -0.006, 0.036, 0.05);
-    pivot.add(anchor);
-    view.add(pivot);
-    return { side, pivot, mesh, anchor, rest: REST[side], off: v(0, 0, 0), turn: new THREE.Euler(0, 0, 0, 'XYZ'), eat: 0, item: null };
-  };
-  const R = make('R', rightGeo), L = make('L', leftGeo);
-
-  // the note, folded in half and pinched in the left hand
-  const noteMat = onTopClamped(new THREE.MeshBasicMaterial({ map: noteTexture(), side: THREE.DoubleSide }));
-  lit.push(noteMat);
-  const note = new THREE.Group();
-  for (const s of [-1, 1]) {
-    const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.075, 0.07), noteMat);
-    leaf.position.set(s * 0.034 * Math.cos(0.3), 0, s * 0.01);
-    leaf.rotation.y = s * 0.3;
-    leaf.frustumCulled = false; leaf.renderOrder = 11;
-    note.add(leaf);
-  }
-  note.name = 'yen-note';
-  // coins, once there is change
-  const coins = new THREE.Mesh(coinGeometry(0), skinMat);
-  coins.frustumCulled = false; coins.renderOrder = 11; coins.visible = false;
-  L.pivot.add(coins);
-  coins.position.set(-0.004, 0.012, 0.032);
-  coins.rotation.set(-1.25, 0, 0);
+  /* where the hand rests in the camera's frame, and how it is turned */
+  const rest = { pos: v(0.2, -0.108, -0.49), rot: new THREE.Euler(0.42, -2.3, 0.15, 'YXZ') };
+  const pivot = new THREE.Group();
+  pivot.name = 'hand-R';
+  const mesh = new THREE.Mesh(rightHandGeometry(), skinMat);
+  mesh.frustumCulled = false; mesh.renderOrder = 10;
+  pivot.add(mesh);
+  // where a held thing sits, turned to face you whatever the hand's turn
+  const anchor = new THREE.Group();
+  anchor.position.set(0.006, 0.036, 0.05);
+  pivot.add(anchor);
+  view.add(pivot);
+  const R = { pivot, mesh, anchor, rest, off: v(0, 0, 0), turn: new THREE.Euler(0, 0, 0, 'XYZ'), eat: 0 };
 
   /* ------------------------------ state ------------------------------ */
   let up = 0, want = 0;          // 0 down out of view .. 1 raised
   let t = 0;
   const api = {
-    view, R, L, note, coins, skinMat,
-    left: false,
+    view, R, skinMat,
+    /** Where what you hold sits. */
+    anchor,
     get up() { return up; },
-    get raised() { return want === 1; },
-    /** Raise (true) or lower (false) both hands. */
+    /** Raise (true) or lower (false) the hand. */
     raise(on) { want = on ? 1 : 0; },
-    /** Put them straight up or down (dev shots). */
+    /** Put it straight up or down (dev shots). */
     snap(on) { want = up = on ? 1 : 0; },
     /** The hand's grip turn: its rest, blended by `h.eat` to palm-toward-you (eating). */
     grip(h, out) {
       out.setFromEuler(h.rest.rot);
-      if (h.eat > 0) out.slerp(_qe.setFromEuler(EAT[h.side]), h.eat);
+      if (h.eat > 0) out.slerp(_qe.setFromEuler(EAT), h.eat);
       return out;
-    },
-    /** Where item `i` sits: 0 the right hand, 1 the left. */
-    anchor(i) { return i === 0 ? R.anchor : L.anchor; },
-    /** Show the note (in the left hand) or not; where it sits depends on what else the hand holds. */
-    showNote(on) { note.visible = on; },
-    /** The change, as coins in the left palm (0: none). */
-    setChange(yen) {
-      coins.geometry.dispose();
-      coins.geometry = coinGeometry(yen);
-      coins.visible = yen > 0;
     },
     update(dt, bob = 0, camera = null) {
       t += dt;
       // rising pops up with a little overshoot; lowering is quicker and plain
       if (want > up) up = Math.min(1, up + dt / 0.55); else if (want < up) up = Math.max(0, up - dt / 0.4);
       const k = want ? easeBack(clamp01(up)) : ease(clamp01(up));
-      for (const h of [R, L]) {
-        const sway = h === R ? 1 : -1;
-        h.pivot.position.copy(h.rest.pos).add(h.off);
-        h.pivot.position.y += (1 - k) * -0.42 + Math.sin(bob) * 0.006 + Math.sin(t * 1.3 + sway) * 0.0025;
-        h.pivot.position.x += Math.cos(bob * 0.5) * 0.004 * sway;
-        // its grip (resting, or turned palm-to-you to eat), then `turn` in the
-        // camera's own terms (x tips the top toward you)
-        api.grip(h, _qr);
-        h.pivot.quaternion.setFromEuler(_te.set(h.turn.x, h.turn.y, h.turn.z, 'XYZ')).multiply(_qr);
-        h.pivot.visible = up > 0.001 && (h === R || api.left);      // the right hand only (Tan): the left, and the note, stay out of view
-        // what the hand holds faces you, turned only by `turn`
-        h.anchor.quaternion.copy(_qr).invert().multiply(_face);
-      }
-      // the note: pinched in the left hand, or tucked under its thumb when the hand is full
-      if (L.item) { note.position.set(-0.022, 0.03, 0.03); note.rotation.set(-0.2, 0.5, 0.35); }
-      else { note.position.set(-0.008, 0.06, 0.042); note.rotation.set(-0.35, 0.2, 0.12); }
-      // the key light for the painted hands stays over your shoulder as you turn
+      pivot.position.copy(rest.pos).add(R.off);
+      pivot.position.y += (1 - k) * -0.42 + Math.sin(bob) * 0.006 + Math.sin(t * 1.3 + 1) * 0.0025;
+      pivot.position.x += Math.cos(bob * 0.5) * 0.004;
+      // its grip (resting, or turned palm-to-you to eat), then `turn` in the
+      // camera's own terms (x tips the top toward you)
+      api.grip(R, _qr);
+      pivot.quaternion.setFromEuler(_te.set(R.turn.x, R.turn.y, R.turn.z, 'XYZ')).multiply(_qr);
+      pivot.visible = up > 0.001;
+      // what the hand holds faces you, turned only by `turn`
+      anchor.quaternion.copy(_qr).invert().multiply(_face);
+      // the key light for the painted hand stays over your shoulder as you turn
       if (camera) skinMat.uniforms.uLight.value.copy(_key).applyQuaternion(camera.quaternion).normalize();
     },
   };
-  L.pivot.add(note);
-  note.visible = false;
   return api;
 }
 const _face = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.12, 0, 0));
 const _key = new THREE.Vector3(-0.45, 0.75, 0.55);
 const _qr = new THREE.Quaternion(), _qe = new THREE.Quaternion(), _te = new THREE.Euler();
 /* eating: the palm turned toward you, fingers up and leaning in, the food in front of it */
-const EAT = { R: new THREE.Euler(-0.2, -0.3, 0.25, 'YXZ'), L: new THREE.Euler(-0.2, 0.3, -0.25, 'YXZ') };
+const EAT = new THREE.Euler(-0.2, -0.3, 0.25, 'YXZ');

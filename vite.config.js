@@ -1,6 +1,30 @@
 import { defineConfig } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
+import { STRINGS } from './src/data/strings.js';
+import { TOWN_NAME } from './src/data/town.js';
+
+/**
+ * The cards index.html paints before any game code runs (loading, phone,
+ * no WebGL, GPU reset) take their words from src/data/strings.js
+ * (AGENTS.md): `%S:gate.copy%` in index.html becomes STRINGS.gate.copy.
+ * An unknown key fails the build rather than ship a placeholder.
+ */
+function htmlStrings() {
+  const table = { ...STRINGS, town: TOWN_NAME };
+  const esc = (v) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return {
+    name: 'html-strings',
+    transformIndexHtml: {
+      order: 'pre',
+      handler: (html) => html.replace(/%S:([\w.]+)%/g, (_, key) => {
+        const v = key.split('.').reduce((o, k) => o?.[k], table);
+        if (typeof v !== 'string') throw new Error(`index.html: no string ${key} in src/data/strings.js`);
+        return esc(v);
+      }),
+    },
+  };
+}
 
 /**
  * Dev-only helper: lets the page POST a rendered frame to disk so the scene
@@ -53,7 +77,7 @@ export default defineConfig({
   /* Relative asset URLs, so a build runs from any subdirectory -- opened off
    * the filesystem, served from a GitHub Pages project path, anywhere. */
   base: './',
-  plugins: [frameGrabber(SHOT_DIR, LOOKDEV_DIR, SCREENSHOT_DIR)],
+  plugins: [htmlStrings(), frameGrabber(SHOT_DIR, LOOKDEV_DIR, SCREENSHOT_DIR)],
   server: {
     port: 5178,
     host: '127.0.0.1',

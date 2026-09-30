@@ -34,12 +34,35 @@ import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STE
 
 const canvas = document.getElementById('view');
 
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: false,
-  powerPreference: 'high-performance',
-  stencil: false,
-});
+/* The loading card (index.html #boot, QA-004): painted by the page before any
+ * of this runs; here it says what is happening and steps its bar.  The build
+ * is one long task, so the page is given a frame to paint before it. */
+const boot = document.getElementById('boot');
+function bootStage(text, progress) {
+  if (!boot) return;
+  boot.querySelector('.boot-line').textContent = text;
+  boot.style.setProperty('--p', progress);
+}
+// a frame to paint (or a moment, in a hidden tab where frames never come)
+const nextPaint = () => new Promise((r) => { requestAnimationFrame(() => setTimeout(r, 0)); setTimeout(r, 150); });
+/* A card in index.html (#gate) for when the town can't be drawn: no WebGL 2
+ * (index.html checks first; this catches what it can't) or a GPU reset. */
+const showGate = (kind) => document.documentElement.classList.add(`gate-${kind}`);
+let contextLost = false;   // the GPU reset: nothing more is drawn (webglcontextlost, below)
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: false,
+    powerPreference: 'high-performance',
+    stencil: false,
+  });
+} catch (err) {
+  console.warn('No WebGL 2:', err?.message ?? err);
+  showGate('nogl');
+  await new Promise(() => {});   // the card says it all: build nothing
+}
 renderer.setPixelRatio(1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;
@@ -90,6 +113,8 @@ const hemi = new THREE.HemisphereLight(PAL.hemiSky, PAL.hemiGround, 1.12);
 scene.add(hemi);
 
 /* --------------------------------- world --------------------------------- */
+bootStage(STRINGS.boot.building, '45%');
+await nextPaint();
 const sky = buildSky(scene, 2900, { avoidYaw: FUJI.bearing });
 /* Dev only: ?kit swaps the town for the M2a kit test street, and ?shots
  * (scripts/shots.mjs) freezes time so every frame it takes repeats exactly. */
@@ -97,6 +122,8 @@ const devParams = new URLSearchParams(location.search);
 const KIT = import.meta.env.DEV && devParams.has('kit');
 const FROZEN = import.meta.env.DEV && devParams.has('shots');
 const world = KIT ? buildKitTest(scene) : buildTown(scene);
+bootStage(STRINGS.boot.ready, '85%');
+await nextPaint();
 /* The minimap and full map (M2f): the town only.  `famousView` is the spot
  * of the famous view you stand on, if any: the minimap keeps off it. */
 const minimap = KIT ? null : createMinimap(world);
@@ -481,7 +508,7 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 // a hidden tab keeps no audio graph running either
-document.addEventListener('visibilitychange', () => sound.setAwake(!document.hidden));
+document.addEventListener('visibilitychange', () => sound.setAwake(!document.hidden && !contextLost));
 resize();
 
 /* --------------------------------- loop --------------------------------- */
@@ -580,9 +607,9 @@ window.addEventListener('keydown', (e) => {
     hud.setVolume(off ? 0 : volumeStep);
     hud.flash(off ? STRINGS.soundOff : STRINGS.soundOn);
   }
-  // two quiet toggles, handy for seeing what the ink and grade passes do
-  if (e.code === 'KeyO') pipeline.enabled.ink = !pipeline.enabled.ink;
-  if (e.code === 'KeyG') pipeline.enabled.grade = !pipeline.enabled.grade;
+  // dev only (QA-011): two quiet toggles, handy for seeing what the ink and grade passes do
+  if (import.meta.env.DEV && e.code === 'KeyO') pipeline.enabled.ink = !pipeline.enabled.ink;
+  if (import.meta.env.DEV && e.code === 'KeyG') pipeline.enabled.grade = !pipeline.enabled.grade;
   // 1 2 3: the time of day, wherever you are (Tan)
   for (const [name, v] of Object.entries(HERO_VIEWS)) {
     if (e.code === v.key && name !== lastView) setTime(name);
@@ -625,6 +652,7 @@ function controlRows(hovered) {
 let lastDraw = 0;
 let menuShown = null;
 function frame(now = 0) {
+  if (contextLost) return;
   requestAnimationFrame(frame);
   if (document.hidden) return;
   // Tan's song on the start and pause cards: on whenever the pointer is free (a card is up), off in play
@@ -713,13 +741,31 @@ if (world.reflectRect) {
 }
 enterHero(SPAWN.view);
 frame();
+// the town is up and its card drawn: the loading card fades off it
+if (boot) {
+  boot.classList.add('hidden');
+  setTimeout(() => boot.remove(), 600);
+}
 
-// expose a little for tuning from the console
-window.__scene = {
-  scene, camera, renderer, pipeline, world, player, sound, hud, sun, fill, bounce, hemi, THREE,
-  applyLook, enterHero,
-};
-window.__setOutlineRes = setOutlineResolution;
+/* A GPU reset (QA-012: a driver reset, a dual-GPU switch, waking from sleep)
+ * loses every texture and target.  Rebuilding them all isn't worth it for a
+ * rare event: stop drawing, hush, and offer a reload (index.html #gate). */
+canvas.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault();
+  contextLost = true;
+  sound.setAwake(false);
+  document.exitPointerLock?.();
+  showGate('lost');
+});
+
+// expose a little for tuning from the console (dev only, QA-011)
+if (import.meta.env.DEV) {
+  window.__scene = {
+    scene, camera, renderer, pipeline, world, player, sound, hud, sun, fill, bounce, hemi, THREE,
+    applyLook, enterHero,
+  };
+  window.__setOutlineRes = setOutlineResolution;
+}
 if (import.meta.env?.DEV) window.__store = { shop, hud: handsHud, price: (id) => PRODUCT[id].priceYen };
 
 if (import.meta.env?.DEV) {

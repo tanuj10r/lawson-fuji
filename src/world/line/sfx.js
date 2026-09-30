@@ -29,8 +29,7 @@ let ac = null, out = null, noise = null;
 const listener = { x: 0, z: 0 };
 
 function host() {
-  const s = typeof window !== 'undefined' ? window.__scene?.sound : null;
-  return s ? (s.muted ? 0 : s.volume) : 0;
+  return soundBus.level;   // (was window.__scene.sound, a dev-only global since QA-011)
 }
 function ensure() {
   if (!soundBus.ready) return null;

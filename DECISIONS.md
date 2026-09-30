@@ -36,7 +36,8 @@ Judgement calls, newest milestone last.
 - **Deferred to M2:** the shop fascia (青空商店) and the station and poster
   signs (ひばり台) still show Sakura Crossing names. M2's acceptance list
   covers renaming them.
-- **Title card:** renamed to Lawson Fuji with minimal text, and the Chinese
+- **Title card:** renamed to the game's own title (then a working title; since
+  Take Me Back to Japan) with minimal text, and the Chinese
   description replaced. UI strings are still inline in `hud.js`. They move to
   `src/data/strings.js` when the title screen is built (M7).
 - **Audio:** the stock track is deleted and the playlist is empty. The game

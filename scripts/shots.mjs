@@ -62,7 +62,7 @@ const readData = (file) =>
 
 /* One run at a time on this machine (parallel agents share it): a lock
  * directory holding the owner's pid; a lock whose owner is gone is stale. */
-const LOCK = path.join(os.tmpdir(), 'lawson-fuji-shots.lock');
+const LOCK = path.join(os.tmpdir(), 'takemebacktojapan-shots.lock');
 for (;;) {
   try { fs.mkdirSync(LOCK); fs.writeFileSync(path.join(LOCK, 'pid'), String(process.pid)); break; } catch {
     let pid = 0;

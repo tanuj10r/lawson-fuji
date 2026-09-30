@@ -32,7 +32,7 @@ const MEASURE = args.includes('--measure');
 const ONLY = opt('only');   // --only turnaway,whistle: just these scenarios
 fs.mkdirSync(out, { recursive: true });
 
-const LOCK = path.join(os.tmpdir(), 'lawson-fuji-shots.lock');
+const LOCK = path.join(os.tmpdir(), 'takemebacktojapan-shots.lock');
 for (;;) {
   try { fs.mkdirSync(LOCK); fs.writeFileSync(path.join(LOCK, 'pid'), String(process.pid)); break; } catch {
     let pid = 0, alive = false;

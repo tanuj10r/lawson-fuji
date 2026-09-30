@@ -2,7 +2,7 @@
 
 Rewritten 2026-09-29 from where the game is today · @Tanuj (Tan, they/them)
 
-> The first spec (Sep 23, "Lawson Fuji: Konbini Game") is in git history
+> The first spec (Sep 23, "Konbini Game", under an old working title) is in git history
 > (`git show ea1ab1f:SPEC.md`). Since then the game has changed on purpose,
 > many times, to make it better: the store became NIPPON, the cashier
 > became self-checkouts, the shopping loop became a short scene, and the

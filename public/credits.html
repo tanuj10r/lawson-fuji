@@ -51,6 +51,17 @@
   }
   .back:hover { background: #4b3f7c; color: #fff; }
 </style>
+<script>
+  /* DataFast analytics (Tan): desktop visits on the live site only, as on the game's page */
+  (function () {
+    var m = function (q) { return !!(window.matchMedia && matchMedia(q).matches); };
+    var phone = (m('(pointer: coarse)') && !m('(any-pointer: fine)')) || ((navigator.maxTouchPoints > 0) && Math.min(screen.width, screen.height) < 600);
+    if (phone || !/(^|\.)takemebacktojapan\.com$/.test(location.hostname)) return;
+    var a = document.createElement('script'); a.defer = true; a.src = 'https://datafa.st/js/script.js';
+    a.setAttribute('data-website-id', 'dfid_qgbgPHxfjf2AS9THqrjNe'); a.setAttribute('data-domain', 'takemebacktojapan.com');
+    document.head.appendChild(a);
+  })();
+</script>
 </head>
 <body>
 <main>

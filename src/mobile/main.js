@@ -8,6 +8,7 @@ import { createSound } from '../core/sound.js';
 import { soundBus } from '../core/soundBus.js';
 import { WALK_SIGNALS } from '../world/signals.js';
 import { createMinimap } from '../ui/minimap.js';
+import { trainWaitLabel } from '../ui/trainWait.js';
 import { STRINGS, MOBILE_STRINGS as M } from '../data/strings.js';
 import { PRODUCT } from '../data/catalog.js';
 import { hanShow } from '../world/han/index.js';
@@ -208,6 +209,8 @@ try {
   if (saved !== null && VOLUME_STEPS.includes(Number(saved))) volumeStep = Number(saved);
 } catch { /* optional */ }
 const hud = createMobileHud({ volume: volumeStep });
+// "Next train · 0:25" on the station's platform (QA-010; desktop's ui/trainWait.js): bottom middle, over the sound pill
+const trainWait = trainWaitLabel(hud.root, { bottom: 'max(66px, calc(var(--safe-b) + 56px))' });
 if (shop) {
   shop.flash = (text, error = false) => hud.flash(text, error ? 2800 : 2200, error);
   shop.onTipsy = () => { tipsy = 0; hud.flash(STRINGS.store.tipsy, 3200); GUIDE.tipsy(10); };
@@ -695,6 +698,7 @@ function frame(now = 0) {
   if (shop && !hovered) shop.clearAim();
   player.hovered = hovered;
   hud.setAction(hovered ? hovered.label.replace(/^.*?·\s*/, '') : null);
+  trainWait.update(world.line?.station?.wait, player.locked && !minimap.fullOpen && !choosing);
   hud.setCrosshair(!choosing && !famousView);
   const inStore = !!shop?.inside(camera);
   sound.update(dt, { camera, inside: inStore, look: lookName, cooler: shop?.coolerAt });

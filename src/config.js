@@ -738,6 +738,9 @@ export const SOUND = {
   station: { near: 20, far: 62, edge: 0.75, core: { near: 8, far: 20 }, level: 0.45, duck: 0.3 },
   // the train's next-stop announcement, played where you stand on platform 1's listening spot
   trainListen: { near: 4, far: 14 },
+  /* Han's song (han-drift): fetched and decoded as you come within `preload` m of the car, so the show starts on
+   * the song; stepped in before it is ready, the show waits for it up to `wait` s (QA-014) */
+  hanSong: { preload: 40, wait: 3 },
   /* Tan's song on the start and pause cards: its level, the game's own sound under it (`duck`), fades (s) */
   menu: { level: 0.3, duck: 0, fadeIn: 1.2, fadeOut: 1.5 },   // (the song is mastered loud: rms 0.22, the store music 0.05; duck 0: paused, the game is silent under it, as it stands still)
   autoDoor: { near: 4, far: 18 },

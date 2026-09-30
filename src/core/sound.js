@@ -199,12 +199,39 @@ export function createSound({ volume = 0.5 } = {}) {
     const through = v.indoor && !state.inside;
     return { k: v.gain * falloff(d, v.range) * (through ? 0.4 : 1), f: through ? 1400 : 20000 };
   };
+  /* File one-shots still playing (QA-013): paused, the world stands still,
+   * so they stop where they are and pick up from there on resume (Han's
+   * song stays on the car's beat; the announcement doesn't run on unheard). */
+  const held = new Set();
+  function holdStart(r, t) {
+    const s = ac.createBufferSource(), fg = ac.createGain();
+    s.buffer = r.b; s.playbackRate.value = r.rate;
+    s.connect(fg).connect(r.dest);
+    s.onended = () => { fg.disconnect(); if (r.s === s) holdEnd(r); };
+    r.s = s; r.fg = fg; r.t0 = t;
+    s.start(t, r.off);
+  }
+  function holdEnd(r) { r.s = null; held.delete(r); r.h.ended = true; if (r.v) voices.delete(r.v); }
+  function holdPause(r) {
+    if (!r.s) return;
+    const t = now(), s = r.s;
+    r.off += Math.max(0, t - r.t0) * r.rate;
+    r.s = null;                                   // (its onended no longer ends it)
+    r.fg.gain.setTargetAtTime(0, t, 0.02);         // out in a breath, no click
+    try { s.stop(t + 0.1); } catch { /* stopped */ }
+  }
+  function holdResume(r) {
+    if (r.s) return;
+    if (r.off >= r.end - 0.01) holdEnd(r);
+    else holdStart(r, now() + 0.01);
+  }
   function play(file, { at = null, range = null, recipe = null, gain = 1, rate = 1, bus = null, indoor = false, o = {} } = {}) {
-    if (!ac || muted) return;
+    const h = o._h ?? { ended: false };      // the caller's handle: `ended` once it has played out (QA-006)
+    if (!ac || muted) { h.ended = true; return h; }
     const v = at && range ? { at, range, gain, indoor } : null;
     let k = gain, f = 20000;
     if (v) {
-      if (Math.hypot(at.x - listener.x, at.z - listener.z) >= range.far) return;   // beyond its range it does not play at all
+      if (Math.hypot(at.x - listener.x, at.z - listener.z) >= range.far) { h.ended = true; return h; }   // beyond its range it does not play at all
       ({ k, f } = voiceLevel(v));
     }
     const entry = { name: file ?? recipe, t: +now().toFixed(3), k: +k.toFixed(3) };
@@ -223,13 +250,14 @@ export function createSound({ volume = 0.5 } = {}) {
     const t = now() + 0.01;
     const b = file && buffers.get(file);
     if (b) {
-      const s = ac.createBufferSource();
-      s.buffer = b; s.playbackRate.value = rate;
-      const [a] = loopSpan(file, b);
-      s.connect(dest); s.start(t, a);
+      const [a, end] = loopSpan(file, b);
       // followed by where you are for as long as it plays (was a fixed 8 s: a longer
       // announcement stayed at the level it had then, however far you walked)
-      if (v) s.onended = () => voices.delete(v);
+      const r = { b, rate, dest, h, v, off: a, end, s: null, fg: null, t0: t };
+      held.add(r);
+      // started under a card only if it was waiting for its file (a click on the card itself plays at once, unheard)
+      if (menuOn && o._waited) r.t0 = now();
+      else holdStart(r, t);
       if (o._waited) o._waited.src = 'file-late';        // it played once decoded, late
       else entry.src = 'file';
     } else if (file && manifest[file] && !recipe && !o._waited) {
@@ -238,13 +266,17 @@ export function createSound({ volume = 0.5 } = {}) {
       g.disconnect();
       if (v) voices.delete(v);                                     // its replay, once decoded, is followed instead
       entry.src = 'waiting';
-      buffer(file).then((ok) => { if (ok) play(file, { at, range, recipe, gain, rate, bus, indoor, o: { ...o, _waited: entry } }); });
+      buffer(file).then((ok) => {
+        if (ok) play(file, { at, range, recipe, gain, rate, bus, indoor, o: { ...o, _waited: entry, _h: h } });
+        else h.ended = true;
+      });
     } else {
       if (file && manifest[file]) buffer(file);            // next time
       entry.src = 'recipe';
       (RECIPES[recipe ?? file] ?? RECIPES['ui-tap'])(dest, t, o);
-      if (v) setTimeout(() => voices.delete(v), 4000);              // the recipes are all short
+      setTimeout(() => { if (v) voices.delete(v); h.ended = true; }, 4000);   // the recipes are all short
     }
+    return h;
   }
 
   /* ------------------------------ loops ------------------------------ */
@@ -402,7 +434,7 @@ export function createSound({ volume = 0.5 } = {}) {
     /** A placed one-off (a line said, a track played on interaction).
      * `indoor`: it belongs inside the store (heard through the glass from outside). */
     oneShot(name, { x, z, y = 1.6, near = 6, far = 40, gain = 1, recipe = null, indoor = false } = {}) {
-      play(name, { at: x === undefined ? null : { x, y, z }, range: x === undefined ? null : { near, far }, gain, recipe, indoor });
+      return play(name, { at: x === undefined ? null : { x, y, z }, range: x === undefined ? null : { near, far }, gain, recipe, indoor });
     },
     /** Fetch and decode these files now, so their first play is the file and
      * not the recipe.  Waits for the list of files first: asked for before it
@@ -414,6 +446,9 @@ export function createSound({ volume = 0.5 } = {}) {
       const got = await Promise.all(names.map((n) => (manifest[n] ? buffer(n) : null)));
       return got.every(Boolean);
     },
+    /** The context and the outdoor bus, for sounds made in code elsewhere (the trains, line/sfx.js):
+     * they join the mix, so volume, mute, the pause card and the store's walls all reach them (QA-007). */
+    graph() { return ac ? { ac, out: outBus } : null; },
     get ready() { return !!ac; },
     get muted() { return muted; },
     get volume() { return volume; },
@@ -466,6 +501,7 @@ export function createSound({ volume = 0.5 } = {}) {
       if (!ac) return;
       world.gain.setTargetAtTime(on ? SOUND.menu.duck : 1, now(), (on ? SOUND.menu.fadeIn : SOUND.menu.fadeOut) / 4);
       theme?.set(on, on ? SOUND.menu.fadeIn : SOUND.menu.fadeOut);
+      for (const r of [...held]) (on ? holdPause : holdResume)(r);   // the world's one-shots stand still with it (QA-013)
     },
     /** The tab went away or came back: an unheard graph should not be running. */
     setAwake(awake) {
@@ -650,6 +686,7 @@ export function createSound({ volume = 0.5 } = {}) {
   };
   if (import.meta.env?.DEV) api.debug = {
     get _voices() { return voices; },
+    get _held() { return held; },
     get _music() { return music; },
     get _theme() { return theme; },
     get _world() { return world; },

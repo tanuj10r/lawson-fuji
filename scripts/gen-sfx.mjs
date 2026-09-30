@@ -1,5 +1,5 @@
-/* The konbini's small sounds, synthesised (Tan's konbini): the scanner's
- * beep, and eating -- a bite, munching, a gulp, a can popping, a wrapper.
+/* The konbini's small sounds, synthesised (Tan's konbini): eating -- a
+ * bite, munching, a gulp, a can popping, a wrapper.
  *
  *   node scripts/gen-sfx.mjs        then   npm run audio
  *
@@ -32,21 +32,19 @@ function band(y, t0, dur, lo, hi, level, { attack = 0.002, curve = 3 } = {}) {
   }
 }
 /** A tone from f0 to f1 Hz. */
-function tone(y, t0, dur, f0, f1, level, { attack = 0.003, curve = 2, square = 0 } = {}) {
+function tone(y, t0, dur, f0, f1, level, { attack = 0.003, curve = 2 } = {}) {
   const i0 = Math.round(t0 * SR), n = Math.round(dur * SR);
   let ph = 0;
   for (let i = 0; i < n && i0 + i < y.length; i++) {
     const t = i / n, f = f0 + (f1 - f0) * t;
     ph += (2 * Math.PI * f) / SR;
-    const s = Math.sin(ph), sq = Math.tanh(s * 4) * 0.8;
+    const s = Math.sin(ph);
     const env = Math.min(1, i / (attack * SR)) * (1 - t) ** curve;
-    y[i0 + i] += (s * (1 - square) + sq * square) * env * level;
+    y[i0 + i] += s * env * level;
   }
 }
 
 const SOUNDS = {
-  // the scanner: one bright "pi", a little squared off like a real one
-  'till-beep': () => { const y = buf(0.2); tone(y, 0.005, 0.13, 2750, 2750, 0.6, { attack: 0.002, curve: 0.4, square: 0.35 }); return y; },
   // a bite: the crisp break of bread or wafer, and the jaw closing
   bite: () => {
     const y = buf(0.28);

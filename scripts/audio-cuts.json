@@ -204,8 +204,5 @@
     "gulp": { "src": "gulp", "ext": ".wav", "start": 0.0, "len": 0, "peak": 0.8, "kbps": 40, "fadeOut": 0.02, "_": "the konbini, synthesised (scripts/gen-sfx.mjs)" },
     "can-open": { "src": "can-open", "ext": ".wav", "start": 0.0, "len": 0, "peak": 0.8, "kbps": 40, "fadeOut": 0.02, "_": "the konbini, synthesised (scripts/gen-sfx.mjs)" },
     "wrapper": { "src": "wrapper", "ext": ".wav", "start": 0.0, "len": 0, "peak": 0.8, "kbps": 40, "fadeOut": 0.02, "_": "the konbini, synthesised (scripts/gen-sfx.mjs)" }
-  },
-  "skip": {
-    "scan-beep": "107 s of continuous low-level sound, not a single beep: M5 uses the procedural beep until a single-beep file is chosen"
   }
 }

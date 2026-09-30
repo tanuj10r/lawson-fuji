@@ -16,7 +16,7 @@ import path from 'node:path';
 const ROOT = new URL('..', import.meta.url).pathname;
 const SRC = path.join(ROOT, 'assets/audio'), OUT = path.join(ROOT, 'public/audio');
 const BUDGET = 4.5 * 1024 * 1024, SR = 44100;   // 3 MB until Tan's experiences (2026-09-28)
-const { files, skip } = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/audio-cuts.json'), 'utf8'));
+const { files } = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/audio-cuts.json'), 'utf8'));
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'audio-'));
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -150,7 +150,6 @@ for (const f of fs.readdirSync(OUT)) if (f.endsWith('.m4a') && !Object.values(ma
 fs.rmSync(tmp, { recursive: true, force: true });
 
 for (const [n, r] of rows) console.log(`  ${n.padEnd(16)} ${r}`);
-for (const [n, why] of Object.entries(skip ?? {})) console.log(`  ${n.padEnd(16)} skipped: ${why}`);
 const ok = total <= BUDGET;
 console.log(`AUDIO ${(total / 1024 / 1024).toFixed(2)} MB in ${Object.keys(manifest).length} files, budget 4.5 MB: ${ok ? 'pass' : 'FAIL'}`);
 if (!ok) process.exitCode = 1;

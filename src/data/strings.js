@@ -129,7 +129,7 @@ export const MOBILE_STRINGS = {
   building: 'Building the town…',
   ready: 'Almost there…',
   tagline: 'A small town under Mt. Fuji. Take your time.',
-  edition: 'Pocket edition: a lighter town, every sound.',
+  edition: 'Pocket edition: a lighter town, every sound. The full stroll is best on a computer.',
   hint: 'Best with the sound on and the phone sideways.',
   silent: 'No sound? Check that your phone isn’t on silent.',
   rotate: 'Turn your phone sideways for the full view',

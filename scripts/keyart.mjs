@@ -1,118 +1,118 @@
-/* The key art (start and pause cards, og:image): one staged frame from our
- * own renderer, baked to public/keyart.webp.  AGENTS.md: visuals are built
- * in code, so the picture on the title card is the game itself.
+/* The key art (start, loading and phone cards): one staged frame from our
+ * own renderer.  AGENTS.md: visuals are built in code, so the picture on the
+ * title card is the game itself -- here a made-up diorama of the town's
+ * places (src/dev/poster.js, the dev page's ?poster), rendered at 3840x2160.
  *
- *   node scripts/keyart.mjs                 render SHOT, write public/keyart.webp
- *   node scripts/keyart.mjs --try           render every CANDIDATES frame to .shots/keyart/ (PNG)
- *   node scripts/keyart.mjs --try a,b       only these candidates
+ *   node scripts/keyart.mjs            render the master, then encode the files below
+ *   node scripts/keyart.mjs --encode   only encode, from the master already on disk
  *
- * Headless system Chrome and its own dev server, like shots.mjs, on the
- * same lock (one Chrome at a time); both are closed however the run ends.
+ * Master (lossless, kept out of public/): assets/keyart/keyart-3840.png.
+ * Shipped (public/), downsampled from the master so they stay crisp:
+ *   keyart-1920.webp       every card, every screen                 (<= 250 KB)
+ *   keyart-2560.webp       the cards on large high-DPI screens      (<= 500 KB; srcset)
+ *   keyart-portrait.webp   the phone card: a 9:16 crop round Fuji   (<= 160 KB)
+ *
+ * Headless system Chrome and its own dev server (port 5197), under the
+ * shared browser lock; both are closed however the run ends.
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const args = process.argv.slice(2);
-const tryIdx = args.indexOf('--try');
-const trying = tryIdx >= 0;
-const only = trying && args[tryIdx + 1] && !args[tryIdx + 1].startsWith('--') ? args[tryIdx + 1].split(',') : null;
+const ENCODE_ONLY = process.argv.includes('--encode');
+const MASTER = path.join(ROOT, 'assets', 'keyart', 'keyart-3840.png');
+const W = 3840, H = 2160;
+/* each file: its size, the master's crop (fractions: x0, width; full height), the byte budget */
+const OUT = [
+  { file: 'keyart-1920.webp', w: 1920, h: 1080, crop: [0, 1], max: 250 * 1024 },
+  { file: 'keyart-2560.webp', w: 2560, h: 1440, crop: [0, 1], max: 500 * 1024 },
+  // 9:16 round Fuji's peak, the torii and the NIPPON sign (the phone card covers the lower half)
+  { file: 'keyart-portrait.webp', w: 900, h: 1600, crop: [0.29, (H * 9) / 16 / W], max: 160 * 1024 },
+];
 
-/* The frame (world coordinates, `__shot` options).  Out: ~1600 x 900 WebP,
- * at most MAX_BYTES; rendered at 2x and let the pipeline's FXAA settle it. */
-const OUT = { w: 1600, h: 900, scale: 2, maxBytes: 180 * 1024, file: path.join(ROOT, 'public', 'keyart.webp') };
-
-/* Looked at side by side before choosing (2026-09-28; docs/decisions/start-screens.md):
- * high over the town (Fuji and the rooftops, the store too small), across the
- * road at eye height (the store and Fuji, no story), and from behind Han's
- * RX-7 in its bay: Han leaning on it, the shiba beside him, both looking where
- * you look -- NIPPON under Fuji, the sakura along the lane, ドンペン堂 lit up. */
-const FROM_THE_BAY = { look: 'golden', pos: [-26, 0, 33.5], yaw: -0.42, pitch: 0.06, lift: 0.6, vfov: 36, clean: true };
-const CANDIDATES = {
-  // the famous view itself (the opening shot)
-  hero: { look: 'golden', pos: [0, 0, 16.5], yaw: 0, pitch: 0.16 },
-  // over the town, Fuji behind
-  town: { look: 'golden', pos: [-10, 0, 45], yaw: -0.15, pitch: -0.05, lift: 12, clean: true },
-  // behind Han and the RX-7, the shiba beside him looking at the view (the key art)
-  bay: { ...FROM_THE_BAY, guide: 'look', guideFrom: { pos: { x: -26, z: 33.5 }, yaw: -0.6 }, guideD: 9 },
-  'bay-alone': FROM_THE_BAY,
-};
-const SHOT = 'bay';
-
-/* ---- one run at a time on this machine (the shots.mjs lock) ---- */
-const LOCK = path.join(os.tmpdir(), 'takemebacktojapan-shots.lock');
+/* ---- one browser at a time across agents ---- */
+const LOCK = '/tmp/lawson-browser.lock';
 for (;;) {
-  try { fs.mkdirSync(LOCK); fs.writeFileSync(path.join(LOCK, 'pid'), String(process.pid)); break; } catch {
-    let pid = 0;
-    try { pid = +fs.readFileSync(path.join(LOCK, 'pid'), 'utf8'); } catch {}
-    let alive = false;
-    try { if (pid) { process.kill(pid, 0); alive = true; } } catch {}
-    if (!alive) { fs.rmSync(LOCK, { recursive: true, force: true }); continue; }
-    console.log(`  waiting for another shots run (pid ${pid})`);
-    await new Promise((r) => setTimeout(r, 5000));
+  try { fs.mkdirSync(LOCK); break; } catch {
+    console.log('  waiting for the browser lock');
+    await new Promise((r) => setTimeout(r, 10000));
   }
 }
-const unlock = () => { try { if (+fs.readFileSync(path.join(LOCK, 'pid'), 'utf8') === process.pid) fs.rmSync(LOCK, { recursive: true, force: true }); } catch {} };
+let unlocked = false;
+const unlock = () => { if (!unlocked) { unlocked = true; try { fs.rmdirSync(LOCK); } catch {} } };
 process.on('exit', unlock);
 
-const server = await createServer({ root: ROOT, logLevel: 'error', server: { port: 5191, strictPort: false, host: '127.0.0.1' } });
+const server = await createServer({ root: ROOT, logLevel: 'error', server: { port: 5197, strictPort: false, host: '127.0.0.1' } });
 await server.listen();
 const base = server.resolvedUrls.local[0];
-const launchArgs = ['--use-angle=metal', '--ignore-gpu-blocklist'];
 let browser;
-try { browser = await chromium.launch({ channel: 'chrome', headless: true, args: launchArgs }); } catch { browser = await chromium.launch({ headless: true, args: launchArgs }); }
 const done = async () => {
-  await Promise.race([Promise.all([browser.close(), server.close()]), new Promise((r) => setTimeout(r, 5000))]).catch(() => {});
+  await Promise.race([Promise.all([browser?.close(), server.close()]), new Promise((r) => setTimeout(r, 5000))]).catch(() => {});
+  unlock();
 };
 for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, async () => { await done(); process.exit(130); });
 
+const write = (file, dataUrl) => {
+  const buf = Buffer.from(dataUrl.replace(/^data:[\w/+-]+;base64,/, ''), 'base64');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, buf);
+  return buf.length;
+};
+
 try {
-  const page = await browser.newPage({ viewport: { width: OUT.w, height: OUT.h } });
-  page.setDefaultNavigationTimeout(180000);
+  browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
+  const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+  page.setDefaultTimeout(600000);
   page.on('pageerror', (e) => console.log('  [page error]', e.message));
-  await page.goto(`${base}?shots`);
-  await page.waitForFunction(() => window.__ready === true, null, { timeout: 180000, polling: 250 });
 
-  const render = (o) => page.evaluate(([w, h, opts]) => window.__shot('keyart', w, h, opts),
-    [OUT.w, OUT.h, { ...o, png: true, returnData: true, scale: o.scale ?? OUT.scale }]);
-  const write = (file, dataUrl) => fs.writeFileSync(file, Buffer.from(dataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
-
-  if (trying) {
-    const dir = path.join(ROOT, '.shots', 'keyart');
-    fs.mkdirSync(dir, { recursive: true });
-    for (const [name, o] of Object.entries(CANDIDATES)) {
-      if (only && !only.includes(name)) continue;
-      const r = await render(o);
-      write(path.join(dir, `${name}.png`), r.data);
-      console.log(`  ${name.padEnd(18)} calls ${r.calls}  tris ${Math.round(r.triangles / 1000)}k`);
-    }
-    console.log(`saved to ${path.relative(ROOT, dir)}/`);
+  let master;
+  if (ENCODE_ONLY) {
+    master = 'data:image/png;base64,' + fs.readFileSync(MASTER).toString('base64');
+    await page.goto(`${base}credits.html`);
   } else {
-    const r = await render(CANDIDATES[SHOT]);
-    // the smallest WebP quality step that keeps it good, under the budget
-    const { data, q, bytes } = await page.evaluate(async ([src, max]) => {
-      const img = new Image();
-      img.src = src;
-      await img.decode();
+    await page.goto(`${base}?shots&poster`);
+    await page.waitForFunction(() => window.__ready === true, null, { timeout: 600000, polling: 500 });
+    const r = await page.evaluate(async ([w, h]) => {
+      const opts = await window.__poster();
+      return window.__shot('keyart', w, h, { ...opts, png: true, returnData: true, scale: 1 });
+    }, [W, H]);
+    master = r.data;
+    const bytes = write(MASTER, master);
+    console.log(`  master ${W}x${H} PNG ${(bytes / 1024 / 1024).toFixed(1)} MB -> ${path.relative(ROOT, MASTER)}  (${r.calls} calls, ${Math.round(r.triangles / 1000)}k tris)`);
+  }
+
+  // downsample (Chrome's high-quality resampling) and find the best WebP quality under each budget
+  const files = await page.evaluate(async ([src, out]) => {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const res = [];
+    for (const o of out) {
       const c = document.createElement('canvas');
-      c.width = img.width; c.height = img.height;
-      c.getContext('2d').drawImage(img, 0, 0);
-      let out = null;
-      for (let q = 0.9; q >= 0.5; q -= 0.04) {
+      c.width = o.w; c.height = o.h;
+      const x = c.getContext('2d');
+      x.imageSmoothingEnabled = true;
+      x.imageSmoothingQuality = 'high';
+      const sx = o.crop[0] * img.width, sw = o.crop[1] * img.width;
+      x.drawImage(img, sx, 0, sw, img.height, 0, 0, o.w, o.h);
+      let best = null;
+      for (let q = 0.92; q >= 0.5; q -= 0.02) {
         const d = c.toDataURL('image/webp', q);
         const bytes = Math.round(((d.length - d.indexOf(',') - 1) * 3) / 4);
-        out = { data: d, q: +q.toFixed(2), bytes };
-        if (bytes <= max) break;
+        best = { data: d, q: +q.toFixed(2), bytes };
+        if (bytes <= o.max) break;
       }
-      return out;
-    }, [r.data, OUT.maxBytes]);
-    write(OUT.file, data);
-    write(path.join(ROOT, '.shots', 'keyart-full.png'), r.data);
-    console.log(`KEYART ${SHOT}: ${OUT.w}x${OUT.h} WebP q${q}, ${(bytes / 1024).toFixed(0)} KB -> ${path.relative(ROOT, OUT.file)}`);
+      res.push({ file: o.file, ...best });
+    }
+    return res;
+  }, [master, OUT]);
+  for (const f of files) {
+    write(path.join(ROOT, 'public', f.file), f.data);
+    console.log(`  ${f.file.padEnd(22)} q${f.q.toFixed(2)}  ${(f.bytes / 1024).toFixed(0)} KB`);
   }
+  console.log(`KEYART ${files.map((f) => `${f.file} ${(f.bytes / 1024).toFixed(0)} KB`).join(', ')}`);
 } finally {
   await done();
 }

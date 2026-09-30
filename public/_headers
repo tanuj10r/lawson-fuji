@@ -19,7 +19,11 @@
   Content-Type: audio/mp4
 
 # images beside the page: not hashed, so a day
-/keyart.webp
+/keyart-1920.webp
+  Cache-Control: public, max-age=86400
+/keyart-2560.webp
+  Cache-Control: public, max-age=86400
+/keyart-portrait.webp
   Cache-Control: public, max-age=86400
 /og.jpg
   Cache-Control: public, max-age=86400

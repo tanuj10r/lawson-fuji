@@ -27,7 +27,7 @@ import { makeNight } from './kit/night.js';
  * modules are used as parts, placed in our layout with our own signs.
  * ------------------------------------------------------------------ */
 
-export function buildTown(scene) {
+export function buildTown(scene, { merge = true } = {}) {
   const root = new THREE.Group();
   root.name = 'town';
   scene.add(root);
@@ -153,7 +153,8 @@ export function buildTown(scene) {
     for (const c of o.children) small(c, on);
   };
   small(root, false);
-  const batching = mergeStatic(root, { cell: 128, atlas: true });
+  // (dev ?poster keeps the town unmerged, so its places can be staged: src/dev/poster.js)
+  const batching = merge ? mergeStatic(root, { cell: 128, atlas: true }) : null;
 
   /* --- Mt. Fuji, riding with the camera like the sky --- */
   const fuji = buildFuji(scene);

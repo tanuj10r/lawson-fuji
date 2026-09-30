@@ -59,6 +59,8 @@ on the cards marked `lang="ja"`. scripts/_cards.mjs checks it.
   Checked at 1280x720, 1440x900, 1920x1080, 2560x1440 (scripts/_cards.mjs).
 
 ## The key art
+- 2026-09-30: replaced by the ?poster diorama (DECISIONS.md, "The key art: a
+  diorama of the town"); what follows is the first key art's story.
 - Baked from our own renderer (AGENTS.md: visuals built in code):
   scripts/keyart.mjs renders a staged `__shot` at 1600x900, 2x internal,
   and writes public/keyart.webp (Chrome's WebP encoder, q0.90, 154 KB).

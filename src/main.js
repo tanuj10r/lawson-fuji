@@ -120,8 +120,9 @@ const sky = buildSky(scene, 2900, { avoidYaw: FUJI.bearing });
  * (scripts/shots.mjs) freezes time so every frame it takes repeats exactly. */
 const devParams = new URLSearchParams(location.search);
 const KIT = import.meta.env.DEV && devParams.has('kit');
-const FROZEN = import.meta.env.DEV && devParams.has('shots');
-const world = KIT ? buildKitTest(scene) : buildTown(scene);
+const POSTER = import.meta.env.DEV && devParams.has('poster');   // the key art's staged diorama (src/dev/poster.js)
+const FROZEN = import.meta.env.DEV && (devParams.has('shots') || POSTER);
+const world = KIT ? buildKitTest(scene) : buildTown(scene, { merge: !POSTER });
 bootStage(STRINGS.boot.ready, '85%');
 await nextPaint();
 /* The minimap and full map (M2f): the town only.  `famousView` is the spot
@@ -887,6 +888,8 @@ if (import.meta.env?.DEV) {
   window.__lastView = () => lastView;
   /** Stand the trains in a moment: 'platform', 'platform2', 'crossing', 'approach'. */
   window.__train = (kind) => world.line?.service.stage(kind);
+  /** ?poster: stage the key art's diorama (src/dev/poster.js); resolves to its `__shot` options. */
+  if (POSTER) window.__poster = async () => (await import('./dev/poster.js')).stagePoster({ scene, world, applyLook });
 
   /* ?traincheck: run the service fast in fixed steps and check it (SPEC M2c).
    * Events with their times, the dwell and headway, and at every step: is

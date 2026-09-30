@@ -257,6 +257,11 @@ export function mergeStatic(root, opts = {}) {
     for (const c of o.children) freeze(c);
   };
   for (const c of root.children) freeze(c);
+  // let go of the merged-away meshes: `cullDetail` below closes over this scope, so these lists (every source
+  // mesh and its geometry) would otherwise live as long as the town (~90 MB, found by the mobile build)
+  groups.clear();
+  victims.length = 0;
+  gone.clear();
   return {
     merged, removed, details: details.length,
     /** Hide detail batches (small street props) farther than `range` from `p`. */

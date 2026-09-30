@@ -5,8 +5,7 @@
  * Every name and package is ours and generic (AGENTS.md): products may
  * evoke what 7-Eleven, FamilyMart and Lawson sell, never copy it.
  *
- * Product: { id, nameJa, nameEn, priceYen, zone, group, mesh, sound,
- *            heatable?, needsChopsticks?, cold?, alcohol? }
+ * Product: { id, nameJa, nameEn, priceYen, zone, group, mesh, sound }
  *   zone   where it lives (drinks, chilled, gondola, frozen, ...)
  *   group  its section: a cooler door's category, a chilled-case section,
  *          a gondola side's category (store/planogram.js fills from these)
@@ -60,14 +59,14 @@ export const CATALOG = [
     ['bento_curry', 'ビーフカレー', 'Beef curry rice', 540, 0x2a2a30, 0xd89048],
     ['bento_gyudon', '牛丼', 'Beef bowl', 520, 0x2a2a30, 0xe8a018],
     ['bento_omurice', 'オムライス', 'Omurice', 500, 0x2a2a30, 0xf2c23c],
-  ], {}, { heatable: true, needsChopsticks: true }),
+  ]),
   ...F('chilled', 'noodle', 'tray', 'plastic', [
     ['cold_soba', 'ざるそば', 'Cold soba', 420, 0x2a2a30, 0x5a4a8a],
     ['hiyashi_chuka', '冷やし中華', 'Chilled ramen', 480, 0x2a2a30, 0xf2c23c],
     ['cold_udon', 'ぶっかけうどん', 'Cold udon', 400, 0x2a2a30, 0x3a8ad0],
     ['pasta_napolitan', 'ナポリタン', 'Napolitan pasta', 450, 0x2a2a30, 0xd8342f],
     ['pasta_carbonara', 'カルボナーラ', 'Carbonara', 480, 0x2a2a30, 0xf2e6c0],
-  ], {}, { heatable: true, needsChopsticks: true }),
+  ]),
   ...F('chilled', 'salad', 'cup', 'plastic', [
     ['potato_salad', 'ポテトサラダ', 'Potato salad', 230, 0xf4ecc8, 0x6fb86a, { r: 0.05, h: 0.06 }],
     ['pasta_salad', 'パスタサラダ', 'Pasta salad', 320, 0xf2e6c0, 0xe8864a, { r: 0.055, h: 0.06 }],
@@ -214,20 +213,20 @@ export const CATALOG = [
     ['beer_premium', '夜空プレミアム', 'Night sky premium', 250, 0x1e3a78, 0xd8b070],
     ['beer_lager', 'クラシック ラガー', 'Classic lager', 230, 0x8a1a2a, 0xd8b070],
     ['happoshu', 'すっきり麦', 'Light malt', 170, 0x3a8ad0, 0xffffff],
-    ['nonalc_beer', 'ノンアル 麦ゼロ', 'Alcohol-free malt', 150, 0x1e5a3a, 0xffffff, {}, { alcohol: false }],
-  ], {}, { alcohol: true }),
+    ['nonalc_beer', 'ノンアル 麦ゼロ', 'Alcohol-free malt', 150, 0x1e5a3a, 0xffffff],
+  ]),
   ...F('drinks', 'beer', 'tallcan', 'can', [
     ['beer_gold_500', '黄金麦 生 500ml', 'Golden malt 500', 300, 0xd8a830, 0xffffff],
     ['beer_dry_500', '銀河ドライ 500ml', 'Galaxy dry 500', 300, 0xc8ccd4, 0x1a1a24],
-  ], {}, { alcohol: true }),
+  ]),
   ...F('drinks', 'beer', 'sixpack', 'box', [
     ['beer_6pack', '黄金麦 生 6缶', 'Golden malt 6-pack', 1300, 0xd8a830, 0xffffff],
-  ], {}, { alcohol: true }),
+  ]),
   ...F('drinks', 'chuhi', 'tallcan', 'can', [
     // Strong Nine (Tan's experience): a homage to the famous 9% lemon chu-hi, never its design
     ['strong_nine', 'ストロングナイン レモン', 'Strong Nine lemon', 198, 0xd8dce4, 0xf2d02a, { strong: true, nine: true, abv: '9%' }],
     ['chuhi_grapefruit', 'キリッと強グレフル 9%', 'Sharp grapefruit 9%', 170, 0xf2c8c0, 0xe8456a, { strong: true, fruit: '#f28a7a', abv: '9%' }],
-  ], {}, { alcohol: true }),
+  ]),
   ...F('drinks', 'chuhi', 'can', 'can', [
     ['chuhi_peach', 'もも果汁サワー', 'Peach sour', 160, 0xf6c0c8, 0xe8456a],
     ['chuhi_grape', 'ぶどう果汁サワー', 'Grape sour', 160, 0x8a4aa8, 0xf2f2f2],
@@ -237,7 +236,7 @@ export const CATALOG = [
     ['highball', '琥珀ハイボール', 'Amber highball', 200, 0xc88030, 0x2a1a10],
     ['highball_lemon', '琥珀ハイボール レモン', 'Amber highball lemon', 200, 0xd8a040, 0xf2d02a],
     ['umeshu_soda', '梅酒ソーダ', 'Plum wine soda', 180, 0xd8b050, 0x8a2a3a],
-  ], {}, { alcohol: true }),
+  ]),
 
   /* ============================= the gondolas ============================= */
   // G0, the chilled-case side: bread and pastries
@@ -284,12 +283,12 @@ export const CATALOG = [
     ['cup_mini_curry', 'ミニ カレー', 'Mini curry cup', 130, 0xf2f2ea, 0xe8a018, { word: 'ミニ', small: true }],
     ['cup_pho', 'フォー', 'Pho cup', 230, 0xf2f2ea, 0x3a8a4a, { word: 'フォー' }],
     ['cup_wantan', 'わんたん', 'Wonton soup cup', 150, 0xf2f2ea, 0xe8864a, { word: 'わんたん', small: true }],
-  ], {}, { needsChopsticks: true }),
+  ]),
   ...F('gondola', 'instant', 'tray', 'paper', [
     ['yakisoba', 'ソース焼きそば', 'Yakisoba cup', 240, 0xf2f2ea, 0x2a2a30],
     ['yakisoba_shio', '塩焼きそば', 'Salt yakisoba cup', 240, 0xf2f2ea, 0x3a8ad0],
     ['abura_soba', '汁なし油そば', 'Soupless oil noodles', 260, 0xf2f2ea, 0xe8a018],
-  ], {}, { needsChopsticks: true }),
+  ]),
   ...F('gondola', 'instant', 'cup', 'paper', [
     ['miso_soup', 'しじみ味噌汁', 'Clam miso soup', 160, 0xf2ecd8, 0x8a5a2a, { r: 0.045, h: 0.06 }],
     ['corn_soup', 'コーンスープ', 'Corn soup', 160, 0xf6e080, 0xe8a018, { r: 0.045, h: 0.06 }],
@@ -564,28 +563,28 @@ export const CATALOG = [
     ['sake_pack', '清酒 パック 900ml', 'Sake carton 900ml', 780, 0xf6f2e6, 0x1e3a78],
     ['sake_pack_dry', '辛口 パック 900ml', 'Dry sake carton 900ml', 780, 0xf6f2e6, 0x2a2a30],
     ['shochu_pack', '麦焼酎 パック 900ml', 'Barley shochu carton', 980, 0xf2ecd8, 0x8a5a2a],
-    ['mirin_pack', '本みりん 500ml', 'Mirin 500ml', 450, 0xf2e6c0, 0xd8a830, {}, { alcohol: true }],
-  ], {}, { alcohol: true }),
+    ['mirin_pack', '本みりん 500ml', 'Mirin 500ml', 450, 0xf2e6c0, 0xd8a830],
+  ]),
   ...F('gondola', 'liquor', 'pet', 'bottle', [
     ['tonic_water', 'トニックウォーター', 'Tonic water', 150, 0xeef4f8, 0x1e5a8a],
     ['soda_water_amb', '割り材 炭酸水', 'Mixer soda water', 120, 0xeef4f8, 0x2a8a5a],
     ['lemon_sour_base', 'レモンサワーの素', 'Lemon sour base', 580, 0xf6e880, 0x2a6a3a],
     ['ume_liqueur', '梅酒 500ml', 'Plum wine 500ml', 680, 0xd8b050, 0x8a2a3a],
-  ], {}, { alcohol: true }),
+  ]),
   ...F('gondola', 'liquor', 'pet2l', 'bottle', [
     ['shochu_big', '甲類焼酎 1.8L', 'Shochu 1.8L', 1680, 0xeef4f8, 0x1e3a78],
     ['whisky_big', 'こはく 1.92L', 'Kohaku whisky 1.92L', 2980, 0xb8702a, 0x1a1a20],
-  ], {}, { alcohol: true }),
+  ]),
   ...F('gondola', 'liquor', 'sakecup', 'bottle', [
     ['sake_cup', 'ワンカップ富士', 'One-cup sake', 250, 0xe8f0f4, 0x1e3a78],
     ['sake_cup_dry', 'ワンカップ 辛口', 'One-cup sake, dry', 250, 0xe8f0f4, 0x2a2a30],
     ['shochu_cup', '麦焼酎カップ', 'Barley shochu cup', 280, 0xe8f0f4, 0x8a5a2a],
-  ], {}, { alcohol: true }),
+  ]),
   ...F('gondola', 'liquor', 'whisky', 'bottle', [
     ['whisky', 'こはく 180ml', 'Kohaku whisky', 520, 0xb8702a, 0x1a1a20],
     ['whisky_black', 'こはく ブラック', 'Kohaku black', 680, 0x8a4a1a, 0x1a1a20],
     ['gin_small', 'ジン 180ml', 'Craft gin 180ml', 780, 0xe8f0f4, 0x1e5a8a],
-  ], {}, { alcohol: true }),
+  ]),
   ...F('gondola', 'liquor', 'wine', 'bottle', [
     ['wine_red', 'ぶどう畑の赤', 'Vineyard red', 680, 0x3a1a24, 0xf2ecd8],
     ['wine_rose', 'ぶどう畑のロゼ', 'Vineyard rosé', 680, 0xd87a8a, 0xf2ecd8],
@@ -595,7 +594,7 @@ export const CATALOG = [
     ['wine_sparkling', 'スパークリング', 'Sparkling wine', 880, 0x2a4a2a, 0xd8b070],
     ['sake_bottle', '純米酒 富士', 'Junmai sake', 980, 0x2a4a3a, 0xf2ecd8],
     ['umeshu_bottle', 'とろり梅酒', 'Plum wine', 780, 0xc89040, 0xf2ecd8],
-  ], {}, { alcohol: true }),
+  ]),
 
   /* ============================ ice and frozen ============================ */
   ...F('frozen', 'ice', 'icecup', 'plastic', [
@@ -604,49 +603,49 @@ export const CATALOG = [
     ['ice_matcha', '濃い抹茶', 'Rich matcha', 300, 0x9ac070, 0x1e4a2a],
     ['ice_strawberry', 'とろける苺', 'Melting strawberry', 300, 0xf2b0c0, 0xa8142a],
     ['ice_cookie', 'クッキー&クリーム', 'Cookies & cream', 300, 0xe8e0d0, 0x2a2a30],
-  ], {}, { cold: true }),
+  ]),
   ...F('frozen', 'ice', 'icebar', 'plastic', [
     ['ice_soda_bar', 'ソーダバー', 'Soda ice bar', 90, 0x6ac8ec, 0x1e5ab8],
         ['ice_milk_bar', 'ミルクバー', 'Milk ice bar', 90, 0xf6f6ee, 0x3a8ad0],
     ['ice_azuki_bar', 'あずきバー', 'Red-bean ice bar', 90, 0x8a2a3a, 0xf2ecd8],
     ['ice_grape_bar', 'ぶどうバー', 'Grape ice bar', 90, 0x8a4aa8, 0xf2f2f2],
-  ], {}, { cold: true }),
+  ]),
   // Choco Wafer Jumbo (Tan's experience): the wafer-sandwich ice in its wrapper, a homage
   ...F('frozen', 'ice', 'wafer', 'plastic', [
     ['choco_wafer_jumbo', 'チョコウエハース ジャンボ', 'Choco Wafer Jumbo', 190, 0x4a2a1c, 0xe89a1a],
-  ], {}, { cold: true }),
+  ]),
   ...F('frozen', 'ice', 'mochi', 'plastic', [
     ['ice_mochi', 'もちもちアイス', 'Mochi ice pair', 160, 0xf2f2ea, 0xd8342f],
     ['ice_monaka', 'あんこモナカ', 'Monaka ice', 180, 0xd8a060, 0x8a2a3a],
-  ], {}, { cold: true }),
+  ]),
   ...F('frozen', 'ice', 'cone', 'plastic', [
     ['soft_cream', 'ソフトクリーム', 'Soft-serve cone', 240, 0xfaf6ee, 0x3a8ad0],
     ['cone_choco', 'チョコクランチコーン', 'Choco crunch cone', 180, 0x6a3a22, 0xd8342f],
-  ], {}, { cold: true }),
+  ]),
   ...F('frozen', 'ice', 'cup', 'plastic', [
     ['kakigori', 'かき氷アイス', 'Shaved-ice cup', 180, 0xe8453f, 0x3a8ad0, { r: 0.045, h: 0.07 }],
     ['kakigori_melon', 'かき氷 メロン', 'Shaved ice, melon', 180, 0x6ad86a, 0x2a8a3a, { r: 0.045, h: 0.07 }],
-  ], {}, { cold: true }),
+  ]),
   ...F('frozen', 'ice', 'multipack', 'box', [
     ['ice_multipack', 'ファミリーパック', 'Family pack', 450, 0x3a8ad0, 0xf2c23c],
     ['ice_multipack_choco', 'チョコバー 6本', 'Choco bars (6)', 450, 0x5a3020, 0xd8a830],
-  ], {}, { cold: true }),
+  ]),
   ...F('frozen', 'frozen', 'icebag', 'plastic', [
     ['ice_bag', 'かち割り氷', 'Bag of ice', 200, 0xe8f4fa, 0x3a8ad0],
-  ], {}, { cold: true }),
+  ]),
   ...F('frozen', 'frozen', 'box', 'box', [
     ['frozen_gyoza', '冷凍 焼き餃子', 'Frozen gyoza', 380, 0xf2ecd8, 0xd8342f, { w: 0.2, h: 0.04, d: 0.14 }],
     ['frozen_fried_rice', '冷凍 チャーハン', 'Frozen fried rice', 350, 0xe8c888, 0xc8342f, { w: 0.18, h: 0.05, d: 0.14 }],
     ['frozen_udon', '冷凍 さぬきうどん', 'Frozen udon', 300, 0xf6f6ee, 0x3a8ad0, { w: 0.18, h: 0.04, d: 0.16 }],
     ['frozen_karaage', '冷凍 唐揚げ', 'Frozen karaage', 400, 0xe8a850, 0xe8642a, { w: 0.2, h: 0.05, d: 0.14 }],
     ['frozen_edamame', '冷凍 枝豆', 'Frozen edamame', 300, 0x9ad060, 0x2e5a3a, { w: 0.18, h: 0.04, d: 0.14 }],
-  ], {}, { cold: true }),
+  ]),
 
   /* ============================ the counter, and more ============================ */
   // hot (ask the clerk, M5)
   P('karaage', 'からあげ（5個）', 'Karaage (5 pc)', 238, 'hot', 'hot', { shape: 'karaagebox', body: 0xe8453f, band: 0xf2c23c }, 'paper'),
   P('nikuman', '肉まん', 'Nikuman', 180, 'hot', 'hot', { shape: 'bun', body: 0xfbf7ee, band: 0xd8342f }, 'soft'),
-  P('oden', 'おでんセット', 'Oden set', 320, 'hot', 'hot', { shape: 'odencup', body: 0xf6f2ea, band: 0x8a5a2a }, 'paper', { needsChopsticks: true }),
+  P('oden', 'おでんセット', 'Oden set', 320, 'hot', 'hot', { shape: 'odencup', body: 0xf6f2ea, band: 0x8a5a2a }, 'paper'),
   P('hot_coffee', 'ホットコーヒー（R）', 'Hot coffee (R)', 120, 'coffee', 'coffee', { shape: 'coffeecup', body: 0xfbf8f2, band: 0x6a3a22 }, 'paper'),
   P('umbrella', 'ビニール傘', 'Clear umbrella', 650, 'daily', 'umbrella', { shape: 'umbrella', body: 0xe8f2f8, band: 0x2a2a30 }, 'plastic'),
   // make your own (the smoothie freezer)
@@ -656,18 +655,18 @@ export const CATALOG = [
     ['smoothie_green', 'グリーンスムージー', 'Green smoothie cup', 350, 0x8ac848, 0x3a8a4a],
     ['smoothie_banana', 'バナナスムージー', 'Banana smoothie cup', 350, 0xf2e070, 0xe8a018],
     ['ice_cup', 'アイスコーヒー用カップ', 'Iced-coffee ice cup', 110, 0xe8f4fa, 0x6a3a22],
-  ], {}, { cold: true }),
+  ]),
 ];
 
-/* The four things to try (Tan's konbini): each a glowing spot in the store,
- * the rest of the range scenery.  `ids` what that spot offers (the sando
- * case offers two, side by side); world/store/planogram.js gives them a
- * shelf of their own at eye level, and store/shop.js makes them takeable. */
+/* The things to choose (Tan's konbini: keys 1-5 at the door), the rest of
+ * the range scenery.  `ids` what that place offers (the sando case offers
+ * two, side by side); world/store/planogram.js gives them a shelf of their
+ * own at eye level, and store/shop.js lists and plays them. */
 export const FEATURED = [
-  { key: 'sando', ids: ['sando_egg', 'fruit_sando'], name: 'Sandos', jp: 'サンド' },
-  { key: 'onigiri', ids: ['onigiri_tuna'], name: 'Onigiri', jp: 'おにぎり' },
-  { key: 'chuhi', ids: ['strong_nine'], name: 'Strong Nine', jp: 'ストロングナイン' },
-  { key: 'ice', ids: ['choco_wafer_jumbo'], name: 'Choco Wafer Jumbo', jp: 'チョコウエハース' },
+  { key: 'sando', ids: ['sando_egg', 'fruit_sando'] },
+  { key: 'onigiri', ids: ['onigiri_tuna'] },
+  { key: 'chuhi', ids: ['strong_nine'] },
+  { key: 'ice', ids: ['choco_wafer_jumbo'] },
 ];
 
 export const PRODUCT = Object.fromEntries(CATALOG.map((p) => [p.id, p]));

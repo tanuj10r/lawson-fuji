@@ -160,15 +160,6 @@ export const doorSign = (kind) =>
     fit(c, K[3], w / 2, h * 0.76, w - 40, 20, K[1], 'normal');
   });
 
-/** The customer display on a register: green seven-segment on black. */
-export const registerScreen = () =>
-  tex('regscreen', 128, 64, (c, w, h) => {
-    c.fillStyle = '#10141a'; c.fillRect(0, 0, w, h);
-    c.fillStyle = '#58f08a'; c.font = `bold 30px monospace`; c.textAlign = 'right'; c.textBaseline = 'middle';
-    c.fillText('0', w - 12, h / 2);
-    c.font = `bold 13px ${JP}`; c.textAlign = 'left'; c.fillText('合計', 8, h / 2);
-  });
-
 /** Small labels on the counter's kit: ホットスナック, 中華まん, おでん, the coffee menu. */
 export const counterLabel = (kind) =>
   tex('cl-' + kind, 256, 96, (c, w, h) => {

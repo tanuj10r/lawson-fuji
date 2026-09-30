@@ -42,12 +42,10 @@ export const VOLUME_STEPS = [0, 25, 50, 75, 100];
 export const volumeGain = (step) => (step / 100) * 0.6;
 export const DEFAULT_VOLUME = 50;                      // 30% of full scale: the level Tan liked
 
-/* Shopping in the store (M3c; SPEC 5 and 6.3). */
+/* The konbini (store/shop.js; SPEC 5 and 6.3). */
 export const STORE = {
-  reach: 2.0,          // metres: what the crosshair can take
-  carry: 2,            // items you can hold: one in each hand (Tan's konbini)
   wallet: 1000,        // yen you start with (Tan: ¥1,000 a visit)
-  flight: 0.35,        // seconds, shelf to basket
+  flight: 0.35,        // seconds, shelf to hand
   slide: 0.25,         // seconds for the next unit to come forward
   door: { open: 1.66, ease: 0.3, away: 2.5 },   // fridge doors: radians, s, m (shut when you walk off)
   /* Tan's konbini (store/shop.js) */

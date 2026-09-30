@@ -284,15 +284,17 @@ export function stockStore(p, slots, group, lit) {
   }
   const units = stock.build(group, lit);
 
-  // what the shelves hold, for the STOCK check (scripts/shots.mjs)
-  const per = new Map();
-  const counter = (id) => ['hot', 'coffee', 'umbrella'].includes(PRODUCT[id].group);
-  for (const u of units) if (!counter(u.id)) per.set(u.id, (per.get(u.id) ?? 0) + 1);
-  const [maxId, max] = [...per].reduce((a, b) => (b[1] > a[1] ? b : a), ['', 0]);
-  const shelved = new Set(per.keys());
-  group.userData.stockStats = {
-    products: per.size, units: [...per.values()].reduce((a, b) => a + b, 0), max, maxId,
-    unplaced: Object.keys(PRODUCT).filter((id) => !shelved.has(id) && !counter(id)),
-  };
+  // what the shelves hold, for the STOCK check (scripts/shots.mjs; dev only)
+  if (import.meta.env?.DEV) {
+    const per = new Map();
+    const counter = (id) => ['hot', 'coffee', 'umbrella'].includes(PRODUCT[id].group);
+    for (const u of units) if (!counter(u.id)) per.set(u.id, (per.get(u.id) ?? 0) + 1);
+    const [maxId, max] = [...per].reduce((a, b) => (b[1] > a[1] ? b : a), ['', 0]);
+    const shelved = new Set(per.keys());
+    group.userData.stockStats = {
+      products: per.size, units: [...per.values()].reduce((a, b) => a + b, 0), max, maxId,
+      unplaced: Object.keys(PRODUCT).filter((id) => !shelved.has(id) && !counter(id)),
+    };
+  }
   return units;
 }

@@ -284,14 +284,11 @@ export function buildInterior(group, { lit, colliders }) {
   /* ------------------- baskets, mat and umbrella bags ------------------- */
   {
     // two stacks of baskets on dollies, by the door and at the counter's end
-    // (M3d): real nested baskets; the top one of each is drawn on its own (shop.js)
-    const stacks = [];
+    // (M3d): real nested baskets
     for (const [bx, bz] of [[-4.3, -0.9], [5.55, -1.3]]) {
-      const top = paintBasketStack(p, bx, bz, 5, smallSign('baskets'));
-      stacks.push(top);
+      paintBasketStack(p, bx, bz, 5, smallSign('baskets'));
       block(bx - 0.29, bx + 0.29, bz - 0.22, bz + 0.22, 0.6);
     }
-    group.userData.basketStacks = stacks;
     p.box(-3.3, -1.3, FLOOR, FLOOR + 0.012, -1.2, -0.1, C.mat);
     p.box(-0.9 - 0.12, -0.9 + 0.12, FLOOR, 0.9, -0.95, -0.75, C.steel);
     p.box(-0.9 - 0.1, -0.9 + 0.1, 0.9, 1.25, -0.9, -0.8, 0xeef2f6);

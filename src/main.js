@@ -14,6 +14,7 @@ import { tagReflections } from './world/land/mirror.js';
 import { createMinimap } from './ui/minimap.js';
 import { createHandsHud } from './ui/hands.js';
 import { createControls } from './ui/controls.js';
+import { trainWaitLabel } from './ui/trainWait.js';
 import { buildKitTest } from './world/kit-test.js';
 import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
@@ -175,6 +176,7 @@ try {
 } catch { /* storage is optional; the game works without it */ }
 
 const hud = createHud({ volume: volumeStep });
+const trainWait = trainWaitLabel(hud.root);     // "Next train · 0:25" on the platform (QA-010)
 if (shop) {
   shop.flash = (text, error = false) => hud.flash(text, error ? 2800 : 2200, error);
   // the Strong Nine: ten seconds a little tipsy
@@ -734,6 +736,7 @@ function frame(now = 0) {
   const stride = Math.floor(player.bob / (2 * Math.PI));
   if (stride !== lastStride) { lastStride = stride; if (player.locked) sound.step(inStore); }
   hud.setPrompt(hovered ? `E  ·  ${hovered.label.replace(/^.*?·\s*/, '')}` : '');
+  trainWait.update(world.line?.station?.wait, player.locked && !FROZEN && !minimap?.fullOpen);
   // flat authoring coordinates, so what the readout says is what the code uses
   hud.setCoords(player.pos, player.yaw, player.pitch, dt);
 

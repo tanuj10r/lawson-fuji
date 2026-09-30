@@ -67,18 +67,18 @@ compact town. Read AGENTS.md and docs/BUILDERS.md first; this adds to them.
   station-ambience, train-nextstop (plus the older ones in
   scripts/audio-cuts.json). New sounds: add a cut to scripts/audio-cuts.json
   (`src`, `ext: '.aiff'` for voices made with macOS `say -v Kyoko`), run
-  `npm run audio`. Audio sources live in /Users/tanujr/DevSpace/lawson-fuji/
+  `npm run audio`. Audio sources live in /Users/tanujr/DevSpace/takemebacktojapan/
   assets/audio (not in your worktree: symlink it).
 - Everything else: docs/BUILDERS.md (ctx.add/collide/platform/update, cel(),
   Canvas2D signs with JP_ROUND/JP_BRUSH, one InstancedMesh per kind).
 
 ## Setup in your worktree
     git log --oneline -1   # must include "Experiences groundwork"; else: git reset --hard main
-    ln -s /Users/tanujr/DevSpace/lawson-fuji/node_modules node_modules
-    ln -s /Users/tanujr/DevSpace/lawson-fuji/reference/density reference/density
-    mkdir -p assets && ln -s /Users/tanujr/DevSpace/lawson-fuji/assets/audio assets/audio
-    ln -s /Users/tanujr/DevSpace/lawson-fuji/assets/fonts assets/fonts
-    mkdir -p screenshots && cp -R /Users/tanujr/DevSpace/lawson-fuji/screenshots/baseline screenshots/
+    ln -s /Users/tanujr/DevSpace/takemebacktojapan/node_modules node_modules
+    ln -s /Users/tanujr/DevSpace/takemebacktojapan/reference/density reference/density
+    mkdir -p assets && ln -s /Users/tanujr/DevSpace/takemebacktojapan/assets/audio assets/audio
+    ln -s /Users/tanujr/DevSpace/takemebacktojapan/assets/fonts assets/fonts
+    mkdir -p screenshots && cp -R /Users/tanujr/DevSpace/takemebacktojapan/screenshots/baseline screenshots/
     npm run audio          # public/audio for your dev server
 
 ## The loop (mandatory)

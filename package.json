@@ -5,6 +5,11 @@
   "type": "module",
   "description": "Take Me Back to Japan (takemebacktojapan.com): a first-person, anime-style stroll through Fujikawaguchikko, a small town under Mt. Fuji. Fork of Sakura Crossing (MIT).",
   "license": "MIT",
+  "homepage": "https://takemebacktojapan.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tanuj10r/takemebacktojapan.com.git"
+  },
   "engines": {
     "node": ">=18"
   },

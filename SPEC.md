@@ -522,7 +522,7 @@ Tan deploys `dist/` from `npm run build` to takemebacktojapan.com. In order:
 **A. Before it goes live (blockers)**
 
 1. **Back up the repo.** `main` is 218 commits ahead of GitHub
-   (origin: tanuj10r/lawson-fuji) and has never been pushed. Push it. Decide
+   (origin: tanuj10r/takemebacktojapan.com) and has never been pushed. Push it. Decide
    whether the repo is public (it carries no audio, so it can be).
 2. **Final QA pass.** Play every experience at all three times of day, from
    a fresh start and a reload. Also: the cards at 1280x720

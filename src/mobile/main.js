@@ -538,7 +538,9 @@ function aimAssist(list) {
     const dx = _aim.x - camera.position.x, dz = _aim.z - camera.position.z, d = Math.hypot(dx, dz);
     if (d > A.reach || d >= bestD) continue;
     const ang = Math.acos(THREE.MathUtils.clamp((dx * _fwd.x + dz * _fwd.z) / (d * Math.hypot(_fwd.x, _fwd.z) || 1), -1, 1));
-    if (ang > A.cone) continue;
+    // standing in its ring counts whichever way you face; else it must be ahead
+    const inRing = d < (it.hitbox.geometry?.parameters?.width ?? 0) / 2;
+    if (!inRing && ang > A.cone) continue;
     best = it; bestD = d;
   }
   return best;
@@ -620,7 +622,7 @@ function frame(now = 0) {
   if (shop) shop.update(dt, camera, player.bob);
   const choosing = !!(shop?.atSpot && player.locked && !minimap.fullOpen);
   hud.menu(choosing ? shop.menu : null);
-  if (player.locked && !shop?.busy && !player.seat && !gliding && !minimap.fullOpen) {
+  if (player.locked && !shop?.busy && !player.seat && !gliding && !minimap.fullOpen && !watch.on) {
     hovered = shop?.inside(camera) ? shop.pick(camera) : (player.pick(world.interactables) ?? aimAssist(world.interactables));
   }
   if (shop && !hovered) shop.clearAim();
@@ -675,7 +677,7 @@ frame();
 if (import.meta.env?.DEV || new URLSearchParams(location.search).has('stats')) {
   window.__m = {
     scene, camera, renderer, pipeline, world, player, sound, hud, THREE, marks, lite, perf, culler, applyLook, enterHero,
-    census: () => census(scene, renderer),
+    census: () => census(scene, renderer), hanShow,
     get scale() { return renderScale; },
   };
 }

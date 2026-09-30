@@ -78,7 +78,7 @@ const CSS = `
     border: 1.5px solid rgba(31,95,174,.3); background: #fff; color: #2b2542; display: flex; flex-direction: column; justify-content: space-between; }
   .mh-menu li button:active { background: #e8f0fb; }
   .mh-menu b { font-size: 13px; line-height: 1.15; }
-  .mh-menu .jp { font-size: 10.5px; color: #8f88a8; }
+  .mh-menu .mh-jp { font-size: 10.5px; color: #8f88a8; letter-spacing: 0; }
   .mh-menu .p { font-size: 12px; color: #1f5fae; font-weight: 700; font-variant-numeric: tabular-nums; }
   .mh-menu .stamp { position: absolute; right: 4px; top: -8px; transform: rotate(-8deg); padding: 0 5px; border: 1.5px solid #d23a2a;
     border-radius: 4px; color: #d23a2a; background: #fff5f0; font: 800 9px/1.4 system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
@@ -191,7 +191,7 @@ export function createMobileHud({ volume = 50, menu = [] } = {}) {
       kmenu.innerHTML = `<h3>${S.menuTitle}<span>${M.menuHint}</span></h3><ol>${ids.map((id) => {
         const p = PRODUCT[id];
         const rec = id === STORE.recommended ? `<span class="stamp">${S.recommended}</span>` : '';
-        return `<li><button type="button" data-pick="${id}">${rec}<b>${S.menuNames[id] ?? p.nameEn}</b><span class="jp" lang="ja">${p.nameJa}</span><span class="p">${yen(p.priceYen)}</span></button></li>`;
+        return `<li><button type="button" data-pick="${id}">${rec}<b>${S.menuNames[id] ?? p.nameEn}</b><span class="mh-jp" lang="ja">${p.nameJa}</span><span class="p">${yen(p.priceYen)}</span></button></li>`;
       }).join('')}</ol>`;
     },
     get menuOpen() { return kmenu.classList.contains('on'); },

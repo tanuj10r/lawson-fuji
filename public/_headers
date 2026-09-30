@@ -11,6 +11,10 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# the phone build's (m.html) hashed bundles, fonts and data
+/m/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
 # sounds and their manifest: not hashed, so a day
 /audio/*
   Cache-Control: public, max-age=86400
@@ -42,6 +46,10 @@
 /
   Cache-Control: no-cache
 /index.html
+  Cache-Control: no-cache
+/m.html
+  Cache-Control: no-cache
+/m
   Cache-Control: no-cache
 /credits.html
   Cache-Control: no-cache

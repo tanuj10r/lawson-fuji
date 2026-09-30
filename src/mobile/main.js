@@ -16,11 +16,12 @@ import {
   PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain, HAN_WATCH, ANIMALS, MOBILE,
 } from '../config.js';
 import { buildTown } from './town.js';
-import { liteConfig, liteScene, liteFuji, makeCuller, census } from './lite.js';
+import { liteConfig, liteScene, liteFuji, makeCuller, census, shrinkCanvases } from './lite.js';
 import { TouchPlayer } from './player.js';
 import { createTouch } from './touch.js';
 import { createMobileHud } from './hud.js';
 import { watchMediaElements, unlockAudio, audioState } from './audio.js';
+import { gpuMeter, createDiag } from './diag.js';
 
 /* ------------------------------------------------------------------ *
  * Take Me Back to Japan, the phone build (docs/decisions/mobile-lite.md).
@@ -48,13 +49,36 @@ const T0 = performance.now();
 const marks = {};
 const mark = (k) => { marks[k] = Math.round(performance.now() - T0); };
 
-/* A phone with little memory (Android says; iOS doesn't) draws less far and paints smaller. */
-const lowMemory = (navigator.deviceMemory ?? 8) <= 3;
-if (lowMemory) Object.assign(MOBILE, { maxTexture: 512, storeTexture: 1024, far: 90, fog: { near: 24, far: 85 }, detail: 26 });
+const params = new URLSearchParams(location.search);
+const diag = createDiag({ on: params.has('diag') });
 
-let renderer;
+/* The tier (config.js MOBILE.tiers), from what Tan's phones showed
+ * (2026-09-30): Safari on an iPhone 15 plays the full tier; Chrome for iOS
+ * (WebKit inside another app, a tighter memory budget) lost the context or
+ * never loaded.  So the light tier for: any browser on iOS that is not
+ * Safari itself (Chrome, Firefox, Edge, and the in-app browsers social links
+ * open in: Instagram, Facebook, LinkedIn, LINE, X...), iPhones older or
+ * smaller than the 14 Pro/15 (the 4 GB ones), Android in-app browsers and
+ * phones that report 4 GB or less, and any device that lost the context
+ * here before (remembered).  ?tier=light / ?tier=full picks by hand. */
+const ua = navigator.userAgent;
+const ios = /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const inApp = /CriOS|FxiOS|EdgiOS|OPiOS|GSA\/|Instagram|FBAN|FBAV|FB_IAB|FBIOS|LinkedInApp|\bLine\/|Twitter|MicroMessenger|Snapchat|Pinterest|musical_ly|TikTok|; wv\)/i.test(ua)
+  || (ios && !/Safari\//.test(ua));                  // an iOS web view without Safari's own token
+const bigIphone = Math.max(screen.width, screen.height) >= 852;    // 14 Pro, 15, 16 and up (and every iPad)
+let lostBefore = false;
+try { lostBefore = localStorage.getItem('lawson-fuji-lost') === '1'; } catch { /* optional */ }
+const tier = params.get('tier') ?? (lostBefore || inApp || (ios ? !bigIphone : (navigator.deviceMemory ?? 8) <= 4) ? 'light' : 'full');
+if (MOBILE.tiers[tier]) Object.assign(MOBILE, MOBILE.tiers[tier]);
+diag.stage(`tier ${tier}`);
+
+/* Our own context, so every GPU allocation is counted (diag.js). */
+let renderer, meter = null;
 try {
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
+  const gl = canvas.getContext('webgl2', { antialias: false, powerPreference: 'high-performance', stencil: false, depth: true, alpha: false, premultipliedAlpha: true, preserveDrawingBuffer: false });
+  if (!gl) throw new Error('no webgl2 context');
+  meter = gpuMeter(gl);
+  renderer = new THREE.WebGLRenderer({ canvas, context: gl, antialias: false, stencil: false });
 } catch (err) {
   console.warn('No WebGL 2:', err?.message ?? err);
   showGate('nogl');
@@ -63,15 +87,34 @@ try {
 renderer.setPixelRatio(1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = !!MOBILE.shadow;           // the light tier draws no shadow map at all
 renderer.shadowMap.type = THREE.PCFShadowMap;        // LITE: plain PCF (desktop: soft)
 renderer.shadowMap.autoUpdate = false;
 renderer.setClearColor(new THREE.Color(PAL.fog), 1);
+diag.source({ renderer, meter, canvas, extra: () => `tier ${tier}  scale ${renderScale?.toFixed?.(2)}  ${world ? `streamed out ${culler?.out ?? 0}` : ''}` });
+/* A lost context (how a phone takes GPU memory back): stop drawing, hush,
+ * and show the card.  If the phone gives the context back, and the tier
+ * kept its CPU copies (MOBILE.keepCpu), three uploads everything again and
+ * the walk goes on; else the card's Reload. */
 canvas.addEventListener('webglcontextlost', (e) => {
   e.preventDefault();
   contextLost = true;
+  diag.stage(`CONTEXT LOST (at ${diag.stageName})`);
+  // this device lost it once: from the next load on, the light tier
+  if (!MOBILE.keepCpu) { try { localStorage.setItem('lawson-fuji-lost', '1'); } catch { /* optional */ } }
   sound?.setAwake(false);
   showGate('lost');
+});
+canvas.addEventListener('webglcontextrestored', () => {
+  meter?.reset();
+  diag.stage('context restored');
+  if (!MOBILE.keepCpu || !world) return;                  // the pictures were let go: only a reload brings them back
+  contextLost = false;
+  document.documentElement.classList.remove('gate-lost');
+  shadowAt = null;
+  viewW = 0; resize();
+  if (!document.hidden) sound?.setAwake(true);
+  frame();
 });
 
 const scene = new THREE.Scene();
@@ -83,7 +126,8 @@ camera.rotation.order = 'YXZ';
 const sun = new THREE.DirectionalLight(PAL.sun, 2.25);
 sun.position.set(-52, 62, 56);
 sun.castShadow = true;
-const SH = MOBILE.shadow;
+const SH = MOBILE.shadow ?? { size: 512, half: 34, every: 1e9 };
+sun.castShadow = !!MOBILE.shadow;
 sun.shadow.mapSize.set(SH.size, SH.size);
 sun.shadow.camera.left = -SH.half;
 sun.shadow.camera.right = SH.half;
@@ -107,14 +151,20 @@ scene.add(hemi);
 bootStage(M.building, '40%');
 await nextPaint();
 mark('building');
+diag.stage('building');
 // Hachi and the konbini speak of taps, not keys
 STRINGS.hachi.line = M.hachiLine;
 STRINGS.store.menuHint = M.menuHint;
 STRINGS.map.close = M.closeMap;
 liteConfig();
 const sky = buildSky(scene, 2900, { avoidYaw: FUJI.bearing });
-const world = buildTown(scene, { cell: MOBILE.cell, detailCell: 16 });
+let culler = null, renderScale = 1, viewW = 0, viewH = 0;
+const world = buildTown(scene, {
+  cell: MOBILE.cell, detailCell: 16, stage: (n) => diag.stage(n),
+  shrink: (root, store) => shrinkCanvases(root, { store, real: renderer.capabilities.maxTextureSize }),
+});
 mark('built');
+diag.stage('built');
 bootStage(M.ready, '75%');
 await nextPaint();
 const minimap = createMinimap(world);
@@ -192,7 +242,7 @@ player.onInteract = (target) => { if (target) target.action?.({ player, hud }); 
 const pipeline = new Pipeline(renderer, scene, camera, { pixelBudget: MOBILE.render.pixels });
 pipeline.enabled.fxaa = false;
 const dpr = Math.min(window.devicePixelRatio || 1, 3);
-let renderScale = Math.min(MOBILE.render.scale, Math.max(1, dpr));
+renderScale = Math.min(MOBILE.render.start ?? MOBILE.render.scale, Math.max(1, dpr));
 pipeline.forceScale = renderScale;
 
 /* --------------------------------- looks --------------------------------- */
@@ -395,7 +445,6 @@ function tipsyStep(dt) {
 }
 
 /* ------------------------------- the screen ------------------------------- */
-let viewW = 0, viewH = 0;
 function resize() {
   const vv = window.visualViewport;
   const w = Math.round(vv?.width ?? window.innerWidth), h = Math.round(vv?.height ?? window.innerHeight);
@@ -404,6 +453,7 @@ function resize() {
   camera.aspect = w / h;
   updateProjection();
   pipeline.setSize(w, h);
+  pipeline.rtB.setSize(1, 1);          // (the FXAA pass is off: its target would hold a whole frame for nothing)
   setOutlineResolution(pipeline.size.x, pipeline.size.y);
   touch?.resize();
   // portrait: a gentle word about turning the phone, now and then
@@ -444,7 +494,7 @@ function seatLights(dt = 0) {
   seatLight(bounce, BOUNCE_DIR, shadowTarget);
   shadowAge += dt;
   const moved = !shadowAt || shadowAt.x !== shadowTarget.x || shadowAt.z !== shadowTarget.z;
-  if (moved || shadowAge > SH.every) {
+  if (MOBILE.shadow && (moved || shadowAge > SH.every)) {
     shadowAt = { x: shadowTarget.x, z: shadowTarget.z };
     shadowAge = 0;
     renderer.shadowMap.needsUpdate = true;
@@ -459,6 +509,7 @@ function toggleMap(open = !minimap.fullOpen) {
   if (!player.locked || shop?.busy || player.seat) return;
   if (open && player.suspended) return;
   minimap.setFull(open, player.pos, player.yaw);
+  if (open) mapAt = performance.now();
   player.suspended = open;
   hud.setMapOpen(open);
   touch.setPlaying(!open);
@@ -503,7 +554,11 @@ hud.onButton = (b) => {
   else if (b === 'sound') hud.askForSound(false);
 };
 // the full map closes with a tap anywhere on it
-document.querySelector('.fullmap')?.addEventListener('click', () => { unlockAudio(sound); toggleMap(false); });
+let mapAt = 0;
+for (const ev of ['pointerup', 'click']) document.querySelector('.fullmap')?.addEventListener(ev, () => {
+  if (!minimap.fullOpen || performance.now() - mapAt < 450) return;     // (not the tap that opened it)
+  unlockAudio(sound); toggleMap(false);
+});
 
 // a keyboard (or a computer, testing): the desktop's keys
 window.addEventListener('keydown', (e) => {
@@ -569,7 +624,6 @@ document.addEventListener('click', wake);
 
 /* --------------------------------- loop --------------------------------- */
 const clock = new THREE.Clock();
-let culler = null;
 let lastDraw = 0, menuShown = null;
 // adaptive resolution: the frame rate over the last couple of seconds sets the scale
 const perf = { n: 0, t: 0, fps: 60 };
@@ -639,9 +693,11 @@ function frame(now = 0) {
   if (stride !== lastStride) { lastStride = stride; if (player.locked) sound.step(inStore); }
 
   pipeline.render();
+  diag.update();
 }
 
 /* ------------------------------ first frame ------------------------------ */
+diag.stage('lite');
 const lite = liteScene(scene, renderer, world);
 culler = makeCuller(scene, world);
 world.fuji.ready?.then((m) => { lite.fuji = liteFuji(m); });
@@ -653,15 +709,21 @@ seatLights();
 sky.dome.position.copy(camera.position);
 sky.clouds.position.copy(camera.position);
 // the shaders compile and the textures upload behind the loading card, not on the first touch
+diag.stage('compiling');
 try { await renderer.compileAsync(scene, camera); } catch { /* compiled on first draw instead */ }
 mark('compiled');
+diag.stage('first frame');
 pipeline.render();
 mark('firstFrame');
+diag.stage('ready');
 bootStage(M.ready, '100%');
 await nextPaint();
 
 // ready: the loading card becomes the start card; one tap starts the town and its sound
+let started = false;
 function start(e) {
+  if (started) return;           // (a lift and its click: once)
+  started = true;
   e?.preventDefault?.();
   unlockAudio(sound);                         // inside the tap: the context, the audio session, the streams
   boot.classList.add('hidden');
@@ -670,16 +732,19 @@ function start(e) {
   if (viewH > viewW * 1.1) hud.flash(M.rotate, 4200);
   clock.getDelta();
   mark('started');
+  diag.stage('playing');
 }
 boot.classList.add('ready');
-boot.addEventListener('click', start, { once: true });
+// the finger's lift starts it (a tap's click can be late or dropped on iOS), a click for a mouse
+boot.addEventListener('pointerup', (e) => { if (e.pointerType !== 'mouse') start(e); });
+boot.addEventListener('click', start);
 mark('ready');
 frame();
 
 if (import.meta.env?.DEV || new URLSearchParams(location.search).has('stats')) {
   window.__m = {
     scene, camera, renderer, pipeline, world, player, sound, hud, THREE, marks, lite, perf, culler, applyLook, enterHero,
-    census: () => census(scene, renderer), hanShow,
+    census: () => census(scene, renderer), hanShow, diag, meter, tier,
     get scale() { return renderScale; },
   };
 }

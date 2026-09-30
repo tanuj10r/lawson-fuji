@@ -35,12 +35,15 @@ const CSS = `
   .mh.off .mh-play { opacity: 0; visibility: hidden; }
   .mh-play { transition: opacity .3s, visibility .3s; }
   .mh button { pointer-events: auto; touch-action: manipulation; font: inherit; }
-  .mh-top { position: absolute; top: max(10px, var(--safe-t)); right: max(10px, var(--safe-r)); display: flex; gap: 8px; }
+  .mh-top { position: absolute; top: max(10px, var(--safe-t)); right: max(10px, var(--safe-r)); display: flex; gap: 12px; }
   .mh-btn { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid rgba(58,51,80,.22); padding: 0;
     display: grid; place-items: center; background: rgba(252,250,252,.78); color: #3b3263;
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: 0 4px 14px rgba(40,30,60,.18); }
   .mh-btn svg { width: 22px; height: 22px; fill: currentColor; }
-  .mh-btn:active { transform: scale(.94); background: rgba(236,230,244,.92); }
+  .mh-btn:active, .mh-btn.down { transform: scale(.92); background: rgba(226,218,240,.96); }
+  .mh button { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .mh-btn { position: relative; }
+  .mh-btn::after { content: ''; position: absolute; inset: -6px; }   /* a thumb's reach past the 46 px disc */
   .mh-btn.on { background: #3b3263; color: #fff; }
   .mh-act { position: absolute; right: max(22px, calc(var(--safe-r) + 12px)); bottom: max(26px, calc(var(--safe-b) + 14px));
     display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 0; transform: scale(.85);
@@ -50,6 +53,7 @@ const CSS = `
   .mh-act button { width: 76px; height: 76px; border-radius: 50%; border: 2px solid rgba(255,255,255,.85); padding: 0;
     display: grid; place-items: center; background: rgba(59,50,99,.86); color: #fff; box-shadow: 0 6px 22px rgba(20,12,40,.4); }
   .mh-act button svg { width: 34px; height: 34px; }
+  .mh-act button.down { transform: scale(.93); background: rgba(75,63,124,.95); }
   .mh-act span { max-width: 150px; padding: 4px 10px; border-radius: 999px; background: rgba(252,250,252,.88);
     font-size: 12.5px; font-weight: 700; text-align: center; line-height: 1.2; }
   .mh-toast { position: absolute; left: 50%; top: max(14px, calc(var(--safe-t) + 6px)); transform: translate(-50%, -6px);
@@ -76,7 +80,7 @@ const CSS = `
   .mh-menu ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
   .mh-menu li button { position: relative; width: 100%; min-height: 58px; padding: 6px 6px 5px; border-radius: 11px; text-align: left;
     border: 1.5px solid rgba(31,95,174,.3); background: #fff; color: #2b2542; display: flex; flex-direction: column; justify-content: space-between; }
-  .mh-menu li button:active { background: #e8f0fb; }
+  .mh-menu li button:active, .mh-menu li button.down { background: #e8f0fb; }
   .mh-menu b { font-size: 13px; line-height: 1.15; }
   .mh-menu .mh-jp { font-size: 10.5px; color: #8f88a8; letter-spacing: 0; }
   .mh-menu .p { font-size: 12px; color: #1f5fae; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -204,19 +208,59 @@ export function createMobileHud({ volume = 50, menu = [] } = {}) {
   };
   api.setVolume(volume);
 
-  const onTap = (e) => {
-    const b = e.target.closest('[data-b], [data-pick], [data-v]');
-    if (!b) return;
-    e.preventDefault();
-    e.stopPropagation();
+  /* A button acts on the finger's lift (pointerup), not on 'click': iOS
+   * sends no click for a tap made while another finger is on the stick or
+   * dragging the view, and delays or drops it after a quick earlier touch
+   * (Tan: the paw, the map and the sun needed several taps).  The finger
+   * that went down on a button owns it (captured), is shown pressed, and
+   * fires once when it lifts on it; a lift is a user activation, so the
+   * sound may start or wake in it.  'click' stays for a mouse and the
+   * keyboard, and is ignored right after a touch fired the same button. */
+  const fire = (b) => {
     if (b.dataset.pick) api.onButton?.(['pick', b.dataset.pick]);
     else if (b.dataset.v !== undefined) { const v = Number(b.dataset.v); api.setVolume(v); api.onVolumeChange?.(v); }
     else api.onButton?.(b.dataset.b);
   };
-  // click, not pointerdown: a click is a user activation (the sound may start or wake in it)
-  root.addEventListener('click', onTap);
-  pause.addEventListener('click', onTap);
-  // the buttons' touches never reach the look or the stick (touch.js listens on the page)
-  for (const el of [root, pause]) el.addEventListener('pointerdown', (e) => { if (e.target.closest('button, a')) e.stopPropagation(); });
+  const hit = (e) => e.target.closest?.('[data-b], [data-pick], [data-v]');
+  const downs = new Map();              // pointerId -> button
+  let lastTouch = 0;
+  for (const el of [root, pause]) {
+    el.addEventListener('pointerdown', (e) => {
+      const b = hit(e);
+      if (!b) { if (e.target.closest('a')) e.stopPropagation(); return; }
+      e.stopPropagation();
+      if (e.pointerType === 'mouse') return;            // a mouse clicks
+      e.preventDefault();
+      downs.set(e.pointerId, b);
+      b.classList.add('down');
+      try { b.setPointerCapture(e.pointerId); } catch { /* fine */ }
+    });
+    el.addEventListener('pointerup', (e) => {
+      const b = downs.get(e.pointerId);
+      if (!b) return;
+      downs.delete(e.pointerId);
+      b.classList.remove('down');
+      e.stopPropagation();
+      // lifted on the button (a little slack for a thumb), not dragged away
+      const r = b.getBoundingClientRect(), pad = 16;
+      if (e.clientX < r.left - pad || e.clientX > r.right + pad || e.clientY < r.top - pad || e.clientY > r.bottom + pad) return;
+      lastTouch = performance.now();
+      fire(b);
+    });
+    el.addEventListener('pointercancel', (e) => {
+      const b = downs.get(e.pointerId);
+      if (b) { b.classList.remove('down'); downs.delete(e.pointerId); }
+    });
+    el.addEventListener('click', (e) => {
+      const b = hit(e);
+      if (!b) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (performance.now() - lastTouch < 700) return;   // (the touch already fired it)
+      fire(b);
+    });
+    // no long-press callout or selection on the buttons
+    el.addEventListener('contextmenu', (e) => { if (hit(e)) e.preventDefault(); });
+  }
   return api;
 }

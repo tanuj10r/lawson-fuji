@@ -40,6 +40,10 @@
   #view { position: fixed; inset: 0; display: block; width: 100vw; height: 100vh; height: 100dvh; touch-action: none; }
   /* paused, the game's own captions (Hachi's hello) wait under the card, as on desktop */
   body.game-paused #hachi-card { visibility: hidden; }
+  /* Hachi's hello (animals/guide.js sizes it for a desktop): smaller, lower on a phone */
+  #hachi-card { max-width: min(440px, 64vw) !important; padding: 8px 14px !important; }
+  #hachi-card div { font-size: 13.5px !important; line-height: 1.35 !important; }
+  #hachi-card div:first-child { font-size: 15px !important; }
   [lang='ja'] { font-family: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', sans-serif; }
 
   /* ---------- the cards: loading, start, pause, gate ---------- */
@@ -85,7 +89,8 @@
     font: inherit; font-size: 17px; font-weight: 700; letter-spacing: .06em; cursor: pointer;
     box-shadow: 0 8px 22px -10px rgba(40,24,80,.7); touch-action: manipulation;
   }
-  .btn:active { transform: translateY(1px); background: #4b3f7c; }
+  .btn:active, .btn.down { transform: translateY(1px); background: #4b3f7c; }
+  .vol button.down { background: #e8e0f0; }
   .btn.soft { background: transparent; color: var(--action); border: 1.5px solid var(--action); box-shadow: none; min-height: 44px; font-size: 15px; }
   .row { display: flex; gap: 10px; }
   .row .btn { flex: 1; }

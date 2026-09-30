@@ -33,7 +33,7 @@ export function liteConfig() {
  * Returns what it did, for the report.
  */
 export function liteScene(scene, renderer, world) {
-  const out = { storeQuads: mergeStoreQuads(scene), mirrors: 0, freedTextures: 0, freedTextureMB: 0, freedGeometry: 0, freedGeometryMB: 0 };
+  const out = { packed: packBatches(scene), storeQuads: mergeStoreQuads(scene), mirrors: 0, freedTextures: 0, freedTextureMB: 0, freedGeometry: 0, freedGeometryMB: 0 };
 
   /* The mirrors (land/mirror.js: the pond, the river, the paddies) each draw
    * the scene again.  Their own updaters show them near their water: here
@@ -54,74 +54,58 @@ export function liteScene(scene, renderer, world) {
   for (const o of hulls) o.parent?.remove(o);
   out.hulls = hulls.length;
 
+  /* One shader program per toon style, not per shadow tint.  core/toon.js
+   * puts the tint's hex in each material's program key, but the tint is a
+   * uniform (uShadowTint, set per material in onBeforeCompile, which three
+   * runs for every material even when it reuses a compiled program): the
+   * shaders are the same text.  326 programs became ~half, each one less
+   * to compile and to hold on the GPU. */
+  const programKeys = new Set();
+  scene.traverse((o) => {
+    for (const m of [o.material].flat()) {
+      if (!m?.customProgramCacheKey || !m.isMeshToonMaterial || m.userData.liteKey) continue;
+      const k = m.customProgramCacheKey();
+      const g = /^celTint_[0-9a-f]{6}(W?)$/.exec(k);
+      if (!g) continue;
+      m.userData.liteKey = true;
+      m.customProgramCacheKey = () => 'celTint' + g[1];
+      programKeys.add(k);
+    }
+  });
+  out.tintKeysShared = programKeys.size;
+
   /* The store's insides cast no sun shadows: under its roof the sun only
    * reaches them through the glass, and the shadow pass drew every can. */
   scene.getObjectByName('lawson-interior')?.traverse((o) => { if (o.isMesh) o.castShadow = false; });
 
-  /* Textures, painted for a desktop at up to 4096 px a side, are made the
-   * size a phone sees them at: MOBILE.maxTexture (1024) for the town,
-   * MOBILE.storeTexture (2048) for the konbini, where you stand a metre
-   * from the labels.  Each image is redrawn smaller before it is uploaded
-   * (the big canvas is let go), once per image, so every texture sharing it
-   * shares the small one; three's own cap catches anything made later. */
-  const users = new Map();
-  const texOf = (m) => {
-    const list = [];
-    for (const v of Object.values(m)) if (v?.isTexture) list.push(v);
-    if (m.uniforms) for (const u of Object.values(m.uniforms)) if (u?.value?.isTexture) list.push(u.value);
-    return list;
-  };
-  const store = new Set();
-  scene.getObjectByName('lawson')?.traverse((o) => store.add(o));
-  scene.traverse((o) => {
-    for (const m of [o.material].flat()) {
-      if (!m) continue;
-      for (const t of texOf(m)) {
-        if (!t.source) continue;
-        if (!users.has(t.source)) users.set(t.source, { set: new Set(), store: false });
-        const u = users.get(t.source);
-        u.set.add(t);
-        if (store.has(o)) u.store = true;
-      }
-    }
-  });
+  /* Textures: the town's and the konbini's pages at the size a phone sees
+   * them (shrinkCanvases; town.js already did most of it while building). */
   const real = renderer.capabilities.maxTextureSize;
   renderer.capabilities.maxTextureSize = Math.min(real, MOBILE.storeTexture);
-  out.resized = 0; out.resizedFromMB = 0; out.resizedToMB = 0;
-  for (const [src, u] of users) {
-    const img = src.data;
-    if (!(img instanceof HTMLCanvasElement)) continue;
-    const limit = Math.min(real, u.store ? MOBILE.storeTexture : MOBILE.maxTexture);
-    const side = Math.max(img.width, img.height);
-    if (side <= limit) continue;
-    const k = limit / side;
-    const cv = document.createElement('canvas');
-    cv.width = Math.max(1, Math.floor(img.width * k)); cv.height = Math.max(1, Math.floor(img.height * k));
-    const c = cv.getContext('2d');
-    c.imageSmoothingQuality = 'high';
-    c.drawImage(img, 0, 0, cv.width, cv.height);
-    src.data = cv;
-    for (const t of u.set) t.needsUpdate = true;
-    out.resized++;
-    out.resizedFromMB += (img.width * img.height * 4) / 1048576;
-    out.resizedToMB += (cv.width * cv.height * 4) / 1048576;
-  }
+  Object.assign(out, shrinkCanvases(scene, { real }));
+  // the light tier keeps every CPU copy: to stream (makeCuller) and to survive a lost context
+  if (MOBILE.keepCpu) { world.batching = null; boundsOf(scene); if (import.meta.env?.DEV) window.__lite = out; return out; }
 
-  /* Once uploaded, the big static canvases go too (a phone counts a
-   * canvas's backing store against the tab): only an image with one texture
-   * (no clone would upload it again later), 512 px or more, and not drawn
-   * on while the game runs (the till's screen, the departure board and the
-   * train's destination sign are small and stay). */
-  for (const [src, u] of users) {
-    if (u.set.size !== 1) continue;
-    const t = [...u.set][0];
-    const img = src.data;
-    if (!(img instanceof HTMLCanvasElement) || Math.max(img.width, img.height) < 512 || t.onUpdate) continue;
-    const mb = (img.width * img.height * 4) / 1048576;
+  /* Once uploaded, the small copies made here go too (a phone counts a
+   * canvas's backing store against the tab), when one texture uses them: a
+   * redraw later (the departure board) puts them back first (see trap). */
+  const users = new Map();
+  scene.traverse((o) => {
+    for (const m of [o.material].flat()) if (m) for (const t of texturesOf(m)) {
+      if (!t.source) continue;
+      if (!users.has(t.source)) users.set(t.source, new Set());
+      users.get(t.source).add(t);
+    }
+  });
+  for (const [src, set] of users) {
+    const img = src.data, dims = SMALL.get(img);
+    if (set.size !== 1 || !dims || Math.max(dims.w, dims.h) < 256) continue;
+    const t = [...set][0];
+    if (t.onUpdate) continue;
+    const mb = (dims.w * dims.h * 4) / 1048576;
     t.onUpdate = () => {
       t.onUpdate = null;
-      // later needsUpdate calls (none expected) would upload a 1x1: the page's colour
-      t.__w = img.width; t.__h = img.height;
+      t.__w = dims.w; t.__h = dims.h;
       img.width = 1; img.height = 1;
       out.freedTextures++; out.freedTextureMB += mb;
     };
@@ -135,11 +119,10 @@ export function liteScene(scene, renderer, world) {
    * every mesh it merged away, geometry and all: ~90 MB the phone can't
    * spare.  The lite build culls on its own, so the reference goes. */
   world.batching = null;
+  boundsOf(scene);
   scene.traverse((o) => {
     if (!o.isMesh || o.isInstancedMesh || !(/^merged/.test(o.name) || o.name === 'fuji-dem')) return;
     const g = o.geometry;
-    if (!g.boundingSphere) g.computeBoundingSphere();
-    if (!g.boundingBox) g.computeBoundingBox();
     const attrs = [...Object.values(g.attributes), ...(g.index ? [g.index] : [])];
     for (const a of attrs) {
       if (a.__lite) continue;
@@ -153,6 +136,120 @@ export function liteScene(scene, renderer, world) {
   });
   if (import.meta.env?.DEV) window.__lite = out;
   return out;
+}
+
+/* ------------------------------------------------------------------ *
+ * Painted pages at a phone's size.  Every canvas texture larger than
+ * MOBILE.maxTexture (the town) or MOBILE.storeTexture (the konbini, where
+ * the labels are read up close) is redrawn into a small canvas, which the
+ * texture (and every clone sharing its image) uses instead; the big
+ * original is left to be collected.  Called during the build (town.js),
+ * as each big part is made, so the big pages never pile up, and again
+ * after it.  A texture drawn on later (the departure board, the till's
+ * screen) is caught: setting its needsUpdate redraws the original, if it is
+ * still alive, into the small copy first.
+ * ------------------------------------------------------------------ */
+const SMALL = new WeakMap();             // small canvas -> { w, h, from: WeakRef(original) }
+export function texturesOf(m) {
+  const list = [];
+  for (const v of Object.values(m)) if (v?.isTexture) list.push(v);
+  if (m.uniforms) for (const u of Object.values(m.uniforms)) if (u?.value?.isTexture) list.push(u.value);
+  return list;
+}
+function trap(t) {
+  if (Object.getOwnPropertyDescriptor(t, 'needsUpdate')) return;
+  Object.defineProperty(t, 'needsUpdate', {
+    configurable: true,
+    set(v) {
+      if (v !== true) return;
+      const small = t.source.data, d = SMALL.get(small), from = d?.from.deref();
+      if (d && from && from.width > 1) {
+        if (small.width !== d.w) { small.width = d.w; small.height = d.h; }
+        const c = small.getContext('2d');
+        c.clearRect(0, 0, d.w, d.h);
+        c.drawImage(from, 0, 0, d.w, d.h);
+      }
+      t.version++;
+      t.source.needsUpdate = true;
+    },
+  });
+}
+export function shrinkCanvases(root, { store = false, real = 16384 } = {}) {
+  const out = { resized: 0, resizedFromMB: 0, resizedToMB: 0 };
+  const inStore = new Set();
+  if (!store) root.getObjectByName?.('lawson')?.traverse((o) => inStore.add(o));
+  const users = new Map();
+  root.traverse((o) => {
+    for (const m of [o.material].flat()) if (m) for (const t of texturesOf(m)) {
+      if (!t.source) continue;
+      if (!users.has(t.source)) users.set(t.source, { set: new Set(), store: false });
+      const u = users.get(t.source);
+      u.set.add(t);
+      if (store || inStore.has(o)) u.store = true;
+    }
+  });
+  for (const [src, u] of users) {
+    const img = src.data;
+    if (!(img instanceof HTMLCanvasElement) || SMALL.has(img)) continue;
+    const limit = Math.min(real, u.store ? MOBILE.storeTexture : MOBILE.maxTexture);
+    const side = Math.max(img.width, img.height);
+    if (side <= limit) continue;
+    const k = limit / side;
+    const cv = document.createElement('canvas');
+    const w = Math.max(1, Math.floor(img.width * k)), h = Math.max(1, Math.floor(img.height * k));
+    cv.width = w; cv.height = h;
+    const c = cv.getContext('2d');
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(img, 0, 0, w, h);
+    SMALL.set(cv, { w, h, from: new WeakRef(img) });
+    src.data = cv;
+    for (const t of u.set) { trap(t); t.needsUpdate = true; }
+    out.resized++;
+    out.resizedFromMB += (img.width * img.height * 4) / 1048576;
+    out.resizedToMB += (w * h * 4) / 1048576;
+  }
+  return out;
+}
+
+/**
+ * The static batches' vertices in fewer bytes: merge.js bakes every part
+ * into float32 position, normal, colour and shadow tint (48 bytes a vertex,
+ * unindexed).  A normal needs no more than a byte an axis, a colour or a
+ * tint no more than 16 bits: 27 bytes, the same picture.  Before the first
+ * upload, so the GPU and the CPU copy both shrink.
+ */
+export function packBatches(scene) {
+  let before = 0, after = 0;
+  const pack = (g, name, Type, bytes) => {
+    const a = g.attributes[name];
+    if (!a || !(a.array instanceof Float32Array) || a.isInterleavedBufferAttribute) return;
+    const src = a.array, dst = new Type(src.length), max = Type === Int8Array ? 127 : 65535;
+    for (let i = 0; i < src.length; i++) {
+      const v = Type === Int8Array ? Math.max(-1, Math.min(1, src[i])) : Math.max(0, Math.min(1, src[i]));
+      dst[i] = Math.round(v * max);
+    }
+    before += src.byteLength; after += dst.byteLength;
+    g.setAttribute(name, new THREE.BufferAttribute(dst, a.itemSize, true));
+    void bytes;
+  };
+  scene.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || !/^merged/.test(o.name) || o.geometry.userData.packed) return;
+    const g = o.geometry;
+    g.userData.packed = true;
+    pack(g, 'normal', Int8Array);
+    pack(g, 'color', Uint16Array);
+    pack(g, 'aTint', Uint16Array);
+  });
+  return { beforeMB: +(before / 1048576).toFixed(1), afterMB: +(after / 1048576).toFixed(1) };
+}
+
+/** Bounds for every static batch before its arrays can go (culling reads them). */
+function boundsOf(scene) {
+  scene.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || !/^merged/.test(o.name)) return;
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+  });
 }
 
 /**
@@ -264,7 +361,7 @@ export function liteFuji(mesh) {
   g.setIndex(idx);
   g.userData.lite = true;
   // static from here: its CPU copy goes once it is on the GPU
-  for (const a of [...Object.values(g.attributes), g.index]) a.onUpload(function () { this.array = new this.array.constructor(0); });
+  if (!MOBILE.keepCpu) for (const a of [...Object.values(g.attributes), g.index]) a.onUpload(function () { this.array = new this.array.constructor(0); });
   return { before, after: idx.length / 3 };
 }
 
@@ -279,19 +376,22 @@ export function makeCuller(scene) {
   const sphere = new THREE.Sphere(), box = new THREE.Box3();
   scene.updateMatrixWorld(true);
   scene.traverse((o) => {
-    if (!(o.isMesh || o.isPoints || o.isLine) || !o.frustumCulled || o.userData.shadowOnly) return;
+    // the konbini's goods (hundreds of thousands of vertices) are drawn only from near the store
+    const stock = /^stock-page/.test(o.name);
+    if (!(o.isMesh || o.isPoints || o.isLine) || (!o.frustumCulled && !stock) || o.userData.shadowOnly) return;
     const own = Object.getOwnPropertyDescriptor(o, 'visible');
     if (own && (own.get || !own.writable)) return;                  // (the mirrors: always off)
     const g = o.geometry;
     if (!g.boundingSphere) g.computeBoundingSphere();
     if (!g.boundingSphere || !Number.isFinite(g.boundingSphere.radius)) return;
     sphere.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
-    if (sphere.radius > MOBILE.far * 0.6) return;                    // spread town-wide (a kind's instances): always drawn
+    // spread town-wide (a kind's instances, a moving thing's long reach): always drawn; what never moves is measured by its box instead
+    if (sphere.radius > MOBILE.far * 0.6 && (o.matrixAutoUpdate || o.isInstancedMesh)) return;
     /* The game shows and hides things itself (the trees' near and far
      * sets, the painted water under a mirror, the store's goods): `visible`
      * becomes what the game says AND near enough, so neither undoes the other. */
     let mine = o.visible;
-    const e = { o, near: true, detail: o.name === 'merged-detail' || (o.isInstancedMesh && sphere.radius < 40), moves: o.matrixAutoUpdate, x: sphere.center.x, z: sphere.center.z, r: sphere.radius, box: null };
+    const e = { o, near: true, detail: o.name === 'merged-detail' || (o.isInstancedMesh && sphere.radius < 40), moves: o.matrixAutoUpdate, x: sphere.center.x, z: sphere.center.z, r: sphere.radius, box: null, reach: stock ? 45 : 0 };
     // what never moves is measured by its box (a batch's cell is square: its sphere reaches far past its corners)
     if (!e.moves && !o.isInstancedMesh) {
       if (!g.boundingBox) g.computeBoundingBox();
@@ -300,13 +400,39 @@ export function makeCuller(scene) {
     Object.defineProperty(o, 'visible', { get: () => mine && e.near, set: (v) => { mine = v; }, configurable: true });
     list.push(e);
   });
-  let n = 0;
-  return {
+  /* Streaming (MOBILE.stream, the light tier): what lies past far + stream
+   * gives its GPU copy back (geometry.dispose(); textures only it uses too),
+   * keeping the CPU copy, and three uploads it again when it is drawn next.
+   * Only geometry and textures with no other user in the scene take part. */
+  const stream = MOBILE.stream > 0 && MOBILE.keepCpu;
+  if (stream) {
+    const geoUsers = new Map(), texUsers = new Map();
+    const texOf = (m) => Object.values(m).filter((v) => v?.isTexture);
+    scene.traverse((o) => {
+      if (!o.geometry) return;
+      geoUsers.set(o.geometry, (geoUsers.get(o.geometry) ?? 0) + 1);
+      for (const m of [o.material].flat()) if (m) for (const t of texOf(m)) { if (!texUsers.has(t)) texUsers.set(t, new Set()); texUsers.get(t).add(o); }
+    });
+    const inList = new Set(list.map((e) => e.o));
+    for (const e of list) {
+      e.streams = !e.o.isInstancedMesh && geoUsers.get(e.o.geometry) === 1;
+      // its textures: those whose every user is streamed
+      e.tex = [];
+      for (const m of [e.o.material].flat()) if (m) for (const t of texOf(m)) if ([...texUsers.get(t)].every((u) => inList.has(u))) e.tex.push(t);
+    }
+    // each texture goes when all its users are out, back when one comes in
+    for (const e of list) for (const t of e.tex) t.__users = (t.__users ?? 0) + (e.streams ? 1 : 1e9);
+    for (const e of list) for (const t of e.tex) t.__in = t.__users;
+  }
+  let n = 0, out = 0, clock = 0;
+  const api = {
     list,
+    get out() { return out; },
     /** Every few frames: what is near enough to draw. */
     update(cam, every = 3) {
       if (n++ % every) return;
       const px = cam.x, pz = cam.z;
+      const streamNow = stream && ++clock % 10 === 0;       // (about three times a second)
       for (const e of list) {
         if (e.moves) {
           const bs = e.o.geometry.boundingSphere;
@@ -317,9 +443,20 @@ export function makeCuller(scene) {
           ? Math.hypot(Math.max(e.box.min.x - px, 0, px - e.box.max.x), Math.max(e.box.min.z - pz, 0, pz - e.box.max.z))
           : Math.hypot(e.x - px, e.z - pz) - e.r;
         e.near = d < (e.detail ? MOBILE.detail : MOBILE.far);
+        if (!streamNow || !e.streams) continue;
+        const far = e.reach || MOBILE.far + MOBILE.stream;
+        if (!e.gone && d > far) {
+          e.gone = true; out++;
+          e.o.geometry.dispose();
+          for (const t of e.tex) if (--t.__in <= 0) t.dispose();
+        } else if (e.gone && d < far - 10) {
+          e.gone = false; out--;
+          for (const t of e.tex) t.__in++;          // (three uploads it when it is drawn)
+        }
       }
     },
   };
+  return api;
 }
 
 /** Dev: what the scene costs (textures, geometry), for the report. */

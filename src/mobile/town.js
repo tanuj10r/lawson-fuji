@@ -34,7 +34,11 @@ import { makeNight } from '../world/kit/night.js';
  * modules are used as parts, placed in our layout with our own signs.
  * ------------------------------------------------------------------ */
 
-export function buildTown(scene, { cell = 128, detailCell = 0 } = {}) {
+/* LITE: `stage(name)` is told as each big part is done (the ?diag readout
+ * keeps the last, so a phone that dies while building says where), and
+ * `shrink(root, store)` makes each part's painted pages phone-sized as soon
+ * as it is built, so the desktop-sized pages never all exist at once. */
+export function buildTown(scene, { cell = 128, detailCell = 0, stage = () => {}, shrink = null } = {}) {
   const root = new THREE.Group();
   root.name = 'town';
   scene.add(root);
@@ -44,6 +48,8 @@ export function buildTown(scene, { cell = 128, detailCell = 0 } = {}) {
 
   /* --- the Lawson and the road in front of it (M1) --- */
   const lawson = buildLawson(root);
+  shrink?.(lawson.root, true);            // LITE: the konbini's stock and wall pages, now
+  stage('built: konbini');
   ctx.colliders.push(...lawson.colliders);
   ctx.platforms.push(...lawson.platforms);
 
@@ -71,6 +77,7 @@ export function buildTown(scene, { cell = 128, detailCell = 0 } = {}) {
   buildOldTown(T);
   T.night = makeNight(T);        // before the land, so its lantern can light the ground
   buildLand(T);                  // paddies, the river, the Deer Park gate (town pass)
+  stage('built: land');
   // the Lawson's lot is worn with the town's own decals (oil, scuffs,
   // patches), placed in world terms and turned into the town's frame
   T.onDecals = (decals) => dressLawsonGround({
@@ -80,6 +87,8 @@ export function buildTown(scene, { cell = 128, detailCell = 0 } = {}) {
     },
   });
   const core = buildCore(T);
+  shrink?.(root, false);                  // LITE: the town's pages, before they are packed into the atlas
+  stage('built: town core');
   // wave 3: koi, ducks, herons, pigeons... (world/animals/), and the guide shiba, which
   // reads the experiences (every frame's list, world coordinates) and where you look
   const animals = buildAnimals(T, { core, spots: () => [...expWorld.list, ...expTown.list, ...lawson.experiences.list], facing: () => camDir });
@@ -169,7 +178,10 @@ export function buildTown(scene, { cell = 128, detailCell = 0 } = {}) {
     if (o.material.isMeshBasicMaterial) o.receiveShadow = false;
     else if (o.material.isMeshToonMaterial) o.receiveShadow = true;
   });
+  shrink?.(root, false);
+  stage('batching');
   const batching = mergeStatic(root, { cell, atlas: true, detailCell });   // LITE: smaller cells, and detail cells
+  stage('batched');
 
   /* --- Mt. Fuji, riding with the camera like the sky --- */
   const fuji = buildFuji(scene);

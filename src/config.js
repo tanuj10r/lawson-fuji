@@ -863,7 +863,7 @@ export const MOBILE = {
   /* The render: internal pixels at most `pixels` (the ink pass wants a
    * little supersampling, a phone's GPU wants few pixels), `scale` the most
    * it supersamples; when frames run long it steps down to `minScale`. */
-  render: { pixels: 1.0e6, scale: 1.5, minScale: 0.85, fpsLow: 26, fpsHigh: 45 },
+  render: { pixels: 2.5e6, scale: 2, start: 1.5, minScale: 0.85, fpsLow: 26, fpsHigh: 45 },   // (Tan's iPhone 15: 1.0 Mpx read pixelated)
   maxTexture: 1024,          // the largest painted texture's side on the GPU (4096 on desktop)
   storeTexture: 2048,        // ... and in the konbini, where the labels are a metre away
   shadow: { size: 1024, half: 34, every: 2.0 },   // map size, half-width (m), refresh at most every s when still
@@ -877,4 +877,19 @@ export const MOBILE = {
   look: 0.0052,              // drag to look: radians per CSS pixel
   stick: { radius: 56, dead: 0.12, run: 0.92 },   // the joystick: px; dead zone and the push that runs (0..1)
   aimAssist: { reach: 2.8, cone: 0.6 },           // no crosshair hit: the nearest thing within reach (m) and this cone (rad)
+  /* `stream`: batches and textures farther than far + stream (m) give their
+   * GPU copy back, and upload again as you come near (0: never). */
+  stream: 40,
+  keepCpu: true,             // keep the CPU copies (needed to stream, and to survive a lost GPU context)
+  /* The lightest tier: every iPhone and iPad (WebKit: Tan's iPhone lost the
+   * GPU context on the default tier), and phones that report 4 GB or less.
+   * ?tier=light / ?tier=full picks one by hand. */
+  tiers: {
+    light: {
+      maxTexture: 512, storeTexture: 1024, far: 85, fog: { near: 24, far: 80 }, detail: 26,
+      shadow: null,                                   // no shadow map at all
+      render: { pixels: 0.7e6, scale: 1.4, start: 1.2, minScale: 0.75, fpsLow: 26, fpsHigh: 45 },   // the canvas at CSS pixels (DPR 1), drawn inside at up to 0.7 Mpx
+      cell: 64, stream: 25, keepCpu: true,
+    },
+  },
 };

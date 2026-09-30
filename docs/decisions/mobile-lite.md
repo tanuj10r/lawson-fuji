@@ -206,9 +206,9 @@ The town smaller, what is left at full, desktop quality ("very crisp").
   shared 512 texture and a few draws, so they stay as the desktop draws them.
 - **Tiers.** full (Safari on the 6 GB iPhones): render 2x, draw 100 m.
   light (Chrome and the in-app browsers on iOS, the 4 GB phones): the same
-  textures at the sizes its pixels need, render 1.35x (from 1.5), draw 56 m
-  (fog 18-52), shadow map 1024: far detail and pixels go before any texture
-  near you blurs.
+  textures at the sizes its pixels need, render 1.35x (from 1.5), draw 52 m
+  (fog 16-48), town pages a quarter beyond 24 m (full within 18), shadow map
+  1024: far detail and pixels go before any texture near you blurs.
 - KTX2/Basis for the konbini's pages: not shipped. The label pages are
   painted at load from code (AGENTS.md: visuals built in code), so a
   compressed page would mean either a transcoder in the bundle (~200 KB of
@@ -216,3 +216,33 @@ The town smaller, what is left at full, desktop quality ("very crisp").
   images (against the rule). With the levels the store's pages are 51 MB at
   their largest; UASTC would make that ~13 MB but blur the small text of
   labels, ETC1S far worse.
+
+### Measured (?diag GPU estimate, emulated iPhone 15 in Chrome, 2026-10-01)
+WebKit through Playwright was not used: the counts are the page's own
+(diag.js), the same in any engine; the phone's real total adds the canvas's
+own buffers and driver padding.
+
+| place | mobile-lite 3cbd26e | first pass | now, full | now, light |
+|---|---|---|---|---|
+| famous view | 285 | 311 | 221 (portrait 208) | 175 |
+| konbini door / the choice | 315 | 317 | 235-251 | 175 |
+| in the store (a visit) | 324 | 356 (peak 352) | 213 | 153 |
+| zebra | 302 | 302 | 224-235 | 178 |
+| ドンペン堂 | 323 | 316 | 233-249 | 161 |
+| shrine | 330 | 319 | 199-230 | 153 |
+| station / train wait | 289 | 276 | 172-184 | 141 |
+| crossing | 286 | 252 | 165-181 | 138 |
+| bench | 298 | 220 | 146-175 | 124 |
+| load peak | ~290 | 286 | 222 | 180 |
+| peak over a whole play | 330 | 356 | 253 | 185 |
+
+(3cbd26e rendered at CSS size with 1024 px pages: more memory for a softer
+picture. Ranges: the two harnesses stand at slightly different spots.)
+- Before/after screenshot pairs (landscape and portrait) of the famous view,
+  the zebra, ドンペン堂, the shrine, the bench, the station, the crossing, the
+  choice at the door and a visit; the station's countdown after.
+- Flow, both tiers: start by tap, walk, Hachi's whistle (tap) and his tour,
+  a konbini choice (tap a chip), the train's wait and arrival, Han's show:
+  no console errors, no lost context.
+- Desktop: every asset byte-identical to a build of main; index.html differs
+  only by the (off) phone route.

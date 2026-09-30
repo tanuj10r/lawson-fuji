@@ -931,8 +931,8 @@ export const MOBILE = {
    * picks one by hand. */
   tiers: {
     light: {
-      far: 56, fog: { near: 18, far: 52 }, detail: 22,
-      texLod: { min: 256 * 256, near: 24, far: 30, k: 0.25, store: 0.5 },
+      far: 52, fog: { near: 16, far: 48 }, detail: 20,
+      texLod: { min: 256 * 256, near: 18, far: 24, k: 0.25, store: 0.5 },
       store: { near: 15, far: 18, behind: -0.5, goods: 34 },
       shadow: { size: 1024, half: 28, every: 2.5 },
       render: { pixels: 0.9e6, scale: 1.35, start: 1.35, minScale: 1.0, fpsLow: 26, fpsHigh: 45 },

@@ -42,7 +42,7 @@ export function createHud({ volume = 50 } = {}) {
   overlay.innerHTML = `
     <section class="menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
       <figure class="menu-art">
-        <img src="keyart-1920.webp" srcset="keyart-1920.webp 1920w, keyart-2560.webp 2560w" sizes="(max-width: 800px) 100vw, min(66vw, calc((100vh - 236px) * 16 / 9), 1500px)" width="1920" height="1080" alt="${STRINGS.artAlt}" decoding="async" fetchpriority="high" />
+        <img src="keyart-1920.webp" srcset="keyart-1280.webp 1280w, keyart-1920.webp 1920w, keyart-2560.webp 2560w" sizes="(max-width: 800px) 100vw, min(66vw, calc((100vh - 236px) * 16 / 9), 1500px)" width="1920" height="1080" alt="${STRINGS.artAlt}" decoding="async" fetchpriority="high" />
         <figcaption class="menu-name">
           <p class="menu-place">${TOWN_NAME.en}<span class="dot">·</span><span lang="ja">${TOWN_NAME.jp}</span></p>
           <h1 id="menu-title">${STRINGS.title}</h1>

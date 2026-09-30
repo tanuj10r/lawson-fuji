@@ -13,8 +13,8 @@ const rows = {};
  * Credits link ask for them, so they sit outside the game's budget */
 const EXTRAS = /^(og(-square)?\.jpg|icon-\d+\.png|apple-touch-icon\.png|favicon-32\.png|credits\.html|404\.html|LICENSE\.txt|OFL\.txt|robots\.txt|_headers)$/;
 /* the key art's other sizes (scripts/keyart.mjs): a screen takes one of them
- * instead of keyart-1920.webp (srcset: large high-DPI screens; the phone card) */
-const ALT_ART = /^keyart-(2560|portrait)\.webp$/;
+ * instead of keyart-1920.webp (srcset: small windows, large high-DPI screens; the phone card) */
+const ALT_ART = /^keyart-(1280|2560|portrait)\.webp$/;
 const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
 for (const f of walk(DIST)) {
   const raw = fs.statSync(f).size, ext = path.extname(f);

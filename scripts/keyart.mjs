@@ -8,6 +8,7 @@
  *
  * Master (lossless, kept out of public/): assets/keyart/keyart-3840.png.
  * Shipped (public/), downsampled from the master so they stay crisp:
+ *   keyart-1280.webp       small windows and the phone page's card  (<= 130 KB; srcset)
  *   keyart-1920.webp       every card, every screen                 (<= 250 KB)
  *   keyart-2560.webp       the cards on large high-DPI screens      (<= 500 KB; srcset)
  *   keyart-portrait.webp   the phone card: a 9:16 crop round Fuji   (<= 160 KB)
@@ -26,6 +27,7 @@ const MASTER = path.join(ROOT, 'assets', 'keyart', 'keyart-3840.png');
 const W = 3840, H = 2160;
 /* each file: its size, the master's crop (fractions: x0, width; full height), the byte budget */
 const OUT = [
+  { file: 'keyart-1280.webp', w: 1280, h: 720, crop: [0, 1], max: 130 * 1024 },
   { file: 'keyart-1920.webp', w: 1920, h: 1080, crop: [0, 1], max: 250 * 1024 },
   { file: 'keyart-2560.webp', w: 2560, h: 1440, crop: [0, 1], max: 500 * 1024 },
   // 9:16 round Fuji's peak, the torii and the NIPPON sign (the phone card covers the lower half)

@@ -120,3 +120,49 @@ export const STRINGS = {
     reload: 'Reload',
   },
 };
+
+/* The phone build's words (src/mobile/, m/index.html: `%S:m.key%`),
+ * English as the desktop's.  The desktop game never imports this. */
+export const MOBILE_STRINGS = {
+  tapToStart: 'Tap to start',
+  loading: 'Loading the town…',
+  building: 'Building the town…',
+  ready: 'Almost there…',
+  tagline: 'A small town under Mt. Fuji. Take your time.',
+  edition: 'Pocket edition: a lighter town, every sound.',
+  hint: 'Best with the sound on and the phone sideways.',
+  silent: 'No sound? Check that your phone isn’t on silent.',
+  rotate: 'Turn your phone sideways for the full view',
+  soundBack: 'Tap to bring the sound back',
+  paused: 'Paused',
+  resume: 'Resume',
+  restart: 'Back to the start',
+  volume: 'Volume',
+  sound: 'Sound',
+  on: 'On',
+  off: 'Off',
+  /* the pause card's list: what does what, in words (no keys on a phone) */
+  help: [
+    ['Left thumb', 'Walk; push further to run'],
+    ['Drag', 'Look around'],
+    ['Hand', 'Do what’s in front of you'],
+    ['Paw', 'Whistle for Hachi'],
+    ['Sun', 'Time of day'],
+    ['Map', 'The town map'],
+  ],
+  buttons: {
+    pause: 'Pause', map: 'Map', whistle: 'Whistle for Hachi', time: 'Time of day', act: 'Interact',
+  },
+  closeMap: 'Tap anywhere to close',
+  times: { morning: 'Morning', golden: 'Golden hour', night: 'Night' },
+  /* Hachi's hello, in touch words (animals/guide.js reads STRINGS.hachi) */
+  hachiLine: "Follow me, I'll show you around town. Wander off whenever you like: tap the paw to whistle and I'll come running.",
+  menuHint: 'Tap one',
+  gate: {
+    noglTitle: 'Your phone can’t draw the town',
+    nogl: 'This game needs WebGL 2. Try the latest Safari or Chrome, or open the link on a computer.',
+    lostTitle: 'The town was put away',
+    lost: 'Your phone needed its memory back. Reload to walk on.',
+    reload: 'Reload',
+  },
+};

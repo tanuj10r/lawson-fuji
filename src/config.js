@@ -848,3 +848,32 @@ export const ANIMALS = {
   pigeons: { plaza: 9, spine: 5, flush: 2.4, flushSpeed: 0.6, shy: 1.3, walkSpeed: 0.2, stepAngle: 0.36, flySpeed: 5, sit: [8, 20], back: 10 },
   egret: { flee: 6, hop: [8, 30], flySpeed: 3.0, cruise: 1.6, beatHz: 2.8, beatAmp: 0.62, walkChance: 0.55, walkSpeed: 0.2, stepAngle: 0.38 },
 };
+
+/* ------------------------------------------------------------------ *
+ * The phone build (src/mobile/, m/index.html; docs/decisions/mobile-lite.md).
+ * The desktop game reads none of this.
+ *
+ *   route   false: phones get the "made for a computer" card (today's
+ *           launch).  true: index.html sends phones and tablets to m/,
+ *           the lite version, instead.  Tan flips it once the lite version
+ *           is approved; nothing else changes.
+ * ------------------------------------------------------------------ */
+export const MOBILE = {
+  route: false,
+  /* The render: internal pixels at most `pixels` (the ink pass wants a
+   * little supersampling, a phone's GPU wants few pixels), `scale` the most
+   * it supersamples; when frames run long it steps down to `minScale`. */
+  render: { pixels: 1.0e6, scale: 1.5, minScale: 0.85, fpsLow: 26, fpsHigh: 45 },
+  maxTexture: 1024,          // the largest painted texture's side on the GPU (4096 on desktop)
+  shadow: { size: 1024, half: 34, every: 1.0 },   // map size, half-width (m), refresh at most every s when still
+  /* Draw distance: batches whose bounds lie past `far` m are not drawn; the
+   * fog closes in before it so the edge is never seen. */
+  far: 110,
+  fog: { near: 30, far: 105 },
+  detail: 36,                // small instanced things (clutter, flowers, weeds) only this close
+  cell: 64,                  // static batches per cell (m): small enough to cull by distance
+  dt: 1 / 20,                // the longest step a frame may take (s)
+  look: 0.0052,              // drag to look: radians per CSS pixel
+  stick: { radius: 56, dead: 0.12, run: 0.92 },   // the joystick: px; dead zone and the push that runs (0..1)
+  aimAssist: { reach: 2.8, cone: 0.6 },           // no crosshair hit: the nearest thing within reach (m) and this cone (rad)
+};

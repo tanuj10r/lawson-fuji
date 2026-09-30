@@ -24,6 +24,9 @@ import * as THREE from 'three';
  *                                  label, interact, hitInside })
  *   spot.done()          // dim it (the player has had this experience)
  *   spot.setLabel(text)  // change the E prompt
+ *   spot.show(on)        // offer it or not (the train's: only while it stands with its doors open)
+ *   spot.wait(p)         // not on offer yet but coming (QA-010, the train): the ring dimmed, its ripple a fill
+ *                        // that grows with p (0..1); null: nothing.  `info` rides on the list entry (`entry.wait`)
  *   experiences.add({ kind: 'sound', id, name, jp, x, z })   // a sound: the map only
  *   experiences.list     // for the map: [{ id, kind, name, jp, x, z }] (world)
  *
@@ -147,12 +150,15 @@ export function makeExperiences(ctx) {
         m.name = 'exp-highlight';
         ctx.add(m);
       }
-      const spot = { s, w, R, ring, ripple, beam, motes, seeds, done: false, item, entry };
+      const spot = { s, w, R, ring, ripple, beam, motes, seeds, done: false, item, entry, offer: 1, fill: null };
       spots.push(spot);
       return {
         done() { spot.done = true; entry.used = true; },
         /** Offer it or not (the train's spot: only while the train stands with its doors open): no ring, no E. */
         show(on) { entry.hidden = !on; if (item) item.hitbox.visible = on; },
+        /** Coming soon (QA-010): the same ring, dimmed, the ripple standing as a fill that grows with p (0..1) as it
+         * nears; null: off.  `info` is left on the list's entry for whoever reads it (Hachi: `entry.wait`). */
+        wait(p, info = null) { spot.fill = p; entry.wait = p === null ? null : info; },
         setLabel(text) { if (item) item.label = text; },
         get world() { return w; },
       };
@@ -166,10 +172,22 @@ export function makeExperiences(ctx) {
     for (const sp of spots) {
       const d = Math.hypot(sp.w.x - cam.x, sp.w.z - cam.z);
       const far = THREE.MathUtils.smoothstep(60 - d, 0, 15);
-      const k = sp.entry.hidden ? 0 : far * (sp.done ? 0.5 : 1);
-      const on = k > 0.01;
+      // offered or not eases over 0.4 s (the train's ring warms up from its waiting look as the doors open)
+      sp.offer += THREE.MathUtils.clamp((sp.entry.hidden ? 0 : 1) - sp.offer, -dt * 2.5, dt * 2.5);
+      const k = far * (sp.done ? 0.5 : 1) * sp.offer;
+      // waiting for it (QA-010): the ring dim and still, its ripple a fill growing in from the middle as it nears
+      const kw = sp.fill !== null ? far * (1 - sp.offer) : 0;
+      const on = k > 0.01 || kw > 0.01;
       sp.ring.visible = sp.ripple.visible = on;
       if (!on) { sp.beam.visible = sp.motes.visible = false; continue; }
+      if (k <= 0.01) {
+        sp.beam.visible = sp.motes.visible = false;
+        sp.ring.material.opacity = kw * 0.36 * (0.92 + 0.08 * Math.sin(t * 1.2));
+        const rs = sp.R * 2 * (0.12 + 0.86 * THREE.MathUtils.clamp(sp.fill, 0, 1));
+        sp.ripple.scale.set(rs, 1, rs);
+        sp.ripple.material.opacity = kw * 0.42;
+        continue;
+      }
       // the ring: softer while you stand in it
       const inside = THREE.MathUtils.smoothstep(d, sp.R * 0.6, sp.R * 1.4);
       sp.ring.material.opacity = k * (0.55 + 0.45 * inside) * (0.9 + 0.1 * Math.sin(t * 2.4));

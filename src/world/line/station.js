@@ -9,6 +9,7 @@ import { makeBusStop, makeVehicle } from '../vehicles.js';
 import { addVending } from '../vending.js';
 import { LAYER } from '../kit/decals.js';
 import { TRACK_Z } from './track.js';
+import { SERVICE } from './service.js';
 import { PITCH, DOORS } from './emu.js';
 import {
   nameBoardTex, entranceTex, platformNumberTex, gateSignTex, fareMapTex, machineScreenTex,
@@ -611,14 +612,23 @@ export function buildStation(ctx, { kit, service, sets }) {
     for (const dz of [-2.8, 2.8]) kit.decals.add('yellow', tx.x, tx.z + dz, 2.6, 0.15, { x: 0, z: 1 }, tz, LAYER.paint);
   }
 
-  // the boards follow the service, once a second
-  let acc = 1;
+  /* the boards follow the service, once a second; while you wait on the platform (QA-010) their second line counts
+   * platform 1's train in (次の電車 あと25秒), redrawn as the shown second changes (one board a frame: no hitch) */
+  let acc = 1, nextSecs = null, dirty = 0;
   const redraw = () => {
     const rows = service.boardRows();
-    for (const b of boards) b.draw(rows);
+    // waiting: platform 1's train first, the countdown under it
+    if (nextSecs !== null) rows.sort((a, b) => (a.track === 1 ? 0 : 1) - (b.track === 1 ? 0 : 1));
+    boards[dirty].draw(rows, nextSecs === null ? null : { secs: nextSecs });
+    dirty = (dirty + 1) % boards.length;
   };
-  redraw();
-  ctx.update((dt) => { acc += dt; if (acc >= 1) { acc = 0; redraw(); } });
+  for (let k = 0; k < boards.length; k++) redraw();
+  let pending = 0;
+  ctx.update((dt) => {
+    acc += dt;
+    if (acc >= 1) { acc = 0; pending = boards.length; }
+    if (pending > 0) { pending--; redraw(); }
+  });
 
   /* ================================ the experiences ================================ */
   const P1 = PLAT[0];
@@ -640,8 +650,24 @@ export function buildStation(ctx, { kit, service, sets }) {
     id: 'train', name: RIDE.say.listen, jp: '電車', x: listen.x, z: listen.z, y: PH, r: listen.r, h: 2.0, interact: false,
   });
   let inSpot = false, warmed = false, ambLvl = SOUND.station.level, shown = true, said = null;
+  /* QA-010: waiting for the train.  On the platforms or in the concourse (or near the spot), with platform 1 empty:
+   * a train is sent if none is due soon (service.summon), the spot shows dimmed with a fill growing as it nears, the
+   * boards count it in, and `wait` tells the HUD ("Next train · 0:25").  Hachi reads the spot's entry: which way it
+   * comes from (world), and whether it can be heard coming yet. */
+  const TW = TOWN.trainWait;
+  const inStation = (p) => p.x > PL.x0 && p.x < PL.x1 && p.z > B.z0 && p.z < PLAT[1].z1;
+  const wait = { on: false, secs: 0, p: 0 };
+  const waitInfo = { secs: 0, near: false, from: null };
+  let span = 0;
+  {
+    // the way platform 1's trains come in from (eastbound: from -x in the line's frame), as a world direction
+    const a = ctx.toWorld({ x: listen.x - 1, z: listen.z });
+    waitInfo.from = { x: a.x - listenW.x, z: a.z - listenW.z };
+  }
   return {
     group: g, boards, platforms: PLAT, PH,
+    /** QA-010, for the HUD: `on` while you wait for platform 1's train; `secs` until it stops; `p` 0..1 as it nears. */
+    wait,
     /** Each frame (line/index.js): `me` the camera in this frame. */
     update(dt, cam, me) {
       const d = Math.hypot(me.x - listen.x, me.z - listen.z);
@@ -660,6 +686,24 @@ export function buildStation(ctx, { kit, service, sets }) {
       const run = service.runs[0];
       const open = !!run && (run.phase === 'dwell' || (run.phase === 'opening' && run.doors > 0.9));
       if (open !== shown) { shown = open; trainSpot?.show(open); }
+      // waiting for it (QA-010)
+      const here = inStation(me) || d < TW.near;
+      if (here && !open) service.summon(0);
+      // (counted to the doors: the ring lights as they finish opening)
+      const eta = here && !open ? service.etaStop(0) + (run.phase === 'opening' ? Math.max(0, SERVICE.doorOpen * 0.9 - run.t) : SERVICE.doorOpen * 0.9) : Infinity;
+      const waiting = Number.isFinite(eta);
+      if (waiting) {
+        if (!wait.on || eta > span) span = Math.max(eta, 1);
+        wait.secs = Math.max(0, Math.ceil(eta - 0.05));
+        wait.p = THREE.MathUtils.clamp(1 - eta / span, 0, 1);
+        const coming = run.phase === 'approach' || run.phase === 'braking';
+        waitInfo.secs = wait.secs;
+        waitInfo.near = coming && Math.max(0, Math.abs(listen.x - run.x) - run.len / 2) < TW.hear;
+      }
+      if (waiting !== wait.on || waiting) trainSpot?.wait(waiting ? wait.p : null, waitInfo);
+      wait.on = waiting;
+      const show = waiting ? wait.secs : null;
+      if (show !== nextSecs) { nextSecs = show; acc = 1; }      // the boards: the new second at once
       const inside = open && d < listen.r;
       if (inside && !inSpot && (!said || said.ended)) {
         said = soundBus.oneShot('train-nextstop', { x: listenW.x, z: listenW.z, y: PH + 2.2, ...SOUND.trainListen, gain: 1 });

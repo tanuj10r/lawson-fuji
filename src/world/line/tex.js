@@ -50,15 +50,20 @@ const AMBER = '#ffa726', ORANGE = '#ff6a1a', LGREEN = '#3fe070', LRED = '#ff3b30
  * a transparent canvas; every pixel is then drawn as a round lamp, lit in
  * its colour or dark.
  */
-function led(c, x0, y0, cols, rows, pitch, paint) {
-  const off = document.createElement('canvas');
-  off.width = cols; off.height = rows;
-  const o = off.getContext('2d');
+const ledCanvas = new Map();          // one low-res canvas per size, reused (the boards redraw each second while you wait)
+function led(c, x0, y0, cols, rows, pitch, paint, from = 0) {
+  const key = cols * 10000 + rows;
+  let off = ledCanvas.get(key);
+  if (!off) { off = document.createElement('canvas'); off.width = cols; off.height = rows; ledCanvas.set(key, off); }
+  const o = off.getContext('2d', { willReadFrequently: true });
+  o.setTransform(1, 0, 0, 1, 0, 0);
+  o.globalCompositeOperation = 'source-over';
+  o.clearRect(0, 0, cols, rows);
   o.textBaseline = 'middle';
   paint(o, cols, rows);
   const d = o.getImageData(0, 0, cols, rows).data;
   const r = pitch * 0.4;
-  for (let j = 0; j < rows; j++) {
+  for (let j = from; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
       const k = (j * cols + i) * 4;
       const on = d[k + 3] > 96;
@@ -109,7 +114,9 @@ export const runNoTex = () =>
 
 /**
  * The departure board (発車標): a live LED panel, redrawn only when what it
- * says changes.  rows: [{ time, kind, dest, track }]
+ * says changes.  rows: [{ time, kind, dest, track }]; `next`: while you wait
+ * on the platform (QA-010), the second line counts platform 1's train in:
+ * 次の電車 あと25秒 (`{ secs }`, whole seconds; 0: まもなく到着).
  */
 export function makeDepartureBoard(w = 768, h = 256) {
   const cv = document.createElement('canvas');
@@ -121,25 +128,37 @@ export function makeDepartureBoard(w = 768, h = 256) {
   let last = '';
   return {
     texture: t,
-    draw(rows) {
-      const key = JSON.stringify(rows);
+    draw(rows, next = null) {
+      const head = JSON.stringify(rows) + (next ? '+' : '');
+      const key = head + (next ? next.secs : '');
       if (key === last) return;
+      // only the countdown's second changed: repaint its line's lamps alone (half the panel)
+      const line2 = last.startsWith(head) && next ? 26 : 0;
       last = key;
-      c.fillStyle = '#101014'; c.fillRect(0, 0, w, h);
-      // the header strip: printed, not LED
-      c.fillStyle = '#23283a'; c.fillRect(0, 0, w, 44);
-      const heads = [['種別', 68], ['時刻', 224], ['行先', 464], ['のりば', 688]];
-      for (const [s, x] of heads) fit(c, s, x, 23, 150, 24, '#c8d2e8', { weight: '600' });
       const cols = 192, rows0 = 52, p = w / cols;
+      c.fillStyle = '#101014';
+      if (line2) c.fillRect(0, 48 + line2 * p, w, h);
+      else {
+        c.fillRect(0, 0, w, h);
+        // the header strip: printed, not LED
+        c.fillStyle = '#23283a'; c.fillRect(0, 0, w, 44);
+        const heads = [['種別', 68], ['時刻', 224], ['行先', 464], ['のりば', 688]];
+        for (const [s, x] of heads) fit(c, s, x, 23, 150, 24, '#c8d2e8', { weight: '600' });
+      }
       led(c, 0, 48, cols, rows0, p, (o) => {
-        rows.slice(0, 2).forEach((r, i) => {
+        rows.slice(0, next ? 1 : 2).forEach((r, i) => {
           const y = 1 + i * 26;
           ledKind(o, r.kind, 3, y + 2, 28, 20, kindColor(r.kind));
           ledText(o, r.time, 56, y + 12, 19, LGREEN, { align: 'center', font: SANS, maxW: 42 });
           ledText(o, r.dest, 116, y + 12, 21, AMBER, { align: 'center', maxW: 70 });
           ledText(o, `${r.track}`, 172, y + 12, 21, LWHITE, { align: 'center', font: SANS });
         });
-      });
+        if (next) {
+          // the second line: the next train's countdown, the way the boards say "arriving" (lit amber, the seconds white)
+          ledText(o, RIDE.next.head, 50, 39, 21, AMBER, { align: 'center', maxW: 88 });
+          ledText(o, next.secs > 0 ? RIDE.next.in(next.secs) : RIDE.next.soon, 144, 39, 21, next.secs > 0 ? LWHITE : LGREEN, { align: 'center', maxW: 92 });
+        }
+      }, line2);
       t.needsUpdate = true;
     },
   };

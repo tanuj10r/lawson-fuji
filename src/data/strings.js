@@ -153,7 +153,7 @@ export const MOBILE_STRINGS = {
   buttons: {
     pause: 'Pause', map: 'Map', whistle: 'Whistle for Hachi', time: 'Time of day', act: 'Interact',
   },
-  closeMap: 'Tap anywhere to close',
+  closeMap: 'Tap to close',
   times: { morning: 'Morning', golden: 'Golden hour', night: 'Night' },
   /* Hachi's hello, in touch words (animals/guide.js reads STRINGS.hachi) */
   hachiLine: "Follow me, I'll show you around town. Wander off whenever you like: tap the paw to whistle and I'll come running.",

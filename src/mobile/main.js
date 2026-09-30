@@ -110,6 +110,7 @@ mark('building');
 // Hachi and the konbini speak of taps, not keys
 STRINGS.hachi.line = M.hachiLine;
 STRINGS.store.menuHint = M.menuHint;
+STRINGS.map.close = M.closeMap;
 liteConfig();
 const sky = buildSky(scene, 2900, { avoidYaw: FUJI.bearing });
 const world = buildTown(scene, { cell: MOBILE.cell, detailCell: 16 });
@@ -239,8 +240,8 @@ const heroAt = { x: 0, z: 0 };
 
 /* The lens: the desktop's vertical field of view in landscape.  In portrait
  * that is a slit (about 20° across), so there the view widens, up to
- * PORTRAIT_VFOV, to keep ~40° across; Fuji keeps its size relative to the
- * frame's height, as on desktop. */
+ * PORTRAIT_VFOV, to keep ~40° across; Fuji keeps its angular size (it is
+ * the frame round it that grows). */
 const PORTRAIT_VFOV = 80, MIN_HFOV = 52;
 function lensVfov(aspect) {
   const want = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(MIN_HFOV / 2)) / aspect) * 180 / Math.PI;
@@ -249,7 +250,7 @@ function lensVfov(aspect) {
 function updateProjection() {
   camera.fov = lensVfov(camera.aspect);
   camera.updateProjectionMatrix();
-  world.fuji.magnify(FUJI_GAMEPLAY * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / Math.tan(THREE.MathUtils.degToRad(PLAYER_VFOV / 2)));
+  world.fuji.magnify(FUJI_GAMEPLAY);          // the same angular size as in landscape: the wider portrait lens shows more round it
 }
 
 function enterHero(name) {
@@ -460,6 +461,7 @@ function toggleMap(open = !minimap.fullOpen) {
   minimap.setFull(open, player.pos, player.yaw);
   player.suspended = open;
   hud.setMapOpen(open);
+  touch.setPlaying(!open);
 }
 function nextTime() {
   if (player.seat && fade) return;

@@ -95,6 +95,7 @@ const CSS = `
   .mh-pause .body { border-top: 3px solid var(--sakura); padding: 0; display: flex; flex-direction: column; }
   @media (orientation: landscape) and (max-height: 540px) { .mh-pause .body { flex-direction: row; border-top: 0; } }
   @media (orientation: portrait) {
+    .mh-toast { top: max(66px, calc(var(--safe-t) + 60px)); max-width: 88vw; }
     .mh-menu { width: min(94vw, 420px); bottom: max(118px, calc(var(--safe-b) + 108px)); }
     .mh-menu ol { grid-template-columns: repeat(3, 1fr); }
   }

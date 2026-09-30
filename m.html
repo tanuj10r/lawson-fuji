@@ -38,6 +38,8 @@
     -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
   }
   #view { position: fixed; inset: 0; display: block; width: 100vw; height: 100vh; height: 100dvh; touch-action: none; }
+  /* paused, the game's own captions (Hachi's hello) wait under the card, as on desktop */
+  body.game-paused #hachi-card { visibility: hidden; }
   [lang='ja'] { font-family: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', sans-serif; }
 
   /* ---------- the cards: loading, start, pause, gate ---------- */

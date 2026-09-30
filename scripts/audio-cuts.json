@@ -36,14 +36,6 @@
       "fadeOut": 0.4,
       "_": "the door chime (Tan's call, M3d): the whole phrase"
     },
-    "door-chime": {
-      "start": 0.0,
-      "len": 1.7,
-      "peak": 0.8,
-      "kbps": 40,
-      "fadeOut": 0.2,
-      "_": "fallback chime"
-    },
     "auto-door": {
       "start": 0.15,
       "len": 1.85,
@@ -57,21 +49,6 @@
       "peak": 0.7,
       "kbps": 40,
       "fadeOut": 0.05
-    },
-    "ui-tap": {
-      "start": 0.0,
-      "len": 0.14,
-      "peak": 0.6,
-      "kbps": 40,
-      "fadeOut": 0.03
-    },
-    "stamp": {
-      "event": 2,
-      "len": 0.4,
-      "peak": 0.7,
-      "kbps": 40,
-      "fadeOut": 0.05,
-      "_": "one stamp of the seventeen"
     },
     "walk-kakko": {
       "src": "zebracrossing",

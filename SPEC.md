@@ -406,7 +406,7 @@ facings out of place).
 - **Pipeline:** `npm run audio` (scripts/encode-audio.mjs, macOS
   `afconvert`) cuts, loops, levels and encodes `assets/audio/*` to mono AAC
   in `public/audio/` with a manifest (scripts/audio-cuts.json). There are
-  28 files, 3.4 MB on disk. Files are fetched after the first click.
+  26 files, 3.3 MB on disk. Files are fetched after the first click.
 - **Missing files** fall back to procedural recipes. Hachi's voice, the
   store hum and some beds are always procedural.
 - **Files in use:**
@@ -418,7 +418,7 @@ facings out of place).
   - railway bells, station ambience, the next-stop announcement;
   - Han's song (han-drift), ドンペン堂's theme, shrine chimes, the rural
     flute;
-  - birds, crows, night insects, wind, ui-tap, stamp.
+  - birds, crows, night insects, wind.
   - Tan's song for the cards, `title bgm.mp3`: its first 45 s looped, in
     stereo, HE-AAC 48 kbps, 276 KB.
 - **Rules:**

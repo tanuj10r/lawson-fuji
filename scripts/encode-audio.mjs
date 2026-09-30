@@ -48,13 +48,6 @@ function envelope(x, win = Math.round(SR * 0.02)) {
   for (let i = 0; i + win <= x.length; i += win) { let a = 0; for (let k = 0; k < win; k++) a += x[i + k] ** 2; r.push(Math.sqrt(a / win)); }
   return r;
 }
-/** Onsets of separate events (a pack of stamps): seconds. */
-function onsets(x) {
-  const r = envelope(x), th = Math.max(...r) * 0.12, out = [];
-  let on = false;
-  r.forEach((v, i) => { if (!on && v > th) { on = true; out.push(i * 0.02); } else if (on && v < th * 0.5) on = false; });
-  return out;
-}
 /** The bell's period (s), from the envelope's autocorrelation between 0.2 and 1.2 s. */
 function period(x) {
   const r = envelope(x.subarray(0, SR * 6), Math.round(SR * 0.005)), m = r.reduce((a, b) => a + b) / r.length;
@@ -102,8 +95,7 @@ for (const [name, c] of Object.entries(files)) {
   const wav = path.join(tmp, name + '.wav');
   execFileSync('afconvert', ['-f', 'WAVE', '-d', `LEI16@${SR}`, '-c', '1', mp3, wav]);
   const x = readWav(wav), dur = x.length / SR;
-  let start = c.start ?? 0;
-  if (c.event !== undefined) start = Math.max(0, onsets(x)[c.event] - 0.01);
+  const start = c.start ?? 0;
   let xf = typeof c.loop === 'number' ? c.loop : c.loop ? 0.05 : 0;
   let len = c.len || dur - start - xf;
   if (c.loop === 'period') { const p = period(x.subarray(Math.round(start * SR))); len = Math.max(1, Math.round(c.len / p)) * p; xf = 0.03; }

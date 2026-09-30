@@ -167,7 +167,6 @@ export function createSound({ volume = 0.5 } = {}) {
     'auto-door'(d, t) { burst(d, t, 0.6, { freq: 900, q: 0.6, level: 0.12 }); tone(d, 60, t, 0.6, { level: 0.08 }); },
     'fridge-door'(d, t) { tone(d, 80, t, 0.08, { level: 0.35 }); burst(d, t + 0.02, 0.07, { freq: 1200, q: 2, level: 0.2 }); },
     'ui-tap'(d, t) { tone(d, 1200, t, 0.05, { level: 0.15 }); },
-    stamp(d, t) { tone(d, 400, t, 0.06, { type: 'triangle', level: 0.3 }); },
     // taking and putting back, by what it is made of (catalog `sound`)
     plastic(d, t) { for (let i = 0; i < 4; i++) burst(d, t + i * 0.035 + Math.random() * 0.02, 0.05, { freq: 5000 + Math.random() * 2000, q: 1.5, level: 0.12 }); },
     soft(d, t) { burst(d, t, 0.12, { freq: 3500, q: 0.8, level: 0.1 }); burst(d, t + 0.06, 0.1, { freq: 4500, q: 1, level: 0.07 }); },
@@ -457,7 +456,7 @@ export function createSound({ volume = 0.5 } = {}) {
       theme.arm();
       if (menuOn) { theme.set(true, SOUND.menu.fadeIn); }
       // the short sounds are fetched now, quietly, so the first of each is ready
-      for (const k of ['lawson-chime', 'door-chime', 'auto-door', 'fridge-door', 'ui-tap', 'railway-bells', 'walk-kakko', 'walk-piyo']) buffer(k);
+      for (const k of ['lawson-chime', 'auto-door', 'fridge-door', 'railway-bells', 'walk-kakko', 'walk-piyo']) buffer(k);
     },
     /** The start and pause cards (Tan's song, Nippon Let's Go): the song loops while one shows, picking up where it
      * left off, and the game's own sound steps back under it; off, the song fades out and the game comes back. */
@@ -553,7 +552,7 @@ export function createSound({ volume = 0.5 } = {}) {
     /* ---- the store ---- */
     /** The chime: once as you come in, once as you go out, at the door. */
     storeChime(at) {
-      play(manifest['lawson-chime'] ? 'lawson-chime' : manifest['door-chime'] ? 'door-chime' : null,
+      play(manifest['lawson-chime'] ? 'lawson-chime' : null,
         { at, range: SOUND.storeChime, recipe: 'store-chime', gain: 0.55, indoor: true });
     },
     autoDoor(at, opening) { play('auto-door', { at, range: SOUND.autoDoor, gain: opening ? 0.35 : 0.25, rate: opening ? 1 : 0.96 }); },
@@ -562,7 +561,6 @@ export function createSound({ volume = 0.5 } = {}) {
     item(material, at) { play(null, { at, range: SOUND.shelf, recipe: RECIPES[material] ? material : 'plastic', gain: 0.9 }); },
     basket() { play(null, { recipe: 'basket', gain: 0.8 }); },
     refuse() { play(null, { recipe: 'refuse', gain: 0.8 }); },
-    ui() { play('ui-tap', { gain: 0.4 }); },
     step(inside) { play(null, { recipe: 'step', gain: 0.9, o: { inside } }); },
 
     /* ---- the railway (M2c), now through the engine ---- */

@@ -79,7 +79,7 @@ const SCREENSHOT_DIR = path.resolve(process.cwd(), 'screenshots');
  * (`vite build --mode mobile`; npm run build runs both), so the desktop
  * bundle is built exactly as before: its chunks never split to share code
  * with the phone page.  The page is dist/m.html beside index.html (so
- * ./audio/ and ./keyart.webp are the same files), its code in dist/m/. */
+ * ./audio/ and the ./keyart-*.webp are the same files), its code in dist/m/. */
 const mobileBuild = {
   outDir: 'dist',
   emptyOutDir: false,

@@ -17,7 +17,7 @@
 <link rel="icon" href="favicon.ico" sizes="48x48" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-<link rel="preload" as="image" href="keyart.webp" type="image/webp" fetchpriority="high" />
+<link rel="preload" as="image" href="keyart-1280.webp" imagesrcset="keyart-1280.webp 1280w, keyart-1920.webp 1920w" imagesizes="(orientation: landscape) min(60vw, 560px), min(100vw, 520px)" type="image/webp" fetchpriority="high" />
 <style>
   /* The phone build (src/mobile/; docs/decisions/mobile-lite.md): the desktop
    * card's look (paper, ink, sakura rule, the key art), laid out for a thumb. */
@@ -157,7 +157,7 @@
   <div id="boot" class="scrim" role="dialog" aria-modal="true" aria-labelledby="boot-title">
     <section class="card">
       <figure class="art">
-        <img src="keyart.webp" width="1600" height="900" alt="%S:artAlt%" fetchpriority="high" />
+        <img src="keyart-1280.webp" srcset="keyart-1280.webp 1280w, keyart-1920.webp 1920w" sizes="(orientation: landscape) min(60vw, 560px), min(100vw, 520px)" width="1280" height="720" alt="%S:artAlt%" fetchpriority="high" />
         <figcaption class="name">
           <p class="place">%S:town.en% · <span lang="ja">%S:town.jp%</span></p>
           <h1 id="boot-title">%S:title%</h1>

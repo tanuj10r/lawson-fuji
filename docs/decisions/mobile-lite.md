@@ -14,7 +14,7 @@ on the sound ... Don't disturb or change the desktop build."  AGENTS.md's
   desktop asset are byte-identical to `main` (31ef8db); `npm run size`
   unchanged (4.82 MB, 1.51 MB before the first click).
 - The page sits beside index.html (not in `m/`), so `./audio/` and
-  `./keyart.webp` are the same files the desktop uses: no second copy of the
+  the key art (`./keyart-1280.webp`, `-1920` by srcset) are the same files the desktop uses: no second copy of the
   sound, and sound.js's `BASE_URL + 'audio/'` needs no change.
 - **Routing:** `config.js MOBILE.route` (false). index.html's head script
   already tells phones apart; with the switch on it sends them to `m.html`

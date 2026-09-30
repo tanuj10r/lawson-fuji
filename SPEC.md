@@ -253,8 +253,9 @@ you up.
 **Screens** (core/hud.js; English UI, Japanese only in the world and beside
 names):
 
-- **The start card:** the key art, full width (public/keyart.webp, baked by
-  `scripts/keyart.mjs`), the title in the sky, the tagline, every key as a
+- **The start card:** the key art, full width (public/keyart-1920.webp, -1280 and
+  -2560 by srcset, a portrait crop on phones; baked on main by `scripts/keyart.mjs`
+  from the ?poster diorama), the title in the sky, the tagline, every key as a
   key cap, Start. It is sized to the window and never scrolls
   (`scripts/_cards.mjs` checks 1280x720 to 2560x1440).
 - **Pause:** the same card with a PAUSED chip, the volume (five steps) and
@@ -573,7 +574,7 @@ Tan deploys `dist/` from `npm run build` to takemebacktojapan.com. In order:
      registrar. Redirect www to the apex.
    - Add `public/_headers`:
      - `/assets/*`: cache for a year, immutable (Vite hashes their names);
-     - `/audio/*` and `/keyart.webp`: a day;
+     - `/audio/*` and `/keyart-*.webp`: a day;
      - `index.html`: no-cache;
      - a Content-Security-Policy of `default-src 'self'` (with the
        `blob:`, `data:` and inline allowances the game needs), which also

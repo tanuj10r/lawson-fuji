@@ -40,7 +40,7 @@ export const STRINGS = {
   controlsTitle: 'Controls',
   credit: 'Built on Sakura Crossing (MIT)',
   credits: 'Credits',
-  artAlt: 'Golden hour under Mt. Fuji: Han leans on his orange RX-7 with a shiba beside him, across the road from the NIPPON konbini, cherry trees in bloom.',
+  artAlt: 'Golden hour under Mt. Fuji: a shiba sits on a zebra crossing by a green walk light, a local train waits at the level crossing, a red torii, the NIPPON konbini, the ドンペン堂 megastore, Han leaning on his orange RX-7, a bench and a jizo under cherry blossom.',
   /* The cards' list, in order (every key). */
   controls: Object.values(CONTROLS),
   /* The corner panel's rows, by name: [key caps, what it does]. */

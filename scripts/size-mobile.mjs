@@ -17,7 +17,7 @@ const wire = (f) => {
 const rows = {};
 const add = (k, f) => { rows[k] = (rows[k] ?? 0) + wire(f); };
 add('page (m.html)', path.join(DIST, 'm.html'));
-add('key art', path.join(DIST, 'keyart.webp'));
+add('key art (a phone takes the 1280 size)', path.join(DIST, 'keyart-1280.webp'));
 for (const f of walk(path.join(DIST, 'm'))) {
   const ext = path.extname(f);
   add(ext === '.js' ? 'code' : ext === '.bin' ? 'Fuji elevation' : ext === '.woff2' ? 'sign fonts' : 'other', f);

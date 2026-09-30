@@ -1,4 +1,8 @@
-/* The key art (start and pause cards, og:image): one staged frame from our
+/* (Superseded: the key art is now baked on main from the ?poster diorama,
+ * src/dev/poster.js, into public/keyart-{1280,1920,2560,portrait}.webp;
+ * this branch carries the files.  What follows made the first keyart.webp.)
+ *
+ * The key art (start and pause cards, og:image): one staged frame from our
  * own renderer, baked to public/keyart.webp.  AGENTS.md: visuals are built
  * in code, so the picture on the title card is the game itself.
  *

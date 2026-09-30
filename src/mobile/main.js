@@ -238,8 +238,7 @@ if (shop) {
   shop.onExit = () => sound.storeChime(CHIME_AT);
   shop.doors.onSound = (door, opening) => sound.fridgeDoor({ x: door.box.getCenter(_v).x, y: 1.2, z: _v.z }, opening);
   shop.onSound = (kind, u) => {
-    if (kind === 'take' || kind === 'put') sound.item(PRODUCT[u.id].sound, shop.unitAt(u));
-    else if (kind === 'refuse') sound.refuse();
+    if (kind === 'take') sound.item(PRODUCT[u.id].sound, shop.unitAt(u));
   };
 }
 if (world.lawson?.door) world.lawson.door.onMove = (opening) => sound.autoDoor(DOOR_AT, opening);
@@ -707,9 +706,9 @@ function frame(now = 0) {
   const choosing = !!(shop?.atSpot && player.locked && !minimap.fullOpen);
   hud.menu(choosing ? shop.menu : null);
   if (player.locked && !shop?.busy && !player.seat && !gliding && !minimap.fullOpen && !watch.on) {
-    hovered = shop?.inside(camera) ? shop.pick(camera) : (player.pick(world.interactables) ?? aimAssist(world.interactables));
+    // (in the store there is nothing to aim at: the choice is made at the door)
+    hovered = shop?.inside(camera) ? null : (player.pick(world.interactables) ?? aimAssist(world.interactables));
   }
-  if (shop && !hovered) shop.clearAim();
   player.hovered = hovered;
   hud.setAction(hovered ? hovered.label.replace(/^.*?·\s*/, '') : null);
   trainWait.update(world.line?.station?.wait, player.locked && !minimap.fullOpen && !choosing);

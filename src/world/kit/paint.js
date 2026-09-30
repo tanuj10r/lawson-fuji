@@ -511,7 +511,6 @@ export function ivyTex() {
  * same atlas is the night glass's emissive map, so a lit window glows
  * through its curtains rather than as a flat panel. */
 
-export const WINDOW_CELLS = 8;
 let winAtlas = null;
 export function windowAtlas() {
   if (winAtlas) return winAtlas;

@@ -10,14 +10,8 @@
 export const TOWN_NAME = { jp: '富士川口湖町', en: 'Fujikawaguchikko' };
 export const STATION = { jp: '富士川口湖', en: 'FUJIKAWAGUCHIKKO', romaji: 'Fujikawaguchikko' };
 
-/** Destination board on the front of the train. */
-export const TRAIN_DEST = { kind: '各停', jp: '富士山' };
-
 /** Paper lanterns strung down the shopping street. */
 export const LANTERN_TEXT = ['富士見', '商店街', '桜まつり', '祭', '奉納'];
-
-/** The shopping street's arch and its name. */
-export const SHOTENGAI = { jp: '富士見通り商店街', en: 'FUJIMI-DORI' };
 
 /** Shop fascias: ground `bg`, bar colour `bar`, lettering `fg`, name `t`,
  * strapline `s`, romanisation `en`. */
@@ -147,9 +141,6 @@ export const A_BOARDS = [
 ];
 /** Standalone plates on the walks. */
 export const WALK_SIGNS = { noBikes: '駐輪禁止', removal: '放置自転車は撤去します', station: '富士川口湖駅', thisWay: 'この先' };
-/** The capsule-toy machines' header cards. */
-export const GASHAPON = ['ガチャ', '100円', '200円', '300円'];
-
 /* ---- facades & shopfronts (town quality pass) ----
  * How each trade letters its signs: `face` the hand (brush for the old
  * trades, round for the modern ones), `board` the fascia's make (timber

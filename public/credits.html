@@ -51,6 +51,17 @@
   }
   .back:hover { background: #4b3f7c; color: #fff; }
 </style>
+<script>
+  /* DataFast analytics (Tan): desktop visits on the live site only, as on the game's page */
+  (function () {
+    var m = function (q) { return !!(window.matchMedia && matchMedia(q).matches); };
+    var phone = (m('(pointer: coarse)') && !m('(any-pointer: fine)')) || ((navigator.maxTouchPoints > 0) && Math.min(screen.width, screen.height) < 600);
+    if (phone || !/(^|\.)takemebacktojapan\.com$/.test(location.hostname)) return;
+    var a = document.createElement('script'); a.defer = true; a.src = 'https://datafa.st/js/script.js';
+    a.setAttribute('data-website-id', 'dfid_qgbgPHxfjf2AS9THqrjNe'); a.setAttribute('data-domain', 'takemebacktojapan.com');
+    document.head.appendChild(a);
+  })();
+</script>
 </head>
 <body>
 <main>
@@ -65,7 +76,7 @@
     <h2>Made by</h2>
     <ul>
       <li><span class="what">Tan (Tanuj R)</span>
-        <span class="note">Made the game and its title song.</span></li>
+        <span class="note">Made the game.</span></li>
     </ul>
 
     <h2>Built on</h2>
@@ -87,8 +98,6 @@
 
     <h2>Music and sound</h2>
     <ul>
-      <li><span class="what">"Nippon Let's Go"</span>, the title song
-        <span class="note">By Tan, made with Suno.</span></li>
       <li><span class="what">Sound effects</span> from <span lang="ja">効果音ラボ</span>
         (<a href="https://soundeffect-lab.info/">soundeffect-lab.info</a>)</li>
     </ul>
@@ -100,6 +109,12 @@
       <li><span class="what">Yuji Syuku</span>
         <span class="note">Copyright 2021 The Yuji Project Authors (Kinuta Font Factory). SIL Open Font License 1.1.</span></li>
       <li><span class="note">Both are subset for the town's signs. Licence text: <a href="OFL.txt">OFL.txt</a>.</span></li>
+    </ul>
+
+    <h2>Contact</h2>
+    <ul>
+      <li><span class="what"><a href="mailto:tanuj.10r@gmail.com">tanuj.10r@gmail.com</a></span>
+        <span class="note">Questions, feedback, or anything you'd like changed or taken down.</span></li>
     </ul>
 
     <h2>Licence</h2>

@@ -6,9 +6,7 @@ import { STORE } from '../config.js';
  * The konbini on screen (Tan's experience, made a scene: 2026-09-28).
  *
  * The choice: standing on the highlighted spot at the door, a small card lists
- * what you can have, one number key each.  (And subtitles, { jp, en },
- * for anything said: kept for later; the self-checkout's voice is Tan's
- * recording, unsubtitled.)
+ * what you can have, one number key each.
  * ------------------------------------------------------------------ */
 
 const yen = (n) => '¥' + n.toLocaleString('en');
@@ -39,28 +37,16 @@ export function createHandsHud() {
       padding: 1px 6px 2px; border: 2px solid #d23a2a; border-radius: 5px; color: #d23a2a;
       font: 800 10px/1.2 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase;
       background: rgba(255,245,240,.7); box-shadow: inset 0 0 0 1px rgba(210,58,42,.25); opacity: .92; }
-    .ksub { position: fixed; left: 50%; bottom: 23%; z-index: 6; transform: translate(-50%, 6px);
-      text-align: center; pointer-events: none; opacity: 0; transition: opacity .2s, transform .2s; }
-    .ksub.on { opacity: 1; transform: translate(-50%, 0); }
-    .ksub .jp { font-size: 13px; color: rgba(255,255,255,.9); text-shadow: 0 1px 3px rgba(20,16,40,.8); letter-spacing: .04em; }
-    .ksub .en { display: inline-block; margin-top: 3px; padding: 5px 14px; border-radius: 10px; font-size: 18px; font-weight: 600;
-      background: rgba(20,18,34,.62); color: #fff; letter-spacing: .01em; }
   `;
   document.head.appendChild(style);
   const menu = document.createElement('aside');
   menu.className = 'kmenu';
   menu.setAttribute('aria-live', 'polite');
   document.body.appendChild(menu);
-  const sub = document.createElement('div');
-  sub.className = 'ksub';
-  sub.setAttribute('aria-live', 'polite');
-  document.body.appendChild(sub);
 
-  let subTimer = null, locked = true, open = false, filled = '';
+  let locked = true, open = false, filled = '';
   const render = () => menu.classList.toggle('on', open && locked);
   return {
-    /** Kept for shop.onChange; the scene needs no card of what you hold. */
-    update() {},
     /** The pointer lock: the card hides with the rest of the HUD on the pause card. */
     setLocked(v) { locked = v; render(); },
     get open() { return open; },
@@ -78,13 +64,6 @@ export function createHandsHud() {
         menu.innerHTML = `<h3>${S.menuTitle}<span>${S.menuHint}</span></h3><ol>${rows}</ol>`;
       }
       render();
-    },
-    /** A line said: { jp, en, dur }. */
-    say(line) {
-      sub.innerHTML = `<div class="jp">${line.jp}</div><div class="en">${line.en}</div>`;
-      sub.classList.add('on');
-      clearTimeout(subTimer);
-      subTimer = setTimeout(() => sub.classList.remove('on'), (line.dur ?? 1.5) * 1000 + 1100);
     },
   };
 }

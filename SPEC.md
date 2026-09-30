@@ -253,14 +253,14 @@ you up.
 **Screens** (core/hud.js; English UI, Japanese only in the world and beside
 names):
 
-- **The start card:** the key art, full width (public/keyart-1920.webp, -1280 and
-  -2560 by srcset, a portrait crop on phones; baked on main by `scripts/keyart.mjs`
-  from the ?poster diorama), the title in the sky, the tagline, every key as a
+- **The start card:** the key art, full width (public/keyart-1920.webp, -1280
+  and -2560 by srcset, a portrait crop on phones; baked by `scripts/keyart.mjs`
+  from the ?poster diorama, src/dev/poster.js), the title in the sky, the tagline, every key as a
   key cap, Start. It is sized to the window and never scrolls
   (`scripts/_cards.mjs` checks 1280x720 to 2560x1440).
 - **Pause:** the same card with a PAUSED chip, the volume (five steps) and
   Resume. The game keeps drawing, blurred, at 10 fps.
-- **The song:** the first 45 s of Tan's "Nippon Let's Go" (made with Suno) loop on the start
+- **The song:** the first 45 s of the title tune (a copyright-free track Tan found; not credited, per Tan) loop on the start
   and pause cards, with the game's own sound down under it, and fades out as
   play starts or resumes; paused again, it carries on where it left off. The
   browser allows sound only after a first click or key, so on the start card
@@ -407,7 +407,7 @@ facings out of place).
 - **Pipeline:** `npm run audio` (scripts/encode-audio.mjs, macOS
   `afconvert`) cuts, loops, levels and encodes `assets/audio/*` to mono AAC
   in `public/audio/` with a manifest (scripts/audio-cuts.json). There are
-  28 files, 3.4 MB on disk. Files are fetched after the first click.
+  26 files, 3.3 MB on disk. Files are fetched after the first click.
 - **Missing files** fall back to procedural recipes. Hachi's voice, the
   store hum and some beds are always procedural.
 - **Files in use:**
@@ -419,7 +419,7 @@ facings out of place).
   - railway bells, station ambience, the next-stop announcement;
   - Han's song (han-drift), ドンペン堂's theme, shrine chimes, the rural
     flute;
-  - birds, crows, night insects, wind, ui-tap, stamp.
+  - birds, crows, night insects, wind.
   - Tan's song for the cards, `title bgm.mp3`: its first 45 s looped, in
     stereo, HE-AAC 48 kbps, 276 KB.
 - **Rules:**

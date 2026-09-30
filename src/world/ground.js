@@ -134,34 +134,6 @@ export function lane(ctx, o) {
   return g;
 }
 
-/** A dashed or solid painted line on a lane. */
-export function laneLine(ctx, o) {
-  const m = groundMats();
-  const parts = [];
-  const len = Math.abs(o.to - o.from);
-  const dash = o.dash ?? 0;
-  if (dash) {
-    const n = Math.max(1, Math.floor(len / (dash * 2)));
-    for (let i = 0; i < n; i++) {
-      const t = o.from + (o.to - o.from) * ((i + 0.25) / n);
-      parts.push({
-        geometry: new THREE.BoxGeometry(o.axis === 'x' ? dash : 0.1, 0.02, o.axis === 'x' ? 0.1 : dash),
-        matrix: o.axis === 'x' ? trs(t, 0, o.at) : trs(o.at, 0, t),
-      });
-    }
-  } else {
-    parts.push({
-      geometry: new THREE.BoxGeometry(o.axis === 'x' ? len : 0.1, 0.02, o.axis === 'x' ? 0.1 : len),
-      matrix: o.axis === 'x' ? trs((o.from + o.to) / 2, 0, o.at) : trs(o.at, 0, (o.from + o.to) / 2),
-    });
-  }
-  const mesh = new THREE.Mesh(bake(parts), o.mat ?? m.white);
-  mesh.position.y = o.y ?? 0.09;
-  mesh.userData.noOutline = true;
-  ctx.add(mesh);
-  return mesh;
-}
-
 /* -------------------------------- steps -------------------------------- */
 
 /**
@@ -234,59 +206,6 @@ export function steps(ctx, o) {
 }
 
 /* ---------------------------- walls and fences ---------------------------- */
-
-/**
- * A concrete block boundary wall.  Built as a run of short panels, each
- * seated at its own local ground height: that is how a Japanese block wall
- * actually copes with a slope, and it saves sweeping the geometry.
- */
-export function wallRun(ctx, o) {
-  const m = groundMats();
-  const h = o.h ?? 2.1;
-  const t = o.t ?? 0.28;
-  const axis = o.axis ?? 'x';
-  const from = Math.min(o.from, o.to);
-  const to = Math.max(o.from, o.to);
-  const panel = o.panel ?? 4.0;
-  const n = Math.max(1, Math.round((to - from) / panel));
-  const step = (to - from) / n;
-  const body = [];
-  const caps = [];
-
-  for (let i = 0; i < n; i++) {
-    const c = from + step * (i + 0.5);
-    const lz = axis === 'z' ? c : o.at;
-    const dy = (o.y !== undefined ? o.y : groundY(lz)) - 0.05;
-    const geo = new THREE.BoxGeometry(axis === 'z' ? t : step + 0.02, h, axis === 'z' ? step + 0.02 : t);
-    body.push({ geometry: geo, matrix: axis === 'z' ? trs(o.at, dy + h / 2, c) : trs(c, dy + h / 2, o.at) });
-    caps.push({
-      geometry: new THREE.BoxGeometry(axis === 'z' ? t + 0.12 : step + 0.02, 0.1, axis === 'z' ? step + 0.02 : t + 0.12),
-      matrix: axis === 'z' ? trs(o.at, dy + h + 0.05, c) : trs(c, dy + h + 0.05, o.at),
-    });
-  }
-
-  const g = new THREE.Group();
-  const bm = new THREE.Mesh(bake(body), o.mat ?? m.concreteMid);
-  bm.castShadow = bm.receiveShadow = true;
-  g.add(bm);
-  /* The coping must not cast.  It overhangs the wall by 60 mm, which is about
-   * two shadow-map texels at this cascade size, so its own shadow lands as a
-   * row of sawtooth triangles along the top of the wall face rather than as a
-   * line.  Losing a 60 mm shadow costs nothing; the acne is unmissable. */
-  const cm = new THREE.Mesh(bake(caps), o.capMat ?? m.concrete);
-  cm.castShadow = false;
-  cm.receiveShadow = true;
-  g.add(cm);
-  g.name = o.name ?? 'wall';
-  ctx.add(g);
-
-  if (o.collide !== false) {
-    const y = o.y !== undefined ? o.y : groundY(axis === 'z' ? (from + to) / 2 : o.at);
-    if (axis === 'z') ctx.collide(o.at - t / 2 - 0.05, from, o.at + t / 2 + 0.05, to, y + h);
-    else ctx.collide(from, o.at - t / 2 - 0.05, to, o.at + t / 2 + 0.05, y + h);
-  }
-  return g;
-}
 
 /**
  * Mesh (chain-link) fencing: posts, rails and a lattice panel.
@@ -408,37 +327,3 @@ export function railing(ctx, o) {
   return g;
 }
 
-/**
- * A soft patch of shade on the ground.
- *
- * Real cast shadows only come from geometry the sun can see; under a dense
- * canopy the ground still wants to break up into dappled light.  A few
- * low-opacity violet quads do that far more cheaply than more leaves, and
- * they stay out of the depth buffer so the ink pass ignores them.
- */
-export function dapple(ctx, o) {
-  const g = new THREE.Group();
-  const rng = o.rng;
-  const n = o.n ?? 7;
-  const geo = new THREE.CircleGeometry(1, 10);
-  geo.rotateX(-Math.PI / 2);
-  const mat = flat({
-    color: o.color ?? 0x8a7fae, transparent: true, opacity: o.opacity ?? 0.13,
-    depthWrite: false, cache: false,
-  });
-  const inst = new THREE.InstancedMesh(geo, mat, n);
-  const d = new THREE.Object3D();
-  for (let i = 0; i < n; i++) {
-    const r = (o.r ?? 1.4) * rng.range(0.55, 1.35);
-    d.position.set(o.x + rng.range(-o.spread, o.spread), (o.y ?? 0) + 0.03, o.z + rng.range(-o.spread, o.spread));
-    d.rotation.set(0, rng.range(0, 3), 0);
-    d.scale.set(r, 1, r * rng.range(0.7, 1.1));
-    d.updateMatrix();
-    inst.setMatrixAt(i, d.matrix);
-  }
-  inst.userData.noOutline = true;
-  inst.renderOrder = 1;
-  g.add(inst);
-  ctx.add(g);
-  return g;
-}

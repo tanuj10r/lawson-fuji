@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TOWN, STREET, LAWSON, HERO_VIEWS, SLOWLIFE, ANIMALS } from '../../config.js';
+import { TOWN, STREET, LAWSON, HERO_VIEWS, ANIMALS } from '../../config.js';
 import { pondShore } from '../land/pond.js';
 import { planPaddies } from '../land/paddies.js';
 import { SPECIALS } from '../town-plan.js';

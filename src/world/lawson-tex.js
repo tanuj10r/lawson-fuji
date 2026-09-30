@@ -231,17 +231,6 @@ export const poster = (kind) =>
     text(c, p.sub, w / 2, h * 0.82, w * 0.86, 64, p.band);
   });
 
-/** Wide paper banner hung inside the glass over the entrance. */
-export const doorBanner = () =>
-  make('doorBanner', 1024, 160, (c, w, h) => {
-    c.fillStyle = '#ffd23a';
-    c.fillRect(0, 0, w, h);
-    c.fillStyle = '#e0453f';
-    c.fillRect(0, 0, h, h);
-    text(c, '新', h / 2, h / 2, h * 0.8, 110, '#ffffff');
-    text(c, 'おにぎり 100円セール', w * 0.57, h * 0.52, w * 0.78, 96, '#3a2a1a');
-  });
-
 /** のぼり flags on stands (SPEC: generic goods). */
 const NOBORI = [
   { bg: '#ffffff', edge: '#2a78c8', fg: '#2a78c8', t: 'カフェラテ', dot: '#a8744a' },
@@ -279,64 +268,6 @@ export const tileTex = (repeatX, repeatY) => {
   t.repeat.set(repeatX, repeatY);
   return t;
 };
-
-/**
- * The store interior as seen through the glass, painted.  M3 replaces this
- * card with the real interior.  Width `widthM`, height `heightM`.
- */
-export const interiorCard = (widthM, heightM) =>
-  make('interior', 4096, Math.round((4096 / widthM) * heightM), (c, w, h) => {
-    const ppm = w / widthM;
-    // back wall: warm white, a cooler ceiling zone with the light rows
-    c.fillStyle = '#e4dfd6';
-    c.fillRect(0, 0, w, h);
-    c.fillStyle = '#eef0f4';
-    c.fillRect(0, 0, w, h * 0.2);
-    c.fillStyle = '#ffffff';
-    for (let x = 0.4; x < widthM; x += 2.2) c.fillRect(x * ppm, h * 0.04, 1.6 * ppm, h * 0.035);
-
-    // the drinks wall: lit fridge bays with rows of bottle colours
-    const bottle = ['#e0453f', '#3aa25a', '#2a78c8', '#f4c033', '#f7f3ea', '#ef7a2a', '#8f6fb5', '#6ac0d8'];
-    let seed = 11;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    for (let bx = 0.2; bx < widthM - 0.4; bx += 1.3) {
-      const x = bx * ppm, bw = 1.2 * ppm;
-      c.fillStyle = '#d6e4f0';
-      c.fillRect(x, h * 0.24, bw, h * 0.52);
-      c.fillStyle = '#c0ccd8';
-      c.fillRect(x, h * 0.24, bw, h * 0.012);
-      for (let row = 0; row < 5; row++) {
-        const y = h * (0.28 + row * 0.095);
-        for (let k = 0; k < 9; k++) {
-          c.fillStyle = bottle[Math.floor(rnd() * bottle.length)];
-          c.fillRect(x + (k + 0.15) * (bw / 9), y, (bw / 9) * 0.7, h * 0.06);
-        }
-        c.fillStyle = '#b7c0cc';
-        c.fillRect(x, y + h * 0.065, bw, h * 0.008);
-      }
-    }
-    // gondola shelves in front of it, cut off at 1.6 m: see over them
-    const shelfTop = h * (1 - 1.6 / heightM);
-    for (let sx = 0.6; sx < widthM - 1; sx += 3.1) {
-      const x = sx * ppm, sw = 2.5 * ppm;
-      c.fillStyle = '#c9ced8';
-      c.fillRect(x, shelfTop, sw, h - shelfTop);
-      for (let row = 0; row < 4; row++) {
-        const y = shelfTop + (row + 0.2) * ((h - shelfTop) / 4.3);
-        for (let k = 0; k < 12; k++) {
-          c.fillStyle = bottle[Math.floor(rnd() * bottle.length)];
-          c.globalAlpha = 0.85;
-          c.fillRect(x + (k + 0.1) * (sw / 12), y, (sw / 12) * 0.8, (h - shelfTop) / 7);
-        }
-        c.globalAlpha = 1;
-        c.fillStyle = '#9aa4b2';
-        c.fillRect(x, y + (h - shelfTop) / 6.4, sw, h * 0.01);
-      }
-    }
-    // a pale floor strip
-    c.fillStyle = '#e8e6e0';
-    c.fillRect(0, h * 0.97, w, h * 0.03);
-  });
 
 /** Ceiling seen through the upper glass: rows of flush light panels. */
 export const ceilingTex = (widthM, depthM) =>

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { rngKit } from '../../core/util.js';
 import { ANIMALS } from '../../config.js';
-import { Body, loft, blob, sheet, at } from './shapes.js';
+import { Body, loft, blob, at } from './shapes.js';
 import { animalMaterial, Herd, ease, turn, painted } from './shade.js';
 
 /* ------------------------------------------------------------------ *

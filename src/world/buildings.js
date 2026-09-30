@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PAL } from '../core/palette.js';
 import { cel, flat } from '../core/toon.js';
 import { meterBox } from '../core/textures.js';
-import { box, cyl, bake, trs, rngKit } from '../core/util.js';
+import { box, bake, trs, rngKit } from '../core/util.js';
 import { hullOutline } from '../core/outline.js';
 import { windowCell, sillStreakTex } from './kit/paint.js';
 import { chamferBox } from './kit/facade/forms.js';

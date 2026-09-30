@@ -5,7 +5,7 @@ import { hullOutline } from '../../core/outline.js';
 import { makeWalkup, makeBikeShelter } from '../housing.js';
 import { makeTimberFence } from '../buildings.js';
 import {
-  makeBench, makeTapPost, makePlanter, makeAircon, makeMailboxBank, makeBicycle, makeBikeRack, makeWires,
+  makeBench, makeTapPost, makePlanter, makeAircon, makeMailboxBank, makeBicycle, makeWires,
 } from '../props.js';
 import { makeWheelStops } from '../streetprops.js';
 import { makeVehicle, vehicleSize, tyreMarks } from '../vehicles.js';

@@ -68,7 +68,7 @@ Never leave a Chrome or dev server running.
 | Area | Files |
 | --- | --- |
 | Streets & poles | kit/roads, kit/markings, kit/poles, kit/signs, kit/decals, kit/dress, streetprops.js |
-| Facades & shopfronts | kit/buildings, kit/houses, kit/shopfronts, kit/specials (not the station), shops.js, shotengai.js, showa.js, housing.js, buildings.js |
+| Facades & shopfronts | kit/buildings, kit/houses, kit/shopfronts, kit/specials (not the station), shops.js, housing.js, buildings.js |
 | Sakura & greenery | kit/sakura, kit/canopy, kit/green, trees.js, petals.js |
 | River & paddies | src/world/land/* (new) |
 | Animals | kit/life.js, src/world/animals/* (new) |

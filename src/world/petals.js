@@ -164,64 +164,6 @@ export function buildPetals(ctx, opts = {}) {
 }
 
 /**
- * Fallen blossom over arbitrary patches, for the districts away from the
- * street.
- *
- * Called once with every patch in the world: each tone is one instanced mesh,
- * so a dozen scattered drifts still cost three draw calls.  Petals stay out of
- * the depth buffer -- the ink pass would otherwise outline every one of them
- * into speckle.
- */
-export function buildFallenPatches(ctx, patches) {
-  if (!patches || !patches.length) return null;
-  const rng = rngKit(6619);
-  const tex = petalTex();
-  const geo = new THREE.PlaneGeometry(0.17, 0.125);
-  geo.rotateX(-Math.PI / 2);
-  const tones = [PAL.petal, PAL.blossomLight, PAL.petalDeep];
-  const lists = [[], [], []];
-  const dummy = new THREE.Object3D();
-
-  for (const p of patches) {
-    const n = p.n ?? 90;
-    for (let i = 0; i < n; i++) {
-      // biased to the edges: wind pushes petals against kerbs and walls
-      const u = rng.next();
-      const edge = u < 0.45 ? rng.sign() * rng.range(0.34, 0.5) : rng.range(-0.34, 0.34);
-      const other = rng.range(-0.48, 0.48);
-      const alongX = rng.chance(0.5);
-      dummy.position.set(
-        p.x + (alongX ? other : edge) * p.w,
-        (p.y ?? 0) + 0.021,
-        p.z + (alongX ? edge : other) * p.d
-      );
-      dummy.rotation.set(0, rng.range(0, 6.28), 0);
-      const s = rng.range(0.8, 1.3);
-      dummy.scale.set(s, 1, s);
-      dummy.updateMatrix();
-      lists[rng.int(0, 2)].push(dummy.matrix.clone());
-    }
-  }
-
-  lists.forEach((list, i) => {
-    if (!list.length) return;
-    const inst = new THREE.InstancedMesh(
-      geo,
-      flat({
-        color: tones[i], map: tex, transparent: true, opacity: 0.9,
-        depthWrite: false, alphaTest: 0.32, cache: false,
-      }),
-      list.length
-    );
-    list.forEach((m, k) => inst.setMatrixAt(k, m));
-    inst.renderOrder = 2;
-    inst.userData.noOutline = true;
-    ctx.add(inst);
-  });
-  return true;
-}
-
-/**
  * Petals that have already landed.  They drift into the gutters, along the
  * kerb line and across the crossing deck, which is both true to life and the
  * cheapest way to stop a wide stretch of asphalt reading as a dead field.

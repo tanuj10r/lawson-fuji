@@ -3,8 +3,7 @@ import { wornShutterTex } from './kit/paint.js';
 import { PAL } from '../core/palette.js';
 import { cel, flat } from '../core/toon.js';
 import {
-  shopFascia, shopBlade, norenTex, menuBoard, lanternTex, flagTex, gachaTex,
-  shopInterior, shutterTex, poster, meterBox, litWindowTex, curtainTex, mirrored,
+  shopFascia, shopBlade, norenTex, menuBoard, lanternTex, flagTex, shopInterior, poster, meterBox, litWindowTex, curtainTex,
 } from '../core/textures.js';
 import { box, cyl, bake, trs, rngKit } from '../core/util.js';
 import { hullOutline } from '../core/outline.js';
@@ -563,32 +562,6 @@ export function makeFreezer(o = {}) {
     flat({ color: 0xffffff, map: flagTex(0), cache: false }));
   sign.position.set(0.34, 0.42, 0.34);
   g.add(sign);
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.y = o.ry ?? 0;
-  return g;
-}
-
-/** A bank of capsule-toy machines outside the stationery shop. */
-export function makeGachapon(o = {}) {
-  const m = mats();
-  const g = new THREE.Group();
-  const n = o.n ?? 3;
-  for (let i = 0; i < n; i++) {
-    const x = -((n - 1) * 0.42) / 2 + i * 0.42;
-    const body = box(0.4, 1.42, 0.44, cel({ color: [0xe0453f, 0xf4c033, 0x3d6ec4][i % 3], bands: 3, tint: 0x6f6790 }), x, 0.71, 0);
-    body.castShadow = body.receiveShadow = true;
-    g.add(body);
-    const dome = new THREE.Mesh(
-      new THREE.SphereGeometry(0.19, 12, 8),
-      flat({ color: 0xffffff, map: gachaTex(), cache: false })
-    );
-    dome.position.set(x, 1.14, 0.06);
-    g.add(dome);
-    g.add(box(0.36, 0.24, 0.06, m.dark, x, 0.62, 0.23));
-    g.add(cyl(0.05, 0.05, 0.06, 8, m.metal, x, 0.78, 0.24).rotateX(Math.PI / 2));
-    g.add(box(0.3, 0.16, 0.04, flat({ color: 0xf6f2e8 }), x, 0.38, 0.23));
-  }
-  g.add(box(n * 0.42 + 0.06, 0.06, 0.5, m.metalDark, 0, 0.03, 0));
   g.position.set(o.x, o.y ?? 0, o.z);
   g.rotation.y = o.ry ?? 0;
   return g;

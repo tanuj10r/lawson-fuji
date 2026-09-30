@@ -3,10 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export const lerp = (a, b, t) => a + (b - a) * t;
-export const invLerp = (a, b, v) => (v - a) / (b - a);
 export const TAU = Math.PI * 2;
-export const DEG = Math.PI / 180;
-
 /** Hermite smoothstep that tolerates a > b (descending ranges). */
 export function sstep(a, b, v) {
   const t = clamp((v - a) / (b - a || 1e-6), 0, 1);
@@ -86,13 +83,6 @@ export function trs(px = 0, py = 0, pz = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy =
   _q.setFromEuler(_e);
   _s.set(sx, sy, sz);
   return _m.clone().compose(_v, _q, _s);
-}
-
-/** A box mesh whose local origin sits at the centre of its base. */
-export function boxOnGround(w, h, d, mat) {
-  const g = new THREE.BoxGeometry(w, h, d);
-  g.translate(0, h / 2, 0);
-  return new THREE.Mesh(g, mat);
 }
 
 export function box(w, h, d, mat, x = 0, y = 0, z = 0) {

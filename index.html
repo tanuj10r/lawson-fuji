@@ -346,7 +346,7 @@
 <script>
   /* Before anything loads or paints: can this device play?  A phone or tablet
    * (a coarse pointer and no fine one, or a touch screen smaller than a
-   * laptop's, or no pointer lock) gets the "made for a computer" card, and the
+   * laptop's, or no pointer lock) gets the "best on a computer" card, and the
    * game's code is never downloaded (QA-001).  A computer without WebGL 2
    * gets its own card (QA-003).  Desktop only: no touch version. */
   (function () {
@@ -366,6 +366,16 @@
       else { var x = gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); }   // a test context: give it back
     }
     if (navigator.share) d.classList.add('can-share');
+    /* DataFast analytics (Tan, 2026-09-30): desktop visits on the live site only (phones get the card and are
+     * not counted; local testing is never counted).  The one request to another domain the game makes. */
+    if (!phone && /(^|\.)takemebacktojapan\.com$/.test(location.hostname)) {
+      var a = document.createElement('script');
+      a.defer = true;
+      a.src = 'https://datafa.st/js/script.js';
+      a.setAttribute('data-website-id', 'dfid_qgbgPHxfjf2AS9THqrjNe');
+      a.setAttribute('data-domain', 'takemebacktojapan.com');
+      document.head.appendChild(a);
+    }
   })();
 </script>
 </head>

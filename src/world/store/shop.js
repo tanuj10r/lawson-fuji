@@ -5,7 +5,7 @@ import { STRINGS } from '../../data/strings.js';
 import { soundBus } from '../../core/soundBus.js';
 import { productGeometry, placeUnit, unitMatrix } from './products.js';
 import { onTopClamped, ease, easeOut, clamp01 } from './figure.js';
-import { makeHands, coinGeometry } from './hands.js';
+import { makeHands } from './hands.js';
 import { makeEating } from './eat.js';
 
 /* ------------------------------------------------------------------ *
@@ -152,7 +152,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   card.frustumCulled = false; card.renderOrder = 11; card.visible = false;
   card.geometry.computeBoundingBox();
   card.rotation.set(-0.5, 0, 0.12);
-  hands.anchor(0).add(card);
+  hands.anchor.add(card);
 
   /* what you carry: the product's own page material, drawn on top */
   const pageMat = new Map();
@@ -171,7 +171,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   /* ------------------------------- state ------------------------------- */
   const held = [];              // { id, u, mesh, hand, paid, where: 'flying' | 'hand' | 'counter' }
   const flights = [], slides = [], pendingTakes = [];
-  let wasInside = false, wallet = STORE.wallet, change = 0;
+  let wasInside = false, wallet = STORE.wallet;
   let phase = 'out';            // out | shop | till | paid | eat
   let checkout = null;          // the running checkout's timeline
   let primed = false;
@@ -188,21 +188,13 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     /** What you can choose (catalogue ids), in the order main.js lists them. */
     menu: FEATURED.flatMap((f) => f.ids),
     onTipsy: null,             // main.js: after the Strong Nine
-    onChange: null,            // main.js: the HUD
-    onSay: null,               // main.js: a line spoken, for the subtitles
     flash: null,               // main.js: hud.flash
-    onSound: null,             // main.js: (kind, unit?) -> the sound engine
+    onSound: null,             // main.js: (kind, unit) -> the sound engine (taking it off the shelf)
     onEnter: null, onExit: null,
     player: null,              // main.js: the player, held still while you pay
     isFamousView: () => false, // main.js
     spot: null,                // lawson.js: the konbini's experience spot outside
   };
-  const changed = () => api.onChange?.(api.hud());
-  api.hud = () => ({
-    wallet: phase === 'paid' || phase === 'eat' ? wallet : STORE.wallet - total(),
-    show: false,
-  });
-
   /* ------------------------------ sounds ------------------------------ */
   const at = (p) => inside.localToWorld(p.clone());
   const tillAt = () => at(TILL.screen);
@@ -243,34 +235,29 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     mesh.scale.setScalar(1);
     anchor.add(mesh);
   }
-  const anchorMatrix = (i, mesh) => () => {
-    const a = hands.anchor(i);
+  const anchorMatrix = (mesh) => () => {
+    const a = hands.anchor;
     const c = mesh.geometry.boundingBox.getCenter(new THREE.Vector3());
     return new THREE.Matrix4().copy(worldOf(a)).multiply(new THREE.Matrix4().makeTranslation(-c.x, -c.y, -c.z));
   };
 
   /* ------------------------------ taking ------------------------------ */
   const total = () => held.filter((h) => !h.paid && h.where !== 'gone').reduce((n, h) => n + PRODUCT[h.id].priceYen, 0);
-  const inHands = () => held.filter((h) => h.where !== 'gone');
   function refreshSlot(u) { [u, ...u.backs].forEach((w, i) => placeUnit(w, 0, i >= u.count)); }
+  /** Take the one thing chosen off its shelf, into your right hand. */
   function take(u, doorOpen = false) {
     if (phase !== 'shop') return;
-    if (inHands().length >= STORE.carry) { api.flash?.(S.handsFull); return; }
-    const price = PRODUCT[u.id].priceYen;
-    if (price > STORE.wallet - total()) { api.flash?.(S.noMoney(STORE.wallet - total(), price), true); api.onSound?.('refuse', u); return; }
     // the chu-hi is behind a fridge door: it swings open first
     if (u.door && u.door.open < 0.6 && !doorOpen) { doors.open(u.door); pendingTakes.push({ u, t: 0.32 }); return; }
-    const hand = held.some((h) => h.hand === 0 && h.where !== 'gone') ? 1 : 0;
     const from = unitMatrix(u, new THREE.Matrix4()).premultiply(inside.matrixWorld);
     u.count--;
     const mesh = itemMesh(u);
-    const h = { id: u.id, u, mesh, hand, paid: false, where: 'flying' };
+    const h = { id: u.id, u, mesh, hand: 0, paid: false, where: 'flying' };
     held.push(h);
-    fly(mesh, from, anchorMatrix(hand, mesh), { done: () => { h.where = 'hand'; holdIn(mesh, hands.anchor(hand)); hands[hand ? 'L' : 'R'].item = h; changed(); } });
+    fly(mesh, from, anchorMatrix(mesh), { done: () => { h.where = 'hand'; holdIn(mesh, hands.anchor); } });
     api.onSound?.('take', u);
     refreshSlot(u);
     if (u.count > 0 && u.slot.zone !== 'icecase') slides.push({ u, t: -0.08 });
-    changed();
   }
   /** Walked out with unpaid things (a famous-view key, say): they go straight back. */
   function returnUnpaid() {
@@ -281,9 +268,6 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
       if (h.where !== 'gone') { h.u.count++; refreshSlot(h.u); n++; }
       held.splice(held.indexOf(h), 1);
     }
-    hands.R.item = held.find((x) => x.hand === 0) ?? null;
-    hands.L.item = held.find((x) => x.hand === 1) ?? null;
-    changed();
     return n;
   }
 
@@ -316,7 +300,6 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
       screen.show('scan');
       const f = worldOf(h.mesh).clone();
       h.mesh.removeFromParent();
-      hands.R.item = null;
       h.where = 'flying';
       fly(h.mesh, f, () => counterMatrix(TILL.scan), { dur: beep, arc: 0.05, done: () => { h.where = 'counter'; } });
     });
@@ -337,17 +320,14 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
       card.visible = false;
       gaze = null;
       h.paid = true;
-      h.hand = 0;
-      fly(h.mesh, counterMatrix(TILL.bag), anchorMatrix(0, h.mesh), { dur: 0.4, done: () => { h.where = 'hand'; holdIn(h.mesh, hands.anchor(0)); hands.R.item = h; changed(); } });
+      fly(h.mesh, counterMatrix(TILL.bag), anchorMatrix(h.mesh), { dur: 0.4, done: () => { h.where = 'hand'; holdIn(h.mesh, hands.anchor); } });
     });
     T(pay + K.payDone + 0.55, () => {
       phase = 'paid';
       wallet = STORE.wallet - sum;
       if (api.player) api.player.suspended = false;
-      changed();
     });
     checkout = { ev, t: 0, sum };
-    changed();
   }
   let gaze = null;                 // where you look during the checkout (store frame)
   const reachTo = new THREE.Vector3(-0.03, 0.09, -0.22);
@@ -371,37 +351,28 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     for (const f of [...flights]) { flights.splice(flights.indexOf(f), 1); f.mesh.removeFromParent(); }
     for (const h of held) { h.mesh.removeFromParent(); h.u.count++; refreshSlot(h.u); }
     held.length = 0;
-    hands.R.item = hands.L.item = null;
     hands.R.off.set(0, 0, 0); reachR = null;
-    hands.setChange(0); change = 0;
     card.visible = false; gaze = null;
     screen.show('idle');
     if (api.player) api.player.suspended = false;
     phase = 'out';
     hands.raise(false);
-    changed();
   }
 
   /* ------------------------------ eating ------------------------------ */
   const eating = makeEating(hands, hands.skinMat, mine);
   function startEating() {
     phase = 'eat';
-    const items = held.filter((h) => h.paid && h.where === 'hand').sort((a, b) => a.hand - b.hand);
-    items.forEach((h) => { h.onEaten = () => { h.where = 'gone'; hands[h.hand ? 'L' : 'R'].item = null; changed(); }; });
-    eating.start(items.map((h) => ({ id: h.id, mesh: h.mesh, hand: h.hand, get onEaten() { return h.onEaten; } })));
-    changed();
+    const h = held.find((x) => x.paid && x.where === 'hand');
+    eating.start(h ? { id: h.id, mesh: h.mesh, onEaten: () => { h.where = 'gone'; } } : null);
   }
   function finishEating() {
     for (const h of held) h.mesh.removeFromParent();
     held.length = 0;
-    hands.R.item = hands.L.item = null;
-    hands.setChange(0);
-    change = 0;
     screen.show('idle');
     phase = wasInside ? 'shop' : 'out';
     if (!wasInside) hands.raise(false);
     api.spot?.done();
-    changed();
   }
 
   const inv = new THREE.Matrix4();
@@ -667,14 +638,9 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     local.copy(camera.position).applyMatrix4(inv.copy(inside.matrixWorld).invert());
     return local.x > -hw && local.x < hw && local.z < 0 && local.z > -LAWSON.depth;
   };
-  api.pick = () => null;
-  api.clearAim = () => {};
-  api.stats = inside.userData.stockStats;
   api.unitAt = (u) => inside.localToWorld(new THREE.Vector3(u.x, u.y, u.z));
   api.coolerAt = inside.localToWorld(new THREE.Vector3(-2.4, 1, -12.3));
   api.doors = doors;
-  api.total = total;
-  api.nearDoor = () => false;
   /** The automatic door opens for the visit only (you don't roam the store); anyone inside is let out. */
   api.holdDoor = (p) => !visit.active && p.z > -0.15;
 
@@ -693,7 +659,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
 
     /* coming in, going out */
     if (inNow && !wasInside) {
-      if (phase === 'out') { phase = 'shop'; wallet = STORE.wallet; change = 0; hands.setChange(0); }
+      if (phase === 'out') { phase = 'shop'; wallet = STORE.wallet; }
       if (phase === 'eat') { eating.stop(); finishEating(); phase = 'shop'; wallet = STORE.wallet; }
       api.onEnter?.();
     }
@@ -793,6 +759,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   api.quietView = () => api.isFamousView();
 
   if (import.meta.env?.DEV) {
+    api.stats = inside.userData.stockStats;      // the STOCK check (scripts/shots.mjs)
     api.debug = {
       pickable, take, startCheckout, visit: () => visit, heard, tillSound: (n) => tillSound(n, null, STORE.checkoutGain), get reachErr() { return reachErr; }, get reachTo() { return reachTo; },
       /** Each leg's length (m) for `id` (dev): door to shelf, shelf to till, till to the spot. */
@@ -827,7 +794,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
         if (phase === 'till') abortCheckout();
         if (phase === 'eat') eating.stop();
         for (const h of held) h.mesh.removeFromParent();
-        held.length = 0; hands.R.item = hands.L.item = null; hands.raise(false);
+        held.length = 0; hands.raise(false);
         phase = 'out';
         endVisit();
       }, productGeometry, TILL,

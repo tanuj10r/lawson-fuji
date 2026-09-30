@@ -1,29 +1,10 @@
-import * as THREE from 'three';
-import { makePainter } from './painter.js';
-import { productGeometry } from './products.js';
-
 /* ------------------------------------------------------------------ *
- * The shopping basket (M3c): the one on top of the stack by the door, and
- * the one you carry, low in the left of the view with what you picked
- * stacking up inside it.
- *
- * What you carry is drawn "on top": its depth is squeezed into the nearest
- * sliver of the depth range, so it never sinks into a shelf you stand
- * against, yet it still writes depth and the ink pass still outlines it.
+ * The shopping baskets (M3c): the nested stacks on their dollies by the
+ * door and at the counter's end (store/interior.js paints them).
  * ------------------------------------------------------------------ */
 
 const BLUE = 0x2f6fb6, DARK = 0x24558e, RIM = 0x5a92d6;
-export const BASKET = { w: 0.46, d: 0.32, h: 0.26 };
-
-/** Make a material draw over the world (see above); returns it. */
-export function onTop(mat) {
-  mat.onBeforeCompile = (sh) => {
-    sh.vertexShader = sh.vertexShader.replace('#include project_vertex',
-      '#include project_vertex\n  gl_Position.z = mix(-gl_Position.w, gl_Position.z, 0.02);');
-  };
-  mat.customProgramCacheKey = () => 'onTop';
-  return mat;
-}
+const BASKET = { w: 0.46, d: 0.32, h: 0.26 };
 
 /**
  * Paint a basket into painter `p`, the middle of its floor at (ox, oy, oz),
@@ -31,7 +12,7 @@ export function onTop(mat) {
  * do, which is what lets a stack nest and show every rim.
  */
 const FLARE = 0.035;
-export function paintBasket(p, ox = 0, oy = 0, oz = 0) {
+function paintBasket(p, ox = 0, oy = 0, oz = 0) {
   const { w, d, h } = BASKET;
   const shade = [0.8, 0.76, 1, 0.6, 0.86, 0.84], t = 0.012, a = Math.atan2(FLARE, h);
   // the floor, the size of the sides' foot
@@ -67,22 +48,12 @@ export function paintBasket(p, ox = 0, oy = 0, oz = 0) {
   }
 }
 
-/** A basket on its own, its origin at the middle of its floor. */
-export function basketModel(lit) {
-  const p = makePainter();
-  paintBasket(p);
-  const g = new THREE.Group();
-  p.build(g, lit, { name: 'basket' });
-  return g;
-}
-
 /**
  * A stack of baskets on its dolly (M3d): nested, each a few centimetres
  * higher and a touch off line, so every rim and handle shows -- the way a
- * konbini's stack by the door reads at a glance.  Paints `n` into `p`; returns
- * where the next (the one you take, drawn on its own) sits.
+ * konbini's stack by the door reads at a glance.  Paints `n` into `p`.
  */
-export const NEST = 0.06;
+const NEST = 0.06;
 export function paintBasketStack(p, x, z, n, sign) {
   // the dolly: a low grey tray on four castors
   p.box(x - 0.27, x + 0.27, 0.05, 0.075, z - 0.2, z + 0.2, 0x8a8e98);
@@ -97,33 +68,4 @@ export function paintBasketStack(p, x, z, n, sign) {
     p.quad(sign, x + 0.262, 0.99, z - 0.18, 0.3, 0.15);
     p.quad(sign, x + 0.262, 0.99, z - 0.205, 0.3, 0.15, { ry: Math.PI });
   }
-  return { x: x + (n % 2 ? 0.008 : -0.004), y: 0.1 + n * NEST, z: z + (n % 2 ? -0.004 : 0.004) };
-}
-
-/**
- * Lay `ids` into the basket: rows along its length, layers upward; tall
- * things lie down.  Returns a local matrix per item (at most `max`).
- */
-const _bb = new THREE.Box3(), _m = new THREE.Matrix4(), _c = new THREE.Vector3();
-export function packBasket(ids, max) {
-  const out = [];
-  const inner = { x0: -BASKET.w / 2 + 0.03, x1: BASKET.w / 2 - 0.03, z0: -BASKET.d / 2 + 0.03, z1: BASKET.d / 2 - 0.03 };
-  let x = inner.x0, z = inner.z0, y = 0.016, rowD = 0, layerH = 0;
-  for (const id of ids.slice(0, max)) {
-    const g = productGeometry(id);
-    const bb = g.boundingBox;
-    const size = bb.getSize(_c);
-    const lie = size.y > 0.14;
-    _m.makeRotationZ(lie ? Math.PI / 2 : 0);
-    _bb.copy(bb).applyMatrix4(_m);
-    const sx = _bb.max.x - _bb.min.x, sz = _bb.max.z - _bb.min.z, sy = _bb.max.y - _bb.min.y;
-    if (x + sx > inner.x1 + 0.01) { x = inner.x0; z += rowD + 0.01; rowD = 0; }
-    if (z + sz > inner.z1 + 0.02) { z = inner.z0; x = inner.x0; y += layerH + 0.004; layerH = 0; }
-    const cx = x + sx / 2, cz = z + sz / 2;
-    const m = _m.clone();
-    m.setPosition(cx - (_bb.min.x + _bb.max.x) / 2, y - _bb.min.y, cz - (_bb.min.z + _bb.max.z) / 2);
-    out.push(m);
-    x += sx + 0.008; rowD = Math.max(rowD, sz); layerH = Math.max(layerH, sy);
-  }
-  return out;
 }

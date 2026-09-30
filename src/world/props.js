@@ -1,14 +1,10 @@
 import * as THREE from 'three';
 import { PAL } from '../core/palette.js';
 import { cel, flat } from '../core/toon.js';
-import {
-  warningPlate, shrinePlate, platePlate, corkBoard, paperSheet, mirrored,
-  phoneBoxSign, phoneNotice, guideBoard, returnPlate, chainLinkTex,
-} from '../core/textures.js';
-import { box, cyl, bake, trs, rngKit, sagCurve, shadowify } from '../core/util.js';
+import { warningPlate, platePlate, corkBoard, phoneBoxSign, phoneNotice, chainLinkTex } from '../core/textures.js';
+import { box, cyl, bake, trs, rngKit, sagCurve } from '../core/util.js';
 import { hullOutline } from '../core/outline.js';
 import { leafTex } from './kit/paint.js';
-import { centerX, groundY, ROAD_HALF, WALK_W, WALK_H } from './street.js';
 
 /* ------------------------------------------------------------------ *
  * Street furniture.
@@ -563,78 +559,6 @@ export function makePostBox(o = {}) {
 
 /* ------------------------------ roadside shrine ------------------------------ */
 
-export function makeShrine(o = {}) {
-  const m = mats();
-  const g = new THREE.Group();
-  // Mid-tone grey stone rather than near-white: a pale figure against a pale
-  // plinth reads as one blank block from any distance.
-  const stone = cel({ color: 0xada7b6, bands: 3, tint: 0x655d80 });
-  const stoneDark = cel({ color: 0x8d8798, bands: 3, tint: 0x605878 });
-  g.add(box(1.05, 0.16, 0.85, stoneDark, 0, 0.08, 0));
-  g.add(box(0.85, 0.3, 0.68, stone, 0, 0.31, 0));
-  g.add(box(0.9, 0.05, 0.72, stoneDark, 0, 0.48, 0));
-  // the little figure
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.16, 0.4, 10), stone);
-  body.position.set(0, 0.7, 0);
-  body.castShadow = true;
-  g.add(body);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.125, 12, 9), stone);
-  head.position.set(0, 1.0, 0);
-  head.castShadow = true;
-  g.add(head);
-  // a small stone halo behind the head, and the closed eyes
-  const halo = new THREE.Mesh(new THREE.CircleGeometry(0.17, 14), stoneDark);
-  halo.position.set(0, 1.0, -0.05);
-  halo.rotation.y = Math.PI;
-  g.add(halo);
-  for (const s of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.012, 0.01), cel({ color: 0x5f5768, bands: 2 }));
-    eye.position.set(s * 0.04, 1.01, 0.122);
-    g.add(eye);
-  }
-  // red bib, the offering that makes it unmistakably a jizo
-  const bib = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.3),
-    cel({ color: PAL.shrineBib, bands: 2, side: THREE.DoubleSide, tint: 0x7a4060 }));
-  bib.position.set(0, 0.76, 0.14);
-  bib.rotation.x = 0.16;
-  bib.castShadow = true;
-  g.add(bib);
-  g.add(box(0.22, 0.035, 0.035, cel({ color: PAL.redDeep, bands: 2, tint: 0x7a4060 }), 0, 0.9, 0.1));
-  // shelter
-  const postMat = cel({ color: 0x8a6f5c, bands: 3, tint: 0x5c5680 });
-  for (const sx of [-0.42, 0.42]) {
-    for (const sz of [-0.3, 0.3]) {
-      g.add(box(0.07, 1.24, 0.07, postMat, sx, 0.625, sz));
-    }
-  }
-  for (const s of [-1, 1]) {
-    const slab = box(0.72, 0.07, 0.78, cel({ color: PAL.roofSlate, bands: 3, tint: 0x514b70 }),
-      s * 0.26, 1.32, 0);
-    slab.rotation.z = -s * 0.42;
-    slab.castShadow = true;
-    g.add(slab);
-  }
-  g.add(box(0.14, 0.08, 0.84, cel({ color: PAL.roofSlate, bands: 3, tint: 0x514b70 }), 0, 1.44, 0));
-  // offerings
-  for (const sx of [-0.26, 0.26]) {
-    g.add(cyl(0.06, 0.05, 0.11, 8, cel({ color: 0xe8e4d8, bands: 2 }), sx, 0.51, 0.2));
-  }
-  const flower = new THREE.Mesh(new THREE.IcosahedronGeometry(0.09, 0),
-    cel({ color: PAL.blossomDeep, bands: 2, tint: 0x8f7aa8 }));
-  flower.position.set(-0.26, 0.63, 0.2);
-  g.add(flower);
-  // name plate
-  const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.36),
-    flat({ color: 0xffffff, map: shrinePlate(), cache: false }));
-  plate.position.set(0.43, 0.75, 0.32);
-  plate.rotation.y = 0.3;
-  g.add(plate);
-
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.y = o.ry ?? 0;
-  return g;
-}
-
 /* ----------------------------------- cat ----------------------------------- */
 
 export function makeCat(o = {}) {
@@ -803,35 +727,6 @@ export function makePlanter(o = {}) {
     }
   }
   g.position.set(o.x, o.y ?? 0, o.z);
-  return g;
-}
-
-export function makeUmbrella(o = {}) {
-  const m = mats();
-  const g = new THREE.Group();
-  const canopy = new THREE.Mesh(
-    new THREE.ConeGeometry(0.2, 0.62, 8, 1, true),
-    flat({ color: PAL.umbrella, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false, cache: false })
-  );
-  canopy.position.set(0, 0.72, 0);
-  canopy.userData.noOutline = true;
-  g.add(canopy);
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2;
-    // Join the cone's tip to its rim exactly. Three's positive Y rotation
-    // points local +X toward -Z, so the azimuth must be negated here.
-    const rib = box(Math.hypot(0.2, 0.62), 0.012, 0.012, m.metal);
-    rib.rotation.set(0, -a, -Math.atan2(0.62, 0.2));
-    rib.position.set(Math.cos(a) * 0.1, 0.72, Math.sin(a) * 0.1);
-    g.add(rib);
-  }
-  g.add(cyl(0.014, 0.014, 1.0, 6, m.metal, 0, 0.5, 0));
-  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.014, 4, 8, Math.PI), cel({ color: 0x6a5a5e, bands: 2 }));
-  handle.position.set(0.05, 0.02, 0);
-  handle.rotation.set(Math.PI / 2, 0, 0);
-  g.add(handle);
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.set(o.tilt ?? 0.22, o.ry ?? 0, o.roll ?? 0.16);
   return g;
 }
 
@@ -1255,68 +1150,6 @@ export function makeCrow(o = {}) {
   return g;
 }
 
-/** A cardboard box someone left out, with a cat asleep in it. */
-export function makeCatBox(o = {}) {
-  const g = new THREE.Group();
-  const card = cel({ color: 0xc9a878, bands: 3, tint: 0x6f6790 });
-  const cardIn = cel({ color: 0xb08f62, bands: 3, tint: 0x6a6288 });
-  const W = 0.62, D = 0.46, H = 0.28;
-  g.add(box(W, 0.04, D, cardIn, 0, 0.02, 0));
-  for (const s of [-1, 1]) {
-    g.add(box(W, H, 0.03, card, 0, H / 2, (s * D) / 2));
-    g.add(box(0.03, H, D, card, (s * W) / 2, H / 2, 0));
-  }
-  // one flap folded out, so the box has a silhouette
-  const flap = box(W, 0.03, 0.2, card, 0, H, D / 2 + 0.09);
-  flap.rotation.x = -0.7;
-  flap.castShadow = true;
-  g.add(flap);
-  // the cat, curled
-  const fur = cel({ color: o.cat ?? 0xd8c9b4, bands: 3, tint: 0x7a6f96 });
-  const curl = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), fur);
-  curl.scale.set(1.15, 0.7, 0.95);
-  curl.position.set(0, 0.16, -0.02);
-  curl.castShadow = true;
-  g.add(curl);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 8), fur);
-  head.position.set(0.12, 0.16, 0.08);
-  g.add(head);
-  for (const s of [-1, 1]) {
-    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.06, 4), fur);
-    ear.position.set(0.12, 0.23, 0.08 + s * 0.045);
-    ear.rotation.z = -0.3;
-    g.add(ear);
-  }
-  const tail = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.022, 4, 10, Math.PI * 1.1),
-    cel({ color: 0xa8977f, bands: 3, tint: 0x6a5f86 }));
-  tail.rotation.set(Math.PI / 2, 0, 0.4);
-  tail.position.set(-0.06, 0.19, 0.07);
-  g.add(tail);
-  g.traverse((n) => { if (n.isMesh) n.receiveShadow = true; });
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.y = o.ry ?? 0;
-  return g;
-}
-
-/** Loose printed sheets, blown off a board and pinned against a kerb. */
-export function makeLoosePaper(ctx, spots) {
-  const geo = new THREE.PlaneGeometry(0.21, 0.29);
-  geo.rotateX(-Math.PI / 2);
-  const mat = flat({ color: 0xfbfaf4, map: paperSheet(), cache: false });
-  const inst = new THREE.InstancedMesh(geo, mat, spots.length);
-  const d = new THREE.Object3D();
-  spots.forEach((s, i) => {
-    d.position.set(s.x, (s.y ?? 0) + 0.022, s.z);
-    d.rotation.set(s.tilt ?? 0, s.ry ?? 0, 0);
-    d.updateMatrix();
-    inst.setMatrixAt(i, d.matrix);
-  });
-  inst.userData.noOutline = true;
-  inst.renderOrder = 2;
-  ctx.add(inst);
-  return inst;
-}
-
 /** Umbrella stand with a few clear vinyl umbrellas left to dry. */
 export function makeUmbrellaStand(o = {}) {
   const m = mats();
@@ -1347,21 +1180,6 @@ export function makeUmbrellaStand(o = {}) {
     u.rotation.set(Math.sin(a) * lean, 0, -Math.cos(a) * lean);
     g.add(u);
   }
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.y = o.ry ?? 0;
-  return g;
-}
-
-/** Wall-mounted fire hose box, red and small and everywhere in Japan. */
-export function makeHoseBox(o = {}) {
-  const m = mats();
-  const g = new THREE.Group();
-  const red = cel({ color: PAL.redDeep, bands: 3, tint: 0x7a4060 });
-  const b = box(o.w ?? 0.16, 0.72, 0.5, red, 0, 0.36, 0);
-  b.castShadow = true;
-  g.add(b);
-  g.add(box(0.02, 0.6, 0.4, cel({ color: 0xb02c28, bands: 3, tint: 0x7a4060 }), (o.w ?? 0.16) / 2 + 0.01, 0.36, 0));
-  g.add(box(0.03, 0.07, 0.24, flat({ color: 0xf6f2e8 }), (o.w ?? 0.16) / 2 + 0.02, 0.58, 0));
   g.position.set(o.x, o.y ?? 0, o.z);
   g.rotation.y = o.ry ?? 0;
   return g;
@@ -1431,29 +1249,6 @@ export function makeBucket(o = {}) {
   }
   g.position.set(o.x, o.y ?? 0, o.z);
   g.rotation.set(o.tilt ?? 0, o.ry ?? 0, o.roll ?? 0);
-  return g;
-}
-
-/** Bamboo broom leaning where it was left. */
-export function makeBroom(o = {}) {
-  const m = mats();
-  const g = new THREE.Group();
-  const handle = cyl(0.022, 0.026, 1.5, 6, cel({ color: 0xc2a874, bands: 3, tint: 0x6f6790 }), 0, 0.75, 0);
-  handle.castShadow = true;
-  g.add(handle);
-  /* The bundle fans out at the sweeping end and is bound narrow at the top,
-   * so the cone sits apex up.  It was upside down, which at three metres reads
-   * as a closed umbrella or a trowel rather than a broom -- easy to miss at
-   * the shrine, where the only one stood against a dark fence, and impossible
-   * to miss once there was one outside a shopfront in daylight. */
-  const head = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.44, 7, 1, true),
-    cel({ color: 0xa88a5e, bands: 3, side: THREE.DoubleSide, tint: 0x6f6790 }));
-  head.position.y = 0.22;
-  head.castShadow = true;
-  g.add(head);
-  g.add(cyl(0.055, 0.05, 0.08, 7, cel({ color: 0x8a6f52, bands: 2 }), 0, 0.43, 0));
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.set(o.tilt ?? 0.24, o.ry ?? 0, o.roll ?? 0.1);
   return g;
 }
 
@@ -1529,58 +1324,6 @@ export function makeTapPost(o = {}) {
   }
   g.position.set(o.x, o.y ?? 0, o.z);
   g.rotation.y = o.ry ?? 0;
-  return g;
-}
-
-/**
- * 物置 -- the pressed-steel garden store.
- *
- * Every back garden and half of every alley in Japan has one of these.  The
- * ribs are the whole prop: a plain box is a crate, and a box with a run of
- * shallow vertical ribs and a sliding door with two handles is unmistakable.
- */
-export function makeStorageShed(o = {}) {
-  const m = mats();
-  const g = new THREE.Group();
-  const w = o.w ?? 1.3, d = o.d ?? 0.72, h = o.h ?? 1.62;
-  const shell = cel({ color: o.color ?? 0xcdd2cf, bands: 3, tint: 0x6a6288 });
-  const trim = cel({ color: 0x8f9a96, bands: 3, tint: 0x5c5680 });
-
-  g.add(box(w + 0.1, 0.09, d + 0.1, m.concreteMid, 0, 0.045, 0));
-  const body = box(w, h, d, shell, 0, 0.09 + h / 2, 0);
-  body.castShadow = body.receiveShadow = true;
-  g.add(body);
-  hullOutline(body, { thickness: 0.0034 });
-  // ribs down the two flanks and the back
-  {
-    const ribs = [];
-    const n = Math.round(w / 0.14);
-    for (let i = 0; i < n; i++) {
-      ribs.push({
-        geometry: new THREE.BoxGeometry(0.05, h - 0.24, d + 0.03),
-        matrix: trs(-w / 2 + 0.07 + i * ((w - 0.14) / (n - 1)), 0.09 + h / 2, 0),
-      });
-    }
-    const rm = new THREE.Mesh(bake(ribs), trim);
-    rm.castShadow = true;
-    g.add(rm);
-  }
-  // the roof, pitched a little to the back, with a drip edge
-  const roof = box(w + 0.12, 0.06, d + 0.14, trim, 0, 0.09 + h + 0.05, -0.02);
-  roof.rotation.x = 0.06;
-  roof.castShadow = true;
-  g.add(roof);
-  g.add(box(w + 0.14, 0.05, 0.05, trim, 0, 0.09 + h + 0.015, d / 2 + 0.06));
-  // the two sliding leaves and their handles
-  for (const s of [-1, 1]) {
-    g.add(box(w / 2 - 0.03, h - 0.3, 0.03, shell, s * (w / 4), 0.09 + h / 2 - 0.02, d / 2 + 0.02));
-    g.add(box(0.04, 0.24, 0.05, m.metalDark, s * 0.07, 0.09 + h * 0.55, d / 2 + 0.045));
-  }
-  g.add(box(w, 0.05, 0.06, trim, 0, 0.09 + h - 0.13, d / 2 + 0.03));
-  g.add(box(w, 0.05, 0.06, trim, 0, 0.24, d / 2 + 0.03));
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.y = o.ry ?? 0;
-  g.userData.top = 0.09 + h + 0.08;
   return g;
 }
 
@@ -1700,112 +1443,6 @@ export function makeDeliveryBox(o = {}) {
   g.add(box(0.12, 0.1, 0.02, cel({ color: 0x8f9a92, bands: 2, tint: 0x5b6f8c }), -0.12, 0.05 + h * 0.42, d / 2 + 0.012));
   g.add(box(0.2, 0.09, 0.01, flat({ color: 0xf2efe4 }), 0.08, 0.05 + h * 0.42, d / 2 + 0.008));
   g.add(box(w + 0.03, 0.04, d + 0.03, cel({ color: 0x5f6a62, bands: 3, tint: 0x5b6f8c }), 0, 0.05 + h + 0.02, 0));
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.y = o.ry ?? 0;
-  return g;
-}
-
-/** The coir mat at a front door, and the two bricks holding its corner down. */
-export function makeDoormat(o = {}) {
-  const g = new THREE.Group();
-  const w = o.w ?? 0.6, d = o.d ?? 0.36;
-  const mat0 = box(w, 0.022, d, cel({ color: o.color ?? 0x8a7f6a, bands: 2, tint: 0x615a80 }), 0, 0.011, 0);
-  mat0.receiveShadow = true;
-  g.add(mat0);
-  g.add(box(w - 0.09, 0.026, d - 0.08, cel({ color: 0x9c9078, bands: 2, tint: 0x615a80 }), 0, 0.014, 0));
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.y = o.ry ?? 0;
-  return g;
-}
-
-/**
- * A vine over a wall or a fence.
- *
- * Instanced leaf blobs on a slack line, thickest at the top and thinning as it
- * comes down the face -- which is how ivy actually grows and, more to the
- * point, is what stops a long low wall reading as an extruded rectangle.
- */
-export function makeIvy(o = {}) {
-  const rng = rngKit(o.seed ?? 77);
-  const g = new THREE.Group();
-  const len = o.len ?? 3.0;
-  const top = o.top ?? 0.9;
-  const drop = o.drop ?? 0.6;
-  const n = o.n ?? Math.round(len * 16);
-  const geo = new THREE.IcosahedronGeometry(1, 0);
-  const lists = [[], []];
-  for (let i = 0; i < n; i++) {
-    const t = rng.range(-len / 2, len / 2);
-    // thickest along the coping, thinning down the face
-    const u = Math.pow(rng.next(), 1.7);
-    const y = top - u * drop;
-    const r = rng.range(0.055, 0.1) * (1 - u * 0.35);
-    lists[rng.chance(0.62) ? 0 : 1].push(trs(
-      t + rng.range(-0.06, 0.06), y, rng.range(-0.04, 0.04) + (o.face ?? 0) * (0.02 + u * 0.03),
-      rng.range(0, 3), rng.range(0, 3), rng.range(0, 3), r, r * 0.7, r
-    ));
-  }
-  const cols = [PAL.leafDeep, PAL.leaf];
-  lists.forEach((list, i) => {
-    if (!list.length) return;
-    const inst = new THREE.InstancedMesh(geo, cel({ color: cols[i], bands: 3, tint: 0x5b6f8c }), list.length);
-    list.forEach((mx, k) => inst.setMatrixAt(k, mx));
-    inst.castShadow = true;
-    g.add(inst);
-  });
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.y = o.ry ?? 0;
-  return g;
-}
-
-/** The library's after-hours book drop. */
-export function makeReturnPost(o = {}) {
-  const m = mats();
-  const g = new THREE.Group();
-  const w = 0.62, d = 0.46, h = 1.0;
-  const shell = cel({ color: 0x3f7a6a, bands: 3, tint: 0x4a6a80 });
-  g.add(box(w + 0.12, 0.08, d + 0.12, m.concreteMid, 0, 0.04, 0));
-  const b = box(w, h, d, shell, 0, 0.08 + h / 2, 0);
-  b.castShadow = b.receiveShadow = true;
-  g.add(b);
-  hullOutline(b, { thickness: 0.0034 });
-  /* The sloped top with the slot in it, the hood over the slot, and -- on the
-   * *same* face -- the plate and the collection door.  The slot on one side and
-   * the lettering on the other is a box you cannot tell the front of. */
-  const top0 = box(w + 0.06, 0.1, d + 0.06, cel({ color: 0x356656, bands: 3, tint: 0x4a6a80 }), 0, 0.08 + h + 0.05, 0);
-  top0.rotation.x = 0.16;
-  top0.castShadow = true;
-  g.add(top0);
-  g.add(box(w - 0.18, 0.045, 0.1, cel({ color: PAL.black, bands: 2, tint: 0x4b4560 }), 0, 0.08 + h + 0.08, -0.1));
-  g.add(box(w - 0.1, 0.03, 0.16, cel({ color: 0x356656, bands: 3, tint: 0x4a6a80 }), 0, 0.08 + h + 0.14, -0.15));
-  const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.25),
-    flat({ color: 0xffffff, map: returnPlate(), cache: false }));
-  plate.position.set(0, 0.08 + h * 0.72, -(d / 2 + 0.005));
-  plate.rotation.y = Math.PI;
-  plate.userData.noOutline = true;
-  g.add(plate);
-  g.add(box(w - 0.12, 0.4, 0.02, cel({ color: 0x356656, bands: 3, tint: 0x4a6a80 }), 0, 0.08 + h * 0.3, -(d / 2 + 0.005)));
-  g.add(cyl(0.022, 0.022, 0.02, 8, m.metalDark, 0.16, 0.08 + h * 0.3, -(d / 2 + 0.02)).rotateX(Math.PI / 2));
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.y = o.ry ?? 0;
-  return g;
-}
-
-/** A pet bowl and a saucer of water, left by a wall. */
-export function makePetBowl(o = {}) {
-  const g = new THREE.Group();
-  for (const [dx, c] of [[0, 0xe0574a], [0.22, 0x4a7fae]]) {
-    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.06, 0.05, 10),
-      cel({ color: c, bands: 3, tint: 0x6f6790 }));
-    bowl.position.set(dx, 0.025, 0);
-    bowl.castShadow = true;
-    g.add(bowl);
-    const fill = new THREE.Mesh(new THREE.CircleGeometry(0.065, 10),
-      flat({ color: dx ? PAL.water : 0xc8a878 }));
-    fill.rotation.x = -Math.PI / 2;
-    fill.position.set(dx, 0.045, 0);
-    g.add(fill);
-  }
   g.position.set(o.x, o.y ?? 0, o.z);
   g.rotation.y = o.ry ?? 0;
   return g;
@@ -2072,77 +1709,6 @@ export function makePhoneBooth(o = {}) {
   g.position.set(o.x, o.y ?? 0, o.z);
   g.rotation.y = o.ry ?? 0;
   g.userData.top = H + 0.37;
-  return g;
-}
-
-/** The 街区案内図 board: two posts, a raked panel and a shallow hood. */
-export function makeGuideBoard(o = {}) {
-  const m = mats();
-  const g = new THREE.Group();
-  const w = o.w ?? 1.5;
-  const h = o.h ?? 1.05;
-  const y0 = o.y0 ?? 0.95;
-  const frame = cel({ color: 0x6f7a86, bands: 3, tint: 0x5c5680 });
-
-  for (const s of [-1, 1]) {
-    const p = box(0.09, y0 + h, 0.09, frame, s * (w / 2 - 0.12), (y0 + h) / 2, 0);
-    p.castShadow = true;
-    g.add(p);
-    g.add(cyl(0.11, 0.13, 0.12, 8, m.concreteMid, s * (w / 2 - 0.12), 0.06, 0));
-  }
-  /* **The panel does not lean.**  It had `rotation.x = -0.12` and sat at z 0.02,
-   * which is a 7° tilt about its own centre on a 1.05 m board: the bottom edge
-   * swung back to z = -0.043 -- *inside* the two 0.09 m posts at z 0 -- and the
-   * top edge swung forward past the hood's leading edge.  So every 街区案内図 in
-   * the world had its own frame growing through its map, at the school and at the
-   * library both.  A guide board is bolted flat to its posts; the depth that
-   * makes it read is the hood over it, which does tilt. */
-  const panel = new THREE.Mesh(
-    new THREE.BoxGeometry(w, h, 0.08),
-    [frame, frame, frame, frame,
-     flat({ color: 0xffffff, map: guideBoard(), cache: false }), frame]
-  );
-  panel.position.set(0, y0 + h / 2, 0.09);
-  panel.castShadow = panel.receiveShadow = true;
-  g.add(panel);
-  hullOutline(panel, { thickness: 0.003 });
-  // hood over the top, and the rail under it
-  const hood = box(w + 0.16, 0.05, 0.3, frame, 0, y0 + h + 0.11, 0.14);
-  hood.rotation.x = -0.16;
-  g.add(hood);
-  g.add(box(w + 0.06, 0.07, 0.14, frame, 0, y0 - 0.03, 0.07));
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.y = o.ry ?? 0;
-  return g;
-}
-
-/** The lidded resource box a neighbourhood keeps on its corner. */
-export function makeRecycleBox(o = {}) {
-  const m = mats();
-  const g = new THREE.Group();
-  const w = o.w ?? 0.86, d = o.d ?? 0.54, h = o.h ?? 0.66;
-  const body = cel({ color: o.color ?? 0x4a7fae, bands: 3, tint: 0x4a4a92 });
-  const b = box(w, h, d, body, 0, h / 2, 0);
-  b.castShadow = b.receiveShadow = true;
-  g.add(b);
-  hullOutline(b, { thickness: 0.0032 });
-  // the lid, cracked open at the front, and the two catches
-  const lid = box(w + 0.05, 0.07, d + 0.05, cel({ color: 0x3f6f9c, bands: 3, tint: 0x4a4a92 }),
-    0, h + 0.05, -0.02);
-  lid.rotation.x = -0.07;
-  lid.castShadow = true;
-  g.add(lid);
-  for (const s of [-1, 1]) {
-    g.add(box(0.09, 0.11, 0.03, m.metalDark, s * (w / 2 - 0.14), h - 0.02, d / 2 + 0.02));
-  }
-  // the ribs every moulded box has, and the stencil panel
-  for (let i = 0; i < 3; i++) {
-    g.add(box(w + 0.02, 0.025, d + 0.02, cel({ color: 0x3f6f9c, bands: 2, tint: 0x4a4a92 }),
-      0, 0.16 + i * 0.18, 0));
-  }
-  g.add(box(0.42, 0.16, 0.02, flat({ color: 0xf2efe4 }), 0, h * 0.56, d / 2 + 0.015));
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.y = o.ry ?? 0;
   return g;
 }
 

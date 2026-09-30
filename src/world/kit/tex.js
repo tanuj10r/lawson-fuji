@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { MENU_TAGS } from '../../data/town.js';
 
 /* ------------------------------------------------------------------ *
  * Canvas2D art for the town kit (AGENTS.md: everything drawn in code).
@@ -858,9 +857,6 @@ export const mortarTex = () =>
     }
   }, { repeat: true });
 
-/** Corrugated sheet (波板トタン): 1.2 m tile, a rib every 7.5 cm, lit on
- * one flank and shaded on the other, with lap joints and a row of screws. */
-export const SHEET_TILE = 1.2;
 export const sheetTex = () =>
   canvasTex('sheet', 256, 256, (c, w, h) => {
     const ribs = 16, rw = w / ribs;
@@ -932,70 +928,6 @@ export const laundryTex = (variant = 0) =>
       c.fillStyle = 'rgba(255,255,255,0.5)'; c.fillRect(8, h - 30, w - 16, 8);
     }
     c.fillStyle = 'rgba(90,80,110,0.25)'; c.fillRect(0, 0, w, 6);
-  });
-
-/** Back wall of a shop interior: shelves of goods, by trade. */
-export const shopBackTex = (kind = 'general') =>
-  canvasTex('shopBack' + kind, 512, 256, (c, w, h) => {
-    const r = rng(kind.length * 31 + 7);
-    c.fillStyle = '#efe8dc'; c.fillRect(0, 0, w, h);
-    const goods = {
-      general: ['#d8504a', '#f2c23c', '#4f8fd0', '#6fb86a', '#f2f2f2', '#e8864a'],
-      bakery: ['#d8a060', '#c07a3a', '#f0d09a', '#e8b878'],
-      florist: ['#f28cb0', '#f2d24a', '#e85a5a', '#9fd07a', '#c090e0'],
-      wagashi: ['#f4d8e0', '#9fc07a', '#f2f2ea', '#8a5a4a'],
-      books: ['#4a6fa8', '#c84a4a', '#e8d8b0', '#5a8a5a', '#8a6aa0'],
-      ramen: ['#c8a070', '#e8d8b8', '#8a4a3a'],
-      cafe: ['#8a5a3a', '#e8d8c0', '#c8a070'],
-      laundry: ['#e8eef4'],
-      dentist: ['#e8f0f4'],
-      barber: ['#e8eef4', '#4a8ac8'],
-    }[kind] ?? ['#d8504a', '#f2c23c', '#4f8fd0', '#6fb86a'];
-    if (kind === 'laundry' || kind === 'dentist' || kind === 'barber') {
-      // a tiled wall, a counter line, posters
-      c.fillStyle = '#dfe6ec'; c.fillRect(0, 0, w, h);
-      c.strokeStyle = 'rgba(120,130,150,0.3)';
-      for (let x = 0; x < w; x += 32) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke(); }
-      for (let y = 0; y < h; y += 32) { c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); }
-      for (let i = 0; i < 3; i++) { c.fillStyle = goods[i % goods.length] === '#e8eef4' ? '#f6d86a' : '#f28cb0'; c.fillRect(40 + i * 150, 50, 70, 90); }
-      return;
-    }
-    // noodle and sweet shops: the row of wooden menu tags (品書き) along the top
-    const tags = kind === 'ramen' || kind === 'soba' || kind === 'wagashi';
-    for (let row = tags ? 1 : 0; row < 4; row++) {
-      const y = 20 + row * 58;
-      c.fillStyle = '#b8a890'; c.fillRect(0, y + 46, w, 6);
-      for (let x = 6; x < w - 10;) {
-        const bw = 10 + r() * 22;
-        const col = goods[Math.floor(r() * goods.length)];
-        c.fillStyle = col;
-        const bh = 18 + r() * 26;
-        c.fillRect(x, y + 46 - bh, bw, bh);
-        // a label band on the packet, and its shine
-        c.fillStyle = 'rgba(255,255,255,0.55)'; c.fillRect(x + 2, y + 46 - bh * 0.6, bw - 4, 4);
-        c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(x, y + 46 - bh, 3, bh);
-        x += bw + 2;
-      }
-      // price cards along the shelf edge, one in three a red sale card
-      for (let x = 20 + r() * 30; x < w - 30; x += 50 + r() * 40) {
-        c.fillStyle = r() < 0.33 ? '#e8453f' : '#fff6c8';
-        c.fillRect(x, y + 47, 18, 10);
-      }
-    }
-    if (tags) {
-      c.fillStyle = '#6a4a34'; c.fillRect(0, 0, w, 64);
-      const n = Math.min(MENU_TAGS.length, 8);
-      for (let i = 0; i < n; i++) {
-        const x = 16 + i * ((w - 32) / n);
-        c.fillStyle = '#f2e6c8'; c.fillRect(x, 6, 40, 54);
-        c.fillStyle = '#2a1e18'; c.font = `bold 13px ${JP}`; c.textAlign = 'center'; c.textBaseline = 'top';
-        [...MENU_TAGS[i]].slice(0, 4).forEach((ch, k) => c.fillText(ch, x + 20, 9 + k * 12.5));
-      }
-    } else if (r() < 0.8) {
-      // a hanging POP banner over the shelves
-      c.fillStyle = r() < 0.5 ? '#e8453f' : '#f2c23c'; c.fillRect(w * 0.3, 0, w * 0.4, 18);
-      c.fillStyle = '#ffffff'; c.fillRect(w * 0.32, 5, w * 0.36, 3);
-    }
   });
 
 /** The barber's pole: red, white and blue spirals. */

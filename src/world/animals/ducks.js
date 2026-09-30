@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { rngKit } from '../../core/util.js';
 import { ANIMALS } from '../../config.js';
 import { Body, loft, blob, at } from './shapes.js';
-import { animalMaterial, Herd, ease, turn } from './shade.js';
+import { animalMaterial, Herd, turn } from './shade.js';
 
 /* ------------------------------------------------------------------ *
  * カルガモ, the spot-billed duck: Japan's everyday duck, on 鏡池 and the

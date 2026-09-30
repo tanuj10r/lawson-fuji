@@ -5,7 +5,7 @@ import { cel, flat } from '../core/toon.js';
 import {
   meterBox, litWindowTex, curtainTex, namePlate, blockPlate,
 } from '../core/textures.js';
-import { box, cyl, bake, trs, rngKit } from '../core/util.js';
+import { box, bake, trs, rngKit } from '../core/util.js';
 import { hullOutline } from '../core/outline.js';
 
 /* ------------------------------------------------------------------ *
@@ -680,17 +680,6 @@ function leanTo(g, { w, d, h, fall, mat, sheetColor, opacity }) {
     const rm = new THREE.Mesh(bake(ribs), m.metal);
     g.add(rm);
   }
-  return g;
-}
-
-/** A carport: the lean-to over a bay, plus the wheel stop under it. */
-export function makeCarport(o = {}) {
-  const m = mats();
-  const g = new THREE.Group();
-  leanTo(g, { w: o.w ?? 2.7, d: o.d ?? 5.0, h: o.h ?? 2.25, fall: 0.22, sheetColor: 0x9cb8d0, opacity: 0.62 });
-  g.add(box((o.w ?? 2.7) - 0.9, 0.11, 0.16, m.concreteMid, 0, 0.055, -(o.d ?? 5.0) / 2 + 0.7));
-  g.position.set(o.x, o.y ?? 0, o.z);
-  g.rotation.y = o.ry ?? 0;
   return g;
 }
 

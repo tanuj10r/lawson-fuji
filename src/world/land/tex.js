@@ -165,37 +165,6 @@ export const rengeTex = () =>
     }
   }, { repeat: true });
 
-/** The farm track: packed earth, two tyre ruts, a grass crown.  u across
- * the track (one tile is its whole width), v along it. */
-export const trackTex = () =>
-  canvasTex('landTrack', 256, 512, (c, W, H) => {
-    c.scale(2, 2);
-    const w = W / 2, h = H / 2;
-    const r = rng(739);
-    c.fillStyle = '#c2ad8a'; c.fillRect(0, 0, w, h);
-    // the ruts: a shade darker, worn smooth
-    for (const u of [0.26, 0.74]) {
-      c.fillStyle = '#ab9474'; c.fillRect(u * w - 11, 0, 22, h);
-      c.fillStyle = 'rgba(214,196,164,0.8)'; c.fillRect(u * w - 11, 0, 3, h);
-    }
-    // the crown: tufts of grass
-    for (let i = 0; i < 46; i++) {
-      c.fillStyle = r() < 0.6 ? '#a3bb78' : '#b2c486';
-      c.beginPath(); c.ellipse(w / 2 + (r() - 0.5) * 14, r() * h, 2 + r() * 3.5, 3 + r() * 6, 0, 0, Math.PI * 2); c.fill();
-    }
-    // grass creeping in at the edges
-    for (let i = 0; i < 50; i++) {
-      c.fillStyle = '#93b068';
-      const x = r() < 0.5 ? r() * 10 : w - r() * 10;
-      c.beginPath(); c.ellipse(x, r() * h, 3 + r() * 5, 5 + r() * 9, 0, 0, Math.PI * 2); c.fill();
-    }
-    // gravel
-    for (let i = 0; i < 260; i++) {
-      c.fillStyle = r() < 0.5 ? 'rgba(236,226,206,0.7)' : 'rgba(140,122,98,0.5)';
-      c.fillRect(r() * w, r() * h, 2, 2);
-    }
-  }, { repeat: true });
-
 /* ------------------------------ plates ------------------------------ */
 
 /** A deer, side on, walking left: the board's small mark. */

@@ -81,6 +81,8 @@ let lostBefore = false;
 try { lostBefore = localStorage.getItem('takemebacktojapan-lost') === '1'; } catch { /* optional */ }
 const tier = params.get('tier') ?? (lostBefore || inApp || (ios ? !bigIphone : (navigator.deviceMemory ?? 8) <= 4) ? 'light' : 'full');
 if (MOBILE.tiers[tier]) Object.assign(MOBILE, MOBILE.tiers[tier]);
+// dev: ?set=key:json,key:json overrides MOBILE tunables (measuring)
+if (import.meta.env?.DEV && params.get('set')) for (const kv of params.get('set').split(';')) { const i = kv.indexOf(':'); MOBILE[kv.slice(0, i)] = JSON.parse(kv.slice(i + 1)); }
 diag.stage(`tier ${tier}`);
 
 /* Our own context, so every GPU allocation is counted (diag.js). */
@@ -465,6 +467,13 @@ function resize() {
   updateProjection();
   pipeline.setSize(w, h);
   pipeline.rtB.setSize(1, 1);          // (the FXAA pass is off: its target would hold a whole frame for nothing)
+  /* POCKET: the canvas itself at the inside size (up to 2x), so the last
+   * pass draws 1:1 onto the phone's pixels.  (core/post.js sizes the canvas
+   * at CSS pixels, right for a desktop, where the supersampled frame is
+   * shrunk onto it: on a 3x phone that frame was blown up threefold, which
+   * is what read as pixelated on Tan's iPhone.) */
+  renderer.setPixelRatio(pipeline.scale);
+  renderer.setSize(w, h, true);
   setOutlineResolution(pipeline.size.x, pipeline.size.y);
   touch?.resize();
   // portrait: a gentle word about turning the phone, now and then
@@ -635,7 +644,7 @@ document.addEventListener('click', wake);
 
 /* --------------------------------- loop --------------------------------- */
 const clock = new THREE.Clock();
-let lastDraw = 0, menuShown = null;
+let lastDraw = 0, menuShown = null, storeWhole = false;
 // adaptive resolution: the frame rate over the last couple of seconds sets the scale
 const perf = { n: 0, t: 0, fps: 60 };
 function adapt(rawDt) {
@@ -675,7 +684,7 @@ function frame(now = 0) {
   tipsyStep(dt);
   timeFade(dt);
   world.update(dt, camera);
-  culler.update(camera.position);
+  culler.update(camera.position, 3, shop?.inside(camera) ? MOBILE.store.behind : null);   // in the store, what is behind its walls goes
   seatLights(dt);
   if (world.line) {
     const c = world.line.crossingPos;
@@ -697,6 +706,10 @@ function frame(now = 0) {
   hud.setAction(hovered ? hovered.label.replace(/^.*?·\s*/, '') : null);
   hud.setCrosshair(!choosing && !famousView);
   const inStore = !!shop?.inside(camera);
+  /* the konbini's pages: whole from the moment the visit walks you in (the town behind the store has
+   * streamed out by then) until the visit is over (you eat outside with it in your hand) */
+  storeWhole = inStore || (storeWhole && !!shop?.visiting);
+  lite.store?.update(camera.position, storeWhole);
   sound.update(dt, { camera, inside: inStore, look: lookName, cooler: shop?.coolerAt });
   walkAt.forEach(({ w }, i) => { walkList[i].on = w.walk(); });
   sound.walkSignals(walkList);
@@ -716,6 +729,7 @@ enterHero(SPAWN.view);
 resize();
 world.update(0, camera);
 culler.update(camera.position, 1);
+lite.store?.update(camera.position);          // (the konbini's small pages from the famous view: the whole ones never upload at load)
 seatLights();
 sky.dome.position.copy(camera.position);
 sky.clouds.position.copy(camera.position);

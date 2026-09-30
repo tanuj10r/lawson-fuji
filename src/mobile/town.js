@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 import { cel, setWearTexture } from '../core/toon.js';
 import { wearAtlas } from '../world/kit/paint.js';
-import { WORLD, TOWN, LAWSON } from '../config.js';
+import { WORLD, TOWN, LAWSON, MOBILE } from '../config.js';
 import { makeCtx } from '../world/ctx.js';
 import { cutSinks } from '../world/sinkcut.js';
 import { buildLawson } from '../world/lawson.js';
 import { dressLawsonGround } from '../world/lawson-dress.js';
 import { buildFuji } from '../world/fuji.js';
 import { buildFrame, buildOldTown } from '../world/town-edge.js';
-import { buildCore } from '../world/town-core.js';
+import { buildCore } from './core.js';                // POCKET: only the kept lots are built
 import { buildPetals } from '../world/petals.js';
 import { mergeStatic } from '../world/merge.js';
 import { buildTownSakura } from '../world/kit/sakura.js';
@@ -38,6 +38,72 @@ import { makeNight } from '../world/kit/night.js';
  * keeps the last, so a phone that dies while building says where), and
  * `shrink(root, store)` makes each part's painted pages phone-sized as soon
  * as it is built, so the desktop-sized pages never all exist at once. */
+/* POCKET: the static batching, its sign atlas cut up.  On the desktop
+ * every sign's page is packed into one set of atlas pages (4096 x 4496 for
+ * this town: ~90 MB, always resident, since some sign on it is always
+ * near).  Here:
+ *   - a page bigger than MOBILE.atlas.max texels keeps its own texture: it
+ *     batches with the others that share it, and gives its GPU memory back
+ *     with its batches when you are far from it (lite.js makeCuller)
+ *   - so does a page used in more than one region (road signs, pole plates:
+ *     packed per region they would be copied into every region's page)
+ *   - the rest, the pages that belong to one place (a shop's plates, a
+ *     house's name board), are packed per region (MOBILE.atlas.z, .x: a
+ *     grid in world terms), one mergeStatic pass each, so a far region's
+ *     page streams out with its batches.
+ * A pass sees only its region: every other mesh is held back (userData.keep
+ * and noAtlas, for that pass only), and what a pass makes stays out of the
+ * passes after it. */
+function mergePocket(root, opts) {
+  root.updateMatrixWorld(true);
+  const { z: zs, x: xs, max } = MOBILE.atlas;
+  const c = new THREE.Vector3();
+  const region = (o) => {
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    c.copy(o.geometry.boundingSphere.center).applyMatrix4(o.matrixWorld);
+    let i = 0, j = 0;
+    while (i < zs.length && c.z < zs[i]) i++;
+    while (j < xs.length && c.x > xs[j]) j++;
+    return i * (xs.length + 1) + j;
+  };
+  const count = (zs.length + 1) * (xs.length + 1);
+  const meshes = [], regionsOf = new Map();
+  root.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || o.userData.keep) return;
+    const r = region(o);
+    for (const m of [o.material].flat()) {
+      const t = m?.map;
+      if (!t) continue;
+      if (!regionsOf.has(t.source)) regionsOf.set(t.source, new Set());
+      regionsOf.get(t.source).add(r);
+    }
+    meshes.push({ o, r, noAtlas: o.userData.noAtlas });
+  });
+  for (const m of meshes) {
+    const t = Array.isArray(m.o.material) ? null : m.o.material?.map;
+    m.own = !!t && t.image.width * t.image.height <= max && regionsOf.get(t.source).size === 1;
+  }
+  const known = new Set(), made = [];
+  root.traverse((o) => { if (o.isMesh) known.add(o); });
+  let out = null;
+  for (let r = 0; r < count; r++) {
+    for (const m of meshes) {
+      const other = m.r !== r;
+      m.o.userData.keep = other || undefined;
+      m.o.userData.noAtlas = other || !m.own || m.noAtlas;
+    }
+    out = mergeStatic(root, opts);
+    // this pass's batches, and the parts it split off multi-material meshes and left, are its own
+    root.traverse((o) => { if (o.isMesh && !known.has(o)) { o.userData.keep = true; known.add(o); made.push(o); } });
+  }
+  for (const m of meshes) {
+    delete m.o.userData.keep;
+    if (m.noAtlas === undefined) delete m.o.userData.noAtlas; else m.o.userData.noAtlas = m.noAtlas;
+  }
+  for (const o of made) delete o.userData.keep;
+  return out;
+}
+
 export function buildTown(scene, { cell = 128, detailCell = 0, stage = () => {}, shrink = null } = {}) {
   const root = new THREE.Group();
   root.name = 'town';
@@ -179,8 +245,9 @@ export function buildTown(scene, { cell = 128, detailCell = 0, stage = () => {},
     else if (o.material.isMeshToonMaterial) o.receiveShadow = true;
   });
   shrink?.(root, false);
+  if (import.meta.env?.DEV && window.__preMerge) window.__preMerge(root, core, T);   // dev: the cost of each part, before batching
   stage('batching');
-  const batching = mergeStatic(root, { cell, atlas: true, detailCell });   // LITE: smaller cells, and detail cells
+  const batching = mergePocket(root, { cell, atlas: true, detailCell });   // LITE: smaller cells, and detail cells; POCKET: big pages stay their own
   stage('batched');
 
   /* --- Mt. Fuji, riding with the camera like the sky --- */

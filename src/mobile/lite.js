@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { MOBILE, TOWN, ANIMALS } from '../config.js';
+import { repackStore, pageLevels } from './konbini.js';
+import { decalAtlas } from '../world/kit/tex.js';
 
 /* ------------------------------------------------------------------ *
  * What makes the town light enough for a phone (docs/decisions/
@@ -26,6 +28,8 @@ export function liteConfig() {
   TOWN.petals.trees = 110;
   // Hachi's distance fields kept grown at once (2.6 MB each)
   ANIMALS.guide.fields = 3;
+  // POCKET: the plain local trains only (the Pokémon wrap's 4096 x 1024 page is 21 MB on the GPU)
+  TOWN.rail.trains = TOWN.rail.trains.filter((t) => t !== 'poke');
 }
 
 /**
@@ -33,7 +37,10 @@ export function liteConfig() {
  * Returns what it did, for the report.
  */
 export function liteScene(scene, renderer, world) {
-  const out = { packed: packBatches(scene), storeQuads: mergeStoreQuads(scene), mirrors: 0, freedTextures: 0, freedTextureMB: 0, freedGeometry: 0, freedGeometryMB: 0 };
+  // (dev, scripts/_mobile-seen.mjs: ?seen keeps the store's pages as the desktop paints them)
+  const raw = import.meta.env?.DEV && /[?&]seen/.test(location.search);
+  const store = raw ? null : repackStore(scene);
+  const out = { packed: packBatches(scene), store, decals: cropDecals(scene), atlasPages: cropAtlasPages(scene), storeQuads: raw ? 0 : mergeStoreQuads(scene, { pages: store?.pages }), mirrors: 0, freedTextures: 0, freedTextureMB: 0, freedGeometry: 0, freedGeometryMB: 0 };
 
   /* The mirrors (land/mirror.js: the pond, the river, the paddies) each draw
    * the scene again.  Their own updaters show them near their water: here
@@ -259,7 +266,7 @@ function boundsOf(scene) {
  * brightness still follows the look: the merged material shares the
  * originals' colour object, which lawson.js setLook sets in place.
  */
-export function mergeStoreQuads(scene, { page = 2048 } = {}) {
+export function mergeStoreQuads(scene, { page = 2048, pages = null } = {}) {
   const inside = scene.getObjectByName('lawson-interior');
   if (!inside) return 0;
   inside.updateMatrixWorld(true);
@@ -267,7 +274,7 @@ export function mergeStoreQuads(scene, { page = 2048 } = {}) {
   inside.traverse((o) => {
     if (!o.isMesh || o.name !== 'store-quads' || o.isInstancedMesh) return;
     const t = o.material.map, img = t?.image;
-    if (!img || !(img.width > 0) || o.material.alphaMap) return;
+    if (!img || !(img.width > 0) || o.material.alphaMap || t.name === 'store-tags') return;     // (the price tags keep their own page: konbini.js)
     const uv = o.geometry.attributes.uv;
     if (!uv) return;
     for (let i = 0; i < uv.count; i++) { const u = uv.getX(i), v = uv.getY(i); if (u < -0.001 || u > 1.001 || v < -0.001 || v > 1.001) return; }
@@ -275,28 +282,22 @@ export function mergeStoreQuads(scene, { page = 2048 } = {}) {
     list.push(o);
   });
   if (list.length < 2) return 0;
-  // each texture once, scaled so the lot fits one page: shelf packing, tallest first
+  /* each texture once, at its own size (the pocket edition: the old round
+   * scaled them all down to fit one 2048 page): shelf packing, tallest
+   * first, `page` wide and as tall as it takes */
   const texs = [...new Set(list.map((o) => o.material.map))];
-  const area = texs.reduce((s, t) => s + t.image.width * t.image.height, 0);
-  let k = Math.min(1, Math.sqrt((page * page * 0.8) / area));
   const PAD = 4;
-  let slots;
-  for (let tries = 0; tries < 8; tries++, k *= 0.9) {
-    slots = new Map();
-    let x = 0, y = 0, shelf = 0, ok = true;
-    for (const t of [...texs].sort((a, b) => b.image.height - a.image.height)) {
-      const w = Math.max(4, Math.round(t.image.width * k)), h = Math.max(4, Math.round(t.image.height * k));
-      if (x + w + PAD * 2 > page) { x = 0; y += shelf; shelf = 0; }
-      if (y + h + PAD * 2 > page) { ok = false; break; }
-      slots.set(t, { x: x + PAD, y: y + PAD, w, h });
-      x += w + PAD * 2; shelf = Math.max(shelf, h + PAD * 2);
-    }
-    if (ok) break;
-    slots = null;
+  const slots = new Map();
+  let x = 0, y = 0, shelf = 0;
+  for (const t of [...texs].sort((a, b) => b.image.height - a.image.height)) {
+    const w = t.image.width, h = t.image.height;
+    if (x + w + PAD * 2 > page) { x = 0; y += shelf; shelf = 0; }
+    slots.set(t, { x: x + PAD, y: y + PAD, w, h });
+    x += w + PAD * 2; shelf = Math.max(shelf, h + PAD * 2);
   }
-  if (!slots) return 0;
+  const pageH = y + shelf;
   const cv = document.createElement('canvas');
-  cv.width = cv.height = page;
+  cv.width = page; cv.height = pageH;
   const c = cv.getContext('2d');
   for (const [t, s] of slots) {
     c.drawImage(t.image, s.x - PAD, s.y - PAD, s.w + PAD * 2, s.h + PAD * 2);   // bleed its own edge into the padding
@@ -305,7 +306,7 @@ export function mergeStoreQuads(scene, { page = 2048 } = {}) {
   }
   const atlas = new THREE.CanvasTexture(cv);
   atlas.colorSpace = list[0].material.map.colorSpace;
-  atlas.anisotropy = 4;
+  atlas.anisotropy = 8;
   const inv = inside.matrixWorld.clone().invert(), rel = new THREE.Matrix4();
   const groups = new Map();
   for (const o of list) {
@@ -315,12 +316,13 @@ export function mergeStoreQuads(scene, { page = 2048 } = {}) {
     const g = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone());
     for (const name of Object.keys(g.attributes)) if (name !== 'position' && name !== 'uv') g.deleteAttribute(name);
     const uv = g.attributes.uv;
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, (s.x + uv.getX(i) * s.w) / page, 1 - (s.y + (1 - uv.getY(i)) * s.h) / page);
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, (s.x + uv.getX(i) * s.w) / page, 1 - (s.y + (1 - uv.getY(i)) * s.h) / pageH);
     g.applyMatrix4(rel.multiplyMatrices(inv, o.matrixWorld));
     groups.get(key).geos.push(g);
     groups.get(key).meshes.push(o);
   }
   let removed = 0;
+  const made = [];
   for (const { src, geos, meshes } of groups.values()) {
     const geo = mergeGeometries(geos, false);
     if (!geo) continue;
@@ -328,12 +330,99 @@ export function mergeStoreQuads(scene, { page = 2048 } = {}) {
     mat.color = src.color;               // the same Color object: setLook brightens it in place
     const mesh = new THREE.Mesh(geo, mat);
     mesh.name = 'store-quads-lite';
+    made.push(mat);
     mesh.userData.noOutline = true;
     mesh.castShadow = mesh.receiveShadow = false;
     inside.add(mesh);
     for (const o of meshes) { o.parent.remove(o); removed++; }
   }
+  pages?.push(pageLevels(made, atlas, MOBILE.store.quads));      // (konbini.js: smaller copies outside)
+  // the pages now in the atlas, where nothing else draws with them: their canvases go
+  const still = new Set();
+  scene.traverse((o) => { for (const m of [o.material].flat()) if (m?.map) still.add(m.map); });
+  for (const t of texs) if (!still.has(t)) { t.dispose(); if ('width' in t.image) { t.image.width = 1; t.image.height = 1; } }
   return removed;
+}
+
+/**
+ * The town's decal atlas (kit/tex.js: every road marking, lid, crack and
+ * petal drift, 8 x 8 cells of 256 px on a 2048 page) has its bottom two rows
+ * empty: the page is cropped to the six that are painted, and every decal's
+ * v scaled to match.  The same cells at the same size; 21 -> 16 MB.
+ */
+export function cropDecals(scene, rows = 6) {
+  const t = decalAtlas(), img = t.image;
+  if (!img || t.userData.cropped) return 0;
+  const h = Math.round(img.height * rows / 8), k = img.height / h;
+  const cv = document.createElement('canvas');
+  cv.width = img.width; cv.height = h;
+  cv.getContext('2d').drawImage(img, 0, 0, img.width, h, 0, 0, img.width, h);
+  t.image = cv;
+  t.userData.cropped = true;
+  t.needsUpdate = true;
+  const done = new Set();
+  let n = 0;
+  scene.traverse((o) => {
+    if (!o.isMesh || o.material?.map !== t || done.has(o.geometry)) return;
+    done.add(o.geometry);
+    const uv = o.geometry.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - (1 - uv.getY(i)) * k);
+    uv.needsUpdate = true;
+    n++;
+  });
+  img.width = img.height = 1;
+  return n;
+}
+
+/**
+ * The town's sign atlas pages (world/merge.js) are always 4096 wide, the
+ * last of a set only as tall as what landed on it: packed per region
+ * (mobile/town.js), a region's page is often a few hundred texels of one
+ * shelf, the rest of its width empty.  Each page is cropped to the width
+ * its signs use and the batches' u scaled to match: the same texels, less
+ * page.  Returns [before, after] MB.
+ */
+export function cropAtlasPages(scene) {
+  const users = new Map();
+  scene.traverse((o) => {
+    if (!o.isMesh) return;
+    for (const m of [o.material].flat()) {
+      const t = m?.map;
+      if (!t) continue;
+      if (!users.has(t)) users.set(t, []);
+      users.get(t).push(o);
+    }
+  });
+  let from = 0, to = 0;
+  for (const [t, list] of users) {
+    const img = t.image;
+    if (!(img instanceof HTMLCanvasElement) || img.width < 2048 || !list.some((o) => /^merged/.test(o.name))) continue;
+    if (list.some((o) => Array.isArray(o.material))) continue;
+    const c = img.getContext('2d', { willReadFrequently: true });
+    const d = c.getImageData(0, 0, img.width, img.height).data;
+    let used = 0;
+    for (let y = 0; y < img.height; y++) for (let x = img.width - 1; x > used; x--) if (d[(y * img.width + x) * 4 + 3]) { used = x; break; }
+    const w = Math.min(img.width, Math.ceil((used + 9) / 16) * 16);
+    if (w > img.width * 0.9) continue;
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = img.height;
+    cv.getContext('2d').drawImage(img, 0, 0);
+    const k = img.width / w;
+    const done = new Set();
+    for (const o of list) {
+      const uv = o.geometry.attributes.uv;
+      if (!uv || done.has(uv)) continue;
+      done.add(uv);
+      for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * k);
+      uv.needsUpdate = true;
+    }
+    from += img.width * img.height; to += w * img.height;
+    t.image = cv;
+    t.needsUpdate = true;
+    img.width = img.height = 1;
+  }
+  const MB = (n) => +((n * 4 * 4 / 3) / 1048576).toFixed(1);
+  return [MB(from), MB(to)];
 }
 
 /**
@@ -424,15 +513,19 @@ export function makeCuller(scene) {
     for (const e of list) for (const t of e.tex) t.__users = (t.__users ?? 0) + (e.streams ? 1 : 1e9);
     for (const e of list) for (const t of e.tex) t.__in = t.__users;
   }
-  let n = 0, out = 0, clock = 0;
+  let n = 0, out = 0, clock = 0, lastBehind = null;
   const api = {
     list,
     get out() { return out; },
     /** Every few frames: what is near enough to draw. */
-    update(cam, every = 3) {
-      if (n++ % every) return;
+    update(cam, every = 3, behind = null) {
+      const turned = behind !== lastBehind;              // (into or out of the store: at once, so the store's pages never land on top of the whole town)
+      lastBehind = behind;
+      if (n++ % every && !turned) return;
+      /* `behind` (in the konbini: MOBILE.store.behind, world z): what lies wholly beyond that line is
+       * behind the store's back wall and sides, never seen from inside; it is not drawn and streams out */
       const px = cam.x, pz = cam.z;
-      const streamNow = stream && ++clock % 10 === 0;       // (about three times a second)
+      const streamNow = stream && (++clock % 10 === 0 || turned);       // (about three times a second)
       for (const e of list) {
         if (e.moves) {
           const bs = e.o.geometry.boundingSphere;
@@ -442,9 +535,11 @@ export function makeCuller(scene) {
         const d = e.box
           ? Math.hypot(Math.max(e.box.min.x - px, 0, px - e.box.max.x), Math.max(e.box.min.z - pz, 0, pz - e.box.max.z))
           : Math.hypot(e.x - px, e.z - pz) - e.r;
-        e.near = d < (e.detail ? MOBILE.detail : MOBILE.far);
+        const hidden = behind !== null && (e.box ? e.box.max.z : e.z + e.r) < behind;
+        e.near = !hidden && d < (e.detail ? MOBILE.detail : MOBILE.far);
         if (!streamNow || !e.streams) continue;
-        const far = e.reach || MOBILE.far + MOBILE.stream;
+        // small props (the detail cells) stream just past where they stop being drawn
+        const far = hidden ? -1e9 : e.reach || (e.detail ? MOBILE.detail + 16 : MOBILE.far + MOBILE.stream);
         if (!e.gone && d > far) {
           e.gone = true; out++;
           e.o.geometry.dispose();

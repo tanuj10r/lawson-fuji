@@ -863,14 +863,17 @@ export const MOBILE = {
   /* The render: internal pixels at most `pixels` (the ink pass wants a
    * little supersampling, a phone's GPU wants few pixels), `scale` the most
    * it supersamples; when frames run long it steps down to `minScale`. */
-  render: { pixels: 2.5e6, scale: 2, start: 1.5, minScale: 0.85, fpsLow: 26, fpsHigh: 45 },   // (Tan's iPhone 15: 1.0 Mpx read pixelated)
-  maxTexture: 1024,          // the largest painted texture's side on the GPU (4096 on desktop)
-  storeTexture: 2048,        // ... and in the konbini, where the labels are a metre away
-  shadow: { size: 1024, half: 34, every: 2.0 },   // map size, half-width (m), refresh at most every s when still
+  /* The pocket edition (Tan, 2026-09-30: the town smaller, what is left at
+   * desktop quality): the phone's own pixels, up to 2x (an iPhone 15 in
+   * landscape: 1704 x 786), stepping down only when frames run long. */
+  render: { pixels: 2.2e6, scale: 2, start: 2, minScale: 1.0, fpsLow: 26, fpsHigh: 45 },
+  maxTexture: 4096,          // the largest painted texture's side on the GPU: the desktop's own sizes
+  storeTexture: 4096,        // ... and in the konbini (konbini.js sizes its labels by what is seen)
+  shadow: { size: 1536, half: 32, every: 2.0 },   // map size, half-width (m), refresh at most every s when still (desktop 2048 over 40; 4.2 cm a texel here, 3.9 there)
   /* Draw distance: batches whose bounds lie past `far` m are not drawn; the
    * fog closes in before it so the edge is never seen. */
-  far: 110,
-  fog: { near: 30, far: 105 },
+  far: 100,
+  fog: { near: 30, far: 95 },
   detail: 36,                // small instanced things (clutter, flowers, weeds) only this close
   cell: 128,                 // static batches per cell (m): small enough to cull by distance
   dt: 1 / 20,                // the longest step a frame may take (s)
@@ -879,17 +882,38 @@ export const MOBILE = {
   aimAssist: { reach: 2.8, cone: 0.6 },           // no crosshair hit: the nearest thing within reach (m) and this cone (rad)
   /* `stream`: batches and textures farther than far + stream (m) give their
    * GPU copy back, and upload again as you come near (0: never). */
-  stream: 40,
+  stream: 8,
+  /* The konbini's painted pages (src/mobile/konbini.js): whole in the store;
+   * outside within `near` m of its middle (the door's spot is ~9 m off; `far`
+   * the way back out) at the first share, farther (the famous view, ~23 m)
+   * at the second: [near, far] for the labels, the tags, the signs and
+   * posters (store-quads).  In the store, what lies wholly north of
+   * `behind` (world z: past its back wall) is neither drawn nor kept. */
+  store: { near: 15, far: 18, behind: -14, labels: [0.5, 0.25], tags: [0.5, 0.25], quads: [0.5, 0.5] },
+  /* The pocket town (src/mobile/core.js): lots are built only where their
+   * middle lies in `keep` (world rects [x0, z0, x1, z1]): the block round
+   * the konbini, what the famous views see past its corners, the car park's
+   * row and the shops at the zebra and the spine's mouth.  Every other lot
+   * is a kitchen garden behind a block wall.  The places (the shrine,
+   * ドンペン堂, the station, the park, the land) are all built. */
+  pocket: { keep: [[-52, -52, 46, 35]] },
+  /* The town's sign atlas (mobile/town.js mergePocket): only pages of at
+   * most `max` texels that belong to one region go in, packed per region of
+   * a grid cut at these world z and x lines; the rest keep their own. */
+  atlas: { max: 256 * 256, z: [-35, -90], x: [0] },
   keepCpu: true,             // keep the CPU copies (needed to stream, and to survive a lost GPU context)
-  /* The lightest tier: every iPhone and iPad (WebKit: Tan's iPhone lost the
-   * GPU context on the default tier), and phones that report 4 GB or less.
-   * ?tier=light / ?tier=full picks one by hand. */
+  /* The light tier: iOS browsers that are not Safari (Chrome, the in-app
+   * ones: a tighter memory budget), the 4 GB iPhones, small Android phones
+   * (main.js picks).  The same textures, so nothing near is blurred: what
+   * goes is the far detail and some pixels (1.5x; the konbini's labels are
+   * sized to it), and the shadow map is smaller.  ?tier=light / ?tier=full
+   * picks one by hand. */
   tiers: {
     light: {
-      maxTexture: 512, storeTexture: 1024, far: 85, fog: { near: 24, far: 80 }, detail: 26,
-      shadow: null,                                   // no shadow map at all
-      render: { pixels: 0.7e6, scale: 1.4, start: 1.2, minScale: 0.75, fpsLow: 26, fpsHigh: 45 },   // the canvas at CSS pixels (DPR 1), drawn inside at up to 0.7 Mpx
-      cell: 64, stream: 25, keepCpu: true,
+      far: 85, fog: { near: 24, far: 80 }, detail: 26,
+      shadow: { size: 1024, half: 28, every: 2.5 },
+      render: { pixels: 1.2e6, scale: 1.5, start: 1.5, minScale: 1.0, fpsLow: 26, fpsHigh: 45 },
+      cell: 64, stream: 5, keepCpu: true,
     },
   },
 };

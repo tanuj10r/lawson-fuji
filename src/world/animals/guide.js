@@ -1017,6 +1017,12 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     }
     P.x = cam.x; P.z = cam.z; P.y = cam.y; P.first = false;
     if ((listT += dt) > 2 || !list.length) { listT = 0; refresh(); }
+    /* waiting with you for the train (QA-010): the train's spot is not on offer until it stands there with its doors
+     * open (`hidden`), and while it is coming its entry says so (`wait`: which way it comes from, whether it can be
+     * heard yet).  The doors opening, having waited: a happy wag */
+    const trainE = G.target?.id === 'train' ? list.find((e) => e.id === 'train') : null;
+    if (G.trainWas && trainE && !trainE.hidden && (G.state === 'atSpot' || G.state === 'linger')) G.cheerT = A.trainCheer;
+    G.trainWas = !!(trainE?.hidden && trainE.wait) && G.state === 'atSpot';
     // stepping into a ring is the engagement: done
     // done: its own code says it was had (the bench's seat, Han's show, the konbini, the train's announcement), or you
     // stepped into its ring while it was on offer
@@ -1134,7 +1140,20 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         pose.posture = G.waitT > A.waitSit + 1 ? 1 : 0;
         pose.wag = dP < 6 ? 0.55 : 0.2;
         if (G.since > 1.0 && notInterested(true)) { drop(); break; }
-        if (!G.act && G.speed < 0.1 && (G.idleT += dt) > 2.5 + Math.random() * 3) idle(dP, G.waitT > 10);
+        const tw = G.trainWas ? trainE.wait : null;
+        if (tw && dist(G, q) <= 0.25 && !G.act) {
+          /* the train isn't in (QA-010): it sits by the spot facing down the line, the way it will come; its sound
+           * coming up, ears up and a small boof, once a train */
+          const want = Math.atan2(tw.from.x, tw.from.z), dy = turn(G.yaw, want);
+          G.yaw += THREE.MathUtils.clamp(dy, -dt * 2.5, dt * 2.5);
+          pose.posture = Math.abs(dy) < 0.6 ? 1 : 0;
+          pose.wag = tw.near ? 0.5 : 0.2;
+          pose.perk = tw.near ? 1.3 : 1;
+          lookAt = tw.near ? 'line-alert' : 'line';
+          if (tw.near && !G.heardTrain) { G.heardTrain = true; say('dog-boof', 0.75, true); }
+        }
+        if (!tw?.near) G.heardTrain = false;
+        if (!tw && !G.act && G.speed < 0.1 && (G.idleT += dt) > 2.5 + Math.random() * 3) idle(dP, G.waitT > 10);
         break;
       }
       case 'gate': {
@@ -1251,6 +1270,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       }
     }
     G.r = r;
+    // the train's doors opened after you waited together (QA-010): a happy wag, ears up
+    if (G.cheerT > 0) { G.cheerT -= dt; pose.wag = 1; pose.perk = 1.3; }
     // your whistle: ears up until the notes are over (whatever it was doing), then the answer
     if (G.whistleAt !== null) { pose.perk = 1.2; if (fields.whistle && !fields.whistle.ready) fields.whistle.work(dt > 0 ? 3 : 40); if (G.t >= G.whistleAt) { G.whistleAt = null; answer(); } }
     // the acts shape the pose (and some of them move it)
@@ -1275,7 +1296,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     if (wasSitting && G.posture <= 0.6 && G.sat > 8 && G.shakeT < 0 && !G.act) play('shake');
     // panting at a trot, now and then; a whine once when you've kept it waiting; snuffly breaths asleep
     if (G.speed > 0.6) { pantT += dt; if (pantT > 3.2) { pantT = -Math.random() * 2.5; say('dog-pant', 0.55); } } else pantT = Math.min(pantT, 1.5);
-    if ((G.state === 'lead' || G.state === 'atSpot') && G.waitT > 12 && !whined) { whined = true; say('dog-whine', 0.6); }
+    if ((G.state === 'lead' || G.state === 'atSpot') && G.waitT > 12 && !whined && !G.trainWas) { whined = true; say('dog-whine', 0.6); }
     if (G.waitT < 1) whined = false;
     if (G.state === 'nap' && G.posture > 1.8) { snoreT += dt; if (snoreT > 3.4) { snoreT = 0; say('dog-snore', 0.6); } }
     G.sat = G.posture > 0.6 ? G.sat + dt : 0;
@@ -1291,6 +1312,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       const c = HAN_SHOW.car();
       if (c) { lookTo = THREE.MathUtils.clamp(turn(G.yaw, Math.atan2(c.x - G.x, c.z - G.z)), -1.4, 1.4); nodTo = 0.15; }
     } else if (lookAt === 'sleep') { lookTo = 0.9; nodTo = 0.2; }
+    else if (lookAt === 'line') { lookTo = 0.15 * Math.sin(G.t * 0.6); nodTo = 0.05; }       // down the line, idly
+    else if (lookAt === 'line-alert') { lookTo = 0; nodTo = -0.08; }                          // there it comes
     if (pose.look !== null) lookTo = pose.look;
     if (pose.nod !== null) nodTo = pose.nod;
     G.look += (lookTo - G.look) * (acting ? Math.min(1, dt * 6) : k3);

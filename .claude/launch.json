@@ -15,7 +15,7 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "--prefix",
-        "/Users/tanujr/DevSpace/lawson-fuji/.claude/worktrees/agent-a3099ca05fb425c93",
+        "/Users/tanujr/DevSpace/takemebacktojapan/.claude/worktrees/agent-a3099ca05fb425c93",
         "run",
         "dev:phone"
       ],
@@ -26,10 +26,10 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": [
         "--prefix",
-        "/Users/tanujr/DevSpace/lawson-fuji/.claude/worktrees/agent-a3099ca05fb425c93",
+        "/Users/tanujr/DevSpace/takemebacktojapan/.claude/worktrees/agent-a3099ca05fb425c93",
         "vite",
         "preview",
-        "/Users/tanujr/DevSpace/lawson-fuji/.claude/worktrees/agent-a3099ca05fb425c93",
+        "/Users/tanujr/DevSpace/takemebacktojapan/.claude/worktrees/agent-a3099ca05fb425c93",
         "--host",
         "0.0.0.0",
         "--port",

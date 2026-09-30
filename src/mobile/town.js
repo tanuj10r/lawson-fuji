@@ -160,6 +160,15 @@ export function buildTown(scene, { cell = 128, detailCell = 0 } = {}) {
     for (const c of o.children) small(c, on);
   };
   small(root, false);
+  /* LITE: a batch is split by its shadow flags too, so every style came in
+   * up to four batches a cell.  A basic (unlit) material shows no shadow
+   * whatever its flag says, and a toon one takes them: one receive flag
+   * each, and a cell's batches are about halved. */
+  root.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || Array.isArray(o.material)) return;
+    if (o.material.isMeshBasicMaterial) o.receiveShadow = false;
+    else if (o.material.isMeshToonMaterial) o.receiveShadow = true;
+  });
   const batching = mergeStatic(root, { cell, atlas: true, detailCell });   // LITE: smaller cells, and detail cells
 
   /* --- Mt. Fuji, riding with the camera like the sky --- */

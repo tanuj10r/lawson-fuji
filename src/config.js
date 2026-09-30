@@ -865,13 +865,14 @@ export const MOBILE = {
    * it supersamples; when frames run long it steps down to `minScale`. */
   render: { pixels: 1.0e6, scale: 1.5, minScale: 0.85, fpsLow: 26, fpsHigh: 45 },
   maxTexture: 1024,          // the largest painted texture's side on the GPU (4096 on desktop)
-  shadow: { size: 1024, half: 34, every: 1.0 },   // map size, half-width (m), refresh at most every s when still
+  storeTexture: 2048,        // ... and in the konbini, where the labels are a metre away
+  shadow: { size: 1024, half: 34, every: 2.0 },   // map size, half-width (m), refresh at most every s when still
   /* Draw distance: batches whose bounds lie past `far` m are not drawn; the
    * fog closes in before it so the edge is never seen. */
   far: 110,
   fog: { near: 30, far: 105 },
   detail: 36,                // small instanced things (clutter, flowers, weeds) only this close
-  cell: 64,                  // static batches per cell (m): small enough to cull by distance
+  cell: 128,                 // static batches per cell (m): small enough to cull by distance
   dt: 1 / 20,                // the longest step a frame may take (s)
   look: 0.0052,              // drag to look: radians per CSS pixel
   stick: { radius: 56, dead: 0.12, run: 0.92 },   // the joystick: px; dead zone and the push that runs (0..1)

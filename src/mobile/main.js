@@ -16,7 +16,7 @@ import {
   PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain, HAN_WATCH, ANIMALS, MOBILE,
 } from '../config.js';
 import { buildTown } from './town.js';
-import { liteConfig, liteScene, makeCuller, census } from './lite.js';
+import { liteConfig, liteScene, liteFuji, makeCuller, census } from './lite.js';
 import { TouchPlayer } from './player.js';
 import { createTouch } from './touch.js';
 import { createMobileHud } from './hud.js';
@@ -50,7 +50,7 @@ const mark = (k) => { marks[k] = Math.round(performance.now() - T0); };
 
 /* A phone with little memory (Android says; iOS doesn't) draws less far and paints smaller. */
 const lowMemory = (navigator.deviceMemory ?? 8) <= 3;
-if (lowMemory) Object.assign(MOBILE, { maxTexture: 512, far: 110, fog: { near: 26, far: 105 }, detail: 26 });
+if (lowMemory) Object.assign(MOBILE, { maxTexture: 512, storeTexture: 1024, far: 90, fog: { near: 24, far: 85 }, detail: 26 });
 
 let renderer;
 try {
@@ -640,6 +640,7 @@ function frame(now = 0) {
 /* ------------------------------ first frame ------------------------------ */
 const lite = liteScene(scene, renderer, world);
 culler = makeCuller(scene, world);
+world.fuji.ready?.then((m) => { lite.fuji = liteFuji(m); });
 enterHero(SPAWN.view);
 resize();
 world.update(0, camera);

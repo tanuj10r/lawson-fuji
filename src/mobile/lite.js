@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { MOBILE, TOWN, ANIMALS } from '../config.js';
 
 /* ------------------------------------------------------------------ *
@@ -32,7 +33,7 @@ export function liteConfig() {
  * Returns what it did, for the report.
  */
 export function liteScene(scene, renderer, world) {
-  const out = { mirrors: 0, freedTextures: 0, freedTextureMB: 0, freedGeometry: 0, freedGeometryMB: 0 };
+  const out = { storeQuads: mergeStoreQuads(scene), mirrors: 0, freedTextures: 0, freedTextureMB: 0, freedGeometry: 0, freedGeometryMB: 0 };
 
   /* The mirrors (land/mirror.js: the pond, the river, the paddies) each draw
    * the scene again.  Their own updaters show them near their water: here
@@ -53,16 +54,16 @@ export function liteScene(scene, renderer, world) {
   for (const o of hulls) o.parent?.remove(o);
   out.hulls = hulls.length;
 
-  /* Textures: three downsizes any image larger than capabilities.maxTextureSize as it uploads it,
-   * keeping its shape, so capping that caps every painted page (a 4096 atlas becomes 1024). */
-  const real = renderer.capabilities.maxTextureSize;
-  renderer.capabilities.maxTextureSize = Math.min(real, MOBILE.maxTexture);
+  /* The store's insides cast no sun shadows: under its roof the sun only
+   * reaches them through the glass, and the shadow pass drew every can. */
+  scene.getObjectByName('lawson-interior')?.traverse((o) => { if (o.isMesh) o.castShadow = false; });
 
-  /* The big static canvases are dropped once uploaded: a phone counts a
-   * canvas's backing store against the tab.  Only a texture that is the one
-   * user of its image (no clone would upload it again later), 512 px or more,
-   * and not drawn on while the game runs (the till's screen, the departure
-   * board and the train's destination sign are small and stay). */
+  /* Textures, painted for a desktop at up to 4096 px a side, are made the
+   * size a phone sees them at: MOBILE.maxTexture (1024) for the town,
+   * MOBILE.storeTexture (2048) for the konbini, where you stand a metre
+   * from the labels.  Each image is redrawn smaller before it is uploaded
+   * (the big canvas is let go), once per image, so every texture sharing it
+   * shares the small one; three's own cap catches anything made later. */
   const users = new Map();
   const texOf = (m) => {
     const list = [];
@@ -70,22 +71,52 @@ export function liteScene(scene, renderer, world) {
     if (m.uniforms) for (const u of Object.values(m.uniforms)) if (u?.value?.isTexture) list.push(u.value);
     return list;
   };
+  const store = new Set();
+  scene.getObjectByName('lawson')?.traverse((o) => store.add(o));
   scene.traverse((o) => {
     for (const m of [o.material].flat()) {
       if (!m) continue;
       for (const t of texOf(m)) {
-        const key = t.source ?? t;
-        if (!users.has(key)) users.set(key, new Set());
-        users.get(key).add(t);
+        if (!t.source) continue;
+        if (!users.has(t.source)) users.set(t.source, { set: new Set(), store: false });
+        const u = users.get(t.source);
+        u.set.add(t);
+        if (store.has(o)) u.store = true;
       }
     }
   });
-  for (const [src, set] of users) {
-    if (set.size !== 1) continue;
-    const t = [...set][0];
-    const img = t.image;
-    if (!(img instanceof HTMLCanvasElement) || Math.max(img.width, img.height) < 512) continue;
-    if (t.onUpdate) continue;
+  const real = renderer.capabilities.maxTextureSize;
+  renderer.capabilities.maxTextureSize = Math.min(real, MOBILE.storeTexture);
+  out.resized = 0; out.resizedFromMB = 0; out.resizedToMB = 0;
+  for (const [src, u] of users) {
+    const img = src.data;
+    if (!(img instanceof HTMLCanvasElement)) continue;
+    const limit = Math.min(real, u.store ? MOBILE.storeTexture : MOBILE.maxTexture);
+    const side = Math.max(img.width, img.height);
+    if (side <= limit) continue;
+    const k = limit / side;
+    const cv = document.createElement('canvas');
+    cv.width = Math.max(1, Math.floor(img.width * k)); cv.height = Math.max(1, Math.floor(img.height * k));
+    const c = cv.getContext('2d');
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(img, 0, 0, cv.width, cv.height);
+    src.data = cv;
+    for (const t of u.set) t.needsUpdate = true;
+    out.resized++;
+    out.resizedFromMB += (img.width * img.height * 4) / 1048576;
+    out.resizedToMB += (cv.width * cv.height * 4) / 1048576;
+  }
+
+  /* Once uploaded, the big static canvases go too (a phone counts a
+   * canvas's backing store against the tab): only an image with one texture
+   * (no clone would upload it again later), 512 px or more, and not drawn
+   * on while the game runs (the till's screen, the departure board and the
+   * train's destination sign are small and stay). */
+  for (const [src, u] of users) {
+    if (u.set.size !== 1) continue;
+    const t = [...u.set][0];
+    const img = src.data;
+    if (!(img instanceof HTMLCanvasElement) || Math.max(img.width, img.height) < 512 || t.onUpdate) continue;
     const mb = (img.width * img.height * 4) / 1048576;
     t.onUpdate = () => {
       t.onUpdate = null;
@@ -94,7 +125,6 @@ export function liteScene(scene, renderer, world) {
       img.width = 1; img.height = 1;
       out.freedTextures++; out.freedTextureMB += mb;
     };
-    void src;
   }
 
   /* The static batches (merge.js: everything that never moves, baked into
@@ -126,6 +156,119 @@ export function liteScene(scene, renderer, world) {
 }
 
 /**
+ * The konbini's painted quads (store/painter.js: signs, labels, the floor
+ * and ceiling, one draw per texture: ~60 draws through the glass) packed
+ * onto one page and drawn as one mesh per kind (opaque, cut-out).  Their
+ * brightness still follows the look: the merged material shares the
+ * originals' colour object, which lawson.js setLook sets in place.
+ */
+export function mergeStoreQuads(scene, { page = 2048 } = {}) {
+  const inside = scene.getObjectByName('lawson-interior');
+  if (!inside) return 0;
+  inside.updateMatrixWorld(true);
+  const list = [];
+  inside.traverse((o) => {
+    if (!o.isMesh || o.name !== 'store-quads' || o.isInstancedMesh) return;
+    const t = o.material.map, img = t?.image;
+    if (!img || !(img.width > 0) || o.material.alphaMap) return;
+    const uv = o.geometry.attributes.uv;
+    if (!uv) return;
+    for (let i = 0; i < uv.count; i++) { const u = uv.getX(i), v = uv.getY(i); if (u < -0.001 || u > 1.001 || v < -0.001 || v > 1.001) return; }
+    if (t.wrapS !== THREE.ClampToEdgeWrapping || t.wrapT !== THREE.ClampToEdgeWrapping || !t.flipY || t.repeat.x !== 1 || t.repeat.y !== 1 || t.offset.x || t.offset.y) return;
+    list.push(o);
+  });
+  if (list.length < 2) return 0;
+  // each texture once, scaled so the lot fits one page: shelf packing, tallest first
+  const texs = [...new Set(list.map((o) => o.material.map))];
+  const area = texs.reduce((s, t) => s + t.image.width * t.image.height, 0);
+  let k = Math.min(1, Math.sqrt((page * page * 0.8) / area));
+  const PAD = 4;
+  let slots;
+  for (let tries = 0; tries < 8; tries++, k *= 0.9) {
+    slots = new Map();
+    let x = 0, y = 0, shelf = 0, ok = true;
+    for (const t of [...texs].sort((a, b) => b.image.height - a.image.height)) {
+      const w = Math.max(4, Math.round(t.image.width * k)), h = Math.max(4, Math.round(t.image.height * k));
+      if (x + w + PAD * 2 > page) { x = 0; y += shelf; shelf = 0; }
+      if (y + h + PAD * 2 > page) { ok = false; break; }
+      slots.set(t, { x: x + PAD, y: y + PAD, w, h });
+      x += w + PAD * 2; shelf = Math.max(shelf, h + PAD * 2);
+    }
+    if (ok) break;
+    slots = null;
+  }
+  if (!slots) return 0;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = page;
+  const c = cv.getContext('2d');
+  for (const [t, s] of slots) {
+    c.drawImage(t.image, s.x - PAD, s.y - PAD, s.w + PAD * 2, s.h + PAD * 2);   // bleed its own edge into the padding
+    c.clearRect(s.x, s.y, s.w, s.h);
+    c.drawImage(t.image, s.x, s.y, s.w, s.h);
+  }
+  const atlas = new THREE.CanvasTexture(cv);
+  atlas.colorSpace = list[0].material.map.colorSpace;
+  atlas.anisotropy = 4;
+  const inv = inside.matrixWorld.clone().invert(), rel = new THREE.Matrix4();
+  const groups = new Map();
+  for (const o of list) {
+    const m = o.material, key = `${m.transparent}|${m.alphaTest}|${m.side}|${m.depthWrite}`;
+    if (!groups.has(key)) groups.set(key, { src: m, geos: [], meshes: [] });
+    const s = slots.get(m.map);
+    const g = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone());
+    for (const name of Object.keys(g.attributes)) if (name !== 'position' && name !== 'uv') g.deleteAttribute(name);
+    const uv = g.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, (s.x + uv.getX(i) * s.w) / page, 1 - (s.y + (1 - uv.getY(i)) * s.h) / page);
+    g.applyMatrix4(rel.multiplyMatrices(inv, o.matrixWorld));
+    groups.get(key).geos.push(g);
+    groups.get(key).meshes.push(o);
+  }
+  let removed = 0;
+  for (const { src, geos, meshes } of groups.values()) {
+    const geo = mergeGeometries(geos, false);
+    if (!geo) continue;
+    const mat = new THREE.MeshBasicMaterial({ map: atlas, transparent: src.transparent, alphaTest: src.alphaTest, side: src.side, depthWrite: src.depthWrite });
+    mat.color = src.color;               // the same Color object: setLook brightens it in place
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.name = 'store-quads-lite';
+    mesh.userData.noOutline = true;
+    mesh.castShadow = mesh.receiveShadow = false;
+    inside.add(mesh);
+    for (const o of meshes) { o.parent.remove(o); removed++; }
+  }
+  return removed;
+}
+
+/**
+ * Mt. Fuji at half the grid (a quarter of the triangles): the same
+ * vertices, so the snow line, the gullies and the silhouette's shape stay;
+ * every other row and column of the elevation grid joins the mesh.
+ */
+export function liteFuji(mesh) {
+  const g = mesh?.geometry;
+  if (!g?.index || g.userData.lite) return 0;
+  const n = Math.round(Math.sqrt(g.attributes.position.count));
+  if (n * n !== g.attributes.position.count) return 0;
+  const old = g.index.array, used = new Uint8Array(n * n);
+  for (let i = 0; i < old.length; i++) used[old[i]] = 1;
+  const idx = [];
+  const at = (r, c) => r * n + c;
+  for (let r = 0; r + 2 < n; r += 2) {
+    for (let c = 0; c + 2 < n; c += 2) {
+      const a = at(r, c), b = at(r, c + 2), d = at(r + 2, c), e = at(r + 2, c + 2);
+      if (!(used[a] && used[b] && used[d] && used[e])) continue;
+      idx.push(a, d, b, b, d, e);
+    }
+  }
+  const before = old.length / 3;
+  g.setIndex(idx);
+  g.userData.lite = true;
+  // static from here: its CPU copy goes once it is on the GPU
+  for (const a of [...Object.values(g.attributes), g.index]) a.onUpload(function () { this.array = new this.array.constructor(0); });
+  return { before, after: idx.length / 3 };
+}
+
+/**
  * Distance culling.  `far`: the static batches (their bounds are in world
  * space); `detail`: small instanced kinds (clutter, weeds, flowers: one
  * draw each, spread town-wide, so they are shown when their nearest
@@ -133,7 +276,7 @@ export function liteScene(scene, renderer, world) {
  */
 export function makeCuller(scene) {
   const list = [];
-  const sphere = new THREE.Sphere();
+  const sphere = new THREE.Sphere(), box = new THREE.Box3();
   scene.updateMatrixWorld(true);
   scene.traverse((o) => {
     if (!(o.isMesh || o.isPoints || o.isLine) || !o.frustumCulled || o.userData.shadowOnly) return;
@@ -148,7 +291,12 @@ export function makeCuller(scene) {
      * sets, the painted water under a mirror, the store's goods): `visible`
      * becomes what the game says AND near enough, so neither undoes the other. */
     let mine = o.visible;
-    const e = { o, near: true, detail: o.name === 'merged-detail' || (o.isInstancedMesh && sphere.radius < 40), moves: o.matrixAutoUpdate, x: sphere.center.x, z: sphere.center.z, r: sphere.radius };
+    const e = { o, near: true, detail: o.name === 'merged-detail' || (o.isInstancedMesh && sphere.radius < 40), moves: o.matrixAutoUpdate, x: sphere.center.x, z: sphere.center.z, r: sphere.radius, box: null };
+    // what never moves is measured by its box (a batch's cell is square: its sphere reaches far past its corners)
+    if (!e.moves && !o.isInstancedMesh) {
+      if (!g.boundingBox) g.computeBoundingBox();
+      if (g.boundingBox && Number.isFinite(g.boundingBox.min.x)) e.box = box.copy(g.boundingBox).applyMatrix4(o.matrixWorld).clone();
+    }
     Object.defineProperty(o, 'visible', { get: () => mine && e.near, set: (v) => { mine = v; }, configurable: true });
     list.push(e);
   });
@@ -165,7 +313,10 @@ export function makeCuller(scene) {
           sphere.copy(bs).applyMatrix4(e.o.matrixWorld);
           e.x = sphere.center.x; e.z = sphere.center.z;
         }
-        e.near = Math.hypot(e.x - px, e.z - pz) - e.r < (e.detail ? MOBILE.detail : MOBILE.far);
+        const d = e.box
+          ? Math.hypot(Math.max(e.box.min.x - px, 0, px - e.box.max.x), Math.max(e.box.min.z - pz, 0, pz - e.box.max.z))
+          : Math.hypot(e.x - px, e.z - pz) - e.r;
+        e.near = d < (e.detail ? MOBILE.detail : MOBILE.far);
       }
     },
   };

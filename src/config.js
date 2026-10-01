@@ -774,6 +774,16 @@ export const SOUND = {
   shelf: { near: 3, far: 10 },             // taking it off the shelf
 };
 
+/* The sound labels (ui/soundLabels.js; Tan, 2026-10-01): top left, a sound's name as you come near it.  Shown for
+ * `ms`; a name at most once per `cooldown` s; "near" is this far (0..1) from a sound's near to its far; at most `max`
+ * at once.  `once`: named once a visit (the beds of the time of day: nowhere to walk up to).  `ambient` (s): a bed
+ * `bed` s after its time of day begins, the wind after `wind` s of play, neither within `quiet` s of another label. */
+export const SOUND_LABELS = {
+  ms: 5600, cooldown: 45, near: 0.55, shot: 0.85, max: 2,
+  once: ['wind', 'birds', 'night-insects', 'crows'],
+  ambient: { bed: 14, wind: 75, quiet: 9 },
+};
+
 /* The animals (town pass, wave 3; src/world/animals/).  Distances in metres,
  * times in seconds.  Everything moves only within `near` of the camera. */
 export const ANIMALS = {

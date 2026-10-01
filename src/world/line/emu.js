@@ -295,7 +295,15 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
   if (art) push('floor', ...Object.values(mapped(box(CAR_L - 0.12, 0.1, CAR_W - 0.12), trs(0, FLOOR - 0.05, 0),
     regionUV(A.floor, -CAR_L / 2, CAR_L / 2, -CAR_W / 2, CAR_W / 2, (x, y, z) => [x, z]))));
   else B('floor', -CAR_L / 2 + 0.06, CAR_L / 2 - 0.06, FLOOR - 0.1, FLOOR, -CAR_W / 2 + 0.06, CAR_W / 2 - 0.06);
-  for (const sz of [1, -1]) skin(box(CAR_L, 0.2, CAR_W / 2), trs(0, FLOOR - 0.1, sz * CAR_W / 4), sz);
+  /* The underframe's skin: a slab under the floor and a rim round it, never a face at the floor's own height
+   * inside the car.  (It was one slab up to FLOOR, its top coplanar with the floor's: the two z-fought, and
+   * every floor showed stair-step streaks of the skin through it, worst on the painted set; Tan, QA.) */
+  const FE = 0.06;                                        // the rim: the floor stops this short of the skin
+  for (const sz of [1, -1]) {
+    skin(box(CAR_L, 0.1, CAR_W / 2), trs(0, FLOOR - 0.15, sz * CAR_W / 4), sz);
+    skin(box(CAR_L, 0.1, FE), trs(0, FLOOR - 0.05, sz * (CAR_W / 2 - FE / 2)), sz);
+    skin(box(FE, 0.1, CAR_W - 2 * FE), trs(sz * (CAR_L / 2 - FE / 2), FLOOR - 0.05, 0), sz);
+  }
   B('under', -BOGIE_X + 1.6, BOGIE_X - 1.6, FLOOR - 0.3, FLOOR - 0.2, -CAR_W / 2 + 0.25, CAR_W / 2 - 0.25);
   if (round) {
     // the roof: a quarter round each side, flat between (its ends cap the cab and the end wall)
@@ -534,7 +542,7 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
       const g0 = -CAR_L / 2 - (PITCH - CAR_L) - 0.02, g1 = -CAR_L / 2 + 0.02;
       for (const e of [-1, 1]) B('bellows', g0, g1, FLOOR - 0.08, GH + 0.1, e * (GW + 0.02), e * (GW + 0.14));
       B('bellows', g0, g1, GH, GH + 0.12, -GW - 0.14, GW + 0.14);
-      B('steelHi', g0, g1, FLOOR - 0.04, FLOOR, -GW, GW);
+      B('steelHi', g0, -CAR_L / 2, FLOOR - 0.04, FLOOR, -GW, GW);     // the plate abuts the floor's rim: nothing coplanar with it
       for (let k = 1; k < 5; k++) {
         const gx = g0 + ((g1 - g0) * k) / 5;
         for (const e of [-1, 1]) B('rubber', gx - 0.01, gx + 0.01, FLOOR - 0.06, GH + 0.1, e * (GW + 0.14), e * (GW + 0.15));

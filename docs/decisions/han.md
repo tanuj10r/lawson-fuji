@@ -260,3 +260,86 @@ land/index.js `buildLand`, one line (+ import) in land/parking.js, the
   rising to the outer corner (+0.1 / +0.08), the upper lid's hood thinner
   (2.6 mm, was 3.8), catch light kept; the skin a touch less saturated
   (#cda994, mottle and cheek warmth eased). Triangles +~0.4k, draws same.
+
+## The real drift (2026-10-02; Tan: "the tyres turn left while the car
+## goes right"; "The drift feels very fake. Can it be made better?")
+- **The wheels.** rx7.js `setWheels` put the steer angle straight into a
+  turn about +y, which swings a wheel's nose toward -z, the car's left;
+  drive.js counts steer positive toward the car's right (+z). Every
+  steered frame was mirrored, forward, reversing and sliding alike. One
+  sign, fixed where the wheel is drawn. The town's turned frame is a half
+  turn, not a mirror: not the cause. drive.js's reverse flip was right.
+  Checked as drawn (the front wheel's axle read back from its instance
+  matrix in world terms, every 1/30 s of the show): before 0 of 174
+  steered frames right, after 208 of 208.
+- **Why it felt fake.** The old route was 115 m in 12.6 s: its two slides
+  lasted 0.6 s and 0.3 s, at 15 m/s round a 3 m radius (7 g), at constant
+  curvature with instant changes; the slip angle was laid on with the nose
+  *out* of the turn (the tail inside it); the wheels turned backwards in
+  reverse and the smoke was 64 puffs at the body's corners.
+- **The route (my call, to log for Tan):** no car does that route in the
+  song's 12.6 s, so it is shorter, on the same roads: out of the bay, the
+  aisle, the bridge road north into the master junction; a feint east, the
+  handbrake, one long slide round to the west over the mouth of NIPPON's
+  forecourt (three quarters of a circle and more, R 3.0, back across its
+  own line); the tail thrown the other way (R 4.0) into the bridge road
+  south, caught with a wobble; the mouth, the aisle, the bay. 71 m. The
+  run west past the store and its 180 are gone: the price of a slide that
+  lasts 2.9 s, 11-17 m from the glow, instead of two that could not be
+  seen. `HAN_DRIVE.teardrop` in config.js is the geometry.
+- **How it moves** (drive.js, all numbers in `HAN_DRIVE`): the turtle's
+  path with its curvature eased over 0.6 m each way; the speed along it is
+  the most that grip (v^2/R <= 12, 14 sliding), the segment's cap, the
+  engine (7.5 m/s^2) and the brakes (10) allow, so it brakes before a
+  turn, turns, powers out; then every time is scaled alike to the song
+  (7.8 % quicker). Top speed 11.9 m/s. On top, stepped once at build at
+  120 Hz so any moment can be asked for (pause, the frozen shots): the slip
+  angle is a damped spring (6.8 rad/s, 0.56) chasing each slide's angle,
+  asked 0.15 s ahead of its arc, so the tail steps out (peak 40 deg), holds
+  (33-36 deg, the throttle wavering it), swaps sides and is caught with an
+  overshoot; the body turns about a point 0.6 m ahead of its middle, so
+  the nose keeps the line and the tail swings; the front wheels steer into
+  the turn while it grips and against the slip while it slides (0.85 per
+  rad, 0.05 s behind the car, 0.6 rad lock); the body rolls outward and
+  pitches (dive on the brakes, squat on the throttle) on a sprung group in
+  rx7.js that leaves the wheels on the road; the rear wheels lock for
+  0.3 s under the handbrake, then turn 1.9x road speed; a little wheelspin
+  off the line in the aisle.
+- **What it leaves** (fx.js, `HAN_FX`): smoke only from the rear tyres'
+  contact patches, born along each tyre's own track between frames,
+  leaving with 0.3 of the car's speed and 0.22 of the wheelspin thrown
+  back, rising at uneven rates, swelling 3x, thinning over 2.2 s: 160
+  points, one draw, translucent (Tan's "real, not cartoon" of 09-28 stands;
+  the note above about 64 opaque puffs is older than the code was), dimmed
+  with the sun so it is not a lamp at blue hour. Tyre marks: one ribbon
+  mesh (640 quads, no texture), laid where a tyre slides, fading between
+  9 and 17 s old, then not drawn. Both draw nothing when empty.
+- **Sound:** core/sound.js has no engine or tyre recipe (only the door's).
+  The car's voice is made in code in fx.js on the engine's own graph
+  (`soundBus.graph()`, as line/sfx.js does, so volume, mute, pause and the
+  store's walls reach it): a rotary buzz following the rear wheels' speed
+  through three gears, a two-band tyre howl following the slide. Local
+  (near 8, far 34 from the car). Measured at the master bus: song alone
+  rms 0.026, with the car 0.029: about 7 dB under the song. **Not
+  listened to** (headless): `HAN_FX.sound.engine` / `.squeal` at 0 switch
+  it off without another change.
+- **Kept:** T_IN 2.8, the drive 12.6, the end 17.7; the nod, the door and
+  its thunks; the wall-clock show (QA-013); waiting for the player in its
+  way (smoke, marks and sound follow the car's rate, so a waiting car is
+  quiet); HAN_SHOW / hanShow as they were (the pup's startle reads the
+  car's speed from them).
+- **Checks:** scripts/_han-route.mjs now also asserts the wheels (every
+  1/120 s: forward 319, reverse 196, slide 347 right, 0 wrong; the held
+  slide 33.2-35.5 deg; straight within 0.8 s of the catch) and takes a path
+  for the per-frame log (time, curvature, slip, steer). Its forecourt is
+  now only west of the lane's east edge: east of it is a bench and a pot
+  (the car's tail passes 0.5 m inside).
+- **Cost:** draws while sliding +1 (the marks; the smoke was a draw before),
+  0 otherwise; no texture added (the smoke's 64 px sprite was there);
+  marks 77 KB of buffers. Frame ms at 1440p from the glow mid-slide,
+  smoke and marks on / off, interleaved minima on a busy laptop:
+  14.4/14.1, 18.4/18.8, 22.1/19.9, 17.3/16.7: 0-2 ms, inside the run's
+  noise (15-29 ms between repeats). Download 5.07 MB (budget 5.25).
+- **Unsure:** whether Tan wants the run past the store back (it would
+  need a longer song or a shorter slide); the car's voice by ear; the
+  smoke at 1440p on Tan's GPU when the slide is 11 m off.

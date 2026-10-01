@@ -107,6 +107,7 @@ export function createHud({ volume = 50 } = {}) {
   /* the little postcard on the pause card (once the postcard has come): it glows the first time the card shows
    * with it, then stays quiet.  none -> due -> glowing -> done */
   const mini = overlay.querySelector('.menu-postcard');
+  overlay.appendChild(mini);          // out of the card, to the screen's bottom-right corner (index.html .menu-postcard)
   let glow = 'none';
 
   const api = {

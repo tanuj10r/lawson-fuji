@@ -181,7 +181,8 @@ export function createMinimap(world) {
     font(11); const cw = c.measureText(M.close).width + 16;
     const kx = W - 24 - cw - 10 - kw, ky = H - 49;
     const taken = [[24, 24, 24 + tw, 86], [W - 104, 12, W - 20, 112], [24, H - 58, 24 + fw, H - 24], [kx, ky, W - 20, H - 20], [ux - 34, uy - 44, ux + 34, uy + 16]];
-    const hits = (b) => taken.some((t) => b[0] < t[2] && b[2] > t[0] && b[1] < t[3] && b[3] > t[1]);
+    // (a label never runs off the sheet: Hachi's home sits by its top edge)
+    const hits = (b) => b[0] < 16 || b[1] < 16 || b[2] > W - 16 || b[3] > H - 16 || taken.some((t) => b[0] < t[2] && b[2] > t[0] && b[1] < t[3] && b[3] > t[1]);
     const icons = art.places.map((p) => { const [x, y] = P(p.w.x, p.w.z); taken.push([x - r, y - r, x + r, y + r]); return { p, x, y, r, exp: p.exp }; });
     // the marks: placed first so no label covers them, drawn last, on top
     const gems = placeGems(spots(), P, icons, gr);
@@ -195,7 +196,9 @@ export function createMinimap(world) {
         [x + r + g, y + 5], [x - r - g - bw, y + 5], [x + r + g, y - bh - 5], [x - r - g - bw, y - bh - 5],
       ];
       // the first clear place; failing that, the one that covers least
-      const over = ([a, b]) => taken.reduce((sum, t) => sum + Math.max(0, Math.min(a + bw, t[2]) - Math.max(a, t[0])) * Math.max(0, Math.min(b + bh, t[3]) - Math.max(b, t[1])), 0);
+      // (what it covers, and four times whatever of it would run off the sheet)
+      const off = (a, b) => bw * bh - Math.max(0, Math.min(a + bw, W - 16) - Math.max(a, 16)) * Math.max(0, Math.min(b + bh, H - 16) - Math.max(b, 16));
+      const over = ([a, b]) => 4 * off(a, b) + taken.reduce((sum, t) => sum + Math.max(0, Math.min(a + bw, t[2]) - Math.max(a, t[0])) * Math.max(0, Math.min(b + bh, t[3]) - Math.max(b, t[1])), 0);
       const [bx, by] = tries.find(([a, b]) => !hits([a, b, a + bw, b + bh])) ?? tries.reduce((best, t) => (over(t) < over(best) ? t : best));
       taken.push([bx, by, bx + bw, by + bh]);
       chip(c, bx, by, bw, bh);

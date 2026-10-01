@@ -295,6 +295,16 @@ export const TOWN = {
     ],
   },
   plaza: { x0: -78, x1: -27, z0: 126, z1: 148 },
+  /* Hachi's own home (Tan, 2026-10-01; animals/home.js): a little garden across the level crossing, where a house
+   * beyond the line stood at the lane's end (line/index.js buildBeyond leaves that lot out).  Town frame.  The rect is
+   * its lawn (it lies past TOWN.bounds: the player's one pocket outside the square, town.js `pocket`); `gate`: the
+   * opening in the south fence, on the lane; `kennel`, `mat`, `ball`, `mid`: where his things are (the guide's joy
+   * goes round them: animals/guide.js). */
+  hachiHome: {
+    x0: -83.5, x1: -73.2, z0: 172.2, z1: 180.4,
+    gate: { x: -80, w: 2.6 },
+    kennel: [-78.6, 178.7], mat: [-78.6, 177.7], ball: [-79.9, 176.3], mid: [-78.2, 175.4],
+  },
   /* The station (M2c): building on the plaza's south side, platform 1 behind
    * its ticket gates, platform 2 across the tracks (in-station crossing). */
   station: {
@@ -593,8 +603,8 @@ export const SHOT_SPOTS = [
   { name: 'animals-plaza-pigeons', scene: 'town', pos: [-51.2, 0, 127.6], yaw: 3.0, pitch: -0.22, looks: ['day'], close: true },
   { name: 'close-animals-pigeon', scene: 'town', pos: [-50.6, 0, 129.6], yaw: 3.3, pitch: -0.55, looks: ['day'], close: true },
   { name: 'animals-spine-pigeons', scene: 'town', pos: [-47.6, 0, 100.2], yaw: 2.4, pitch: -0.3, looks: ['day'], close: true },
-  { name: 'animals-shiba', scene: 'town', pos: [-79.2, 0, 121.5], yaw: 0.902, pitch: -0.2, looks: ['day', 'golden'], close: true },
-  { name: 'close-animals-shiba', scene: 'town', pos: [-81.8, 0, 120.2], yaw: 0.615, pitch: -0.45, looks: ['day', 'golden'], close: true },
+  { name: 'hachi-home', scene: 'town', pos: [-80, 0, 168.6], yaw: 3.1416, pitch: -0.12, looks: ['day', 'golden', 'blue'], close: true },          // Hachi's own garden, from the crossing
+  { name: 'close-hachi-home', scene: 'town', pos: [-80.6, 0, 174.2], yaw: 3.59, pitch: -0.32, looks: ['day', 'golden'], close: true },   // his kennel, mat and toys
   { name: 'animals-butterflies', scene: 'town', pos: [-6, 0, -13.8], yaw: 1.5708, pitch: -0.3, looks: ['day'], close: true },
   { name: 'animals-pond-koi', scene: 'town', pos: [77.4, 0, 113.8], yaw: 2.19, pitch: -0.62, looks: ['day'], close: true },
   // the discount megastore (ドンペン堂, experiences): its front across the spine, the packed entrance, the mascot, night, the approach
@@ -680,6 +690,7 @@ export const PLACES = [
   { id: 'plaza', kind: 'plaza', at: [-52.5, 137] },
   { id: 'station', kind: 'station', at: [-51, 151.5], exp: 'station' },
   { id: 'crossing', kind: 'crossing', at: [-80, 162], exp: 'crossing' },
+  { id: 'hachiHome', kind: 'paw', at: [-78.4, 176.6] },                       // Hachi's own garden (TOWN.hachiHome)
   { id: 'pond', kind: 'pond', at: [75, 128] },
   { id: 'slowlife', kind: 'bench', at: [73, 102.2], exp: 'slowlife' },        // SLOWLIFE.bench
   { id: 'river', kind: 'river', at: [-10, -22] },
@@ -784,8 +795,7 @@ export const ANIMALS = {
   ducks: { shy: 3.2 },
   /* the waders: flee within `flee`, fly a hop of [min, max] metres at `flySpeed`, `cruise` above the water */
   heron: { flee: 7, hop: [25, 70], flySpeed: 3.6, cruise: 2.0, beatHz: 2.1, beatAmp: 0.6, walkChance: 0.12, walkSpeed: 0.12, stepAngle: 0.32 },
-  /* the shiba's kennel: in the yard of the lane house nearest `near` (town frame); the dog itself is out, guiding */
-  shiba: { near: [30, 79], inset: 0.8 },
+  /* (the shiba's kennel stands in Hachi's own garden now: TOWN.hachiHome, animals/home.js) */
   /* the guide (animals/guide.js): the shiba that leads you to the engagements one at a time */
   guide: {
     size: 1.0,                                // (the pup is built at its own size: ~24 cm at the shoulder)
@@ -838,10 +848,10 @@ export const ANIMALS = {
     tour: [
       { id: 'view', x: 0, z: 16.5 },
       { id: 'konbini', x: -2.3, z: 2.3 },
-      { x: -35, z: 8.5, hear: 'walk0' },          // the main road's zebra (kakko), south end
+      { x: -35, z: 8.5, hear: 'walk0' },          // the main road's zebra (kakko), south end (the lane's piyo zebra is heard from here too)
       { x: -35, z: 19 },                          // its north end
       { id: 'han', x: -21.7, z: 23.5 },           // the car park: Han and the RX-7
-      { x: -30, z: 4, hear: 'walk3' },            // the master junction's lane zebra (piyo)
+      { x: -28.5, z: 20.6 },                      // out of the car park by its west end, the way he came in (a kerb runs along the pavement)
       { x: -12, z: 19.3 },                        // east along the far pavement, behind the famous view
       { x: 20, z: 19.3 },
       { x: 50, z: 17 },                           // the shopping street's mouth
@@ -852,25 +862,44 @@ export const ANIMALS = {
       { x: 51, z: -115.5 },                       // the foot of the station's steps
       { id: 'train', x: 53, z: -129.2 },          // platform 1, up the front steps: the train's listening spot
       { x: 51, z: -115.5 },                       // back down
-      { x: 76, z: -106 },                         // the plaza's east end
-      { x: 80, z: -130.5, hear: 'crossing' },     // the level crossing's bells (the follower lags a few metres: near enough for the bells)
-      { x: 80, z: -84.3 },                        // back up lane x 80 to lane z 112
-      { x: -30, z: -84.3 },                       // west along it, past the park
-      { x: -30, z: -52.3 },                       // north to lane z 80
-      { x: -13, z: -52.3, hear: 'shrine' },       // the shrine's front: its wind chimes
-      { x: -30, z: -52.3 },
-      { x: -30, z: -84.3 },
+      /* Tan, 2026-10-01: from the station through the plaza to the level crossing, over it when it is open, to
+       * Hachi's own home; then the shrine (in through the torii, to the guardian fox); no wandering through alleys */
+      { x: 68, z: -110 },                         // through the station plaza
+      { x: 80, z: -116 },                         // onto the crossing's lane
+      { x: 80, z: -127.6, cross: true, hear: 'crossing' },   // at the barrier: he waits here while it is shut (the bells, the train going by)
+      { x: 80, z: -141.0 },                       // over the line
+      { visit: 'home', x: 79.4, z: -146.6 },      // ハチのおうち: his own garden, in through the gate (visited: you come in)
+      { x: 80, z: -141.0, cross: true },          // back to the barrier, from the south
+      { x: 80, z: -127.6 },
+      { x: 80, z: -84.3 },                        // up lane x 80 to lane z 112
+      { x: 50, z: -84.3 },                        // west along it: over the shopping street
+      { x: 25, z: -84.3 },
+      { x: 0, z: -84.3 },
+      { x: 0, z: -52.3 },                         // north up lane x 0 to lane z 80
+      { x: -13, z: -52.9, hear: 'shrine' },       // the shrine's front: its wind chimes
+      { visit: 'shrine', x: -13.95, z: -58.0 },    // 富士見稲荷: through the torii, up the path, to the guardian fox (visited: you come in)
+      { x: -13, z: -52.9 },                       // out again
+      { x: -30, z: -52.3 },                       // on west along lane z 80
+      { x: -30, z: -84.3 },                       // south down lane x 30 to lane z 112
       { x: -53, z: -84.3 },                       // the lane's end: the pond's gate
       { id: 'slowlife', x: -73, z: -74.8 },       // the slow-life bench, where the paddies meet the pond
-      /* last (Tan, 2026-09-29: "Deer Park can be the last place Hachi takes the players to"): back down lane x 30,
-       * over the master junction and 富士見橋 to the gate; it naps there */
+      /* last (Tan, 2026-09-29: "Deer Park can be the last place Hachi takes the players to"): out by the pond's gate
+       * (the one way in and out), back up lane x 30, over the master junction and 富士見橋 to the gate; it naps there */
       { x: -53, z: -84.3 },
       { x: -30, z: -84.3 },
-      { x: -30, z: 4 },                           // the master junction again
+      { x: -30, z: 4, hear: 'walk3' },            // the master junction (its lane zebra: piyo)
       { x: -30, z: 36 },                          // the bridge road
       { x: -30, z: 50, hear: 'bridge' },          // 富士見橋
       { id: 'gate', x: -30, z: 65, wait: 7 },     // 鹿公園, coming soon
     ],
+    /* the stops that are places, not engagements (`visit` legs): Hachi goes in and does his bit, and the place counts
+     * as visited once you come in after him.  home: he waits at the gate for you to be `see` m near, then the joy
+     * (s from its start): bounces, a spin, a lap of the lawn, his ball nosed along, and `proud` s sat tall on his mat
+     * looking at you.  shrine: he sits by the fox looking back at you for `sit` s. */
+    visit: { home: { see: 9, bounce: 1.7, spin: 1.2, lap: 1.9, toy: 2.4, proud: 3.2 }, shrine: { sit: 3 } },
+    /* the level crossing (`cross` legs): he goes over only with the arms right up and no train due; else he sits at
+     * the barrier and watches the train by (ears up when it is within `hear` m), and goes when the arms have lifted */
+    crossing: { hear: 70, open: 0.04 },
     hear: { walk0: [-35, 13.8, 14], walk1: [50, -5, 14], walk2: [50, -75, 14], walk3: [-30, 1.5, 14], donki: [55.9, -41.4, 12], station: [51, -125.5, 14], crossing: [80, -134.3, 10], shrine: [-13, -64.4, 14] },   // each sound place and how near the tour must pass (m)
     nap: [28.45, -37.75],                     // town frame: in front of the gate's bench (TOWN.land.gateBench), the tour's last stop: it hops up from here and sleeps on it once everything is done
     /* the bedtime on the bench (s from landing on it): a play bow at you, a happy spin, a roll belly-up, a sit and a

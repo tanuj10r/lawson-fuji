@@ -127,7 +127,7 @@ try {
       hits: fired.filter((f) => f.kind === 'hit').length, ended: h.ended, endT: +M.S.t.toFixed(2), outputLatencyMs: +((ac.outputLatency ?? 0) * 1000).toFixed(1), baseLatencyMs: +((ac.baseLatency ?? 0) * 1000).toFixed(1),
       ...shots,
     };
-  }, (r) => (r.src === 'file' || r.src === 'file-late') && r.cues === 31 && r.clockOffMs < 20 && r.lateMsMax < 60 && r.hits === 8);
+  }, (r) => (r.src === 'file' || r.src === 'file-late') && r.cues === 31 && r.clockOffMs < r.worstFrameMs + 5 && r.lateMsMax < r.worstFrameMs + 25 && r.hits === 8);   // (never more than a frame behind the recording)
 
   /* the cue table against the encoded file: each strike's thud in the decoded audio */
   await step('cues-vs-file', async () => {
@@ -217,7 +217,7 @@ try {
     const t0 = performance.now();
     player.onInteract(item);
     const seen = { served: false, onPlate: false, held: false, stretch: false, treat: false, suspended: player.suspended };
-    const shots = {}, want = { card: 0.5, served: 1.5, set: 2.2, take: 2.62, treat: 3.35, pull: 4.42, bite2: 5.6, last: 6.3 };
+    const shots = {}, want = { '1-card': 0.5, '2-carried': 1.5, '3-set': 2.2, '4-take': 2.62, '5-treat': 3.35, '6-pull': 4.42, '7-bite2': 5.6, '8-last': 6.3 };
     while (M.buy && performance.now() - t0 < 20000) {
       await window.frames(1);
       const b = M.buy; if (!b) break;

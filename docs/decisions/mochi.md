@@ -74,5 +74,32 @@ hands the shop your hand (`PETTAN.attach`); ui/map/icons.js the pictogram.
   for 速, 抹, 茶, 兎 and any other new kanji. Until then those draw in the
   system gothic.
 
-## Numbers
-See the commit messages and the report (measured at the end).
+## Phase 2: the hand (store/hands.js only)
+Tan: the konbini's hand "looks very fake". What read as fake was the eating: the fingers stood stiff behind the food
+and the thumb touched nothing. The hand is rebuilt in its own module, same API (shop.js, eat.js and the mochi shop
+call it as before):
+- a thumb and four fingers, three joints each, bent in the vertex shader (each vertex knows its digit and segment);
+- every frame each digit closes until it lies on what is in the anchor (its bounding box, or the cylinder in it if
+  it is round), so eating, the food is pinched between the thumb in front and the fingers behind, and the fingers
+  follow it as it is bitten away; nothing is posed by hand;
+- carrying, the rest pose is the old one (back of the hand to you). The carried product is drawn under the hand
+  whatever its depth (store/figure.js `onTopClamped` looks for `#include project_vertex` without its angle brackets,
+  so the product is never clamped on top; not mine to change), so there the fingers keep at least their easy curl
+  across the thing's front, as the old hand did;
+- soft toon paint of its own: a warm (rose) shade instead of violet, a blush on the terminator, a pale rim; nails
+  with a free edge, knuckle and finger creases, the palm's lines, wrist cords; the cuff and sleeve as before;
+- the digits ease to their touch and breathe; the wrist sways.
+Honest read: clearly better eating and with the mochi; carrying a product looks about as before (same pose, nicer
+paint). Before/after frames: the report.
+
+## Numbers (dev build, 1280x720, on the ring, the show on)
+- the show: 4 draw calls, 9,516 triangles (three rabbits 8,448; dough, steam, shadows, the tray's two mochi 1,120);
+  the house and stage 2,472 triangles, static, batched with the town; the mochi in your hand 2,048 while you hold it
+- draw calls in the main pass: on the ring 153; from the street's mouth 361 (the old house: 372); the car park 245 (278)
+- textures: the signs are about 0.2 MB of canvas, packed in the town's atlas; its pages are unchanged
+  (4096x4096 + 4096x1520); renderer textures 175 -> 181 after merging main
+- heap after start 451-540 MB in the dev build across runs (577 before, same build: no measurable change)
+- frame 3.6-4.0 ms on the ring with the show on (M-series, headless)
+- download: 5.03 MB in all (budget raised to 5.25 MB; mochi-pound.m4a is 73 KB), 1.64 MB before the first click
+- checks: _mochi all pass; hero guard 0.336 / 0.130 / 0.094 %; _play 20 pass; _audio all pass; _guide 10 pass;
+  _konbini 9 pass

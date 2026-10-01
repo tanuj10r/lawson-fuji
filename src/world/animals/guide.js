@@ -750,7 +750,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   GUIDE.showCue = (kind) => {
     if (!SHOW.sat) return;
     if (kind === 'hit') { SHOW.nod = 1; G.nod += 0.24; }          // (a nudge on the eased value: the bob reads at once)
-    else if (kind === 'big') { SHOW.back = 1.5; play('hop'); }
+    else if (kind === 'big') { if (G.act?.name === 'sneeze') return; SHOW.back = 1.5; play('hop'); }   // (never over his sneeze)
     else if (kind === 'end') SHOW.wag = 2.6;
     else if (kind === 'treat') SHOW.up = 0.9;
     else if (kind === 'catch') { SHOW.up = 0; SHOW.wag = 1.2; G.act = null; play('sneeze'); }

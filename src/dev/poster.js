@@ -3,7 +3,7 @@ import { cel } from '../core/toon.js';
 import { makeCtx } from '../world/ctx.js';
 import { buildTownSakura } from '../world/kit/sakura.js';
 import { buildWalkSignal } from '../world/signals.js';
-import { SLOWLIFE } from '../config.js';
+import { SLOWLIFE, ANIMALS } from '../config.js';
 
 /* ------------------------------------------------------------------ *
  * The key art's diorama (dev only: ?poster, rendered by scripts/keyart.mjs).
@@ -38,7 +38,7 @@ export const POSTER = {
   shrine: { f: 0.34, a: 44 },
   bench: { f: 0.07, a: 9 },
   sakura: [{ f: -0.22, a: 7.5, s: 1.1 }],
-  hachi: { f: 0.45, a: 5.9, pose: 'sit' },
+  hachi: { f: 0.45, a: 5.9, pose: 'sit', size: 1.4 },     // (a little larger than life in the picture: Tan)
 };
 
 /**
@@ -218,6 +218,7 @@ export function stagePoster({ scene, world, applyLook }) {
   {
     const p = at(S.hachi.f, S.hachi.a);
     const from = { pos: { x: L.pos[0], z: L.pos[1] }, yaw: Math.atan2(L.pos[0] - p.x, L.pos[1] - p.z) };
+    ANIMALS.guide.size = S.hachi.size;                      // (the poster page only: dev)
     window.__guide?.stage(S.hachi.pose, from, Math.hypot(p.x - L.pos[0], p.z - L.pos[1]));
   }
 

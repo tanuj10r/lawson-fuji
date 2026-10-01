@@ -52,6 +52,9 @@ export const MAKER = {
     github: 'https://github.com/tanuj10r',
     site: 'https://tanuj.fyi',
   },
+  /* every link out says where it came from (Tan, 2026-10-01): `?ref=takemebacktojapan` on Coffee, X, GitHub and
+   * the site (ui/maker.js makerLink); all four still resolve with it (curl, 2026-10-01).  '' turns it off. */
+  ref: 'takemebacktojapan',
   handle: 'tanuj10r',                     // the X share's "via"
   share: 'https://takemebacktojapan.com', // what the postcard shares (the canonical address, never a local one)
   postcardAfter: 3.5,                     // s Hachi has been lying down at the gate before the postcard comes

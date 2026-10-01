@@ -2,7 +2,10 @@
  * the postcard at the end of Hachi's tour.  Screenshots and checks:
  *   - the chip on the start and pause cards (1280x720, 1600x900), the row on the phone card (390x844)
  *   - every link: a new tab, rel=noopener, a DataFast goal; a click on the chip never starts the game
- *   - the postcard: shows once, holds the pause card back while up; a click takes the pointer back (or,
+ *   - every link out carries ?ref=takemebacktojapan (config.js MAKER.ref)
+ *   - the little postcard: never on the start card, on every pause card from the first (glowing that once); before
+ *     Hachi's tour is over the postcard says "wish you were here", after it "you've seen the whole town"
+ *   - the postcard: comes by itself once, holds the pause card back while up; a click takes the pointer back (or,
  *     refused, the pause card comes); Esc shows the pause card; Space (the pointer back) closes it
  *   - no page errors
  *   node scripts/_maker.mjs [out-dir]     PORT (default 5187)
@@ -110,9 +113,14 @@ try {
           return { inArt: chip.left >= art.left && chip.right <= art.right && chip.top >= art.top && chip.bottom <= art.bottom,
             fits: menu.top >= 0 && menu.bottom <= innerHeight, where: [...new Set(where)], first: document.querySelector('.overlay:not(.boot) .mk-chip a').dataset.fastGoal };
         });
+        const mini = await page.evaluate(() => { const b = document.querySelector('.menu-postcard'); const r = b.getBoundingClientRect();
+          return { shown: !b.hidden && r.width > 0, glow: b.classList.contains('glow'), onScreen: r.right <= innerWidth && r.bottom <= innerHeight }; });
+        if (m === 'start') check(`${w}x${h} start: no little postcard on the start card`, !mini.shown, mini);
+        else check(`${w}x${h} paused: the little postcard is there${w === 1280 ? ', glowing (the first pause)' : ', quiet (a later pause)'}`,
+          mini.shown && mini.onScreen && mini.glow === (w === 1280), mini);
         check(`${w}x${h} ${m}: the chip on the art, the card fits, coffee first, goal label`, r.inArt && r.fits && r.first === 'maker_coffee'
           && r.where.length === 1 && r.where[0] === (m === 'paused' ? 'pause_card' : 'start_card'), r);
-        await shot(page, `A-${m}-${w}x${h}`);
+        await shot(page, `A-${m}-${w}x${h}${m === 'paused' && w === 1280 ? '-postcard-glow' : ''}`);
       }
     }
     await page.setViewportSize({ width: 1280, height: 720 });
@@ -120,8 +128,11 @@ try {
 
     // links: new tab, noopener, a goal; clicking them (or anything on the card but Resume) never resumes
     const ls = await linksOk(page, '.overlay:not(.boot) .mk-chip a');
-    check('chip links: 4, new tab, noopener, goals', ls.length === 4 && ls.every((l) => l.ok)
-      && ls[0].href === 'https://buymeacoffee.com/tanuj10r0', ls.map((l) => l.href));
+    const REF = '?ref=takemebacktojapan';
+    const WANT = ['https://buymeacoffee.com/tanuj10r0', 'https://x.com/tanuj10r', 'https://github.com/tanuj10r', 'https://tanuj.fyi/'].map((u) => u + REF);
+    const refs = (l) => WANT.every((u) => l.some((a) => a.href === u));
+    check('chip links: 4, new tab, noopener, goals, ?ref=takemebacktojapan', ls.length === 4 && ls.every((l) => l.ok)
+      && ls[0].href === WANT[0] && refs(ls), ls.map((l) => l.href));
     const t0 = await tries();
     const opened = [];
     for (const sel of ['.mk-chip .mk-coffee', '.mk-chip .mk-i:nth-of-type(2)', '.mk-chip .mk-who', '.mk-chip .mk-face', '.menu-tagline', '.menu-url']) {
@@ -134,11 +145,9 @@ try {
     // the volume still works on the card
     await page.evaluate(() => { const v = document.querySelector('.volume-slider'); v.value = '75'; v.dispatchEvent(new Event('input', { bubbles: true })); });
     check('pause card: the volume slider still sets the volume', await page.evaluate(() => document.querySelector('.audio-head output').textContent) === '75%' && await tries() === t0);
-    check('pause card: no little postcard before the tour is over', await page.evaluate(() => document.querySelector('.menu-postcard').hidden));
 
     /* the postcard: as play would bring it (player.locked and onLockChange played by hand, what pointerlockchange does) */
     const lockAs = (on) => page.evaluate((on) => { const { player } = window.__scene; player.locked = on; player.onLockChange(on); }, on);
-    await lockAs(true);
     const pc = () => page.evaluate(() => {
       const el = document.querySelector('.mk-post-scrim');
       const card = document.querySelector('.overlay:not(.boot)');
@@ -146,20 +155,33 @@ try {
       return { open: !!window.__postcard.card?.open, visible: !!el && getComputedStyle(el).display !== 'none',
         card: !card.classList.contains('hidden'), hold: window.__scene.hud.holdCard, mini: !mini.hidden, glow: mini.classList.contains('glow') };
     });
+    const openMini = async () => { await page.click('.menu-postcard'); await page.waitForFunction(() => window.__postcard.card?.open, null, { timeout: 15000 }).catch(() => {}); };
+    const words = () => page.evaluate(() => document.querySelector('.mk-post .msg')?.textContent ?? '');
+    // before the tour is over: the little postcard opens the postcard (loaded on that click), "wish you were here"
+    check('before the tour: the postcard is not loaded yet', await page.evaluate(() => !window.__postcard.card));
+    await openMini();
+    let s = await pc();
+    check('before the tour: the little postcard opens the postcard, "Wish you were here"', s.open && s.visible && !s.card && s.hold && /^Wish you were here/.test(await words()), { ...s, words: await words() });
+    await shot(page, 'B-postcard-before-tour-1280x720');
+    await page.click('.mk-post .pc-back');
+    s = await pc();
+    check('before the tour: Back returns to the pause card, the little postcard still there', !s.open && s.card && s.mini, s);
+    await lockAs(true);
     await page.evaluate(() => window.__postcard.nap());
     await page.waitForFunction(() => window.__postcard.pending() > 0 || window.__postcard.card?.open, null, { timeout: 10000 }).catch(() => {});
     check("postcard: Hachi's nap loads it and sets it due", await page.evaluate(() => !!window.__postcard.card));
     await page.waitForFunction(() => window.__postcard.card?.open, null, { timeout: 15000 }).catch(() => {});
     await lockAs(false);                 // what document.exitPointerLock brings
     await page.waitForTimeout(700);
-    let s = await pc();
-    check('postcard: shows, the pause card waits behind it', s.open && s.visible && !s.card && s.hold, s);
+    s = await pc();
+    check('postcard: comes by itself at the nap, the pause card waits behind it, "You’ve seen the whole town"', s.open && s.visible && !s.card && s.hold && /seen the whole town/.test(await words()), { ...s, words: await words() });
     await shot(page, 'B-postcard-1280x720');
     await page.setViewportSize({ width: 1600, height: 900 });
     await shot(page, 'B-postcard-1600x900');
     await page.setViewportSize({ width: 1280, height: 720 });
     const pl = await linksOk(page, '.mk-post a');
     check('postcard links: new tab, noopener, goals; Share, Copy have goals; Back is there', pl.length === 5 && pl.every((l) => l.ok)
+      && refs(pl) && /url=https%3A%2F%2Ftakemebacktojapan\.com&/.test(pl.find((l) => /intent/.test(l.href))?.href ?? '')
       && await page.evaluate(() => [...document.querySelectorAll('.mk-post [data-pc=share], .mk-post [data-pc=copy]')].every((b) => !!b.dataset.fastGoal)
         && !!document.querySelector('.mk-post .pc-back')), pl.map((l) => l.href));
     // its links, buttons and the card itself keep it up
@@ -176,12 +198,11 @@ try {
     await page.waitForTimeout(300);
     s = await pc();
     check('postcard: a click outside goes back to the pause card, not the walk', !s.open && s.card && !s.hold && await tries() === t2, s);
-    check('pause card: the little postcard is there and glows the first time', s.mini && s.glow, s);
-    await shot(page, 'A-paused-postcard-glow-1280x720');
-    // the little postcard opens it again; Back returns to the pause card, quiet now
-    await page.click('.menu-postcard');
+    check('pause card: the little postcard is there, quiet (it glowed on the first pause)', s.mini && !s.glow, s);
+    // the little postcard opens it again; Back returns to the pause card
+    await openMini();
     s = await pc();
-    check('pause card: the little postcard opens the postcard again', s.open && !s.card && s.hold, s);
+    check('pause card: the little postcard opens the postcard again, the after-tour words', /seen the whole town/.test(await words()) && s.open && !s.card && s.hold, s);
     await page.click('.mk-post .pc-back');
     s = await pc();
     check('postcard: Back returns to the pause card; the little postcard quiet now', !s.open && s.card && s.mini && !s.glow, s);
@@ -193,13 +214,13 @@ try {
     check('postcard: once a page load', await page.evaluate(async () => { window.__postcard.nap(); await new Promise((r) => setTimeout(r, 300)); return window.__postcard.pending(); }) === -1);
     await lockAs(false);
     // Esc: the pause card
-    await page.click('.menu-postcard');
+    await openMini();
     await page.keyboard.press('Escape');
     s = await pc();
     check('postcard: Esc puts it away for the pause card', !s.open && s.card && !s.hold, s);
     // Space, granted: the walk goes on, the card stays down
     await page.evaluate(() => { window.__lockMode = 'pending'; });
-    await page.click('.menu-postcard');
+    await openMini();
     const t3 = await tries();
     await page.keyboard.press('Space');
     await lockAs(true);                                  // granted
@@ -208,7 +229,7 @@ try {
     // Space, refused: back to the pause card, which says press Resume
     await lockAs(false);
     await page.evaluate(() => { window.__lockMode = 'refuse'; });
-    await page.click('.menu-postcard');
+    await openMini();
     await page.keyboard.press('Space');
     await page.waitForTimeout(200);
     s = await pc();
@@ -234,7 +255,7 @@ try {
     const ls = await linksOk(page, '.gate .mk-row a');
     const fits = await page.evaluate(() => { const r = document.querySelector('.gate-card').getBoundingClientRect(); return r.bottom <= innerHeight + 1 && r.right <= innerWidth
       && [...document.querySelectorAll('.gate .mk-row a')].every((a) => a.getBoundingClientRect().right <= r.right - 12); });
-    check('phone card: the row, 4 links, coffee button, new tab, goals; no scroll', ls.length === 4 && ls.every((l) => l.ok) && fits, ls.map((l) => l.href));
+    check('phone card: the row, 4 links (with the ref), coffee button, new tab, goals; no scroll', ls.length === 4 && ls.every((l) => l.ok) && ls.every((l) => l.href.endsWith('?ref=takemebacktojapan')) && fits, ls.map((l) => l.href));
     check('phone card: no page errors, no game code', errs.length === 0 && !(await page.evaluate(() => !!window.__scene)), errs);
     await shot(page, 'A-phone-card-390x844');
     await ctx.close();

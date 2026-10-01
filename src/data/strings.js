@@ -116,6 +116,8 @@ export const STRINGS = {
     label: 'A postcard from Fujikawaguchikko',
     title: 'Greetings from Fujikawaguchikko',
     msg: 'You’ve seen the whole town, and Hachi’s napping by the gate. Send it to someone who misses Japan too.',
+    /* opened from the pause card before Hachi's tour is over */
+    msgEarly: 'Wish you were here. A little town under Mt. Fuji, and a shiba called Hachi to show you round. Send it to someone who misses Japan too.',
     to: 'To: a friend who misses Japan',
     share: 'Share',
     copy: 'Copy link',
@@ -128,7 +130,7 @@ export const STRINGS = {
     backAria: 'Back to the menu',
     close: 'Space to walk on  ·  Back or Esc for the menu',
     closeTouch: 'Back, or a tap outside the card, for the menu',
-    /* the little postcard on the pause card, once you have it */
+    /* the little postcard by the pause card, every pause */
     mini: 'Your postcard ✉',
     miniAria: 'Open your postcard',
   },

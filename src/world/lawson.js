@@ -13,6 +13,7 @@ import { dressLawson, wearLawson } from './lawson-dress.js';
 import { buildInterior, buildDoor } from './store/interior.js';
 import { buildFridgeDoors } from './store/doors.js';
 import { makeShop, SPOT } from './store/shop.js';
+import { updatePages } from './store/pages.js';
 import { makeExperiences } from './experiences.js';
 import { asphaltTex, ASPHALT_TILE } from './kit/tex.js';
 import { chipTex, CHIP_TILE } from './kit/paint.js';
@@ -461,6 +462,20 @@ export function buildLawson(parent) {
   colliders.push({ x0: -hw, x1: dr.d0, z0: -0.2, z1: 0.35 });
   colliders.push({ x0: dr.d1, x1: hw, z0: -0.2, z1: 0.35 });
 
+  /* The store's painted pages (store/pages.js): the paintings themselves within `near` metres of the
+   * glass and through a visit, their smaller mipmaps from further off (store/seen.js: measured, so
+   * nothing is ever drawn softer than it was).  A dev capture (?shots) changes them at once. */
+  const seenData = root.getObjectByName('lawson-interior').userData.seen;
+  const pagesNow = !!import.meta.env?.DEV && new URLSearchParams(location.search).has('shots');
+  let pagesNear = false;
+  const pages = (p) => {
+    if (!seenData) { updatePages('near'); return; }          // (unmeasured: the paintings, as ever; only their canvases go)
+    const d = p.z <= 0 && Math.abs(p.x) <= hw ? 0 : Math.hypot(Math.max(0, Math.abs(p.x) - hw), Math.max(0, p.z));
+    if (root.userData.shop.visiting || d < seenData.near) pagesNear = true;
+    else if (d > seenData.near + 1.2) pagesNear = false;     // (the famous view's spot, 16.5 m out, is away)
+    updatePages(pagesNear ? 'near' : 'far', pagesNow);
+  };
+
   return {
     root,
     ground,
@@ -468,7 +483,7 @@ export function buildLawson(parent) {
     /** Raised walkable surfaces: the far sidewalk stands on its kerb. */
     platforms,
     /** The door, each frame: `p` the player's position. */
-    update(dt, p) { root.userData.door.update(dt, p); root.userData.spot.update(dt, p); },
+    update(dt, p) { root.userData.door.update(dt, p); root.userData.spot.update(dt, p); pages(p); },
     /** The konbini inside (Tan's experience): the hand, the featured things, the self-checkout. */
     get shop() { return root.userData.shop; },
     /** What the player can aim at outside (the konbini's spot), and the spot for a map. */

@@ -1,6 +1,7 @@
 import { makeStock, footprint } from './products.js';
-import { tagAtlas } from './labels.js';
-import { GROUP, PRODUCT, FEATURED } from '../../data/catalog.js';
+import { tagAtlas, labelAtlas } from './labels.js';
+import { CATALOG, GROUP, PRODUCT, FEATURED } from '../../data/catalog.js';
+import { seenFor, storeWhole } from './seen.js';
 
 /* ------------------------------------------------------------------ *
  * The planogram (M3b; M3b.2 from how real konbini stock; M3d: a real
@@ -65,7 +66,8 @@ const FEATURED_IDS = new Set(FEATURED.flatMap((f) => f.ids));
 export function stockStore(p, slots, group, lit) {
   const stock = makeStock();
   const tags = tagAtlas();
-  const tag = (id, x, y, z, ry, rx = 0) => p.quad(tags.tex, x, y, z, TAG_W, TAG_H, { ry, rx, uv: tags.rect(tags.cellOf[id]) });
+  const tagQuads = {};                  // (dev, the seen tool: which painted quads are price tags)
+  const tag = (id, x, y, z, ry, rx = 0) => { tagQuads[p.quad(tags.pageOf(id), x, y, z, TAG_W, TAG_H, { ry, rx, uv: tags.rect(id) })] = id; };
 
   /* ---- what has been placed, product by product ---- */
   const used = new Map(), blocks = new Map();
@@ -282,7 +284,17 @@ export function stockStore(p, slots, group, lit) {
       default: break;
     }
   }
-  const units = stock.build(group, lit);
+  /* Only what is ever seen is built, and the painted pages are held at the size they are seen at
+   * (store/seen.js), if this is the store that was measured: the same counts. */
+  const counts = { units: stock.units.length, ...p.counts(), catalog: CATALOG.length };
+  const S = seenFor(counts);
+  const units = stock.build(group, lit, S, { ids: storeWhole });
+  if (S) {
+    for (const pg of labelAtlas().pages) pg.levels(pg.want);
+    for (const pg of tags.pages) pg.levels(pg.wantFar, pg.want);
+  }
+  group.userData.seen = S;
+  if (import.meta.env?.DEV) { group.userData.counts = counts; group.userData.tagQuads = tagQuads; }
 
   // what the shelves hold, for the STOCK check (scripts/shots.mjs; dev only)
   if (import.meta.env?.DEV) {

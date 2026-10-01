@@ -36,6 +36,10 @@ compact town. Read AGENTS.md and docs/BUILDERS.md first; this adds to them.
 8. **Osaka posters**: "tickets to Osaka, reservations open soon" (Dotonbori),
    at the station and at the Deer Park gate.
 9. **Deer Park, coming soon**: the gate at the bridge road's end (exists).
+10. **Hachi's home** (ハチのおうち, 2026-10-01): a place, not an engagement (no ring, no E): his own little garden
+    across the level crossing (TOWN.hachiHome, animals/home.js), a paw on the map. Hachi's tour goes station, plaza,
+    level crossing (he waits at the barrier while it is shut), his home, the shrine (in to the guardian fox), the
+    slow-life bench, the Deer Park gate.
 
 ## Rules that changed tonight
 - **People:** only the player's own hand and Han (and the animals). No

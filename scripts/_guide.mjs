@@ -11,6 +11,10 @@
 //                                                   whistle  F with the pup behind you, ahead, to the side, out of sight
 //                                                            ~35 m off (it runs from there) and 100+ m off (set on its
 //                                                            way to you, out of sight): never a jump into view
+//                                                   crossing the level crossing shut as he comes to it: he sits at the barrier, the
+//                                                            train goes by, the arms lift, he goes over (never onto it while
+//                                                            it is shut; caught on it as it shuts, he runs off it); then his
+//                                                            own home: in through the gate, the joy, sat proudly on his mat
 //                                                   bedtime  the tour's end: up onto the gate's bench, a play, curled up asleep on
 //                                                            it; onNap once it has settled; F: it hops down first
 //                                                 plus the respawn rule (a jump onto the view: out of the frame) and a
@@ -120,6 +124,10 @@ const SIM = async (kind) => {
   const gateW = A.tour.find((l) => l.id === 'gate');
   let gateMin = 999, waterCells = 0, alleyCells = 0, plotCells = 0, sideEntries = 0, feetLow = 0, feetWorst = 0, lastCell = -1;
   const KC = A.costs;
+  // the level crossing and the places he goes into (his home, the shrine): never onto the crossing while it is shut;
+  // which phases of a visit were seen; how far he had gone at each leg
+  let railEnter = 0, railWas = false, legWas = -1, hopMax = 0;
+  const visitPhases = [], legsM = [];
   const step = () => {
     const t0 = performance.now();
     g.step(dt, P);
@@ -144,6 +152,9 @@ const SIM = async (kind) => {
       }
       lastCell = c;
     }
+    { const rl = g.rail(); if (rl.on && !railWas && rl.shut) railEnter++; railWas = rl.on; }
+    { const ph = g.tour.visit ? `${g.tour.visit.kind}:${g.tour.visit.phase}` : null; if (ph && visitPhases[visitPhases.length - 1] !== ph) visitPhases.push(ph); if (g.tour.visit?.kind === 'home') hopMax = Math.max(hopMax, S.hop); }
+    if (S.state === 'lead' && S.leg !== legWas) { legsM.push([S.leg, +S.moved.toFixed(0), +t.toFixed(0)]); legWas = S.leg; }
     const gy = world.heightAt(S.x, S.z), low = S.y - gy;
     if (low < -0.035) { feetLow++; feetWorst = Math.min(feetWorst, low); }
     if (S.state !== state) { events.push({ t: +t.toFixed(1), from: state, to: S.state, target: S.target?.id ?? null, dP: +dist(P, S).toFixed(1) }); state = S.state; states.add(state); }
@@ -165,7 +176,7 @@ const SIM = async (kind) => {
       let goal = null;
       if (tgt && (S.state === 'atSpot' || (S.state === 'lead' && dist(S, tgt) < 2.5))) goal = tgt;
       else if (tgt && S.state === 'invite') goal = tgt;
-      else if (dist(P, S) > 3.2 && S.state !== 'home') {
+      else if (dist(P, S) > (S.state === 'visit' ? 1.7 : 3.2) && S.state !== 'home') {      // (into his home, into the shrine: right up to him)
         // follow its trail, as a player would (not a beeline at it: it leads from up to 9 m ahead, round corners)
         while (crumbs.length > 1 && dist(P, crumbs[0]) < 1.0) crumbs.shift();
         // off the trail (a corner cut, a stair's side): back onto it at the nearest crumb in sight
@@ -195,11 +206,14 @@ const SIM = async (kind) => {
   if (kind === 'tour') {
     // the follower goes wherever Hachi leads: the whole tour, to the nap
     let jogSum = 0, jogN = 0;
-    while (t < 1500) { follow(); step(); if (S.state === 'lead' && S.speed > 0.5) { jogSum += S.speed; jogN++; } if (S.state === 'nap' && S.posture > 1.9) break; }
+    // (the trains run, so the level crossing opens and shuts as it does in play: he waits at it when it is shut)
+    world.line.service.stage('quiet');
+    while (t < 1500) { world.line.service.update(dt); follow(); step(); if (S.state === 'lead' && S.speed > 0.5) { jogSum += S.speed; jogN++; } if (S.state === 'nap' && S.posture > 1.9) break; }
     res.jog = +(jogSum / Math.max(1, jogN)).toFixed(2);
     res.rows = rows; res.secs = +t.toFixed(0); res.tourM = +S.moved.toFixed(0); res.end = g.state(); res.pstuck = +pstuck.toFixed(1); res.stuck = +stuck.toFixed(1);
     res.hear = hear; res.gateMin = +gateMin.toFixed(1); res.waterCells = waterCells; res.alleyCells = alleyCells; res.plotCells = plotCells; res.sideEntries = sideEntries;
     res.feetLow = feetLow; res.feetWorst = +feetWorst.toFixed(3); res.legs = A.tour.length; res.lastLeg = S.leg;
+    res.visited = [...g.tour.visited]; res.visitPhases = visitPhases; res.railEnter = railEnter; res.legsM = legsM;
     const heard = Object.values(hear).every((h) => h.min <= h.need);
     // the respawn (H, or anything that puts you back on the view in a jump): the pup is home, out of the frame, at once
     {
@@ -228,7 +242,9 @@ const SIM = async (kind) => {
     ctx.stroke();
     res.map = c.toDataURL('image/png');
     res.ok = rows.length === 5 && viol === 0 && wall === 0 && stuck < 5 && res.end.state === 'nap' && res.respawn.ok && cone > 60
-      && heard && res.jog >= 2.7 && gateMin <= 8 && waterCells === 0 && alleyCells === 0 && sideEntries === 0 && feetLow === 0 && t < 900;
+      && heard && res.jog >= 2.7 && gateMin <= 8 && waterCells === 0 && alleyCells === 0 && sideEntries === 0 && feetLow === 0 && t < 900
+      && res.visited.includes('home') && res.visited.includes('shrine') && railEnter === 0
+      && ['home:bounce', 'home:spin', 'home:toy', 'home:proud', 'shrine:sit'].every((q) => visitPhases.includes(q));
   } else if (kind === 'intro') {
     // the hello, every start (Tan, 2026-09-29): standing on the start view as the game begins, it runs out from
     // behind you to in front, faces you, sits, says hello; waits there while you stay; leads when you walk off.
@@ -445,6 +461,67 @@ const SIM = async (kind) => {
       && (!side || ranFrom(side, 8))
       && !!near && ranFrom(near, near.d0 / 3.5 + 3) && near.seen >= 0.85 && near.earsUpFrames > 5
       && here.whistles === 1 && here.yips >= 1 && here.tYip - here.tWhistle >= 0.52 && here.hopped && !here.ran && here.greetAt >= 3.2 && here.greetAt <= 5.2;
+  } else if (kind === 'crossing') {
+    /* Tan, 2026-10-01: from the station to the level crossing; it is shut as he comes to it (a train coming): he sits
+     * at the barrier and watches the train by, ears up; the arms lift and he goes over; never onto it while it is
+     * shut.  Then his own home: in through the gate, the joy, sat proudly on his mat; visited once you are in. */
+    const svc = world.line.service, F = world.frame;
+    const kDown = A.tour.findIndex((l) => l.id === 'train') + 1, kCross = A.tour.findIndex((l) => l.cross), kHome = A.tour.findIndex((l) => l.visit === 'home');
+    g.reset();
+    const foot = A.tour[kDown];
+    { const c = W.nearest(foot.x, foot.z, 2), q = W.at(c); Object.assign(S, { x: q.x, z: q.z }); P.x = q.x - 2; P.z = q.z + 2.5; sync(); }
+    svc.stage('quiet');
+    g.leadFrom(kDown);
+    let staged = false, satAt = null, satFor = 0, perked = false, passed = false, wentAt = null, openAt = null, onShut = 0, armAtGo = null, trainAtGo = null, lookedAtTrain = 0;
+    const log = window.__scene.sound.debug.log; log.length = 0;
+    // (the listener where you stand: the frozen shots page doesn't move it, and his voice carries 16 m)
+    const tick = () => { svc.update(dt); follow(); step(); if (Math.round(t * 30) % 15 === 0) window.__scene.sound.update(0, { camera, inside: false, look: 'day' }); };
+    while (t < 240) {
+      // the train: sent when he is 12 m short of the barrier, 11 s from the crossing (the lamps and bells on, the arms down)
+      if (!staged && S.leg === kCross && dist(S, A.tour[kCross]) < 12) { staged = true; svc.stage('approach'); svc.runs[0].x -= 230; }
+      tick();
+      const rl = g.rail();
+      if (rl.on && rl.shut) onShut++;
+      if (S.state === 'cross') {
+        if (S.posture > 0.8) { satAt ??= +t.toFixed(1); satFor += dt; }
+        const tr = svc.runs[0], d = Math.max(0, Math.abs(tr.x - (-80)) - tr.len / 2);
+        if (d === 0) passed = true;
+        if (d < 40 && Math.abs(S.look) > 0.25) lookedAtTrain++;
+        if (S.perk >= 0.95 && d < 70) perked = true;
+      }
+      if (staged && openAt === null && passed && !rl.shut) openAt = +t.toFixed(1);
+      if (staged && wentAt === null && rl.on) { wentAt = +t.toFixed(1); armAtGo = +svc.cross.armT.toFixed(2); trainAtGo = svc.cross.closing; }
+      if (staged && S.state === 'lead' && S.leg > kHome && !g.tour.visit) break;
+    }
+    const said = [...new Set(log.map((e) => e.name).filter((n) => /^dog-/.test(n ?? '')))];
+    res.cross = { staged, satAt, satFor: +satFor.toFixed(1), perked, lookedAtTrain, passed, openAt, wentAt, armAtGo, trainAtGo, onShut, railEnter };
+    res.home = { visited: [...g.tour.visited], phases: visitPhases, hopMax: +hopMax.toFixed(2), secs: +t.toFixed(0), said, end: g.state() };
+    // caught on the crossing as it shuts (you far behind, so he had stopped to look back for you): off it at once
+    let caught = null;
+    {
+      svc.stage('quiet');
+      g.reset(); g.introMark();
+      const c = W.nearest(A.tour[kCross].x, A.tour[kCross].z, 2), q = W.at(c);
+      Object.assign(S, { x: q.x, z: q.z }); P.x = q.x; P.z = q.z + 3; sync();
+      g.leadFrom(kCross);
+      let on = null, off = null, armOff = null;
+      for (let k = 0; k < 40 * 30; k++) {
+        svc.update(dt);
+        if (on === null) { lookAt(S.x, S.z); if (dist(P, S) > 3.2) walk(S, 2.3); }      // with him up to the deck, then you stop
+        step();
+        const rl = g.rail();
+        // (a train 20 s off: the lamps and bells start, the arms still up)
+        if (on === null && rl.on && Math.abs(S.z - (-134.3)) < 1.5) { on = +t.toFixed(1); svc.stage('approach'); svc.runs[0].x -= 400; Object.assign(svc.cross, { armT: 0, since: 0, closing: false }); }
+        else if (on !== null && off === null && !rl.on) { off = +(t - on).toFixed(1); armOff = +svc.cross.armT.toFixed(2); break; }
+      }
+      caught = { on, off, armOff };
+      svc.stage('quiet');
+    }
+    res.caught = caught;
+    res.ok = staged && satAt !== null && satFor >= 4 && perked && passed && wentAt !== null && openAt !== null && wentAt >= openAt && armAtGo <= 0.05 && trainAtGo === false && onShut === 0 && railEnter === 0
+      && res.home.visited.includes('home') && ['home:gate', 'home:in', 'home:bounce', 'home:spin', 'home:toy', 'home:proud'].every((q) => visitPhases.includes(q)) && hopMax > 0.2
+      && ['dog-yip', 'dog-boof', 'dog-giggle'].every((n) => said.includes(n))
+      && caught.on !== null && caught.off !== null && caught.off <= 3 && caught.armOff < 0.6;
   } else if (kind === 'bedtime') {
     // the tour's end (Tan: Hachi sank into the ground at the gate; make it "aww"): from 9 m off it trots to the gate's
     // bench, hops up, plays (a bow, a spin, a roll, a tilt), circles and curls up asleep ON the seat; GUIDE.onNap fires
@@ -583,7 +660,7 @@ try {
     if (!loud) bad++;
     console.log(loud ? 'pass' : 'FAIL', 'voice', JSON.stringify(voice));
 
-    for (const kind of ['tour', 'intro', 'turnaway', 'wander', 'whistle', 'bedtime', 'tipsy', 'ground'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
+    for (const kind of ['tour', 'crossing', 'intro', 'turnaway', 'wander', 'whistle', 'bedtime', 'tipsy', 'ground'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
       const r = await page.evaluate(SIM, kind);
       if (r.map) { fs.writeFileSync(path.join(out, 'trail.png'), Buffer.from(r.map.split(',')[1], 'base64')); delete r.map; }
       const said = await page.evaluate(() => { const l = [...new Set(window.__scene.sound.debug.log.map((e) => e.name).filter((n) => /^dog-|^whistle/.test(n ?? '')))]; window.__scene.sound.debug.log.length = 0; return l; });

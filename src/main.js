@@ -15,6 +15,8 @@ import { createMinimap } from './ui/minimap.js';
 import { createHandsHud } from './ui/hands.js';
 import { createControls } from './ui/controls.js';
 import { trainWaitLabel } from './ui/trainWait.js';
+import { watchSoundLabels, createSoundLabels } from './ui/soundLabels.js';
+import { TRAIN_SOUND } from './world/line/sfx.js';
 import { buildKitTest } from './world/kit-test.js';
 import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
@@ -188,6 +190,10 @@ if (shop) {
  * same first click that takes the pointer lock (browsers start no audio
  * before a gesture).  Every sound of a place is local to it. */
 const sound = createSound({ volume: volumeGain(volumeStep) });
+/* the sounds' names, top left, as you come near one (ui/soundLabels.js); wrapped before the world's zones pass through */
+const soundLabels = FROZEN ? null : watchSoundLabels(sound, {
+  names: STRINGS.soundNames, isPlaying: () => player.locked, show: createSoundLabels(hud.root),
+});
 soundBus.attach(sound);          // the world's zones and one-shots (core/soundBus.js)
 hud.setMuted(sound.muted);
 const rememberVolume = () => {
@@ -195,6 +201,7 @@ const rememberVolume = () => {
 };
 world.line?.onEvent((name, run) => {
   if (name === 'chime') sound.chime(Math.hypot(camera.position.x - run.x, camera.position.z - run.z));
+  if (name === 'arrive' || name === 'depart') soundLabels?.at('train-' + name, run.x, run.z, TRAIN_SOUND);   // (the trains' own sounds: line/sfx.js)
 });
 const _v = new THREE.Vector3();
 let lastStride = 0;

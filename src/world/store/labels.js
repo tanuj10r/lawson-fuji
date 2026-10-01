@@ -1,21 +1,23 @@
-import * as THREE from 'three';
 import { CATALOG } from '../../data/catalog.js';
 import { FOOD } from '../foodart.js';
+import { makePage } from './pages.js';
+import { SEEN } from './seen-data.js';
+import { storeWhole } from './seen.js';
 
 /* ------------------------------------------------------------------ *
  * Packaging, painted (SPEC 7; M3b).
  *
- * One 2048 atlas, 8 x 8 cells of 256 px: a cell per product (its front,
- * or its wrap for bottles and cups), and cell 63 plain white for every
- * unlabelled part (their colour comes from the vertex colours).  A second
- * atlas holds the shelf price tags.  All generic and ours.
+ * Atlas pages of 16 x 16 cells: a cell per product (its front, or its
+ * wrap for bottles and cups), and one plain white on each page for every
+ * unlabelled part (their colour comes from the vertex colours).  A
+ * further page holds the shelf price tags.  All generic and ours.  The
+ * pages are held at the size they are seen at (store/pages.js).
  * ------------------------------------------------------------------ */
 
 const JP = `'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', Meiryo, sans-serif`;
 /* M3d: about 370 products, so the cells are 192 px on 3072 pages (255 a
  * page and a white cell); the painters still draw in a 256 box, scaled. */
 const N = 16, PX = 192, SIZE = N * PX, CELL = 256;
-export const WHITE = N * N - 1;
 const hex = (n) => '#' + n.toString(16).padStart(6, '0');
 let seed = 1;
 const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };   // seeded: labels never change between loads
@@ -379,65 +381,109 @@ function paintCell(c, p) {
   }
 }
 
+/**
+ * The catalogue in pages: [{ list, level }].  With no measurement, in order, `per` a page.  With one
+ * (store/seen.js), the products are grouped by the smallest mipmap their page can be from afar (`levels`:
+ * a digit a product, in catalogue order; 2 and up share a page), so a few things seen large from the
+ * street do not keep every label large.  How the pages are laid out never changes what is drawn; the
+ * levels themselves are only used on the store they were measured on (store/planogram.js).
+ */
+function inPages(levels, per) {
+  const ok = !storeWhole && SEEN && SEEN.catalog === CATALOG.length && levels?.length === CATALOG.length;
+  const groups = ok ? [0, 1, 2].map((L) => ({ level: L, list: CATALOG.filter((p, i) => Math.min(2, +levels[i]) === L) })) : [{ level: 0, list: CATALOG }];
+  const out = [];
+  for (const g of groups) for (let i = 0; i < g.list.length; i += per) out.push({ level: g.level, list: g.list.slice(i, i + per) });
+  return out;
+}
+const INDEX = Object.fromEntries(CATALOG.map((p, i) => [p.id, i]));
+
 let atlas = null;
-/** The product atlas, in pages of 63 products (the 64th cell white), and
- *  each product's { page, cell }. */
+/**
+ * The product atlas: pages 16 cells across, a white cell after the last product of each, only as tall
+ * as its rows (store/pages.js holds each at the size it is seen at; `page.want` is the level it can be
+ * from afar).  `cellOf[id]` is { page, cell }, `rect(id)` its cell and `white(id)` the white cell of
+ * its page, as [u0, v0, u1, v1].
+ */
 export function labelAtlas() {
   if (atlas) return atlas;
   const pages = [], cellOf = {};
-  const per = N * N - 1;
   const k = PX / CELL;
-  for (let pg = 0; pg * per < CATALOG.length; pg++) {
-    const cv = document.createElement('canvas');
-    cv.width = cv.height = SIZE;
-    const c = cv.getContext('2d');
-    CATALOG.slice(pg * per, (pg + 1) * per).forEach((p, i) => {
-      const x = (i % N) * PX, y = Math.floor(i / N) * PX;
-      seed = 1000 + pg * per + i;
-      c.save(); c.translate(x, y); c.beginPath(); c.rect(0, 0, PX, PX); c.clip();
-      c.scale(k, k);
-      paintCell(c, p);
-      c.restore();
-      cellOf[p.id] = { page: pg, cell: i };
+  // a page is at most 11 rows (3072 x 2112: its upload is one frame's hitch as you walk up, so it is kept
+  // short); with no measurement, 255 products a page as it always was
+  inPages(SEEN?.labelLevel, SEEN?.labelLevel ? 11 * N - 1 : N * N - 1).forEach(({ list, level }, pg) => {
+    list.forEach((p, i) => { cellOf[p.id] = { page: pg, cell: i }; });
+    const page = makePage({
+      name: 'labels-' + pg, w: SIZE, h: Math.ceil((list.length + 1) / N) * PX, steps: list.length + 1,
+      // cells `from` to `to`; the one after the last product is the white cell
+      paint(c, from, to) {
+        for (let i = from; i < to; i++) {
+          const x = (i % N) * PX, y = Math.floor(i / N) * PX;
+          if (i === list.length) { c.fillStyle = '#ffffff'; c.fillRect(x, y, PX, PX); continue; }
+          seed = 1000 + INDEX[list[i].id];
+          c.save(); c.translate(x, y); c.beginPath(); c.rect(0, 0, PX, PX); c.clip();
+          c.scale(k, k);
+          paintCell(c, list[i]);
+          c.restore();
+        }
+      },
     });
-    c.fillStyle = '#ffffff'; c.fillRect((WHITE % N) * PX, Math.floor(WHITE / N) * PX, PX, PX);
-    const tex = new THREE.CanvasTexture(cv);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 8;
-    pages.push(tex);
-  }
-  atlas = { pages, cellOf };
+    page.white = list.length;
+    page.want = level;
+    pages.push(page);
+  });
+  /** [u0, v0, u1, v1] of a cell (v up), inset so filtering never bleeds. */
+  const rectOf = (pg, i, inset = 3) => {
+    const x = (i % N) * PX, y = Math.floor(i / N) * PX, h = pages[pg].h;
+    return [(x + inset) / SIZE, 1 - (y + PX - inset) / h, (x + PX - inset) / SIZE, 1 - (y + inset) / h];
+  };
+  atlas = {
+    pages, cellOf,
+    rect: (id, inset) => rectOf(cellOf[id].page, cellOf[id].cell, inset),
+    white: (id, inset) => rectOf(cellOf[id].page, pages[cellOf[id].page].white, inset),
+  };
   return atlas;
 }
 
-/** [u0, v0, u1, v1] of a cell (v up), inset so filtering never bleeds. */
-export function cellRect(i, inset = 3) {
-  const x = (i % N) * PX, y = Math.floor(i / N) * PX;
-  return [(x + inset) / SIZE, 1 - (y + PX - inset) / SIZE, (x + PX - inset) / SIZE, 1 - (y + inset) / SIZE];
-}
-
 /* ------------------------------ price tags ------------------------------ */
-const TW = 256, TH = 96, TC = 8, TR = Math.ceil(CATALOG.length / TC);
+const TW = 256, TH = 96, TC = 8;
+/** A price tag's texels a metre (256 across its 0.1 m: store/planogram.js TAG_W). */
+export const TAG_TPM = TW / 0.1;
 let tags = null;
-/** Shelf tags: white, the name small, the price in red, (税込). */
+/**
+ * Shelf tags: white, the name small, the price in red, (税込).  `pageOf(id)` is the page a product's
+ * tag is on (what its material reads) and `rect(id)` its place there.  A tag is ten centimetres: only
+ * the few you pass close to are ever seen at their whole 256 texels, and those have a page of their own.
+ */
 export function tagAtlas() {
   if (tags) return tags;
-  const cv = document.createElement('canvas');
-  cv.width = TW * TC; cv.height = TH * TR;
-  const c = cv.getContext('2d');
-  const cellOf = {};
-  CATALOG.forEach((p, i) => {
-    const x = (i % TC) * TW, y = Math.floor(i / TC) * TH;
-    c.fillStyle = '#ffffff'; c.fillRect(x + 2, y + 2, TW - 4, TH - 4);
-    c.fillStyle = '#e8453f'; c.fillRect(x + 2, y + 2, 10, TH - 4);
-    fit(c, p.nameJa, x + TW / 2 + 5, y + 24, TW - 30, 22, '#333');
-    fit(c, '¥' + p.priceYen, x + TW / 2 - 18, y + 62, 120, 44, '#d8342f');
-    fit(c, '(税込)', x + TW - 42, y + 68, 60, 16, '#d8342f', 'normal');
-    cellOf[p.id] = i;
+  const at = {};
+  // (160 tags a page at most: a page's upload is one frame's hitch as you walk up)
+  const pages = inPages(SEEN?.tagLevel, SEEN?.tagLevel ? 160 : Infinity).filter((g) => g.list.length).map(({ list, level }, pg) => {
+    const rows = Math.ceil(list.length / TC);
+    list.forEach((p, i) => { at[p.id] = { pg, i, rows }; });
+    const page = makePage({
+      name: 'tags-' + pg, w: TW * TC, h: TH * rows, steps: list.length,
+      paint(c, from, to) {
+        list.slice(from, to).forEach((p, k) => {
+          const i = from + k;
+          const x = (i % TC) * TW, y = Math.floor(i / TC) * TH;
+          c.fillStyle = '#ffffff'; c.fillRect(x + 2, y + 2, TW - 4, TH - 4);
+          c.fillStyle = '#e8453f'; c.fillRect(x + 2, y + 2, 10, TH - 4);
+          fit(c, p.nameJa, x + TW / 2 + 5, y + 24, TW - 30, 22, '#333');
+          fit(c, '¥' + p.priceYen, x + TW / 2 - 18, y + 62, 120, 44, '#d8342f');
+          fit(c, '(税込)', x + TW - 42, y + 68, 60, 16, '#d8342f', 'normal');
+        });
+      },
+    });
+    page.want = level;
+    // from afar: the sharpest any of its tags is ever sampled at (seen-data tagFar), never under its near level
+    page.wantFar = SEEN?.tagFar?.length === CATALOG.length ? Math.max(level, Math.min(...list.map((p) => +SEEN.tagFar[INDEX[p.id]]))) : level;
+    return page;
   });
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  tags = { tex, cellOf, rect: (i) => { const x = (i % TC) * TW, y = Math.floor(i / TC) * TH; return [(x + 2) / (TW * TC), 1 - (y + TH - 2) / (TH * TR), (x + TW - 2) / (TW * TC), 1 - (y + 2) / (TH * TR)]; } };
+  tags = {
+    pages,
+    pageOf: (id) => pages[at[id].pg],
+    rect: (id) => { const { i, rows } = at[id], x = (i % TC) * TW, y = Math.floor(i / TC) * TH; return [(x + 2) / (TW * TC), 1 - (y + TH - 2) / (TH * rows), (x + TW - 2) / (TW * TC), 1 - (y + 2) / (TH * rows)]; },
+  };
   return tags;
 }

@@ -5,7 +5,7 @@ import { kawaraTex, boardTex, paverTex, PAVER_TILE } from '../kit/tex.js';
 import { roomTex, counterTex } from '../kit/facade/signs.js';
 import { windowCell } from '../kit/paint.js';
 import { makePaperLantern } from '../shops.js';
-import { boardTex as nameBoardTex, norenTex, flagTex, cardTex, sideTex, jarTex, clothTex } from './tex.js';
+import { boardTex as nameBoardTex, norenTex, flagTex, cardTex, sideTex, jarTex, clothTex, orderTex } from './tex.js';
 import { PETTAN } from '../../data/town.js';
 import { MOCHI, ROADS } from '../../config.js';
 
@@ -23,9 +23,11 @@ import { MOCHI, ROADS } from '../../config.js';
  *               paper lanterns under the eave
  *   the stage   the stone mortar (臼) on its timber base and a step either
  *               side for the pounders, the water tub, the steamer stack on
- *               its stove, a bench under red felt, the serving stand (cloth,
- *               tray, price card, the dogs' jar), two red nobori, a board on
- *               the flank for the car park
+ *               its stove, a bench under red felt, the display table (cloth,
+ *               tray, price card, the dogs' jar), the order stand at the
+ *               stage's edge by the ring (the card reader, the plate yours is
+ *               set on, a step behind it for whoever serves), two red nobori,
+ *               a board on the flank for the car park
  *
  * Authored in the lot's own frame (config MOCHI): x along the frontage, z out
  * toward the road from the frontage line.  Returns where things stand, for
@@ -36,8 +38,11 @@ import { MOCHI, ROADS } from '../../config.js';
 export const Y0 = ROADS.asphaltY + ROADS.kerbH;
 /** The mortar: its rim's height above the stage, the bowl's radius, where the dough's top rests. */
 export const USU = { rim: 0.5, bowl: 0.215, dough: 0.47, step: 0.16 };
-/** The serving stand's top above the stage. */
+/** The display table's top above the stage; the order stand's; the step behind that (a rabbit is a metre tall). */
 export const STAND_H = 0.64;
+export const ORDER = { top: 0.96, w: 0.5, d: 0.32, step: 0.24 };
+/** The room behind the counter: its floor above the stage, and how far in the line the rabbits wait on is. */
+export const ROOM = { floor: 0.1, back: 0.76 };
 const W = 9.4, D = 9.2, REC = 1.5, WALL = 2.7, RISE = 1.75, EAVE = 1.0;
 
 /** A box whose faces tile a texture in metres (`tile` m to a repeat). */
@@ -260,7 +265,7 @@ export function buildShopfront(ctx, { cx, fz }) {
     bx('felt', 0.54, 0.02, 1.54, x, Y0 + 0.435, z);
     for (const t of [-1, 1]) bx('felt', 0.54, 0.16, 0.012, x, Y0 + 0.36, z + t * 0.776);
   }
-  /* the serving stand: a low table under an indigo cloth, the tray, the price card, the dogs' jar, the card reader */
+  /* the display table: a low table under an indigo cloth, the tray, the price card, the dogs' jar */
   const [sx, sz] = MOCHI.stand;
   const top = Y0 + STAND_H;
   {
@@ -270,9 +275,8 @@ export function buildShopfront(ctx, { cx, fz }) {
     cloth.position.set(sx, top - 0.29, sz + 0.256);
     cloth.userData.noOutline = true;
     g.add(cloth);
-    // the lacquer tray the day's mochi sit on (index.js sets them out), and the plate yours is served on
-    bx('iron', 0.36, 0.016, 0.24, sx - 0.24, top + 0.008, sz - 0.04);
-    add('plaster', new THREE.CylinderGeometry(0.075, 0.06, 0.014, 24), trs(sx + 0.06, top + 0.007, sz - 0.02));
+    // the lacquer tray the day's mochi sit on (index.js sets them out)
+    bx('iron', 0.44, 0.016, 0.26, sx - 0.2, top + 0.008, sz - 0.04);
     // the price card
     const pc = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.15), flat({ color: 0xffffff, map: cardTex(), cache: false }));
     pc.position.set(sx - 0.24, top + 0.1, sz + 0.17);
@@ -292,9 +296,28 @@ export function buildShopfront(ctx, { cx, fz }) {
     label.position.set(jx, top + 0.075, jz + 0.0635);
     label.userData.noOutline = true;
     g.add(label);
-    // the card reader: a small dark pad at the front edge, a pale ring on it
-    bx('iron', 0.11, 0.022, 0.085, sx + 0.3, top + 0.011, sz + 0.17, -0.0, 0, 0);
-    add('water', new THREE.RingGeometry(0.018, 0.027, 14).rotateX(-Math.PI / 2), trs(sx + 0.3, top + 0.0235, sz + 0.17));
+  }
+  /* the order stand, at the stage's edge by the ring: a slim cabinet of dark boards under a pale top, its sign on the
+   * front; on it the card reader (tipped toward you) and the plate; behind it a step for whoever serves */
+  const [ox, oz] = MOCHI.counter;
+  const otop = Y0 + ORDER.top;
+  const reader = [ox + 0.12, otop + 0.034, oz + 0.035], plate = [ox - 0.1, otop + 0.014, oz - 0.03], stool = [ox - 0.26, Y0 + ORDER.step, oz - 0.5];
+  {
+    add('boards', tiled(ORDER.w - 0.08, ORDER.top - 0.04, ORDER.d - 0.08, 1.2), trs(ox, Y0 + (ORDER.top - 0.04) / 2, oz));
+    bx('pale', ORDER.w, 0.04, ORDER.d, ox, otop - 0.02, oz);
+    bx('wood', ORDER.w - 0.04, 0.06, ORDER.d - 0.04, ox, Y0 + 0.03, oz);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34), flat({ color: 0xffffff, map: orderTex(), cache: false }));
+    sign.position.set(ox, Y0 + 0.66, oz + (ORDER.d - 0.08) / 2 + 0.006);
+    sign.userData.noOutline = true;
+    g.add(sign);
+    // the reader: a dark pad on a little wedge, its face to you
+    bx('iron', 0.13, 0.024, 0.1, reader[0], reader[1] - 0.012, reader[2], 0.3);
+    bx('iron', 0.11, 0.03, 0.05, reader[0], otop + 0.012, reader[2] - 0.03);
+    // the plate
+    add('plaster', new THREE.CylinderGeometry(0.068, 0.05, 0.014, 28), trs(plate[0], otop + 0.007, plate[2]));
+    // the server's step
+    bx('pale', 0.38, 0.04, 0.34, stool[0], stool[1] - 0.02, stool[2]);
+    for (const s2 of [-1, 1]) bx('wood', 0.04, ORDER.step - 0.04, 0.3, stool[0] + s2 * 0.15, Y0 + (ORDER.step - 0.04) / 2, stool[2]);
   }
   /* the nobori, at the stage's front corners */
   const flags = [[4.85, -0.42, 0], [-4.85, -0.42, 1]];
@@ -325,14 +348,21 @@ export function buildShopfront(ctx, { cx, fz }) {
   C(-hw, zb, hw, zf, Y0 + WALL);
   C(ux - 1.22, uz - 1.15, ux + 1.22, uz + 0.5, Y0 + 1.2);                 // the mortar and the three at it
   C(sx - 0.5, sz - 0.3, sx + 0.5, sz + 0.3, top + 0.1);
+  C(ox - ORDER.w / 2 - 0.22, oz - 0.7, ox + ORDER.w / 2, oz + ORDER.d / 2, otop + 0.1);      // the order stand and the step behind it
   C(seiro[0] - 0.4, seiro[1] - 0.38, seiro[0] + 0.4, seiro[1] + 0.38, Y0 + 1.0);
   C(bench[0] - 0.3, bench[1] - 0.8, bench[0] + 0.3, bench[1] + 0.8, Y0 + 0.45);
   for (const [x, z] of flags) C(x - 0.15, z - 0.15, x + 0.15, z + 0.15, Y0 + 2.0);
   ctx.platform({ x0: cx - 5.25, x1: cx + 5.25, z0: fz - S, z1: fz + 0.05, top: Y0 });
   ctx.registry?.push({ kind: 'building', x: cx, z: fz + zm, rect: [cx - hw, fz + zb, cx + hw, fz + zf] });
-  for (const [x, z] of [[ux, uz], [sx, sz], seiro, bench, ...flags]) ctx.registry?.push({ kind: 'prop', x: cx + x, z: fz + z });
+  for (const [x, z] of [[ux, uz], [sx, sz], [ox, oz], seiro, bench, ...flags]) ctx.registry?.push({ kind: 'prop', x: cx + x, z: fz + z });
   ctx.night?.pool(cx, fz - S * 0.45, 3.4, { y: Y0, strength: 1.1 });
   ctx.night?.pool(cx + sx, fz + sz, 1.4, { y: Y0, strength: 0.6 });
 
-  return { group: g, tris, seiro: [seiro[0], Y0 + 1.06, seiro[1]], standTop: top, plate: [sx + 0.06, top + 0.014, sz - 0.02], tray: [sx - 0.24, top + 0.016, sz - 0.04], jar: [sx + 0.33, top + 0.17, sz - 0.08], reader: [sx + 0.3, top + 0.03, sz + 0.17], H: Y0 + WALL + RISE + 0.3 };
+  return {
+    group: g, tris, seiro: [seiro[0], Y0 + 1.06, seiro[1]], standTop: top, tray: [sx - 0.2, top + 0.016, sz - 0.04], jar: [sx + 0.33, top + 0.17, sz - 0.08],
+    plate, reader, stool, orderTop: otop,
+    // the room: the line behind the counter the rabbits wait on (its floor), and the gap at the door's end they come out by
+    room: { y: Y0 + ROOM.floor, z: zf - ROOM.back, gap: -openW / 2 + 0.475, counterTop: Y0 + 0.89 },
+    H: Y0 + WALL + RISE + 0.3,
+  };
 }

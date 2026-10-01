@@ -756,12 +756,13 @@ export const MOCHI = {
   setback: 3.0,
   usu: [0.05, -1.4],                         // the mortar: world (39.2, 22.0)
   spot: [0.05, 1.2, 1.2],                    // the engagement's ring on the pavement: x, z, radius: world (39.2, 19.4)
-  stand: [-1.35, -0.5],                      // the serving stand the turner sets your mochi on
-  hachi: [0.5, -0.35],                       // where Hachi sits to watch: the stage's edge, before the mortar
-  near: 9,                                   // the show plays while you are within this of the mortar (m)
-  live: 26,                                  // the rabbits idle (ears, brows) within this; beyond it only the steamer steams
-  hide: 60,                                  // and beyond this nothing of the show is drawn or moved
-  rest: [2.2, 3.0],                          // s between shows (the finale: the turner holds a mochi up, all three bow)
+  stand: [-1.95, -0.5],                      // the display table: the day's mochi on their tray, the price, the dogs' jar
+  counter: [-0.29, 0.2],                     // the order stand at the stage's edge: the card reader, the plate yours is served on
+  hachi: [0.78, -0.7],                       // where Hachi sits to watch: before the mortar, on your right
+  near: 9,                                   // within this of the mortar the rabbits peek at you over the counter (m)
+  live: 26,                                  // their ears twitch within this; beyond it only the steamer steams
+  hide: 60,                                  // and beyond this nothing of the shop's is drawn or moved
+  rest: 4,                                   // s after they have gone back in before the ring offers another
   gain: 0.75,
   /* The show is one 13 s recording (scripts/audio-cuts.json mochi-pound; Tan's assets/audio/mochimochi.mp3) and the
    * rabbits move to it by this table: seconds into the file, read from the AUDIO clock (core/sound.js: the one-shot's
@@ -784,9 +785,14 @@ export const MOCHI = {
     { t: 10.66, kind: 'hit' }, { t: 10.86, kind: 'big' }, { t: 11.83, kind: 'turn' },
     { t: 12.29, kind: 'hit' }, { t: 12.54, kind: 'shout' },
   ],
-  /* buying one (E on the ring; s from the key): the card's tap and ka-ching, the turner's hop to the stand, the
-   * mochi set down, your hand taking it; then store/eat.js eats it (RECIPE.mochi).  Hachi's treat follows. */
-  buy: { tap: 0.5, serve: 0.7, set: 1.9, take: 2.5, treat: 3.05, eat: 3.3 },
+  /* An order (E on the ring; Tan, 2026-10-02): nothing plays until you order.  You are walked to the order stand
+   * (`at`, the lot's frame; `walk` m/s), your IC card comes up (`card` s from the key, held to be seen), taps the
+   * reader (`tap`: the ka-ching) and goes away (`away`: the hand down); the three hop out one by one (`enter` after the
+   * key, `stagger` apart, `hop` s a hop) and bow; the recording plays, the rabbits to its cue table; the finale
+   * (`finale` s: the fresh mochi held up, the bow); a pounder takes Hachi his dried sweet potato if he is watching
+   * (`feed` s, your eyes eased to them); the turner brings yours to the plate (`serve` s; `take`: your hand has it;
+   * `eat`: store/eat.js eats it); they wave, bow and hop back in (`bye` s before the first leaves). */
+  order: { at: [-0.12, 0.9], walk: 1.5, card: 0.6, tap: 1.55, away: 2.15, enter: 2.3, stagger: 0.8, hop: 0.29, finale: 2.4, feed: 3.0, serve: 2.2, take: 2.9, eat: 3.35, bye: 1.9 },
 };
 
 /* Local sounds (SPEC section 9): anything that belongs to a place is heard

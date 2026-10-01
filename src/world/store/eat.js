@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { bake } from '../../core/util.js';
 import { ease, easeOut, clamp01 } from './figure.js';
-import { mochiStages, strandGeometry } from '../mochi/food.js';
+import { mochiStages } from '../mochi/food.js';
 
 /* ------------------------------------------------------------------ *
  * Eating outside (Tan's konbini): first person, just the hands.
@@ -189,8 +189,10 @@ const RECIPE = {
     });
   },
 };
-/* ぺったん堂's matcha-strawberry mochi (world/mochi/food.js builds it, whole and bitten): handed over bare, so
- * nothing to unwrap; three bites, the first a long one that draws a strand of mochi out until it snaps. */
+/* ぺったん堂's matcha-strawberry mochi (world/mochi/food.js builds it, whole and bitten, and what its eating shows
+ * besides: `fx`): handed over in its paper cup, so nothing to unwrap; three bites, the first a long one that draws a
+ * strand of mochi out until it snaps.  Its stages say where it sits (`seat`, `turn`), when each bite starts and how
+ * long it takes (`bites`, `win`), how long the whole takes (`per`). */
 RECIPE.mochi = () => Object.assign(mochiStages(), { centred: true });
 const cache = new Map();
 /** The bite stages of `id` (geometries, centred on the anchor), or null for a drink. */
@@ -210,6 +212,7 @@ export function eatStages(id) {
 /* ------------------------------ the eating ------------------------------ */
 const PER = 3.5;          // seconds an item takes
 const BITE_AT = [0.85, 1.57, 2.29];   // when each of the three bites starts
+const AT = [0, 0.03, 0.012];          // where the food sits in the hand (the anchor's frame)
 /**
  * `hands` (store/hands.js), `material` the hand's own, `sfx(name)` plays
  * a sound at you.  `start(item)` with { id, mesh, onEaten }; `update(dt)`;
@@ -219,9 +222,6 @@ export function makeEating(hands, material, sfx) {
   let cur = null, t = 0, done = true;
   const food = new THREE.Mesh(new THREE.BufferGeometry(), material);
   food.frustumCulled = false; food.renderOrder = 11;
-  // the strand a stretchy first bite draws out (the mochi), in the camera's frame
-  let strand = null;
-  const _from = new THREE.Vector3(), _to = new THREE.Vector3(), _dir = new THREE.Vector3(), UPY = new THREE.Vector3(0, 1, 0);
   /* Where the food itself goes, in the camera's frame (the hand follows it):
    * held up in front, then in close under the eyes for each bite. */
   const PREP = new THREE.Vector3(0.05, -0.085, -0.38);
@@ -258,7 +258,8 @@ export function makeEating(hands, material, sfx) {
       if (done || !cur) return;
       t += dt;
       const drink = !cur.stages;
-      const per = cur.stages?.per ?? PER, BITES = cur.stages?.bites ?? BITE_AT, pull = cur.stages?.pull ?? null;
+      const per = cur.stages?.per ?? PER, BITES = cur.stages?.bites ?? BITE_AT, fx = cur.stages?.fx ?? null;
+      let biting = -1, biteX = 0, biteWin = 0;
       const off = h.off, turn = h.turn;
       restAnchor(h, _rest);
       // up to the eating height
@@ -274,7 +275,8 @@ export function makeEating(hands, material, sfx) {
           food.geometry = cur.stages[0]; food.scale.setScalar(1);
           const r = cur.stages.turn ?? TURN[cur.id.includes('sando') ? 'sando' : cur.id.includes('onigiri') ? 'onigiri' : 'wafer'];
           food.rotation.set(r[0], r[1], r[2]);
-          food.position.set(0, 0.03, 0.012);          // up out of the fingers, the bite end free
+          const at = cur.stages.seat ?? AT;
+          food.position.set(at[0], at[1], at[2]);     // up out of the fingers, the bite end free
           cur.mesh.parent.add(food);
         }
       });
@@ -288,31 +290,18 @@ export function makeEating(hands, material, sfx) {
       } else {
         // three bites: in quick, a bite, back slower; the third takes the rest
         for (let b = 0; b < 3; b++) {
-          // (the mochi's first bite is a long one: the hand comes away slowly, a strand stretching from the food to your mouth)
-          const win = pull && b === 0 ? pull.len : 0.62;
+          const win = cur.stages.win?.[b] ?? 0.62;
           const t0 = BITES[b], x = t - t0;
           if (x < 0 || x > win) continue;
+          biting = b; biteX = x; biteWin = win;
+          // (a long bite, the mochi's first, comes in as quickly and goes away slowly)
           const k = x < 0.16 ? easeOut(x / 0.16) : 1 - ease(clamp01((x - 0.16) / (win - 0.16)));
           _p.lerp(MOUTH, k);
-          if (pull && b === 0 && x >= 0.16) {
-            const u = clamp01((x - 0.16) / (win * 0.78 - 0.16));
-            if (!strand) { strand = new THREE.Mesh(strandGeometry(), material); strand.frustumCulled = false; strand.renderOrder = 11; }
-            if (!strand.parent) hands.view.add(strand);
-            // from where it left the food up to your mouth: longer and thinner as the hand goes, then it lets go and springs back
-            _from.copy(_p).add(_dir.set(pull.from[0], pull.from[1], pull.from[2]));
-            _to.set(0.004, -0.088, -0.15);                      // your mouth: just under the lens, close
-            _dir.copy(_to).sub(_from);
-            const len = _dir.length() * (u < 0.86 ? 1 : 1 - (u - 0.86) / 0.14);
-            strand.position.copy(_from);
-            strand.quaternion.setFromUnitVectors(UPY, _dir.normalize());
-            const thin = Math.max(0.3, 1 - 0.75 * u);
-            strand.scale.set(thin, Math.max(1e-4, len), thin);
-            strand.visible = u < 1 && len > 0.004;
-          }
           turn.x += 0.1 * k;
           if (x >= 0.16) once('bite' + b, () => {
             sfx('bite');
             if (b < 2) food.geometry = cur.stages[b + 1];
+            fx?.puff(b, { view: hands.view, food });
           });
           if (x >= 0.3) once('munch' + b, () => sfx('munch'));
           if (b === 2 && x >= 0.16) food.scale.setScalar(Math.max(0, 1 - (x - 0.16) / 0.12));
@@ -324,9 +313,10 @@ export function makeEating(hands, material, sfx) {
       turn.set(turn.x * (1 - back), turn.y * (1 - back), turn.z * (1 - back));
       h.eat = Math.min(h.eat, 1 - back);
       place(h, _p);
+      fx?.frame({ view: hands.view, material, food, bite: biting, x: biteX, win: biteWin, dt });
       // the empty can goes down out of sight (a bin, a bag) and the hand comes back without it
       if (drink) off.y -= 0.3 * clamp01((t - 2.95) / 0.25) * (1 - clamp01((t - 3.22) / 0.25));
-      if (t > (drink ? 3.2 : per - 0.4)) once('gone', () => { cur.mesh.visible = false; food.removeFromParent(); strand?.removeFromParent(); cur.onEaten?.(); });
+      if (t > (drink ? 3.2 : per - 0.4)) once('gone', () => { cur.mesh.visible = false; food.removeFromParent(); fx?.end(); cur.onEaten?.(); });
       if (t >= per) {
         off.set(0, 0, 0); turn.set(0, 0, 0); h.eat = 0;
         cur = null; done = true;
@@ -334,7 +324,7 @@ export function makeEating(hands, material, sfx) {
     },
     /** Stop at once (walked back into the store mid-bite, say): what was held is gone. */
     stop() {
-      if (cur) { cur.mesh.visible = false; food.removeFromParent(); strand?.removeFromParent(); h.off.set(0, 0, 0); h.turn.set(0, 0, 0); h.eat = 0; cur.onEaten?.(); }
+      if (cur) { cur.mesh.visible = false; food.removeFromParent(); cur.stages?.fx?.end(); h.off.set(0, 0, 0); h.turn.set(0, 0, 0); h.eat = 0; cur.onEaten?.(); }
       cur = null; done = true;
     },
   };

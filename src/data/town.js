@@ -178,6 +178,8 @@ export const PETTAN = {
   dogSub: 'ほしいも',
   side: ['つきたて', 'おもち'],
   seal: '兎',
+  order: 'ご注文',
+  orderSub: 'ICカード',
 };
 
 /* ---- the discount megastore (experiences): ドンペン堂, a loving homage to

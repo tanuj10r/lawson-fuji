@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { LAWSON } from '../../config.js';
 import { rngKit } from '../../core/util.js';
 import { makePainter } from './painter.js';
+import { pagesRenderer } from './pages.js';
 import { paintBasketStack } from './basket.js';
 import { stockStore, CHILLED_SECTIONS, DOOR_SIGNS, AISLES } from './planogram.js';
 import {
@@ -430,7 +431,12 @@ export function buildInterior(group, { lit, colliders }) {
 
   // the products on every shelf, and their price tags (M3b, store/planogram.js)
   const units = stockStore(p, slots, group, lit);
-  p.build(group, lit, { name: 'store' });
+  // what no player ever sees is left out (store/seen.js), if this is the store that was measured
+  const S = group.userData.seen;
+  p.build(group, lit, { name: 'store', drop: S ? { solid: new Set(S.solidsUnseen), quad: new Set(S.quadsUnseen) } : null });
+  // the painted pages need the renderer (store/pages.js): the room's first frame hands it over
+  const room = group.getObjectByName('store-solid');
+  if (room) room.onBeforeRender = (renderer) => { pagesRenderer(renderer); room.onBeforeRender = () => {}; };
   group.userData.slots = slots;
   group.userData.units = units;
   group.userData.doors = doors;

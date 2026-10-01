@@ -2,13 +2,12 @@ import { STRINGS } from '../data/strings.js';
 import { MAKER } from '../config.js';
 import { ICON, esc } from './maker.js';
 import hachiUrl from '../assets/hachi-peek.webp';
-import pawsUrl from '../assets/hachi-paws.webp';
 
 /* The selfie postcard (Tan's item 8, 2026-10-01; DECISIONS.md).  Asked
  * for on the postcard ("Add your selfie with Hachi"), never by itself:
  * the postcard's picture becomes the key art with your photo as a
  * polaroid standing in the town, Hachi (scripts/hachi-sprite.mjs: the
- * game's own pup, pre-rendered) behind it, his paws over its top edge.
+ * game's own pup, pre-rendered) lying over its top corner, paws on it.
  * Then Save image, or the postcard's Share with the picture.
  *
  *   - The picture area shows only the art, the polaroid and Hachi; the
@@ -29,11 +28,11 @@ const S = STRINGS.postcard.selfie;
 /* the picture: 1600 x 1000, everything below in its pixels */
 const W = 1600, H = 1000;
 const BG_AX = 1;                                                               // the key art is wider than the picture: its right side is kept
-export const POL = { cx: 480, cy: 672, w: 500, h: 600, m: 24, lip: 104, rot: -0.07 };   // the polaroid: centre, paper, margin, the lip under the photo
+const POL = { cx: 480, cy: 672, w: 500, h: 600, m: 24, lip: 104, rot: -0.07 };   // the polaroid: centre, paper, margin, the lip under the photo
 const WIN = { x: -POL.w / 2 + POL.m, y: -POL.h / 2 + POL.m, w: POL.w - 2 * POL.m, h: POL.h - POL.m - POL.lip };
-/* Hachi: his width, where his middle is across the paper, how far down his frame the paper's top edge is (his paws
- * hang over below it; scripts/hachi-sprite.mjs prints where they are), a lean of his own */
-const DOG = { w: 262, x: -104, edge: 0.845, rot: -0.04 };
+/* Hachi, lying over the polaroid's top right corner (Tan's choice: the first one): his width, how much of him is
+ * over the paper, how much past its right edge, his lean */
+const DOG = { w: 284, over: 0.43, right: 0.14, rot: 0.1 };
 const INK = '#2a2140';
 
 const CSS = `
@@ -86,25 +85,15 @@ function cover(x, src, sw, sh, dx, dy, dw, dh, mirror, ax = 0.5) {
 }
 
 /** The picture.  `photo`: { src, w, h, mirror }, or null for the live view (a hole where the photo goes).
- *  `brand`: the title and the address on it (the saved picture; the postcard's frame would cut them).
- *  `stage` (dev only, src/dev/hachiOptions.js): { under(x), over(x) } draw another Hachi in the polaroid's frame. */
-export function compose(canvas, { bg, dog, paws, photo, brand = false, stage = null }) {
+ *  `brand`: the title and the address on it (the saved picture; the postcard's frame would cut them). */
+function compose(canvas, { bg, dog, photo, brand = false }) {
   canvas.width = W; canvas.height = H;
   const x = canvas.getContext('2d');
   x.imageSmoothingQuality = 'high';
   cover(x, bg, bg.naturalWidth, bg.naturalHeight, 0, 0, W, H, false, BG_AX);
   x.save();
   x.translate(POL.cx, POL.cy); x.rotate(POL.rot);
-  // Hachi, behind the polaroid: all of him first (the paper hides him below its edge)
-  const dh = dog ? DOG.w * dog.naturalHeight / dog.naturalWidth : 0, top = -POL.h / 2;
-  const hachi = (img) => {
-    x.translate(DOG.x, top); x.rotate(DOG.rot);
-    x.drawImage(img, -DOG.w / 2, -dh * DOG.edge, DOG.w, dh);
-  };
-  x.save();
-  x.shadowColor = 'rgba(30,16,50,.4)'; x.shadowBlur = 16; x.shadowOffsetY = 6;
-  if (stage) stage.under(x); else hachi(dog);
-  x.restore();
+  const top = -POL.h / 2;
   // the paper, the photo (or the hole the live view shows through)
   x.save();
   x.shadowColor = 'rgba(30,16,50,.55)'; x.shadowBlur = 38; x.shadowOffsetY = 16;
@@ -120,15 +109,12 @@ export function compose(canvas, { bg, dog, paws, photo, brand = false, stage = n
   x.fillStyle = '#5a4f7a'; x.textAlign = 'center'; x.textBaseline = 'middle';
   x.font = "italic 500 38px 'Bradley Hand', 'Segoe Print', 'Segoe Script', 'Comic Sans MS', cursive";
   x.fillText(`${S.caption}  ·  ${d.getDate()}.${d.getMonth() + 1}.${String(d.getFullYear()).slice(2)}`, 0, POL.h / 2 - POL.lip / 2 - 2, POL.w - 48);
-  // his paws, over the edge: the forelegs again, only below the paper's top
-  x.save();
-  if (stage) stage.over(x);
-  else {
-    x.beginPath(); x.rect(-POL.w, top + 1, POL.w * 2, POL.h); x.clip();
-    x.shadowColor = 'rgba(30,16,50,.35)'; x.shadowBlur = 8; x.shadowOffsetY = 4;
-    hachi(paws);
-  }
-  x.restore();
+  // Hachi, over the top corner from behind: his paws on the photo
+  const dh = DOG.w * dog.naturalHeight / dog.naturalWidth;
+  x.translate(POL.w / 2 - DOG.w * (1 - DOG.right), top - dh * (1 - DOG.over));
+  x.translate(DOG.w / 2, dh); x.rotate(DOG.rot); x.translate(-DOG.w / 2, -dh);
+  x.shadowColor = 'rgba(30,16,50,.4)'; x.shadowBlur = 14; x.shadowOffsetY = 6;
+  x.drawImage(dog, 0, 0, DOG.w, dh);
   x.restore();
   if (!brand) return;
   // the title, in the sky; the address, in the corner
@@ -189,7 +175,7 @@ export function createSelfie({ post }) {
 
   let art = null;            // the key art and Hachi, loaded once
   let stream = null, asking = 0, file = null, url = null;
-  const arts = () => (art ??= Promise.all([load('keyart-1920.webp'), load(hachiUrl), load(pawsUrl)]).then(([bg, dog, paws]) => ({ bg, dog, paws })));
+  const arts = () => (art ??= Promise.all([load('keyart-1920.webp'), load(hachiUrl)]).then(([bg, dog]) => ({ bg, dog })));
 
   /** which buttons, which words: ask (waiting for the camera), live, done, and no camera: blocked, none, busy */
   const set = (state) => {

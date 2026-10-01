@@ -20,7 +20,7 @@ for (const f of walk(DIST)) {
   const raw = fs.statSync(f).size, ext = path.extname(f);
   const text = ['.js', '.css', '.html', '.json', '.svg'].includes(ext);
   const wire = text ? zlib.gzipSync(fs.readFileSync(f)).length : raw;
-  const kind = /^(postcardSelfie-|hachi-(peek|paws)-)/.test(path.basename(f)) ? 'selfie postcard (on its click)' : EXTRAS.test(path.basename(f)) ? 'page extras (not the game)' : ALT_ART.test(path.basename(f)) ? 'key art alternates' : f.includes('/audio/') ? 'audio (after the first click)' : ext === '.js' ? 'code' : ext === '.bin' ? 'Fuji elevation' : ext === '.woff2' ? 'sign fonts' : 'other';
+  const kind = /^(postcardSelfie-|hachi-peek-)/.test(path.basename(f)) ? 'selfie postcard (on its click)' : EXTRAS.test(path.basename(f)) ? 'page extras (not the game)' : ALT_ART.test(path.basename(f)) ? 'key art alternates' : f.includes('/audio/') ? 'audio (after the first click)' : ext === '.js' ? 'code' : ext === '.bin' ? 'Fuji elevation' : ext === '.woff2' ? 'sign fonts' : 'other';
   rows[kind] = (rows[kind] ?? 0) + wire;
 }
 const mb = (n) => (n / 1024 / 1024).toFixed(2) + ' MB';

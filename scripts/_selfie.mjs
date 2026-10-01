@@ -9,7 +9,7 @@
  *   - camera only: refused, the words say how to allow it, Try again; no camera, the words say so; no file input
  *   - nothing is sent anywhere: only GETs to this host, no page errors
  *   node scripts/_selfie.mjs [out-dir]     PORT (default 5187)
- * Screenshots of each state at 1280x720 and 1600x900 and two saved pictures, `v2-` first.
+ * Screenshots of each state at 1280x720 and 1600x900 and two saved pictures (PREFIX before their names).
  * Its own dev server and one headless Chrome (on /tmp/lawson-browser.lock); both closed however it ends. */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -20,6 +20,7 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const OUT = path.resolve(process.argv[2] ?? path.join(ROOT, '.shots', 'selfie'));
 fs.mkdirSync(OUT, { recursive: true });
 const PORT = +process.env.PORT || 5187;
+const PRE = process.env.PREFIX ?? "";
 
 const LOCK = '/tmp/lawson-browser.lock';
 for (;;) { try { fs.mkdirSync(LOCK); break; } catch { console.log('  waiting for the browser lock'); await new Promise((r) => setTimeout(r, 10000)); } }
@@ -58,7 +59,7 @@ try {
     for (const [w, h] of [[1280, 720], [1600, 900]]) {
       await page.setViewportSize({ width: w, height: h });
       await page.waitForTimeout(500);
-      const f = path.join(OUT, `v2-${name}-${w}x${h}.png`);
+      const f = path.join(OUT, `${PRE}${name}-${w}x${h}.png`);
       await page.screenshot({ path: f });
       console.log('  ' + f);
     }
@@ -72,7 +73,7 @@ try {
       const b64 = await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(fr.result.split(',')[1]); fr.readAsDataURL(blob); });
       return { w: bmp.width, h: bmp.height, type: blob.type, bytes: blob.size, download: a.download, b64 };
     });
-    const f = path.join(OUT, `v2-${name}.jpg`);
+    const f = path.join(OUT, `${PRE}${name}.jpg`);
     fs.writeFileSync(f, Buffer.from(r.b64, 'base64'));
     console.log('  ' + f);
     delete r.b64;
@@ -115,7 +116,7 @@ try {
   check('"Add your selfie with Hachi": the first button, the full width, the tallest, filled, with the camera', offer.text === 'Add your selfie with Hachi' && offer.icon
     && offer.wide > 0.98 && offer.tall > offer.others && offer.first && offer.filled === 'rgb(59, 50, 99)', offer);
   check('before the click: nothing of the selfie loaded, the camera not asked for, no file input anywhere',
-    !reqs.some((r) => /postcardSelfie|hachi-(peek|paws)/.test(r.url)) && await page.evaluate(() => window.__gum === 0 && !document.querySelector('input[type=file]')));
+    !reqs.some((r) => /postcardSelfie|hachi-peek/.test(r.url)) && await page.evaluate(() => window.__gum === 0 && !document.querySelector('input[type=file]')));
   await shots('1-offer');
 
   await page.click('.mk-post .pc-add');

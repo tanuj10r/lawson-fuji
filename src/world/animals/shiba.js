@@ -24,15 +24,26 @@ import { painted } from './shade.js';
  * Rolling over is done by the instance (guide.js turns it on its back).
  *
  * Parts: 0 body  1 head and neck  2 tail  3/4 forelegs (l/r)
- *        5/6 hind legs (l/r)  7/8 ears (l/r)  9 tongue
+ *        5/6 hind legs (l/r)  7/8 ears (l/r)  9 tongue  10 eyes  11 their
+ *        catch-lights  12 the open mouth (each eye piece pivots on its eye)
  * aPose   x gait phase, y stride (0 still .. 1 trot), z head yaw, w head nod (+ down)
  * aPose2  x posture (-1 play bow, 0 stand, 1 sit, 2 lie), y tail wag,
  *         z ears (1 pricked, 0 back; past 1: excited, tongue out), w head tilt (roll)
+ * The expressions (Director Mode's reactions; all 0 in play, where they
+ * change nothing), on the instance as three more vectors, read only here:
+ * aPose3  x ears flat back, y one ear up one down (-1..1), z eyelids (1
+ *         shut; ~0.6 a happy squint), w big "puppy" eyes (0..1: 1.25x)
+ * aPose4  x mouth open (the jaw drops), y tail tucked, z crouch (low on
+ *         all fours, weight back), w a front paw lifted (-1 left, +1 right)
+ * aPose5  x the hips' swing (the whole-back-end wiggle, radians), y face
+ *         squished flat against a pane in front (0..1), z both front paws up
  * ------------------------------------------------------------------ */
 
 export const RED = 0xd48f52, RED_D = 0xc27a3f, CREAM = 0xf9f1e2, BLACK = 0x14100e, BROW = 0xf0d3b0, PINK = 0xe58a96;
 /** The shoulders (the sit tilts the body about them), the hips (the bow tips it about them), the neck's root, the tongue's root. */
 const SH = [0, 0.19, 0.07], HP = [0, 0.175, -0.105], NK = [0, 0.215, 0.115], TR = [0, 0.255, 0.245];
+/** The head's centre (the skull's), for the jaw and the squish. */
+const HC = [0, 0.275, 0.165];
 export const SIT_ANGLE = 0.55, LIE_DROP = 0.07, BOW_ANGLE = 0.5;
 /** Its ground shadow, across and along (m), standing. */
 export const SHADOW = [0.17, 0.27];
@@ -116,14 +127,15 @@ export function shibaGeometry() {
   // the mouth's line, back along the muzzle's side: the shiba smile
   for (const s of [-1, 1]) b.add(blob(0.003, 0.0025, 0.022, 6, 4), { ...head, matrix: at(s * 0.014, hc[1] - 0.034, hc[2] + 0.07, 0.2, s * 0.4, 0), color: 0x6a4438 });
   // the open mouth and the tongue (part 9): out at a trot and when it is excited, else gone
-  b.add(blob(0.016, 0.007, 0.018, 10, 6), { part: 9, pivot: NK, matrix: at(0, hc[1] - 0.038, hc[2] + 0.075, 0.2, 0, 0), color: 0x3a1f22 });
+  b.add(blob(0.016, 0.007, 0.018, 10, 6), { part: 12, pivot: [0, hc[1] - 0.038, hc[2] + 0.075], matrix: at(0, hc[1] - 0.038, hc[2] + 0.075, 0.2, 0, 0), color: 0x3a1f22 });
   b.add(blob(0.011, 0.005, 0.024, 10, 6), { part: 9, pivot: NK, matrix: at(0, hc[1] - 0.046, hc[2] + 0.083, 0.5, 0, 0), color: PINK });
   // eyes: big, round, dark and glossy, set wide on the dome; two catch-lights each; a soft brow dot above
   for (const s of [-1, 1]) {
     const ex = hc[0] + s * 0.035, ey = hc[1] + 0.01, ez = hc[2] + 0.059;
-    b.add(blob(0.0175, 0.019, 0.008, 14, 10), { ...head, matrix: at(ex, ey, ez, -0.05, s * 0.42, s * 0.12), color: (p, n, l) => (l.y < -0.004 && l.y > -0.014 && Math.abs(l.x) < 0.012 ? 0x2a1a12 : BLACK) });
-    b.add(blob(0.0052, 0.0055, 0.003, 10, 8), { ...head, matrix: at(ex - s * 0.005, ey + 0.0075, ez + 0.0075, 0, s * 0.42, 0), color: 0xffffff });
-    b.add(blob(0.0026, 0.0026, 0.002, 8, 6), { ...head, matrix: at(ex + s * 0.0065, ey - 0.006, ez + 0.0075, 0, s * 0.42, 0), color: 0xffffff });
+    const eye = { part: 10, pivot: [ex, ey, ez] }, glint = { part: 11, pivot: [ex, ey, ez] };
+    b.add(blob(0.0175, 0.019, 0.008, 14, 10), { ...eye, matrix: at(ex, ey, ez, -0.05, s * 0.42, s * 0.12), color: (p, n, l) => (l.y < -0.004 && l.y > -0.014 && Math.abs(l.x) < 0.012 ? 0x2a1a12 : BLACK) });
+    b.add(blob(0.0052, 0.0055, 0.003, 10, 8), { ...glint, matrix: at(ex - s * 0.005, ey + 0.0075, ez + 0.0075, 0, s * 0.42, 0), color: 0xffffff });
+    b.add(blob(0.0026, 0.0026, 0.002, 8, 6), { ...glint, matrix: at(ex + s * 0.0065, ey - 0.006, ez + 0.0075, 0, s * 0.42, 0), color: 0xffffff });
     b.add(blob(0.011, 0.0065, 0.005, 12, 8), { ...head, matrix: at(hc[0] + s * 0.031, hc[1] + 0.041, hc[2] + 0.052, 0.4, s * 0.35, 0), color: BROW });
   }
   // ears (parts 7, 8): small soft triangles with rounded tips, set wide, leaning a little forward and out; cream-pink inside, deeper red edges and backs
@@ -195,7 +207,11 @@ export function shibaGeometry() {
 const v3 = (a) => `vec3(${a.map((x) => x.toFixed(3)).join(', ')})`;
 export const RIG = /* glsl */`
 attribute vec3 aMorph2;
+attribute vec4 aPose3;
+attribute vec4 aPose4;
+attribute vec4 aPose5;
 const vec3 SH = ${v3(SH)};
+const vec3 HC = ${v3(HC)};
 const vec3 HP = ${v3(HP)};
 const vec3 NK = ${v3(NK)};
 const vec3 TR = ${v3(TR)};
@@ -209,9 +225,44 @@ void rig(inout vec3 p, inout vec3 n) {
   float bowA = ${BOW_ANGLE.toFixed(3)} * bow;
   vec3 drop = vec3(0.0, -${LIE_DROP.toFixed(3)} * lie, 0.0);
   float id = aJoint.w;
+  // the expressions (0 in play: none of this moves anything)
+  float earsBack = aPose3.x, earAsym = aPose3.y, lids = clamp(aPose3.z, 0.0, 1.0), big = clamp(aPose3.w, 0.0, 1.0);
+  float mouth = clamp(aPose4.x, 0.0, 1.0), tuck = clamp(aPose4.y, 0.0, 1.0), crouch = clamp(aPose4.z, 0.0, 1.0), paw = aPose4.w;
+  float hips = aPose5.x, squish = clamp(aPose5.y, 0.0, 1.0), paws = clamp(aPose5.z, 0.0, 1.0);
+  vec3 cdrop = vec3(0.0, -0.05 * crouch, -0.012 * crouch);
+  // the eyes: bigger about their own middles, the glints most; the lids close them to a line (the glints go)
+  if (id > 9.5 && id < 11.5) {
+    vec3 c = aJoint.xyz, d = p - c;
+    d *= 1.0 + 0.25 * big * (id > 10.5 ? 1.4 : 1.0);
+    d.y *= 1.0 - 0.93 * lids;
+    if (id > 10.5) d *= 1.0 - smoothstep(0.35, 0.8, lids);
+    p = c + d;
+  }
+  // the jaw: the muzzle's underside drops open about a hinge under the eyes; the mouth inside opens about its own
+  // middle first, then its lower edge goes down with the jaw and its upper edge stays under the nose
+  if (mouth > 0.0) {
+    vec3 hj = vec3(0.0, HC.y - 0.02, HC.z + 0.02);
+    if (id > 11.5) {
+      vec3 c = aJoint.xyz;
+      p = c + (p - c) * vec3(1.0 + 0.25 * mouth, 1.0 + 0.5 * mouth, 1.0);
+      p = hj + rotX(p - hj, 0.42 * mouth * (1.0 - smoothstep(c.y - 0.012, c.y + 0.008, p.y)));
+    } else if ((id == 1.0 || (id > 8.5 && id < 9.5)) && p.y < HC.y - 0.022 && p.z > HC.z + 0.03 && abs(p.x) < 0.045) {
+      float w = (1.0 - smoothstep(HC.y - 0.034, HC.y - 0.022, p.y)) * smoothstep(HC.z + 0.03, HC.z + 0.05, p.z);
+      p = hj + rotX(p - hj, 0.42 * mouth * w);
+    }
+  }
+  // squished against a pane in front: the face flattens, the cheeks and nose spread
+  if ((id == 1.0 || id > 6.5) && squish > 0.0) {
+    float wall = HC.z + 0.1 - 0.035 * squish;
+    float over = max(0.0, p.z - wall);
+    p.z -= over;
+    p.x *= 1.0 + over * 7.0; p.y += (p.y - HC.y) * over * 5.0;
+  }
   if (id > 2.5 && id < 6.5) {
     // legs: fold by the morphs; swing about the joint at a trot, diagonal pairs together
     p += aMorph * sit + aMorph2 * lie;
+    // crouched: the legs shorten under a lowered body (the paws stay put)
+    p.y = aJoint.y + (p.y - aJoint.y) * (1.0 - 0.33 * crouch);
     float off = (id == 4.0 || id == 5.0) ? 3.14159 : 0.0;
     float sw = amp * (id < 4.5 ? 0.45 : 0.36) * sin(ph + off);
     vec3 piv = aJoint.xyz;
@@ -223,15 +274,27 @@ void rig(inout vec3 p, inout vec3 n) {
     if (id < 4.5) { q = rotX(q, -1.25 * bow); n = rotX(n, -1.25 * bow); }
     q = rotX(q, sw);
     n = rotX(n, sw);
+    // a front paw lifted, forward and up (begging, tippy taps, hesitation)
+    float lift1 = max(id == 3.0 ? max(0.0, -paw) : id == 4.0 ? max(0.0, paw) : 0.0, id < 4.5 ? paws : 0.0);
+    q = rotX(q, -1.05 * lift1); n = rotX(n, -1.05 * lift1);
     p = piv + q;
+    p += cdrop;
     if (id < 4.5 && bow > 0.0) { p = HP + rotX(p - HP, bowA); n = rotX(n, bowA); }
+    // the hind legs swing with the hips
+    if (id > 4.5 && hips != 0.0) { p = SH + rotY(p - SH, hips); n = rotY(n, hips); }
   } else {
-    if (id > 8.5) p = TR + (p - TR) * tongue;
+    if (id > 8.5 && id < 9.5) p = TR + (p - TR) * max(tongue, mouth * 0.95);
+    if (id > 11.5) p = TR + (p - TR) * max(tongue, mouth);
+    // the hips' swing: the back end (the rump, the tail) turns about the shoulders
+    if (hips != 0.0 && (id == 0.0 || id == 2.0)) {
+      float hw = id == 2.0 ? 1.0 : 1.0 - smoothstep(-0.14, 0.06, p.z);
+      p = SH + rotY(p - SH, hips * hw); n = rotY(n, hips * hw);
+    }
     // body, head, tail, ears: the sit's tilt about the shoulders, the bow's about the hips, then down to the ground for the lie
-    vec3 q = rotX(p - SH, sitA) + SH + drop;
+    vec3 q = rotX(p - SH, sitA) + SH + drop + cdrop;
     q = HP + rotX(q - HP, bowA);
     if (id == 1.0 || id > 6.5) {
-      vec3 nk = HP + rotX(rotX(NK - SH, sitA) + SH + drop - HP, bowA);
+      vec3 nk = HP + rotX(rotX(NK - SH, sitA) + SH + drop - HP, bowA) + cdrop;
       vec3 rest = vec3(0.0, -0.05, 0.015) * lie;
       float hx = nod - sitA * 0.8 + lie * 0.85 - 0.12 * amp - bowA * 1.4;
       // at a trot the head is carried a little higher and forward, the neck stretching from its root
@@ -240,17 +303,23 @@ void rig(inout vec3 p, inout vec3 n) {
       n = rotY(rotX(rotZ(n, tilt), hx), look);
       if (id > 6.5 && id < 8.5) {
         // ears: pricked, or laid back; with a head tilt the upper ear perks and the lower one droops; a flop at a trot
-        vec3 e = HP + rotX(rotX(aJoint.xyz - SH, sitA) + SH + drop - HP, bowA);
+        vec3 e = HP + rotX(rotX(aJoint.xyz - SH, sitA) + SH + drop - HP, bowA) + cdrop;
         e = nk + rotY(rotX(rotZ(e - nk, tilt), hx), look) + rest;
         float side = id < 7.5 ? -1.0 : 1.0;
-        float pk = clamp(perk + side * tilt * 0.9, 0.0, 1.0);
-        float back = (1.0 - pk) * 0.8 + amp * 0.14 * (0.5 + 0.5 * sin(2.0 * ph + 0.8));
+        float pk = clamp(perk + side * tilt * 0.9 + side * earAsym * 0.8, 0.0, 1.0);
+        float back = (1.0 - pk) * 0.8 + amp * 0.14 * (0.5 + 0.5 * sin(2.0 * ph + 0.8)) + 1.25 * earsBack;
         q = e + rotX(q - e, back);
         n = rotX(n, back);
+        // flat back, the ears also fold outward against the head
+        q = e + rotZ(q - e, -side * 0.5 * earsBack);
+        n = rotZ(n, -side * 0.5 * earsBack);
       }
     } else if (id == 2.0) {
-      vec3 tb = HP + rotX(rotX(aJoint.xyz - SH, sitA) + SH + drop - HP, bowA);
-      q = tb + rotY(rotZ(q - tb, wag), wag * 0.5);
+      vec3 tb = HP + rotX(rotX(aJoint.xyz - SH, sitA) + SH + drop - HP, bowA) + cdrop;
+      // tucked: the curl swings down behind and under
+      q = tb + rotX(q - tb, 2.1 * tuck);
+      n = rotX(n, 2.1 * tuck);
+      q = tb + rotY(rotZ(q - tb, wag * (1.0 - 0.7 * tuck)), wag * 0.5 * (1.0 - 0.7 * tuck));
       n = rotY(rotZ(n, wag), wag * 0.5);
     } else {
       n = rotX(n, sitA + bowA);

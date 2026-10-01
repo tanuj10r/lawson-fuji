@@ -186,7 +186,7 @@ try {
         && !!document.querySelector('.mk-post .pc-back')), pl.map((l) => l.href));
     check('postcard: "Add your selfie with Hachi" is its first button, with a goal (scripts/_selfie.mjs has the rest); the little postcard has a camera badge', await page.evaluate(() => {
       const b = document.querySelector('.mk-post .pc-add');
-      return !!b && b.dataset.fastGoal === 'postcard_selfie' && !!(b.compareDocumentPosition(document.querySelector('.mk-post .share')) & Node.DOCUMENT_POSITION_FOLLOWING)
+      return !!b && !!(b.compareDocumentPosition(document.querySelector('.mk-post .share')) & Node.DOCUMENT_POSITION_FOLLOWING)
         && !!document.querySelector('.menu-postcard .cam svg'); }));
     // its links, buttons and the card itself keep it up
     const pop = ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null);

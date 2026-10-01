@@ -118,7 +118,9 @@ const POSTCARD_CSS = `
 export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
   let el = null, copyLabel = null, msg = null, shown = 0;
   let selfie = null, selfieLoad = null;      // ui/postcardSelfie.js: only once asked for
+  const goal = (name) => { try { window.datafast?.(name); } catch { /* analytics never in the way */ } };
   const addSelfie = () => {
+    goal('selfie_open');
     selfieLoad ??= import('./postcardSelfie.js').then(({ createSelfie }) => { selfie = createSelfie({ post: el.querySelector('.mk-post') }); });
     selfieLoad.then(() => { if (api.open) selfie.open(); }).catch(() => { selfieLoad = null; });
   };
@@ -126,7 +128,8 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
   const share = () => {
     const f = selfie?.file;
     const withFile = f && navigator.canShare?.({ files: [f] });
-    navigator.share?.(withFile ? { files: [f], title: document.title, text: `${P.shareText} ${link}` } : { title: document.title, text: P.shareText, url: link }).catch(() => {});
+    navigator.share?.(withFile ? { files: [f], title: document.title, text: `${P.shareText} ${link}` } : { title: document.title, text: P.shareText, url: link })
+      .then(() => { if (withFile) goal('selfie_shared'); }).catch(() => {});
   };
   const link = MAKER.share;
   const intent = `https://x.com/intent/tweet?text=${encodeURIComponent(P.shareText)}&url=${encodeURIComponent(link)}&via=${MAKER.handle}`;
@@ -146,7 +149,7 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
         <h2>${esc(P.title)}</h2>
         <p class="msg">${esc(P.msg)}</p>
         <p class="to">${esc(P.to)}</p>
-        <button class="pc-add" type="button" data-pc="selfie" data-fast-goal="postcard_selfie">${ICON.camera}<span>${esc(P.selfie.add)}</span></button>
+        <button class="pc-add" type="button" data-pc="selfie">${ICON.camera}<span>${esc(P.selfie.add)}</span></button>
         <div class="share">
           <button class="${navigator.share ? '' : 'no-share'}" type="button" data-pc="share" data-fast-goal="postcard_share">${ICON.share}<span>${esc(P.share)}</span></button>
           <button type="button" data-pc="copy" data-fast-goal="postcard_copy">${ICON.link}<span>${esc(P.copy)}</span></button>

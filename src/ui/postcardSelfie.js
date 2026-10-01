@@ -29,7 +29,7 @@ const S = STRINGS.postcard.selfie;
 /* the picture: 1600 x 1000, everything below in its pixels */
 const W = 1600, H = 1000;
 const BG_AX = 1;                                                               // the key art is wider than the picture: its right side is kept
-const POL = { cx: 480, cy: 672, w: 500, h: 600, m: 24, lip: 104, rot: -0.07 };   // the polaroid: centre, paper, margin, the lip under the photo
+export const POL = { cx: 480, cy: 672, w: 500, h: 600, m: 24, lip: 104, rot: -0.07 };   // the polaroid: centre, paper, margin, the lip under the photo
 const WIN = { x: -POL.w / 2 + POL.m, y: -POL.h / 2 + POL.m, w: POL.w - 2 * POL.m, h: POL.h - POL.m - POL.lip };
 /* Hachi: his width, where his middle is across the paper, how far down his frame the paper's top edge is (his paws
  * hang over below it; scripts/hachi-sprite.mjs prints where they are), a lean of his own */
@@ -70,6 +70,9 @@ const CSS = `
 `;
 const LOCK = '<svg viewBox="0 0 24 24" aria-hidden="true" class="o"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>';
 
+/** A DataFast goal (Tan: how many take selfies).  A name only: never the photo, never anything else. */
+const goal = (name) => { try { window.datafast?.(name); } catch { /* analytics never in the way */ } };
+
 const load = (src) => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; });
 
 /** `src` (a video, an image) drawn to cover the rect, mirrored for the front camera; `ax`: which part across is kept. */
@@ -83,8 +86,9 @@ function cover(x, src, sw, sh, dx, dy, dw, dh, mirror, ax = 0.5) {
 }
 
 /** The picture.  `photo`: { src, w, h, mirror }, or null for the live view (a hole where the photo goes).
- *  `brand`: the title and the address on it (the saved picture; the postcard's frame would cut them). */
-function compose(canvas, { bg, dog, paws, photo, brand = false }) {
+ *  `brand`: the title and the address on it (the saved picture; the postcard's frame would cut them).
+ *  `stage` (dev only, src/dev/hachiOptions.js): { under(x), over(x) } draw another Hachi in the polaroid's frame. */
+export function compose(canvas, { bg, dog, paws, photo, brand = false, stage = null }) {
   canvas.width = W; canvas.height = H;
   const x = canvas.getContext('2d');
   x.imageSmoothingQuality = 'high';
@@ -92,14 +96,14 @@ function compose(canvas, { bg, dog, paws, photo, brand = false }) {
   x.save();
   x.translate(POL.cx, POL.cy); x.rotate(POL.rot);
   // Hachi, behind the polaroid: all of him first (the paper hides him below its edge)
-  const dh = DOG.w * dog.naturalHeight / dog.naturalWidth, top = -POL.h / 2;
+  const dh = dog ? DOG.w * dog.naturalHeight / dog.naturalWidth : 0, top = -POL.h / 2;
   const hachi = (img) => {
     x.translate(DOG.x, top); x.rotate(DOG.rot);
     x.drawImage(img, -DOG.w / 2, -dh * DOG.edge, DOG.w, dh);
   };
   x.save();
   x.shadowColor = 'rgba(30,16,50,.4)'; x.shadowBlur = 16; x.shadowOffsetY = 6;
-  hachi(dog);
+  if (stage) stage.under(x); else hachi(dog);
   x.restore();
   // the paper, the photo (or the hole the live view shows through)
   x.save();
@@ -118,9 +122,12 @@ function compose(canvas, { bg, dog, paws, photo, brand = false }) {
   x.fillText(`${S.caption}  ·  ${d.getDate()}.${d.getMonth() + 1}.${String(d.getFullYear()).slice(2)}`, 0, POL.h / 2 - POL.lip / 2 - 2, POL.w - 48);
   // his paws, over the edge: the forelegs again, only below the paper's top
   x.save();
-  x.beginPath(); x.rect(-POL.w, top + 1, POL.w * 2, POL.h); x.clip();
-  x.shadowColor = 'rgba(30,16,50,.35)'; x.shadowBlur = 8; x.shadowOffsetY = 4;
-  hachi(paws);
+  if (stage) stage.over(x);
+  else {
+    x.beginPath(); x.rect(-POL.w, top + 1, POL.w * 2, POL.h); x.clip();
+    x.shadowColor = 'rgba(30,16,50,.35)'; x.shadowBlur = 8; x.shadowOffsetY = 4;
+    hachi(paws);
+  }
   x.restore();
   x.restore();
   if (!brand) return;
@@ -168,8 +175,8 @@ export function createSelfie({ post }) {
   panel.hidden = true;
   panel.innerHTML = `<p class="sf-say" role="status"></p>
     <div class="sf-acts">
-      <button type="button" class="primary" data-sf="shot" data-fast-goal="postcard_selfie_shot"><span class="dot"></span><span>${esc(S.shutter)}</span></button>
-      <a class="primary" data-sf="save" data-fast-goal="postcard_selfie_save" download="${esc(S.file)}">${ICON.share}<span>${esc(S.save)}</span></a>
+      <button type="button" class="primary" data-sf="shot"><span class="dot"></span><span>${esc(S.shutter)}</span></button>
+      <a class="primary" data-sf="save" download="${esc(S.file)}">${ICON.share}<span>${esc(S.save)}</span></a>
       <button type="button" class="primary" data-sf="again">${ICON.camera}<span>${esc(S.again)}</span></button>
       <button type="button" data-sf="retake">${esc(S.retake)}</button>
       <button type="button" data-sf="cancel"></button>
@@ -239,6 +246,7 @@ export function createSelfie({ post }) {
       const got = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
       if (mine !== asking || root.hidden) { for (const t of got.getTracks()) t.stop(); return; }
       stream = got;
+      goal('selfie_camera_allowed');
       video.srcObject = stream;
       video.play().catch(() => {});                // (autoplay, muted, playsinline: it starts by itself; this is for a browser that waits to be told)
       // live once the first frame is in (or after 4 s, whatever came: the shutter waits for a frame anyway)
@@ -248,6 +256,7 @@ export function createSelfie({ post }) {
       btn.shot.focus({ preventScroll: true });
     } catch (e) {
       if (mine !== asking || root.hidden) return;
+      goal('selfie_camera_refused');             // refused, missing or busy: no camera came
       set(e?.name === 'NotFoundError' || e?.name === 'OverconstrainedError' ? 'none' : e?.name === 'NotReadableError' || e?.name === 'AbortError' ? 'busy' : 'blocked');
       btn.again.focus({ preventScroll: true });
     }
@@ -256,6 +265,8 @@ export function createSelfie({ post }) {
     const what = e.target.closest('[data-sf]')?.dataset.sf;
     if (what === 'cancel') close();
     if (what === 'retake' || what === 'again') open();
+    if (what === 'save' && file) goal('selfie_saved');
+    if (what === 'shot' && stream && video.videoWidth) goal('selfie_taken');
     if (what === 'shot' && stream && video.videoWidth) done({ src: video, w: video.videoWidth, h: video.videoHeight, mirror: true });
   });
   window.addEventListener('pagehide', stopCamera);

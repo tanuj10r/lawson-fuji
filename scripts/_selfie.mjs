@@ -48,6 +48,8 @@ try {
   page.on('request', (r) => reqs.push({ url: r.url(), method: r.method() }));
   await page.addInitScript(() => {
     window.__gum = 0;
+    window.__goals = []; window.datafast = (...a) => { window.__goals.push(a); };
+    window.__shared = []; navigator.canShare = (d) => !!d?.files?.length; navigator.share = (d) => { window.__shared.push({ files: d.files?.length ?? 0, keys: Object.keys(d) }); return Promise.resolve(); };
     const md = navigator.mediaDevices, real = md.getUserMedia.bind(md);
     md.getUserMedia = (c) => { window.__gum++; window.__gumAsked = c; return window.__gumRefuse ? Promise.reject(new DOMException('no', window.__gumRefuse)) : real(c); };
   });
@@ -188,9 +190,26 @@ try {
   check('Remove: the postcard as it was, the picture gone', s.state === 'off' && !s.file
     && await page.evaluate(() => getComputedStyle(document.querySelector('.mk-post .msg')).display !== 'none' && getComputedStyle(document.querySelector('.mk-post .pc-add')).display !== 'none'), s);
 
+  // the goals (Tan: how many take selfies): names only, each when it happens
+  await page.click('.mk-post .pc-add');
+  await until('live');
+  await page.click('.sf-panel [data-sf=shot]');
+  await until('done');
+  await page.click('.mk-post [data-pc=share]');
+  await page.waitForTimeout(200);
+  await page.evaluate(() => document.querySelector('.sf-panel [data-sf=save]').addEventListener('click', (e) => e.preventDefault(), { once: true }));
+  await page.click('.sf-panel [data-sf=save]');
+  const goals = await page.evaluate(() => window.__goals);
+  const names = goals.map((g) => g[0]), n = (k) => names.filter((x) => x === k).length;
+  // opened 3 times (the first, the refused one, this one); the camera came 5 times (first, retake x2, try again, this); no camera twice; 4 shots
+  check('goals: selfie_open 3, selfie_camera_allowed 5, selfie_camera_refused 2, selfie_taken 4, selfie_saved 1, selfie_shared 1; a name only each time',
+    n('selfie_open') === 3 && n('selfie_camera_allowed') === 5 && n('selfie_camera_refused') === 2 && n('selfie_taken') === 4 && n('selfie_saved') === 1 && n('selfie_shared') === 1
+    && goals.every((g) => g.length === 1 && typeof g[0] === 'string'), names);
+  check('Share with a picture: the file goes to the share sheet', await page.evaluate(() => window.__shared.length === 1 && window.__shared[0].files === 1), await page.evaluate(() => window.__shared));
+
   const sent = reqs.filter((q) => q.method !== 'GET' || !(q.url.startsWith(base) || /^(blob|data):/.test(q.url)));
   check('nothing sent anywhere: only GETs to this host', sent.length === 0, sent.slice(0, 5));
-  check('the camera was asked for only on clicks and keys', await page.evaluate(() => window.__gum) === 6, await page.evaluate(() => window.__gum));
+  check('the camera was asked for only on clicks and keys', await page.evaluate(() => window.__gum) === 7, await page.evaluate(() => window.__gum));
   check('no page errors', errs.length === 0, errs.slice(0, 5));
   await ctx.close();
 } finally {

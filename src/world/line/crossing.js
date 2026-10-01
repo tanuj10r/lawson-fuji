@@ -42,7 +42,7 @@ export function buildCrossing(ctx, { x, kit }) {
   {
     // boards between and beside the rails, a groove at each rail: no board lies over a rail (nor over a sleeper:
     // there are none under the deck, track.js `decks`)
-    const deck = new THREE.Mesh(bake(deckBoards({ x0: x - halfW, x1: x + halfW, z0: zN, z1: zS, top: DECK_TOP, thick: 0.13, panel: 1.3 })), deckMat);
+    const deck = new THREE.Mesh(bake(deckBoards({ x0: x - halfW, x1: x + halfW, z0: zN + 0.02, z1: zS - 0.02, top: DECK_TOP, thick: 0.13, panel: 1.3 })), deckMat);
     deck.receiveShadow = true;
     g.add(deck);
     ctx.platform({ x0: x - halfW, x1: x + halfW, z0: zN, z1: zS, top: DECK_TOP });

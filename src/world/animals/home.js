@@ -194,6 +194,7 @@ export function buildHachiHome(town) {
   box(1.54, 0.5, 0.05, gx, 1.93, zF, WOOD);
   for (const s of [-1, 1]) box(0.025, 0.14, 0.025, gx + s * 0.6, 2.2, zF, 0x4a3a30);
   box(H.gate.w - 0.2, 0.075, 0.5, gx, 0.0375, zF + 0.14, STONE[0]);
+  ctx.platform({ x0: gx - H.gate.w / 2 + 0.1, x1: gx + H.gate.w / 2 - 0.1, z0: zF - 0.11, z1: zF + 0.39, top: y0 + 0.075 });
   {
     const board = signPlane(1.44, 0.405, PAGE.board);
     plates.push(board.clone().applyMatrix4(at(gx, y0 + 1.93, zF - 0.027, 0, Math.PI, 0)));       // to the lane (-z)

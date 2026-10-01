@@ -58,6 +58,7 @@ const RAIL_Y = TOP - 0.33;                    // the strap rails
 export const SEAT_D = 0.52, SEAT_TOP = FLOOR + 0.44;
 const CAB_WALL = CAR_L / 2 - 1.75;            // the cab's back wall, from the car's centre
 const SHOULDER = ROOF - (TOP - 0.14);         // the rounded roof's radius
+const EAVES = TOP - 0.1;                      // the eaves strip's top on a rounded roof: the skin below, the roof above
 
 const PLAIN = {
   rubber: 0x24242c, roof: 0x8f939c, gear: 0xaeb2ba, under: 0x3e4049, bogie: 0x33343d, spring: 0x6b6d78,
@@ -252,9 +253,11 @@ function profileRun(prof, x0, x1) {
 /** The rounded roof's profile: a quarter round each side, flat between. */
 function roundRoof() {
   const R = SHOULDER, y0 = TOP - 0.14, z0 = CAR_W / 2 - R;
+  // from the eaves strip's top (EAVES), not the curve's own foot: its first 4 cm rose within 2 mm of the skin's face
+  const a0 = Math.asin((EAVES - y0) / R);
   const prof = [];
-  for (let k = 0; k <= 7; k++) { const a = (k / 7) * (Math.PI / 2); prof.push([-z0 - R * Math.cos(a), y0 + R * Math.sin(a)]); }
-  for (let k = 7; k >= 0; k--) { const a = (k / 7) * (Math.PI / 2); prof.push([z0 + R * Math.cos(a), y0 + R * Math.sin(a)]); }
+  for (let k = 0; k <= 7; k++) { const a = a0 + (k / 7) * (Math.PI / 2 - a0); prof.push([-z0 - R * Math.cos(a), y0 + R * Math.sin(a)]); }
+  for (let k = 7; k >= 0; k--) { const a = a0 + (k / 7) * (Math.PI / 2 - a0); prof.push([z0 + R * Math.cos(a), y0 + R * Math.sin(a)]); }
   return prof;
 }
 /**
@@ -288,7 +291,12 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
   const round = T.roof === 'round';
   /** The outer skin: plain steel, or the painted side. */
   const skin = (geo, mx, sz) => (art ? push('art', ...Object.values(mapped(geo, mx, sideUV(index % 2, sz)))) : push('steel', geo, mx));
-  const skinTop = round ? TOP - 0.12 : TOP - 0.12;
+  const skinTop = TOP - 0.12;
+  /* One surface owns each face (QA: z-fighting).  The car's end planes (x = +-CAR_L/2) are shared out: the side
+   * skins own the corners (the outer 6 cm), the end skin or the cab the middle, the roof everything over END_TOP,
+   * the underframe's rim everything under FLOOR.  The linings stop END_IN short, behind the end's own wall. */
+  const END_TOP = round ? EAVES : skinTop;                // where the roof's end cap begins
+  const END_IN = 0.08;                                    // the end wall's thickness
 
   /* ================================ the shell ================================ */
   // floor, and the underframe's edge under the skin
@@ -306,18 +314,19 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
   }
   B('under', -BOGIE_X + 1.6, BOGIE_X - 1.6, FLOOR - 0.3, FLOOR - 0.2, -CAR_W / 2 + 0.25, CAR_W / 2 - 0.25);
   if (round) {
-    // the roof: a quarter round each side, flat between (its ends cap the cab and the end wall)
+    // the roof: a quarter round each side, flat between (its ends cap the cab and the end wall).  It starts at the
+    // eaves strip's top (EAVES): below that the skin owns the side, and the curve never lies in the skin's face
     const g = profileRun(roundRoof(), -CAR_L / 2, CAR_L / 2);
     push('roof', g, IDENT.clone());
-    // the eaves strip where the skin meets the curve
-    for (const sz of [1, -1]) skin(box(CAR_L, 0.06, 0.06), trs(0, TOP - 0.13, sz * (CAR_W / 2 - 0.03)), sz);
+    // the eaves strip where the skin meets the curve: on top of the skin, not through it
+    for (const sz of [1, -1]) skin(box(CAR_L, EAVES - skinTop, 0.06), trs(0, (skinTop + EAVES) / 2, sz * (CAR_W / 2 - 0.03)), sz);
   } else {
     // the roof: three shallow steps make its curve; gutters; the cornice
     B('steel', -CAR_L / 2, CAR_L / 2, TOP - 0.12, TOP, -CAR_W / 2, CAR_W / 2);
     B('roof', -CAR_L / 2 + 0.02, CAR_L / 2 - 0.02, TOP, TOP + 0.1, -CAR_W / 2 + 0.06, CAR_W / 2 - 0.06);
     B('roof', -CAR_L / 2 + 0.05, CAR_L / 2 - 0.05, TOP + 0.1, TOP + 0.17, -CAR_W / 2 + 0.3, CAR_W / 2 - 0.3);
     B('roof', -CAR_L / 2 + 0.08, CAR_L / 2 - 0.08, TOP + 0.17, ROOF, -CAR_W / 2 + 0.7, CAR_W / 2 - 0.7);
-    for (const s of [-1, 1]) B('rubber', -CAR_L / 2, CAR_L / 2, TOP - 0.02, TOP + 0.04, s * (CAR_W / 2 - 0.02) - 0.03, s * (CAR_W / 2 - 0.02) + 0.03);
+    for (const s of [-1, 1]) B('rubber', -CAR_L / 2 + 0.01, CAR_L / 2 - 0.01, TOP - 0.02, TOP + 0.04, s * (CAR_W / 2 - 0.02) - 0.03, s * (CAR_W / 2 - 0.02) + 0.03);   // (short of the ends: its cap is not in the end's face)
   }
   // the ceiling, its central duct, the two light strips
   if (art) {
@@ -335,6 +344,7 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
   const cells = wallCells();
   for (const sz of [1, -1]) {
     const zSkin = sz * (CAR_W / 2 - 0.03), zLine = sz * (CAR_W / 2 - 0.1), zOut = sz * (CAR_W / 2 + 0.004);
+    const zOn = sz * (CAR_W / 2 + 0.005);      // paint 1 cm thick lying on the skin (not 2 mm into it: its end caps lay in the skin's at the car's ends)
     for (const c of cells) {
       const len = c.b - c.a, cx = (c.a + c.b) / 2;
       const spans = c.kind === 'door' ? [[DOOR_TOP, skinTop]]
@@ -342,14 +352,16 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
           : [[FLOOR, skinTop]];
       for (const [y0, y1] of spans) {
         skin(box(len, y1 - y0, 0.06), trs(cx, (y0 + y1) / 2, zSkin), sz);
-        push('lining', box(len, y1 - y0, 0.04), trs(cx, (y0 + y1) / 2, zLine));
+        // (the lining ends behind the end wall: its cap lay in the car's end face, cream through the skin)
+        const la = Math.max(c.a, -CAR_L / 2 + END_IN), lb = Math.min(c.b, CAR_L / 2 - END_IN);
+        push('lining', box(lb - la, y1 - y0, 0.04), trs((la + lb) / 2, (y0 + y1) / 2, zLine));
       }
       // the band, the pinstripe, the line over the windows, the beads
       if (c.kind !== 'door') {
-        for (const [k, [y0, y1]] of T.stripes) push(k, box(len, y1 - y0, 0.012), trs(cx, (y0 + y1) / 2, zOut));
-        for (const y of T.beads ?? []) push('steelHi', box(len, 0.018, 0.01), trs(cx, y, zOut));
+        for (const [k, [y0, y1]] of T.stripes) push(k, box(len, y1 - y0, 0.01), trs(cx, (y0 + y1) / 2, zOn));
+        for (const y of T.beads ?? []) push('steelHi', box(len, 0.018, 0.009), trs(cx, y, sz * (CAR_W / 2 + 0.0045)));
       }
-      if (T.topline) push(T.topline[0], box(len, T.topline[1][1] - T.topline[1][0], 0.012), trs(cx, (T.topline[1][0] + T.topline[1][1]) / 2, zOut));
+      if (T.topline) push(T.topline[0], box(len, T.topline[1][1] - T.topline[1][0], 0.01), trs(cx, (T.topline[1][0] + T.topline[1][1]) / 2, zOn));
       if (c.kind === 'window') {
         // black rubber round the glass, and the centre mullion of a wide bay
         for (const y of [WIN_Y0, WIN_Y1]) push('rubber', box(len, 0.05, 0.1), trs(cx, y, zSkin));
@@ -368,7 +380,7 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
         if (!art && cells.find((c) => sxm > c.a && sxm < c.b)?.kind === 'solid') push('rubber', box(0.012, TOP - 0.2 - FLOOR + 0.18, 0.01), trs(sxm, (FLOOR - 0.18 + TOP - 0.2) / 2, zOut));
       }
       push('rubber', box(DOOR_W + 0.07, 0.04, 0.1), trs(d, DOOR_TOP, zSkin));
-      push('steelHi', box(DOOR_W, 0.04, 0.2), trs(d, FLOOR + 0.02, sz * (CAR_W / 2 - 0.08)));
+      push('steelHi', box(DOOR_W, 0.04, 0.21), trs(d, FLOOR + 0.02, sz * (CAR_W / 2 - 0.075)));      // the sill, 1 cm proud of the jambs' rubber (its nose lay in their faces)
       // inside: the yellow line at the door's edge
       push('yellow', box(DOOR_W - 0.1, 0.006, 0.08), trs(d, FLOOR + 0.004, sz * (CAR_W / 2 - 0.26)));
     }
@@ -522,27 +534,32 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
   }
 
   /* ---- the ends: a cab, or the end wall with its gangway ---- */
+  const endSkin = (x0, x1, y0, y1, z0, z1) => (art
+    ? push('art', ...Object.values(mapped(box(Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0)), trs((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), swatchUV(SW.skin))))
+    : B('steel', x0, x1, y0, y1, z0, z1));
   for (const s of [-1, 1]) {
     if (s === cabEnd) continue;
     const x = s * (CAR_L / 2 - 0.04), xi = s * (CAR_L / 2 - 0.1);
     const GW = 0.45, GH = FLOOR + 1.95;
-    const endSkin = (x0, x1, y0, y1, z0, z1) => (art
-      ? push('art', ...Object.values(mapped(box(Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0)), trs((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), swatchUV(SW.skin))))
-      : B('steel', x0, x1, y0, y1, z0, z1));
+    /* The end wall, between the side skins and from the floor's rim to the roof's cap: it was the car's full
+     * width and height, so its faces lay in the side skins', the rim's, the roof cap's and the side linings'
+     * (two paints in one plane: the flicker between the cars; Tan, QA). */
+    const zs = CAR_W / 2 - 0.06;                             // the side skin's inner face
     for (const e of [-1, 1]) {
-      endSkin(x - 0.04, x + 0.04, FLOOR - 0.2, TOP, e * GW, e * CAR_W / 2);
+      endSkin(x - 0.04, x + 0.04, FLOOR, END_TOP, e * GW, e * zs);
       B('lining', xi - 0.02, xi + 0.02, FLOOR, TOP - 0.12, e * GW, e * (CAR_W / 2 - 0.1));
     }
-    endSkin(x - 0.04, x + 0.04, GH, TOP, -GW, GW);
+    endSkin(x - 0.04, x + 0.04, GH, END_TOP, -GW, GW);
     B('lining', xi - 0.02, xi + 0.02, GH, TOP - 0.12, -GW, GW);
-    B('rubber', xi - 0.03, xi + 0.03, FLOOR, GH, -GW - 0.03, -GW);
-    B('rubber', xi - 0.03, xi + 0.03, FLOOR, GH, GW, GW + 0.03);
-    // the bellows to the next car (from this car's -x end only, so once)
+    // the gangway's rubber jambs stand 12 mm into the opening, over the wall's cut edges (they lay flush in them)
+    B('rubber', xi - 0.03, xi + 0.03, FLOOR, GH, -GW - 0.03, -GW + 0.012);
+    B('rubber', xi - 0.03, xi + 0.03, FLOOR, GH, GW - 0.012, GW + 0.03);
+    // the bellows to the next car (from this car's -x end only, so once): from end face to end face, into neither
     if (s < 0) {
-      const g0 = -CAR_L / 2 - (PITCH - CAR_L) - 0.02, g1 = -CAR_L / 2 + 0.02;
-      for (const e of [-1, 1]) B('bellows', g0, g1, FLOOR - 0.08, GH + 0.1, e * (GW + 0.02), e * (GW + 0.14));
+      const g0 = -CAR_L / 2 - (PITCH - CAR_L), g1 = -CAR_L / 2;
+      for (const e of [-1, 1]) B('bellows', g0, g1, FLOOR - 0.08, GH, e * (GW + 0.02), e * (GW + 0.14));
       B('bellows', g0, g1, GH, GH + 0.12, -GW - 0.14, GW + 0.14);
-      B('steelHi', g0, -CAR_L / 2, FLOOR - 0.04, FLOOR, -GW, GW);     // the plate abuts the floor's rim: nothing coplanar with it
+      B('steelHi', g0, g1, FLOOR - 0.04, FLOOR, -GW, GW);     // the plate abuts both cars' floor rims: nothing coplanar with it
       for (let k = 1; k < 5; k++) {
         const gx = g0 + ((g1 - g0) * k) / 5;
         for (const e of [-1, 1]) B('rubber', gx - 0.01, gx + 0.01, FLOOR - 0.06, GH + 0.1, e * (GW + 0.14), e * (GW + 0.15));
@@ -558,18 +575,21 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
     const s = cabEnd, fx = s * (CAR_L / 2);
     const ry = s > 0 ? Math.PI / 2 : -Math.PI / 2;
     lamps = [];
+    // behind a rounded cab's mask, between the side skins and under the roof's cap: the body's end (the side
+    // linings used to run out to here and show in the corners)
+    if (round) endSkin(fx - s * END_IN, fx, 2.0, END_TOP, -CAR_W / 2 + 0.06, CAR_W / 2 - 0.06);
     const lamp = (kind, r, y, z, x) => {
       lamps.push({ kind, geometry: new THREE.CircleGeometry(r, 16), matrix: trs(x, y, z, 0, ry, 0) });
       push('steelHi', new THREE.RingGeometry(r, r + 0.022, 16), trs(x - s * 0.001, y, z, 0, ry, 0));
     };
     if (T.cab === 'box') {
       // the silver end below the mask, the band and pinstripe wrapping round
-      B('steel', fx - s * 0.08, fx, FLOOR - 0.2, 2.0, -CAR_W / 2, CAR_W / 2);
+      B('steel', fx - s * 0.08, fx, FLOOR, 2.0, -CAR_W / 2 + 0.06, CAR_W / 2 - 0.06);     // between the side skins, on the floor's rim
       B('band', fx - s * 0.02, fx + s * 0.012, 1.72, 2.0, -CAR_W / 2 - 0.004, CAR_W / 2 + 0.004);
       B('pink', fx - s * 0.02, fx + s * 0.012, 1.66, 1.72, -CAR_W / 2 - 0.004, CAR_W / 2 + 0.004);
       for (const y of T.beads) B('steelHi', fx, fx + s * 0.01, y - 0.009, y + 0.009, -CAR_W / 2 + 0.1, CAR_W / 2 - 0.1);
       // the emergency door in the middle of the front: its seams down the silver, a handle
-      for (const e of [-1, 1]) B('rubber', fx + s * 0.005, fx + s * 0.015, FLOOR - 0.1, 2.0, e * 0.5 - 0.008, e * 0.5 + 0.008);
+      for (const e of [-1, 1]) B('rubber', fx + s * 0.005, fx + s * 0.022, FLOOR, 2.0, e * 0.5 - 0.008, e * 0.5 + 0.008);     // (1 cm proud of the band: 3 mm fought from the crossing)
       B('rubber', fx + s * 0.012, fx + s * 0.03, 1.1, 1.18, 0.3, 0.42);
       // the black mask with the silver pillars at its corners, a rain gutter over the glass
       B('rubber', fx - s * 0.08, fx + s * 0.02, 2.0, TOP, -CAR_W / 2 + 0.1, CAR_W / 2 - 0.1);
@@ -577,14 +597,14 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
       B('steelHi', fx + s * 0.02, fx + s * 0.05, TOP - 0.06, TOP - 0.02, -CAR_W / 2 + 0.12, CAR_W / 2 - 0.12);
       // the windscreen, two big panes, a glint on each
       for (const [z0, z1] of [[-1.24, -0.05], [0.05, 1.24]]) {
-        push('cabGlass', new THREE.PlaneGeometry(z1 - z0, 0.98), trs(fx + s * 0.025, 2.82, (z0 + z1) / 2, 0, ry, 0));
-        push('glint', new THREE.PlaneGeometry(0.22, 0.9), trs(fx + s * 0.03, 2.82, z0 + (z1 - z0) * 0.3, 0, ry, 0.26));
+        push('cabGlass', new THREE.PlaneGeometry(z1 - z0, 0.98), trs(fx + s * 0.03, 2.82, (z0 + z1) / 2, 0, ry, 0));
+        push('glint', new THREE.PlaneGeometry(0.22, 0.9), trs(fx + s * 0.04, 2.82, z0 + (z1 - z0) * 0.3, 0, ry, 0.26));
         // a wiper, parked
-        push('rubber', box(0.02, 0.62, 0.03), trs(fx + s * 0.035, 2.52, z0 + 0.2, s * 1.25, 0, 0));
+        push('rubber', box(0.02, 0.62, 0.03), trs(fx + s * 0.05, 2.52, z0 + 0.2, s * 1.25, 0, 0));
       }
       // the destination LED and the run number, lit, in the mask
-      dests.push({ geometry: new THREE.PlaneGeometry(1.36, 0.34), matrix: trs(xOff + fx + s * 0.028, 3.5, 0, 0, ry, 0) });
-      push('runNo', new THREE.PlaneGeometry(0.36, 0.135), trs(fx + s * 0.028, 3.5, s > 0 ? -0.98 : 0.98, 0, ry, 0));
+      dests.push({ geometry: new THREE.PlaneGeometry(1.36, 0.34), matrix: trs(xOff + fx + s * 0.03, 3.5, 0, 0, ry, 0) });
+      push('runNo', new THREE.PlaneGeometry(0.36, 0.135), trs(fx + s * 0.03, 3.5, s > 0 ? -0.98 : 0.98, 0, ry, 0));
       // head and tail lights in their housings, low on the corners
       for (const e of [-1, 1]) {
         B('rubber', fx - s * 0.02, fx + s * 0.06, 1.26, 1.6, e * 0.72, e * 1.3);
@@ -601,16 +621,16 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
       push('front', plate(-CAR_W / 2 + 0.05, CAR_W / 2 - 0.05, FLOOR - 0.2, 2.1, { rTop: 0.05, rBot: 0.16, bevel: noseD - 0.02 }, s), trs(fx - s * 0.03, 0, 0));
       const nf = fx + s * (noseD + 0.008);          // the nose's face
       push('band', new THREE.PlaneGeometry(CAR_W - 0.36, 0.5), trs(nf, 1.75, 0, 0, ry, 0));
-      for (const e of [-1, 1]) push('rubber', new THREE.PlaneGeometry(0.012, 1.15), trs(nf + s * 0.002, 1.5, e * 0.44, 0, ry, 0));   // the door's seams
-      push('rubber', new THREE.PlaneGeometry(0.1, 0.05), trs(nf + s * 0.003, 1.28, 0.34, 0, ry, 0));
+      for (const e of [-1, 1]) push('rubber', new THREE.PlaneGeometry(0.012, 1.15), trs(nf + s * 0.01, 1.5, e * 0.44, 0, ry, 0));   // the door's seams (1 cm off the band: 2 mm fought from the crossing)
+      push('rubber', new THREE.PlaneGeometry(0.1, 0.05), trs(nf + s * 0.01, 1.28, 0.34, 0, ry, 0));
       push('rubber', plate(-CAR_W / 2 + 0.07, CAR_W / 2 - 0.07, 2.1, TOP + 0.08, { rTop: 0.42, rBot: 0.06, bevel: maskD - 0.03 }, s), trs(fx - s * 0.03, 0, 0));
       const mf = fx + s * (maskD + 0.006);          // the mask's face
       // the windscreen: two big panes and the door's narrow one, a glint on each big one
       for (const [z0, z1] of [[-1.22, -0.3], [-0.2, 0.2], [0.3, 1.22]]) {
         push('cabGlass', new THREE.PlaneGeometry(z1 - z0, 1.0), trs(mf, 2.78, (z0 + z1) / 2, 0, ry, 0));
         if (z1 - z0 > 0.5) {
-          push('glint', new THREE.PlaneGeometry(0.2, 0.92), trs(mf + s * 0.004, 2.78, z0 + (z1 - z0) * 0.3, 0, ry, 0.26));
-          push('rubber', box(0.02, 0.64, 0.03), trs(mf + s * 0.01, 2.48, z0 + 0.18, s * 1.25, 0, 0));    // a wiper
+          push('glint', new THREE.PlaneGeometry(0.2, 0.92), trs(mf + s * 0.01, 2.78, z0 + (z1 - z0) * 0.3, 0, ry, 0.26));
+          push('rubber', box(0.02, 0.64, 0.03), trs(mf + s * 0.026, 2.48, z0 + 0.18, s * 1.25, 0, 0));    // a wiper
         }
       }
       // the LED destination over the middle, the run number beside it, the lights in the corners
@@ -633,15 +653,16 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
       const mf = fx + s * (noseD + 0.006);
       for (const [z0, z1] of [[-1.2, -0.16], [0.16, 1.2]]) {
         push('rubber', new THREE.PlaneGeometry(z1 - z0 + 0.08, 1.06), trs(mf, 2.72, (z0 + z1) / 2, 0, ry, 0));
-        push('cabGlass', new THREE.PlaneGeometry(z1 - z0, 0.98), trs(mf + s * 0.003, 2.72, (z0 + z1) / 2, 0, ry, 0));
-        push('glint', new THREE.PlaneGeometry(0.2, 0.9), trs(mf + s * 0.006, 2.72, z0 + (z1 - z0) * 0.3, 0, ry, 0.26));
-        push('rubber', box(0.02, 0.62, 0.03), trs(mf + s * 0.012, 2.42, z0 + 0.2, s * 1.25, 0, 0));
+        // (each a centimetre off the one behind: at 3 mm the panes fought their rubber from the crossing)
+        push('cabGlass', new THREE.PlaneGeometry(z1 - z0, 0.98), trs(mf + s * 0.01, 2.72, (z0 + z1) / 2, 0, ry, 0));
+        push('glint', new THREE.PlaneGeometry(0.2, 0.9), trs(mf + s * 0.02, 2.72, z0 + (z1 - z0) * 0.3, 0, ry, 0.26));
+        push('rubber', box(0.02, 0.62, 0.03), trs(mf + s * 0.036, 2.42, z0 + 0.2, s * 1.25, 0, 0));
       }
       push('rubber', new THREE.PlaneGeometry(1.3, 0.36), trs(mf, 3.5, 0, 0, ry, 0));
-      dests.push({ geometry: new THREE.PlaneGeometry(1.24, 0.31), matrix: trs(xOff + mf + s * 0.003, 3.5, 0, 0, ry, 0) });
+      dests.push({ geometry: new THREE.PlaneGeometry(1.24, 0.31), matrix: trs(xOff + mf + s * 0.01, 3.5, 0, 0, ry, 0) });
       for (const e of [-1, 1]) {
         push('rubber', new THREE.CircleGeometry(0.15, 16), trs(mf + s * 0.001, 3.5, e * 0.92, 0, ry, 0));
-        lamp('head', 0.1, 3.5, e * 0.92, mf + s * 0.004);
+        lamp('head', 0.1, 3.5, e * 0.92, mf + s * 0.012);
         lamp('tail', 0.06, 1.3, e * 1.18, fx + s * (noseD + 0.012));
       }
     }
@@ -821,7 +842,7 @@ export function buildEmu(ctx, { cars = 2, seed = 2104, type = 'box' } = {}) {
   // the straps: one InstancedMesh, swaying about their rail
   const strapGeo = (() => {
     const parts = [
-      { geometry: box(0.05, 0.04, 0.03), matrix: trs(0, -0.02, 0) },
+      { geometry: box(0.05, 0.05, 0.042), matrix: trs(0, -0.017, 0) },      // the clasp, round the rail (its faces lay in the rail's)
       { geometry: box(0.024, 0.2, 0.008), matrix: trs(0, -0.14, 0) },
       { geometry: new THREE.TorusGeometry(0.068, 0.012, 5, 14), matrix: trs(0, -0.31, 0) },
     ];

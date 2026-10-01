@@ -155,7 +155,8 @@ export function makeShop(ctx, o) {
     }
     push('wall', new THREE.BoxGeometry(openW, H1 - 2.55, REC), trs(0, H1 - (H1 - 2.55) / 2, front - REC / 2));
     // soffit and floor of the recess
-    push('trim', new THREE.BoxGeometry(openW, 0.1, REC), trs(0, 2.5, front - REC / 2));
+    // (the soffit stops at the glazing's head: the two were one box through the other, their fronts and undersides in one plane, and flickered)
+    push('trim', new THREE.BoxGeometry(openW, 0.1, REC - 0.14), trs(0, 2.5, front - 0.14 - (REC - 0.14) / 2));
     push('tile', new THREE.BoxGeometry(openW, 0.1, REC + 0.1), trs(0, 0.05, front - REC / 2 + 0.05));
 
     /* The interior sits on the face of the solid volume, knocked well back
@@ -184,7 +185,7 @@ export function makeShop(ctx, o) {
     for (let i = 0; i <= nm; i++) {
       push('metal', new THREE.BoxGeometry(0.08, 2.35, 0.1), trs(-glassW / 2 + (glassW / nm) * i, 1.35, front - 0.07));
     }
-    push('metal', new THREE.BoxGeometry(glassW + 0.1, 0.1, 0.14), trs(0, 2.5, front - 0.07));
+    push('metal', new THREE.BoxGeometry(glassW, 0.1, 0.14), trs(0, 2.5, front - 0.07));      // the head: between the piers, not 5 cm into each (its front lay in theirs)
     push('metal', new THREE.BoxGeometry(glassW + 0.1, 0.14, 0.16), trs(0, 0.2, front - 0.07));
     /* (town pass) a transom bar, a kick panel along the foot, and the
      * sliding door pair with its pull handles: the glass wall becomes a

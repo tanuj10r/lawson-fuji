@@ -132,6 +132,14 @@ function matKey(m) {
  * @param opts.cell  batch per square cell of this size (metres), by where each
  *                   mesh stands, so batches can still be frustum-culled
  */
+const DEV = !!import.meta.env?.DEV;
+/** dev: a part's name and its named parents', up to the batch's root. */
+function chainName(m, root) {
+  const out = [];
+  for (let q = m; q && q !== root && out.length < 4; q = q.parent) if (q.name) out.push(q.name);
+  return out.join('<') || '?';
+}
+
 export function mergeStatic(root, opts = {}) {
   const cell = opts.cell ?? 0;
   if (opts.atlas) {
@@ -223,10 +231,13 @@ export function mergeStatic(root, opts = {}) {
         g.material = c;
       }
     }
+    // dev (the z-fighting detector, src/dev/zfight.js): which vertices came from which part, by name
+    const src = DEV ? g.list.flatMap((m, i) => m.userData.src ?? [{ n: geos[i].attributes.position.count, name: chainName(m, root) }]) : null;
     const geo = mergeGeometries(geos, false);
     geos.forEach((x) => x.dispose());
     if (!geo) continue;
     const mesh = new THREE.Mesh(geo, g.material);
+    if (src) mesh.userData.src = src;
     mesh.castShadow = g.cast;
     mesh.receiveShadow = g.receive;
     mesh.renderOrder = g.order;

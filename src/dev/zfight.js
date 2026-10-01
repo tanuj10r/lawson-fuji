@@ -147,6 +147,9 @@ export async function zfight(g, pose, o = {}) {
     const chain = [];
     let q = h.object;
     while (q && chain.length < 4) { if (q.name) chain.push(q.name); q = q.parent; }
+    // a batch (world/merge.js) remembers, in dev, which part each run of vertices came from
+    const src = h.object.userData.src;
+    if (src && h.face) { let v = h.face.a; for (const s of src) { if (v < s.n) { chain.unshift(`[${s.name}]`); break; } v -= s.n; } }
     const m = Array.isArray(h.object.material) ? h.object.material[h.face?.materialIndex ?? 0] : h.object.material;
     const col = m?.color ? '#' + m.color.getHexString() : '';
     const nrm = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld).toArray().map((v) => +v.toFixed(2)) : null;
@@ -158,19 +161,24 @@ export async function zfight(g, pose, o = {}) {
   };
   for (const b of boxes.slice(0, probe)) {
     ray.setFromCamera(new THREE.Vector2((b.at[0] + 0.5) / W * 2 - 1, 1 - (b.at[1] + 0.5) / H * 2), camera);
-    // (what writes no depth cannot fight: glass, glints and paint are looked through)
-    const solid = (h) => { const m = Array.isArray(h.object.material) ? h.object.material[h.face?.materialIndex ?? 0] : h.object.material; return m && m.depthWrite !== false && m.visible !== false; };
+    const matOf = (h) => (Array.isArray(h.object.material) ? h.object.material[h.face?.materialIndex ?? 0] : h.object.material);
+    const solid = (h) => { const m = matOf(h); return m && m.depthWrite !== false; };      // (glass and glints are looked through)
     const shown = (o) => { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; };
     // mesh by mesh: one whose vertices were handed to the GPU and dropped cannot be probed, and is skipped
     const hits = [];
     scene.traverse((obj) => {
-      if (!obj.isMesh || !shown(obj)) return;
-      try { for (const h of ray.intersectObject(obj, false)) if (solid(h)) hits.push(h); } catch { /* no CPU copy */ }
+      if (!obj.isMesh || !shown(obj) || obj.material?.visible === false) return;
+      try { hits.push(...ray.intersectObject(obj, false)); } catch { /* no CPU copy */ }
     });
     hits.sort((a, b) => a.distance - b.distance);
-    // the faces within 5 cm of the first one: the pair that fights is among them
-    const d0 = hits[0]?.distance ?? 0;
-    b.hits = hits.filter((h) => h.distance - d0 < 0.05).slice(0, 5).map(describe);
+    // the first two faces within 4 mm of each other, up to the first solid face: the pair that fights.
+    // Failing that, whatever lies within 5 cm of the first solid face.
+    const s0 = hits.findIndex(solid);
+    const upTo = s0 < 0 ? hits.length : hits.findIndex((h, i) => i > s0 && h.distance - hits[s0].distance > 0.004);
+    const front = hits.slice(0, upTo < 0 ? hits.length : upTo);
+    const p0 = front.findIndex((h, i) => front[i + 1] && front[i + 1].distance - h.distance < 0.004);
+    const d0 = (p0 >= 0 ? front[p0] : hits[Math.max(0, s0)])?.distance ?? 0;
+    b.hits = hits.filter((h) => h.distance >= d0 - 1e-6 && h.distance - d0 < (p0 >= 0 ? 0.004 : 0.05)).slice(0, 5).map(describe);
   }
 
   /* ---- the still, and the mask: the frame dimmed, once-changed pixels amber, flickering ones magenta ---- */

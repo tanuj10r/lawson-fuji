@@ -385,7 +385,9 @@ function stair(ctx, parts, s, P) {
     parts.box('granite', x0, x1, W - 0.05, y, lo, hi);
     // the nosing: a worn dark lip along each tread's edge, deep enough to read
     // from the top of the flight (cel-flat treads merged into one slab; quality pass)
-    parts.box('nosing', x0, x1, y - 0.04, y + 0.006, dir < 0 ? lo : hi - 0.11, dir < 0 ? lo + 0.11 : hi);
+    // (it stands 6 mm proud of the riser, as it does of the tread: its face lay in the riser's, and the whole
+    // flight's edges flickered; Tan, "it pixelates and acts up")
+    parts.box('nosing', x0, x1, y - 0.04, y + 0.006, dir < 0 ? lo - 0.006 : hi - 0.11, dir < 0 ? lo + 0.11 : hi + 0.006);
     ctx.platform({ x0, x1, z0: lo, z1: hi, top: y });
     // the side walls, a parapet stepping down beside the treads
     for (const [a, b] of [[x0 - 0.3, x0], [x1, x1 + 0.3]]) {

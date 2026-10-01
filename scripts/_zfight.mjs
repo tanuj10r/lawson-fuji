@@ -96,7 +96,7 @@ for (const t of ['poke', 'box', 'jr']) {
   car('out-door', 0, [1.2, 1.6, -3.2], [2.4, 1.0, -1.43], 'day', 'platform-shut');
   car('out-window', 0, [-1.4, 1.6, -2.8], [0.4, 1.6, -1.43]);
   car('out-cab-side', 0, [7.4, 1.6, -3.4], [9.2, 1.5, -1.43]);
-  car('out-far-end', 1, [-6.5, 1.6, -3.4], [-9.7, 1.5, -1.0]);         // the tail car's cab, from the platform
+  car('out-far-end', 1, [-6.5, 1.6, -2.7], [-9.7, 1.5, -1.0]);         // the tail car's cab, from the platform
   for (const n of ['beside-open', 'beside-shut', 'front', 'side', 'crossing', 'listen']) {
     const s = SHOT_SPOTS.find((x) => x.name === `train-jr-${n}`);
     POSES.push({ name: `train-${t}-${n}`, shot: { look: s.looks[0], pos: s.pos, yaw: s.yaw, pitch: s.pitch, frame: s.frame, train: s.train.replace('jr', t) } });

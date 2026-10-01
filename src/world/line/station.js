@@ -3,7 +3,7 @@ import { cel, flat } from '../../core/toon.js';
 import { box, cyl, bake, trs } from '../../core/util.js';
 import { hullOutline } from '../../core/outline.js';
 import { TOWN, ROADS, SOUND } from '../../config.js';
-import { steps, railing } from '../ground.js';
+import { steps, railing, meshFence } from '../ground.js';
 import { makeBench, makeBins, makePhoneBooth, makePlanter, makeBikeRack } from '../props.js';
 import { makeBusStop, makeVehicle } from '../vehicles.js';
 import { addVending } from '../vending.js';
@@ -361,7 +361,8 @@ export function buildStation(ctx, { kit, service, sets }) {
     ctx.platform({ x0: PL.x0, x1: PL.x1, z0: P.z0, z1: P.z1, top: PH });
     // the edge: a darker coping and a line nobody may stand beyond
     const ez = P.edge - P.face * 0.2;
-    g.add(box(PL.x1 - PL.x0, 0.03, 0.4, m.edge, (PL.x0 + PL.x1) / 2, PH + 0.005, ez));
+    // (laid on the deck, not 1 cm into it: its edge lay in the platform's face and flickered along the whole edge)
+    g.add(box(PL.x1 - PL.x0, 0.02, 0.4, m.edge, (PL.x0 + PL.x1) / 2, PH + 0.01, ez));
     ctx.collide(PL.x0, P.edge - P.face * 0.05 - 0.05, PL.x1, P.edge - P.face * 0.05 + 0.05, PH + 1.2);
     // yellow tactile line, a metre in from the edge
     for (let x = PL.x0 + 0.3; x < PL.x1 - 0.15; x += 0.3) {
@@ -433,7 +434,14 @@ export function buildStation(ctx, { kit, service, sets }) {
       g.add(box(0.44, 0.03, 0.2, m.light, x, PH + 3.14, bz + P.face * 0.1));
       ctx.collide(x - 0.12, bz - 0.12, x + 0.12, bz + 0.12, PH + 3.2);
     }
-    // (behind both platforms the lineside fences close the station)
+    /* the back: the platform's own fence, standing on the deck 6 cm in from its edge, as tall above it as the
+     * lineside fence was (that one ran from the ground in the plane of the deck's back face, and of the annex's
+     * wall: it flickered through both).  Not behind the building, the annex or the waiting room. */
+    {
+      const at = P.face > 0 ? P.z0 + 0.06 : P.z1 - 0.06;
+      const runs = P.n === 1 ? [[PL.x0, B.x0], [B.x1 + 6.4, PL.x1]] : [[PL.x0, -35], [-29.5, PL.x1]];
+      for (const [a, b] of runs) if (b - a > 0.6) meshFence(ctx, { axis: 'x', from: a, to: b, at, h: 0.42, y: PH, spacing: 2.5, collide: false });
+    }
     // the platform ends: railings, except where the in-station crossing leaves
     railing(ctx, { axis: 'z', from: P.z0, to: P.z1, at: PL.x0 + 0.1, h: 1.1, y: PH });
   }

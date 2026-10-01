@@ -135,9 +135,32 @@ export const STRINGS = {
     backAria: 'Back to the menu',
     close: 'Space to walk on  ·  Back or Esc for the menu',
     closeTouch: 'Back, or a tap outside the card, for the menu',
+    /* the selfie postcard (ui/postcardSelfie.js): asked for, never by itself */
+    selfie: {
+      add: 'Add your selfie with Hachi',
+      note: 'Your photo stays on your device',
+      /* the words on the writing side, by where it is */
+      say: {
+        ask: 'Allow the camera when your browser asks.',
+        live: 'Smile! Hachi wants to be in it too.',
+        done: 'There you are, with Hachi. Save it, or share the postcard.',
+        blocked: 'The camera is blocked for this site. Click the camera or lock icon in the address bar, allow the camera, then try again.',
+        none: 'No camera was found on this device. Plug one in, then try again.',
+        busy: 'The camera is busy in another app. Close it there, then try again.',
+      },
+      shutter: 'Take photo',
+      again: 'Try again',
+      cancel: 'Cancel',
+      remove: 'Remove',
+      retake: 'Retake',
+      save: 'Save image',
+      caption: 'Hachi and me',
+      alt: 'Your postcard: your photo in Fujikawaguchikko, Hachi peeking over it',
+      file: 'takemebacktojapan-postcard.jpg',
+    },
     /* the little postcard by the pause card, every pause */
     mini: 'Your postcard ✉',
-    miniAria: 'Open your postcard',
+    miniAria: 'Open your postcard: add your selfie with Hachi',
   },
   /* The sounds' names, shown top left as you come near one (ui/soundLabels.js), keyed by the engine's names:
    * [japanese, english, a few words more].  Han's song is not named (AGENTS.md: no titles). */

@@ -649,6 +649,8 @@ window.addEventListener('keydown', (e) => {
   /* Space pauses and plays (Tan).  Pausing is letting the pointer go, which
    * raises the same card Esc does; pressing it again takes the pointer back. */
   if (e.code === 'Space') {
+    // on one of the selfie's buttons (ui/postcardSelfie.js) Space is that button's, not the walk's
+    if (e.target?.closest?.('[data-sf]')) return;
     e.preventDefault();
     if (e.repeat) return;
     if (player.locked) document.exitPointerLock?.();

@@ -1,6 +1,7 @@
 # Take Me Back to Japan: Build Spec
 
-Rewritten 2026-09-29 from where the game is today · @Tanuj (Tan, they/them)
+Rewritten 2026-09-29 from where the game is today; brought up to date 2026-10-02
+(the desktop game is live) · @Tanuj (Tan, they/them)
 
 > The first spec (Sep 23, "Konbini Game", under an old working title) is in git history
 > (`git show ea1ab1f:SPEC.md`). Since then the game has changed on purpose,
@@ -27,8 +28,9 @@ It lives at **takemebacktojapan.com**.
 **Goals**
 
 - A static website, playable from a shared link in desktop browsers
-  (Chrome, Edge, Firefox, Safari on macOS). No mobile or touch play, and
-  nothing is compromised for them.
+  (Chrome, Edge, Firefox, Safari on macOS). The desktop game is live and
+  nothing in it is compromised for phones: a phone gets a friendly card
+  today, and a mobile version is in progress as its own build.
 - Ready in about 4 s on desktop broadband; smooth on a normal laptop, 60 fps
   at 1440p on a mid-range GPU.
 - Everything is built in code: no downloaded models or images. Every sign
@@ -44,11 +46,15 @@ It lives at **takemebacktojapan.com**.
   konbini straight on, Fuji's upper cone over its flat roof (section 3).
 - **Things to do** (a highlight in town, a diamond on the map): the konbini,
   the Nippon Fuji view, Han's RX-7, the train's listening spot, the
-  slow-life bench.
+  slow-life bench, ぺったん堂 (the mochi-pounding shop).
 - **Things to hear** (no highlight, no key; a speaker on the map): the walk
-  signals, ドンペン堂, the station, the level crossing, the shrine.
-- **Hachi**, the guide pup, who leads you from one to the next, or keeps up
-  while you wander.
+  signals, ドンペン堂, the station, the level crossing, the shrine. Each
+  sound's name shows top left as you come near it.
+- **Hachi**, the guide pup, who leads you on a tour from one to the next
+  (past his own home, ハチのおうち, across the level crossing), reacts to
+  what you do, and stays with you once the tour is done.
+- **A postcard** when the tour ends (and from the pause card): share it, or
+  add a selfie with Hachi.
 - **Teasers**: the Deer Park gate (鹿公園 近日公開) and Osaka posters,
   for places that come later.
 
@@ -238,7 +244,7 @@ petals, drifts along kerbs, petals on the water.
 | Move | Arrow keys (W A S D also work, unadvertised) |
 | Look | Mouse (pointer lock; Esc releases and pauses) |
 | Run (outdoors) | Shift |
-| Interact | E |
+| Interact | E (the prompt names it: "E · Buy a mochi ¥200", "E · Take the tour again") |
 | Time of day: morning, golden hour, night | 1 2 3 (anywhere; a short dip to dark hides the switch) |
 | Back to the start (the famous view, same time of day) | R |
 | Whistle for Hachi | F |
@@ -260,6 +266,18 @@ names):
   (`scripts/_cards.mjs` checks 1280x720 to 2560x1440).
 - **Pause:** the same card with a PAUSED chip, the volume (five steps) and
   Resume. The game keeps drawing, blurred, at 10 fps.
+- **Made by Tan** (ui/maker.js): a chip on the key art of the loading, start
+  and pause cards: Tan's face, Buy Me a Coffee, X, GitHub, tanuj.fyi. Plain
+  links in a new tab; a click on it never starts the game.
+- **The postcard** (ui/postcard.js): shown once Hachi has settled for his
+  nap at the tour's end, and from the little "Your postcard" by every pause
+  card. Share, Copy link, Post; and **Add your selfie with Hachi**
+  (ui/postcardSelfie.js, its own chunk, fetched on the click): camera only,
+  the photo never leaves the page's canvas, Hachi peeks over the polaroid,
+  Save image.
+- **Sound labels** (ui/soundLabels.js): top left, the name of a sound as you
+  come near it, Japanese and English ("カンカン · level crossing"). Han's
+  song is not named.
 - **The song:** the first 45 s of the title tune (a copyright-free track Tan found; not credited, per Tan) loop on the start
   and pause cards, with the game's own sound down under it, and fades out as
   play starts or resumes; paused again, it carries on where it left off. The
@@ -294,6 +312,11 @@ Choco Wafer Jumbo. Then a scene plays with no skipping, about 22 to 30 s:
    face. The Strong Nine leaves you tipsy for ten seconds (a soft blur and
    sway).
 
+The view is the scene's from the door until you stand outside again, facing
+the street (Tan, 2026-10-02): the mouse is yours as you eat. So every pose
+inside the store is known, and the store is built and textured only for what
+those poses see (store/seen.js; `scripts/_store-seen.mjs` measures it).
+
 - Inside, the store's music, hum and bed are heard, and the outdoors is
   muffled.
 - No cashier, no wallet, no basket, no subtitles.
@@ -308,14 +331,19 @@ black sweep) in the car park's reserved bay, modelled from the film's
 stills: side-parted shaggy hair, a half-smile, a denim overshirt. Step into
 the glow and the song starts:
 
-- the car backs out and drives the roads on the left;
-- it does a handbrake 180 on NIPPON's forecourt, then drifts through the
-  master junction with soft tyre smoke;
-- it parks nose first again;
-- the view follows the car the whole way.
+- the car backs out of the bay and takes the bridge road to the master
+  junction, on the left;
+- a feint, the handbrake, and one long slide round the junction (about 3 s,
+  the tail out up to 40 degrees), the tail thrown the other way and caught;
+- smoke from the rear tyres only, tyre marks that fade, the rotary's buzz and
+  the tyres' howl made in code, under the song;
+- the front wheels steer into the turn while it grips and against the slide
+  while it slips; the body rolls, dives and squats;
+- it parks nose first again; the view follows the car the whole way.
 
 `scripts/_han-route.mjs` fails if any corner of the car leaves the road or
-touches a parked car.
+touches a parked car, or if a steered wheel points the wrong way
+(docs/decisions/han.md, "The real drift").
 
 **4. The train's listening spot.** On platform 1, by a door: while the train
 stands there with its doors open, the ring shows; stand in it and hear the
@@ -323,6 +351,14 @@ in-train next-stop announcement. It fades as you walk away.
 
 **5. The slow-life bench** (land/slowlife.js). By the paddies and the pond,
 facing Fuji: sit, look around with the mouse, and hear the flute theme.
+
+**6. ぺったん堂** (world/mochi/; docs/decisions/mochi.md). A mochi-pounding
+shop on the main road, opposite the shopping street's mouth, a homage to
+Kyoto's high-speed pounders
+with nobody in it: three moon rabbits pound and turn the mochi in a stone
+mortar to the chant (Tan's recording). Step onto its ring: "E · Buy a mochi
+¥200". A matcha-strawberry mochi is served on a plate, your hand takes it,
+the first bite stretches, and Hachi gets a dried sweet potato of his own.
 
 **Things to hear** (each only near its place):
 
@@ -333,6 +369,7 @@ facing Fuji: sit, look around with the mouse, and hear the flute theme.
 | The station | Station ambience and announcements, clearly heard over the plaza, dimmed while you stand in the train's listening spot |
 | The level crossing | Its bells while closed |
 | The shrine | Wind chimes in the grounds |
+| ぺったん堂 | The pounding and the chant, with the show |
 
 **Hachi, the guide** (animals/guide.js, shiba.js). A 3-4-month red shiba
 pup, about 24 cm at the shoulder, with sit, lie, trot, tilt, shake and nap:
@@ -343,9 +380,19 @@ pup, about 24 cm at the shoulder, with sit, lie, trot, tilt, shake and nap:
   that tells you to follow him and that F whistles for him. The view eases
   down to him and back (your mouse takes it back at once). He waits there
   until you walk off. Nothing is saved between visits.
-- **The tour:** he leads a town tour along the main streets at a jog, 4-9 m
-  ahead, ending at the Deer Park gate, stopping to look back when you fall behind. There are no water
+- **The tour:** he leads a town tour at a jog, 4-9 m ahead, stopping to
+  look back when you fall behind (config `ANIMALS.guide.tour`, about 870 m):
+  the view, the konbini, the zebra, Han, the shopping street, ドンペン堂,
+  ぺったん堂, the plaza and platform 1's train, the level crossing, his own
+  home, the shrine and its fox, the bridge, the Deer Park gate. No water
   crossings, no alleys, and he takes stairs like a person.
+- **The level crossing:** he goes over only with the arms right up. Shut, he
+  sits facing the line, boofs, follows the train with his head, and hops up
+  as the arms lift.
+- **ハチのおうち** (animals/home.js, `TOWN.hachiHome`): his own garden past
+  the crossing, at the lane's end: a gate with his name, a Japanese doghouse
+  with a porch, a cushion, bowls, a ball, a tunnel and a hoop. He waits for
+  you inside the gate, then shows it all off (about 17 s) and leads on.
 - **A guide, not a follower:** walk away and he stops where he is and waits.
   Walk back to him and he carries on the tour where he left off.
 - **The whistle:** F whistles; he answers after the whistle ends, comes to
@@ -358,7 +405,19 @@ pup, about 24 cm at the shoulder, with sit, lie, trot, tilt, shake and nap:
   and rolls on his back, paws going, giggling, for the whole ten seconds.
 - **His voice:** made in code. Yips, a "boof", a curious "hm?", a whine,
   a giggle, panting and his collar tag.
-- **The nap:** he naps when everything is done.
+- **Reactions** (animals/reactions.js; expression channels on the one
+  instance, still one draw call): blinks, a head tilt when you look at him,
+  tippy taps at a place, a wiggle and spin when you step into a ring, a petal
+  on his nose (sniff, sneeze, shake), a yawn when kept waiting, a charge
+  through the pigeons, a startle as the crossing's bells start.
+- **At the konbini:** as you come out he begs, then does a bit for what you
+  bought, on your clock (the Strong Nine: paws round a can that isn't there,
+  then hiccups and over onto his back).
+- **Bedtime:** at the tour's end he hops onto the bench by the Deer Park
+  gate, bows, spins, rolls, circles and lies down; the postcard follows.
+- **After the tour:** whistled, he comes and stays, at your side as you walk
+  and playing when you stop. Look at him within 6 m: "E · Take the tour
+  again".
 
 `scripts/_guide.mjs` checks all of this.
 
@@ -407,9 +466,11 @@ facings out of place).
 - **Pipeline:** `npm run audio` (scripts/encode-audio.mjs, macOS
   `afconvert`) cuts, loops, levels and encodes `assets/audio/*` to mono AAC
   in `public/audio/` with a manifest (scripts/audio-cuts.json). There are
-  26 files, 3.3 MB on disk. Files are fetched after the first click.
+  28 files, 3.4 MB on disk. Files are fetched after the first click.
 - **Missing files** fall back to procedural recipes. Hachi's voice, the
-  store hum and some beds are always procedural.
+  RX-7's engine and tyres, the store hum and some beds are always procedural.
+- **Names:** each placed sound has a label (strings.js `soundNames`), shown
+  top left while it is heard.
 - **Files in use:**
   - door chime (lawson-chime: the well-known entrance melody, Tan's call);
   - auto door, store music (store-bgm);
@@ -418,7 +479,7 @@ facings out of place).
   - walk signals (walk-kakko, walk-piyo);
   - railway bells, station ambience, the next-stop announcement;
   - Han's song (han-drift), ドンペン堂's theme, shrine chimes, the rural
-    flute;
+    flute, ぺったん堂's pounding (mochi-pound, Tan's file);
   - birds, crows, night insects, wind.
   - Tan's song for the cards, `title bgm.mp3`: its first 45 s looped, in
     stereo, HE-AAC 48 kbps, 276 KB.
@@ -450,16 +511,16 @@ facings out of place).
 - Long audio streams; short audio decodes.
 - Measure before and after every change, and put the numbers in the commit.
 
-**Where we are** (2026-09-29, headless Chrome on Tan's M2):
+**Where we are** (2026-10-02, headless Chrome on Tan's M2):
 
 | Measure | Target | Now |
 | --- | --- | --- |
-| First-visit download (`npm run size`) | < 5 MB | 4.87 MB (1.53 MB before the first click; key art 0.15 MB; the title song 0.28 MB) |
+| First-visit download (`npm run size`) | < 5.25 MB (5 MB before ぺったん堂; Tan, 2026-10-01) | 5.05 MB (1.65 MB before the first click; sign fonts 0.52 MB; audio 3.39 MB) |
 | Ready to play | < 5 s | about 4 s |
-| Famous view frame, 1440p | 60 fps | 9.5 ms |
-| Worst spots, 1440p | 60 fps | 9-11 ms (the far bank, the paddies from the lane end) |
-| JS heap | 300 MB | about 390 MB |
-| Main chunk | none set | 1.2 MB minified, 527 KB gzip (one Vite warning) |
+| Famous view frame, 1440p x1.5 | 60 fps | about 11 ms |
+| JS heap after start | 300 MB | about 270-310 MB (run to run) |
+| Store textures | none set | see DECISIONS.md, "The konbini, only what is seen" |
+| Main chunk | none set | about 570 KB gzip (one Vite warning) |
 
 **Known costs:**
 
@@ -499,12 +560,12 @@ Tan's call. **Open**: not built yet, and still wanted or undecided.
 | Boarding the train, the station master, the shrine prayer, confetti | Built, then dropped (Tan) |
 | People (students, shoppers) | Dropped: only the hand and Han |
 | Birds on wires, cat, sparrows | Changed: cat, pigeons, koi, turtles, ducks, heron, egrets, butterflies, crows, Hachi |
-| Friendly "best on desktop" screen for phones | Open, and needed for launch (section 13) |
-| Title screen, credits in the game | Changed: the start card exists; the in-game credit names only Sakura Crossing |
-| M7 memory under 300 MB | Open (about 390 MB) |
-| M7 download under 5 MB | Done, with 0.1 MB to spare |
+| Friendly "best on desktop" screen for phones | Done (the phone card); a mobile version is in progress |
+| Title screen, credits in the game | Done: the start card, and credits.html linked from it |
+| M7 memory under 300 MB | About there (270-310 MB after start) |
+| M7 download under 5 MB | Changed: 5.25 MB (Tan); 5.05 MB today |
 | M7 tested in Chrome, Edge, Firefox (Windows), Chrome and Safari (macOS) | Open: audio was tested in WebKit and Firefox at M4; nothing since |
-| M7 hosted on a CDN with long-lived caching | Open (section 13) |
+| M7 hosted on a CDN with long-lived caching | Done: live at takemebacktojapan.com |
 | M7 "a first-timer completes a purchase in 3 minutes" | Changed: the konbini is its own highlight, a step from the spawn, and Hachi leads the way |
 
 **Known gaps Tan has seen and accepted for now:**
@@ -513,14 +574,27 @@ Tan's call. **Open**: not built yet, and still wanted or undecided.
 - From behind, the pup reads as a small dog more than clearly a puppy.
 - The Pokémon train has no giant two-bay figures.
 - A postbox partly hides ドンペン堂's displays from one angle.
-- Hachi's full tour takes about 7.4 minutes.
+- Hachi's full tour takes about 8 minutes.
 - Han's song is heard muffled inside the store if you walk in mid-show.
 
 ## 13. The road to launch
 
-Tan deploys `dist/` from `npm run build` to takemebacktojapan.com. In order:
+Tan deploys `dist/` from `npm run build` to takemebacktojapan.com. **The
+desktop game is live** (2026-09-30). Section A is kept as the record of what
+launch needed; B and C are what is next.
 
-**A. Before it goes live (blockers)**
+**Since launch** (each in DECISIONS.md): the Made by Tan chip and the
+postcard, the selfie postcard, sound labels, Hachi's reactions and his life
+after the tour, the tour's rework (the crossing, his home, the shrine's
+fox), the konbini built only for what is seen, ぺったん堂, Han's real
+drift, the station plaza's bus stop, and share images from the key art.
+**Analytics:** DataFast (datafa.st), on the live desktop site only: page
+views and named goals (the postcard, the selfie, the chip's links), never a
+photo. It is the one script from another domain (AGENTS.md).
+**In progress:** a mobile version, as its own build; until it ships a phone
+sees the card.
+
+**A. Before it went live (the launch list)**
 
 1. **Back up the repo.** `main` is 218 commits ahead of GitHub
    (origin: tanuj10r/takemebacktojapan.com) and has never been pushed. Push it. Decide
@@ -590,10 +664,8 @@ Tan deploys `dist/` from `npm run build` to takemebacktojapan.com. In order:
   - Load the trains only near the railway.
   - Weigh the Pokémon page at 3072.
 - **Code-split the main chunk,** e.g. the map, Han, the trains.
-- **Headroom under 5 MB** before adding anything.
-- **Know if people play,** without a script from another domain:
-  Cloudflare's own server-side analytics.
-- **A 404 page** that sends people to the game.
+- **Headroom under 5.25 MB** before adding anything (0.2 MB today).
+- **The mobile version** (in progress).
 
 **C. Later (new content; each a milestone with a plan and Tan's OK)**
 

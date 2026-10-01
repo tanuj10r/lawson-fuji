@@ -1028,3 +1028,71 @@ export const ANIMALS = {
   pigeons: { plaza: 9, spine: 5, flush: 2.4, flushSpeed: 0.6, shy: 1.3, walkSpeed: 0.2, stepAngle: 0.36, flySpeed: 5, sit: [8, 20], back: 10 },
   egret: { flee: 6, hop: [8, 30], flySpeed: 3.0, cruise: 1.6, beatHz: 2.8, beatAmp: 0.62, walkChance: 0.55, walkSpeed: 0.2, stepAngle: 0.38 },
 };
+
+/* ------------------------------------------------------------------ *
+ * The phone build (src/mobile/, m.html; docs/decisions/mobile-lite.md,
+ * "Mobile v3: the mini town").  The desktop game reads none of this.
+ *
+ *   route   false: phones get the "best on a computer" card.  true:
+ *           index.html sends phones and tablets to m.html instead.  Tan
+ *           flips it once the phone version is approved.
+ * ------------------------------------------------------------------ */
+export const MOBILE = {
+  route: false,
+  /* The mini town (src/mobile/plan.js): the desktop's plan with the block row south of lane 112 taken out;
+   * everything south of it (the plaza, the station, the line, the crossing, Hachi's home, 鏡池, the bench)
+   * stands `dz` m further north.  Numbers written into the shared builders are moved by the phone build
+   * itself (vite.config.js miniPlan: the `@dz` and `@mini` marks). */
+  plan: { dz: 32 },
+  /* The render: the phone's own pixels (its DPR, up to `maxDpr`; an iPhone 15 on its side is 2556 x 1179 at 3),
+   * capped at `pixels`.  The scale steps down by `step` only while two seconds of frames average under
+   * `fpsLow`, never below `minScale`, and back up over `fpsHigh`. */
+  render: { maxDpr: 3, pixels: 3.6e6, minScale: 1.5, step: 0.25, fpsLow: 50, fpsHigh: 57 },
+  maxTexture: 4096,          // the largest painted texture's side on the GPU: the desktop's own sizes
+  storeTexture: 4096,
+  wear: 1024,                // the painted weather's page (kit/paint.js wearAtlas: 2048 on the desktop; soft grime)
+  /* the konbini's label and price-tag pages (world/store/pages.js) are held this many mipmap levels smaller
+   * than the desktop holds them (measured there at 3840 px across; a phone on its side is 2556): `far` away
+   * from the store, `near` on its forecourt and in a visit */
+  storePages: { far: 1, near: 1 },
+  shadow: { size: 1536, half: 32, every: 2.0 },   // map size, half-width (m), refresh at most every s when still (desktop 2048 over 40; 4.2 cm a texel here, 3.9 there)
+  /* Draw distance: batches whose bounds lie past `far` m are not drawn; the fog (each look's own colour) has
+   * closed in before it, so the edge is never seen.  The town is ~190 m across: from the famous view the far
+   * tree line stands in the haze as on the desktop. */
+  far: 150,
+  fog: { near: 55, far: 145 },
+  detail: 42,                // small instanced things (clutter, flowers, weeds) only this close
+  cell: 64,                  // static batches per cell (m): small enough to cull and stream by distance
+  detailCell: 32,            // ... and the small props' own cells (drawn within `detail`)
+  dt: 1 / 20,                // the longest step a frame may take (s)
+  look: 0.0052,              // drag to look: radians per CSS pixel
+  stick: { radius: 56, dead: 0.12, run: 0.92 },   // the joystick: px; dead zone and the push that runs (0..1)
+  aimAssist: { reach: 2.8, cone: 0.6 },           // no crosshair hit: the nearest thing within reach (m) and this cone (rad)
+  /* `stream`: batches and textures farther than far + stream (m) give their GPU copy back, and upload again
+   * as you come near (0: never). */
+  stream: 8,
+  /* A painted page farther than `far` m from you (its nearest user) shows a copy `k` its size, the whole one
+   * again within `near`; in the konbini, every town page (seen through the glass) at most `store` its size
+   * (lite.js makeCuller). */
+  texLod: { min: 256 * 256, near: 40, far: 48, k: 0.25, store: 0.5 },
+  /* In the store, what lies wholly north of `behind` (world z: the glass; the walls hide the rest) is neither
+   * drawn nor kept; its goods are drawn (and kept) only within `goods` m. */
+  store: { behind: -0.5, goods: 45 },
+  /* The town's sign atlas (mobile/town.js mergePocket): only pages of at most `max` texels that belong to one
+   * region go in, packed per region of a grid cut at these world z and x lines; the rest keep their own. */
+  atlas: { max: 256 * 256, z: [-35, -70], x: [0] },
+  keepCpu: true,             // keep the CPU copies (needed to stream, and to survive a lost GPU context)
+  /* The light tier: iOS browsers that are not Safari (Chrome, the in-app ones: a tighter memory budget), the
+   * 4 GB iPhones, small Android phones (main.js picks).  The same textures near you, so nothing near is
+   * blurred: what goes is draw distance, far pages and some pixels.  ?tier=light / ?tier=full by hand. */
+  tiers: {
+    light: {
+      far: 80, fog: { near: 28, far: 76 }, detail: 26,
+      texLod: { min: 256 * 256, near: 20, far: 26, k: 0.25, store: 0.5 },
+      store: { behind: -0.5, goods: 34 },
+      shadow: { size: 1024, half: 28, every: 2.5 },
+      render: { maxDpr: 2, pixels: 1.9e6, minScale: 1.25, step: 0.25, fpsLow: 50, fpsHigh: 57 },
+      stream: 5,
+    },
+  },
+};

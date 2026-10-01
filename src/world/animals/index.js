@@ -60,7 +60,7 @@ export function buildAnimals(ctx, { core, spots, facing } = {}) {
   /** in the water, at least `m` from the shore */
   const inside = (x, z, m = 0) => inPoly(x, z) && (m <= 0 || segDist(x, z).d > m);
   // the benches' places on the shore (as land/pond.js sets them)
-  const benchAt = [[62, 130], [67, 117], [85, 125], [80, 113]].map(([x, z]) => segDist(x, z));   // as land/pond.js sets them
+  const benchAt = [[62, 130/*@dz*/], [67, 117/*@dz*/], [85, 125/*@dz*/], [80, 113/*@dz*/]].map(([x, z]) => segDist(x, z));   // as land/pond.js sets them
   const benches = {
     at: benchAt,
     near: (x, z) => Math.min(...benchAt.map((b) => Math.hypot(b.x - x, b.z - z))),
@@ -86,7 +86,7 @@ export function buildAnimals(ctx, { core, spots, facing } = {}) {
   const ducks = buildDucks(actx, {
     marks, reflect: REFLECT, bounds: [25, 0, 55, 110],   // x, y, z, r: the pond and the river's stretch
     groups: [
-      { x: 76, z: 134, n: 2, water, roam: 7, area: (x, z) => inside(x, z, 1.2), upend: false },
+      { x: 76, z: 134/*@dz*/, n: 2, water, roam: 7, area: (x, z) => inside(x, z, 1.2), upend: false },
       { x: -26, z: -22.5, n: 2, water: R.water, roam: 12, area: inRiver(-60, -2), flow: 0.12, upend: true },
       { x: 14, z: -24, n: 2, water: R.water, roam: 8, area: inRiver(3, 31), flow: 0.12, upend: true },
     ],
@@ -178,14 +178,14 @@ export function buildAnimals(ctx, { core, spots, facing } = {}) {
       }
       return out;
     };
-    const spine = { x: -50.6, z: 103.5 };
+    const spine = { x: -50.6, z: /*@mini 70.5 @*/103.5/*@@*/ };
     const spineWires = wires(spine.x, spine.z, 18);
     const flocks = [
-      { x: -51.5, z: 131.5, n: ANIMALS.pigeons.plaza, r: 3, y: ctx.groundAt(-51.5, 131.5), perches: roof, avoid: plazaAvoid },
+      { x: -51.5, z: 131.5/*@dz*/, n: ANIMALS.pigeons.plaza, r: 3, y: ctx.groundAt(-51.5, 131.5/*@dz*/), perches: roof, avoid: plazaAvoid },
     ];
     if (spineWires.length) flocks.push({ x: spine.x, z: spine.z, n: ANIMALS.pigeons.spine, r: 2.0, y: ctx.groundAt(spine.x, spine.z), perches: spineWires, avoid: (x) => Math.abs(x - spine.x) > 2.2 });
-    const pigeons = buildPigeons(actx, { flocks, shadows, bounds: [-51, 3, 118, 42] });
-    kinds.push({ x: -51, z: 118, r: 40, name: 'pigeons', shadowed: true, mesh: 'pigeons', draw: 70, update: pigeons.update, list: pigeons.list });
+    const pigeons = buildPigeons(actx, { flocks, shadows, bounds: [-51, 3, 118/*@dz*/, 42] });
+    kinds.push({ x: -51, z: 118/*@dz*/, r: 40, name: 'pigeons', shadowed: true, mesh: 'pigeons', draw: 70, update: pigeons.update, list: pigeons.list });
   }
 
   /* ---- Hachi's own home, across the level crossing: his kennel, his toys, his garden (home.js; the dog is out: it
@@ -200,8 +200,8 @@ export function buildAnimals(ctx, { core, spots, facing } = {}) {
     const W = L.sunk.walk;
     const patches = [
       ...rengeSpots.slice(0, 2).map((c) => ({ x: c.x, z: c.z, y: 0.25, r: 3, n: 3 })),   // over the paddies' renge
-      { x: 57, z: 108, y: 0.4, r: 2.6, n: 3 },                // the pond's hedges, by the tea house
-      { x: 94, z: 125, y: 0.4, r: 2.6, n: 2 },                // and on its east bank
+      { x: 57, z: 108/*@dz*/, y: 0.4, r: 2.6, n: 3 },                // the pond's hedges, by the tea house
+      { x: 94, z: 125/*@dz*/, y: 0.4, r: 2.6, n: 2 },                // and on its east bank
       { x: -9, z: L.walks.town[1] - 0.8, y: W + 0.22, r: 3.2, n: 3 },   // the town-side lower walk's flowers
       { x: 22, z: L.walks.far[0] + 0.8, y: W + 0.22, r: 3, n: 3 },       // the far lower walk
     ];

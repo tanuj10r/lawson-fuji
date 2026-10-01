@@ -218,3 +218,64 @@ export const STRINGS = {
     reload: 'Reload',
   },
 };
+
+/* The phone build's words (src/mobile/, m/index.html: `%S:m.key%`),
+ * English as the desktop's.  The desktop game never imports this. */
+export const MOBILE_STRINGS = {
+  tapToStart: 'Tap to start',
+  loading: 'Loading the town…',
+  building: 'Building the town…',
+  ready: 'Almost there…',
+  tagline: 'A small town under Mt. Fuji. Take your time.',
+  edition: 'Pocket edition: a lighter town, every sound. The full stroll is best on a computer.',
+  headphones: 'Best with headphones 🎧',
+  soundCheck: 'Sound check',
+  soundCheckDone: 'Sound on ✓',
+  lookSpeed: 'Look speed',
+  silent: 'No sound? Check that your phone isn’t on silent.',
+  rotate: 'Turn your phone sideways for the full view',
+  soundBack: 'Tap to bring the sound back',
+  paused: 'Paused',
+  resume: 'Resume',
+  restart: 'Back to the start',
+  volume: 'Volume',
+  sound: 'Sound',
+  on: 'On',
+  off: 'Off',
+  /* the pause card's list: what does what, in words (no keys on a phone) */
+  help: [
+    ['Left thumb', 'Walk; hold it at the edge to run'],
+    ['Right thumb', 'Drag to look around'],
+    ['Button', 'Appears near things to do (or tap the thing)'],
+    ['Paw', 'Whistle for Hachi'],
+    ['Sun', 'Time of day'],
+  ],
+  /* the sound name labels (pocket diorama): the engine's sound names, [Japanese, English] */
+  soundNames: {
+    'walk-piyo': ['ぴよぴよ', 'crosswalk chick'],
+    'walk-kakko': ['カッコー', 'crosswalk cuckoo'],
+    'railway-bells': ['踏切', 'level crossing'],
+    'train-nextstop': ['次は渋谷', 'next stop, Shibuya'],
+    'rural-flute': ['のんびり', 'slow life'],
+    'donki-theme': ['ドンペン堂', 'megastore theme'],
+    'ka-ching': ['チャリン', 'ka-ching'],
+    'store-chime': ['入店チャイム', 'konbini chime'],
+    'shrine-chimes': ['鈴', 'shrine bells'],
+    wind: ['風', 'wind'],
+  },
+  buttons: {
+    pause: 'Pause', map: 'Map', whistle: 'Whistle for Hachi', time: 'Time of day', act: 'Interact',
+  },
+  closeMap: 'Tap to close',
+  times: { morning: 'Morning', golden: 'Golden hour', night: 'Night' },
+  /* Hachi's hello, in touch words (animals/guide.js reads STRINGS.hachi) */
+  hachiLine: "Follow me, I'll show you around town. Wander off whenever you like: tap the paw to whistle and I'll come running.",
+  menuHint: 'Tap one',
+  gate: {
+    noglTitle: 'Your phone can’t draw the town',
+    nogl: 'This game needs WebGL 2. Try the latest Safari or Chrome, or open the link on a computer.',
+    lostTitle: 'The town was put away',
+    lost: 'Your phone needed its memory back. Reload to walk on.',
+    reload: 'Reload',
+  },
+};

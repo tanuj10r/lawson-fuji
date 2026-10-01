@@ -50,7 +50,7 @@ export function buildCore(ctx) {
   const reserved = [
     ...SPECIALS.map((s) => [s.x0, s.z0, s.x1, s.z1]),
     [-300, -300, 300, TOWN.frontRow.z0],     // beyond the main road's far-side row (the old town)
-    [-300, 154, 300, 300],                   // the railway corridor and beyond
+    [-300, 154/*@dz*/, 300, 300],                   // the railway corridor and beyond
     ...TOWN.lawsonReserve,                   // the Lawson's forecourt and store (the town is built turned)
     TOWN.photoLot,                           // the photographers' lot, where the famous views are taken
     // the bridge road's way through the far-side row, from the master junction to the river
@@ -95,7 +95,7 @@ export function buildCore(ctx) {
   const mid = (s, y = 0, n = 5) => ({ x: (s.x0 + s.x1) / 2, z: (s.z0 + s.z1) / 2 + 2, y, n });
   const life = buildLife(ctx, {
     wireRuns: kit.wireRuns, cats: ctx.cats,
-    flocks: [mid(at('park'), 0.04), { ...mid(at('plaza'), 0.17, 6), x: at('plaza').x0 + 12 }, mid(at('shrine'), 0.04, 4), mid(at('vacant'), 0.03, 3)],
+    flocks: [/*@mini @*/mid(at('park'), 0.04),/*@@*/ { ...mid(at('plaza'), 0.17, 6), x: at('plaza').x0 + 12 }, mid(at('shrine'), 0.04, 4), mid(at('vacant'), 0.03, 3)],
   });
   // anyone else with marks for the town's decal mesh (the Lawson's lot, M2e)
   ctx.onDecals?.(kit.decals);

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+<head>
+<meta charset="utf-8" />
+<!-- the whole screen, no pinch or double-tap zoom (iOS ignores user-scalable, so src/mobile/touch.js also stops the gestures) -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="google" content="notranslate" />
+<title>Take Me Back to Japan</title>
+<meta name="description" content="A first-person stroll through Fujikawaguchikko, a small Japanese town under Mt. Fuji: a konbini at golden hour, cherry blossom, a shrine, a local train. The pocket edition, for phones." />
+<link rel="canonical" href="https://takemebacktojapan.com/" />
+<meta name="theme-color" content="#2c2346" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Japan" />
+<meta name="format-detection" content="telephone=no" />
+<link rel="icon" href="favicon.ico" sizes="48x48" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="preload" as="image" href="keyart-1280.webp" imagesrcset="keyart-1280.webp 1280w, keyart-1920.webp 1920w" imagesizes="(orientation: landscape) min(60vw, 560px), min(100vw, 520px)" type="image/webp" fetchpriority="high" />
+<style>
+  /* The phone build (src/mobile/; docs/decisions/mobile-lite.md): the desktop
+   * card's look (paper, ink, sakura rule, the key art), laid out for a thumb. */
+  *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --ink: #2b2542; --ink-soft: #6c6482; --paper: #fbf6f0; --sakura: #e59bb0; --action: #3b3263;
+    --safe-t: env(safe-area-inset-top, 0px); --safe-r: env(safe-area-inset-right, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px); --safe-l: env(safe-area-inset-left, 0px);
+    --vh: 100dvh;
+  }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+    background: #2c2346; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    /* no scroll, no pull-to-refresh, no selection or callouts over the game */
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+  }
+  #view { position: fixed; inset: 0; display: block; width: 100vw; height: 100vh; height: 100dvh; touch-action: none; }
+  /* paused, the game's own captions (Hachi's hello) wait under the card, as on desktop */
+  body.game-paused #hachi-card { visibility: hidden; }
+  /* Hachi's hello (animals/guide.js sizes it for a desktop): smaller, lower on a phone */
+  #hachi-card { max-width: min(440px, 64vw) !important; padding: 8px 14px !important; }
+  #hachi-card div { font-size: 13.5px !important; line-height: 1.35 !important; }
+  #hachi-card div:first-child { font-size: 15px !important; }
+  [lang='ja'] { font-family: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+
+  /* ---------- the cards: loading, start, pause, gate ---------- */
+  .scrim {
+    position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
+    padding: max(12px, var(--safe-t)) max(12px, var(--safe-r)) max(12px, var(--safe-b)) max(12px, var(--safe-l));
+    background: radial-gradient(ellipse at 50% 40%, #6e5b8f, #2c2346);
+    transition: opacity .45s ease, visibility .45s ease;
+  }
+  .scrim.see-through { background: radial-gradient(ellipse at 50% 40%, rgba(40,30,62,.45), rgba(18,14,32,.78)); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  .scrim.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .card {
+    position: relative; width: min(100%, 540px); max-height: 100%; overflow: hidden auto;
+    border-radius: 18px; background: var(--paper);
+    box-shadow: 0 30px 80px -24px rgba(8,4,24,.8), 0 0 0 1px rgba(255,255,255,.08);
+    display: flex; flex-direction: column;
+  }
+  .art { position: relative; margin: 0; flex: none; aspect-ratio: 16 / 9; max-height: 44vh; background: #b98ab4; overflow: hidden; }
+  .art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 14%; }
+  .name { position: absolute; z-index: 1; right: 5%; top: 7%; text-align: right; }
+  /* on a phone the name covers more of the art: a paper wash behind it, top right,
+     so the Japanese line reads over ドンペン堂's signs */
+  .art::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 75% 70% at 88% 12%, rgba(251,246,240,.78), rgba(251,246,240,.4) 55%, rgba(251,246,240,0) 80%); }
+  .place { margin: 0 0 4px; font-size: 10px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: rgba(43,37,66,.72); }
+  .place [lang='ja'] { letter-spacing: .1em; }
+  .name h1 {
+    margin: 0; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+    font-size: clamp(21px, 6.2vw, 30px); line-height: 1.05; font-weight: 600; color: #2a2140; white-space: nowrap;
+    text-shadow: 0 1px 0 rgba(255,236,230,.35);
+  }
+  .jp { margin: 5px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .3em; color: rgba(43,37,66,.8); }
+  .jp::before { content: ''; display: inline-block; width: 22px; height: 2px; margin: 0 8px 3px 0; vertical-align: middle; background: linear-gradient(90deg, transparent, var(--sakura)); }
+  .badge {
+    position: absolute; left: 12px; top: 12px; padding: 5px 11px; border-radius: 999px;
+    background: rgba(251,246,240,.92); color: var(--ink); font-size: 10.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+    box-shadow: 0 6px 18px -8px rgba(20,10,40,.5);
+  }
+  .body { padding: 14px 18px 16px; border-top: 3px solid var(--sakura); background: linear-gradient(180deg, #fffaf5, var(--paper)); }
+  .tagline { margin: 0 0 4px; font-size: 14px; line-height: 1.4; color: var(--ink-soft); }
+  .note { margin: 6px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--ink-soft); }
+  .note.ios { display: none; }
+  .is-ios .note.ios { display: block; }
+  .btn {
+    display: block; width: 100%; min-height: 50px; margin: 12px 0 0; padding: 12px 16px;
+    border: 0; border-radius: 12px; background: var(--action); color: #fff;
+    font: inherit; font-size: 17px; font-weight: 700; letter-spacing: .06em; cursor: pointer;
+    box-shadow: 0 8px 22px -10px rgba(40,24,80,.7); touch-action: manipulation;
+  }
+  .btn:active, .btn.down { transform: translateY(1px); background: #4b3f7c; }
+  .vol button.down { background: #e8e0f0; }
+  .btn.soft { background: transparent; color: var(--action); border: 1.5px solid var(--action); box-shadow: none; min-height: 44px; font-size: 15px; }
+  .row { display: flex; gap: 10px; }
+  .row .btn { flex: 1; }
+  .url { margin: 10px 0 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--ink-soft); }
+  .url a { color: inherit; }
+  .bar { position: relative; height: 6px; margin: 12px 0 2px; overflow: hidden; border-radius: 999px; background: #efe5e8; }
+  .bar > span { position: absolute; inset: 0 auto 0 0; width: var(--p, 12%); border-radius: inherit; background: var(--action); transition: width .5s ease; }
+  .bar::after { content: ''; position: absolute; inset: 0; width: 30%; background: linear-gradient(90deg, transparent, rgba(229,155,176,.95), transparent); animation: glint 1.4s linear infinite; }
+  @keyframes glint { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+  .line { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+  #boot .start-only, #boot.ready .load-only { display: none; }
+  #boot.ready .start-only { display: block; }
+  #boot.ready { cursor: pointer; }
+
+  /* the pause card's parts */
+  .vol { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; }
+  .vol > span { flex: none; min-width: 92px; font-size: 13px; font-weight: 700; }
+  .vol .steps { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+  .vol button {
+    min-height: 40px; border-radius: 9px; border: 1.5px solid #d9cfd8; background: #fff; color: var(--ink);
+    font: inherit; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; touch-action: manipulation;
+  }
+  .vol button[aria-pressed='true'] { background: var(--action); border-color: var(--action); color: #fff; }
+  .help { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 12px 0 0; padding: 0; list-style: none; font-size: 13px; }
+  .help dt { font-weight: 700; color: var(--ink); }
+  .help dd { margin: 0; color: var(--ink-soft); }
+
+  /* landscape phones: the art beside the words, both fit the short screen */
+  @media (orientation: landscape) and (max-height: 540px) {
+    .card { flex-direction: row; width: min(100%, 780px); max-height: calc(100% - 4px); }
+    .art { flex: 0 0 52%; aspect-ratio: auto; max-height: none; }
+    .body { flex: 1; display: flex; flex-direction: column; justify-content: center; border-top: 0; border-left: 3px solid var(--sakura); overflow-y: auto; padding: 14px 18px; }
+    .name h1 { font-size: clamp(19px, 3.2vw, 28px); }
+    .help { font-size: 12px; gap: 3px 10px; }
+  }
+
+  /* the start card's sound line: headphones, and the sound check (a soft chime; src/mobile/pocket/controls) */
+  .phones { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 0; }
+  .phones p { margin: 0; font-size: 14px; font-weight: 700; color: var(--ink); }
+  .check { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px 0 11px; border-radius: 999px;
+    border: 1.5px solid var(--action); background: transparent; color: var(--action); font: inherit; font-size: 14px; font-weight: 700;
+    touch-action: manipulation; cursor: pointer; }
+  .check svg, .turn svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .check:active { background: #ece6f4; }
+  .check.done { background: var(--action); color: #fff; }
+  /* landscape first: in portrait, a word about turning the phone */
+  .note.turn { display: none; align-items: center; gap: 7px; }
+  @media (orientation: portrait) {
+    .note.turn { display: flex; }
+    /* portrait: the card a column, the art a little shorter so the words and the button sit within a thumb's reach */
+    .card { width: min(100%, 460px); }
+    .art { max-height: 36vh; }
+    .body { padding: 14px 18px 18px; }
+    .btn { min-height: 54px; }
+  }
+
+  .gate { display: none; }
+  .gate-nogl #gate, .gate-lost #gate { display: flex; }
+  .gate-nogl #boot { display: none; }
+  .gate .msg { display: none; }
+  .gate-nogl .for-nogl, .gate-lost .for-lost { display: block; }
+  .gate h2 { margin: 0 0 6px; font-size: 16px; font-weight: 700; }
+  .gate p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) { .bar::after { animation: none; } .scrim { transition: none; } }
+</style>
+<script>
+  /* Before anything loads: can this phone draw the town?  WebGL 2 or the
+   * card (the game's code is never downloaded).  iOS gets the silent-switch
+   * note on its cards. */
+  (function () {
+    var d = document.documentElement, gl = null;
+    try { gl = document.createElement('canvas').getContext('webgl2'); } catch (e) { gl = null; }
+    if (!gl) d.classList.add('gate-nogl');
+    else { var x = gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); }
+    if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) d.classList.add('is-ios');
+  })();
+</script>
+</head>
+<body class="notranslate">
+  <canvas id="view"></canvas>
+
+  <!-- the loading card, which becomes the start card: one tap starts the town and its sound -->
+  <div id="boot" class="scrim" role="dialog" aria-modal="true" aria-labelledby="boot-title">
+    <section class="card">
+      <figure class="art">
+        <img src="keyart-1280.webp" srcset="keyart-1280.webp 1280w, keyart-1920.webp 1920w" sizes="(orientation: landscape) min(60vw, 560px), min(100vw, 520px)" width="1280" height="720" alt="%S:artAlt%" fetchpriority="high" />
+        <figcaption class="name">
+          <p class="place">%S:town.en% · <span lang="ja">%S:town.jp%</span></p>
+          <h1 id="boot-title">%S:title%</h1>
+          <p class="jp" lang="ja">%S:titleJp%</p>
+        </figcaption>
+      </figure>
+      <div class="body">
+        <p class="tagline">%S:m.tagline%</p>
+        <div class="load-only" role="status" aria-live="polite">
+          <div class="bar" aria-hidden="true"><span></span></div>
+          <p class="line">%S:m.loading%</p>
+        </div>
+        <div class="start-only">
+          <!-- the sound first (pocket diorama, builder 5): headphones, and a one-tap check that also wakes the sound -->
+          <div class="phones">
+            <p>%S:m.headphones%</p>
+            <button class="check" type="button" id="sound-check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><span>%S:m.soundCheck%</span></button>
+          </div>
+          <p class="note ios">%S:m.silent%</p>
+          <p class="note turn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M3.5 15.5a8.5 8.5 0 0 0 5 5M20.5 8.5a8.5 8.5 0 0 0-5-5"/><path d="M15.5 1.8l.2 1.9-1.9.3M8.5 22.2l-.2-1.9 1.9-.3"/></svg>%S:m.rotate%</p>
+          <button class="btn" type="button" id="start">%S:m.tapToStart%</button>
+          <p class="url">%S:m.edition%</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- no WebGL 2, or the phone took the GPU back (src/mobile/main.js) -->
+  <div id="gate" class="scrim gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+    <section class="card">
+      <div class="body">
+        <p class="place">%S:town.en% · <span lang="ja">%S:town.jp%</span></p>
+        <h1 id="gate-title" style="margin:0 0 12px;font-family:'Iowan Old Style',Palatino,Georgia,serif;font-size:26px;font-weight:600">%S:title%</h1>
+        <div class="msg for-nogl"><h2>%S:m.gate.noglTitle%</h2><p>%S:m.gate.nogl%</p></div>
+        <div class="msg for-lost"><h2>%S:m.gate.lostTitle%</h2><p>%S:m.gate.lost%</p>
+          <button class="btn" type="button" onclick="location.reload()">%S:m.gate.reload%</button></div>
+        <p class="url">%S:url%</p>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    if (!/\bgate-/.test(document.documentElement.className)) import('./src/mobile/boot.js');
+  </script>
+</body>
+</html>

@@ -327,7 +327,7 @@ export function buildPond(ctx, parts, scatter, water) {
   const benches = [
     // on the two town-side banks, facing north: across the water to the
     // lanterns, the passing trains and, beyond the railway, Fuji
-    [62, 130], [67, 117], [85, 125], [80, 113],
+    [62, 130/*@dz*/], [67, 117/*@dz*/], [85, 125/*@dz*/], [80, 113/*@dz*/],
   ];
   const seats = [];
   for (const [x, z] of benches) {
@@ -399,7 +399,7 @@ export function buildPond(ctx, parts, scatter, water) {
 
   /* ---- 鏡池's name stone, at the pond's point, where the lanes come in ---- */
   {
-    const q = onShore(72, 106);
+    const q = onShore(72, 106/*@dz*/);
     const p = q.p.clone().addScaledVector(q.inward, -3.4);
     const ry = face(-q.inward.x, -q.inward.y) ;       // its face to the promenade and the far walk
     const stele = new THREE.BoxGeometry(0.42, 1.15, 0.26);
@@ -442,28 +442,28 @@ export function buildPond(ctx, parts, scatter, water) {
   }
 
   /* ---- black pines, and the weeping willow by the lotus ---- */
-  for (const [x, z, s] of [[56, 124, 1.4], [95.5, 118, 1.6], [95, 131, 1.3], [56.5, 110, 1.2], [88, 150.5, 1.2], [64, 150.5, 1.3]]) {
-    plant(ctx, 'pine', { x, z, y: 0, scale: s, seed: 6200 + Math.round(x * 3 + z) });
+  for (const [x, z, s] of [[56, 124/*@dz*/, 1.4], [95.5, 118/*@dz*/, 1.6], [95, 131/*@dz*/, 1.3], [56.5, 110/*@dz*/, 1.2], [88, 150.5/*@dz*/, 1.2], [64, 150.5/*@dz*/, 1.3]]) {
+    plant(ctx, 'pine', { x, z, y: 0, scale: s, seed: 6200 + Math.round(x * 3 + z/*@mini + 32 @*//*@@*/) });
   }
 
   /* ---- the tea house and the houses round the pond's point, where the
    * lanes come in: an old townhouse, family houses, hedges, trees ---- */
-  teahouse(ctx, parts, 60.5, 100.4);
+  teahouse(ctx, parts, 60.5, 100.4/*@dz*/);
   /* the two lots east of the point held the blankest boxes in town (a
    * plain two-storey house and the old house's back wall to the paddies):
    * now 鏡月旅館 and an old wooden house (ryokan.js; quality pass), both
    * facing the lane that comes in at z 112 */
-  buildRyokan(ctx, parts, { x0: 86.4, x1: 94.6, z0: 102.4, z1: 112.6, door: 107.5, grounds: [83.6, 96.6, 100.6, 114.4] });
-  buildKominka(ctx, parts, { x0: 88.6, x1: 95.4, z0: 116.6, z1: 122.6, door: 119.4, hedgeX: 86.0 });
+  buildRyokan(ctx, parts, { x0: 86.4, x1: 94.6, z0: 102.4/*@dz*/, z1: 112.6/*@dz*/, door: 107.5/*@dz*/, grounds: [83.6, 96.6, 100.6/*@dz*/, 114.4/*@dz*/] });
+  buildKominka(ctx, parts, { x0: 88.6, x1: 95.4, z0: 116.6/*@dz*/, z1: 122.6/*@dz*/, door: 119.4/*@dz*/, hedgeX: 86.0 });
   buildShrubs(ctx, [
-    { x: 57, z: 107.5, r: 0.7, count: 6, spread: 3.2, seed: 7301, y: 0 },
-    { x: 80.5, z: 100.3, r: 0.6, count: 5, spread: 2.4, seed: 7302, y: 0 },
-    { x: 95, z: 127, r: 0.7, count: 6, spread: 2.6, seed: 7303, y: 0 },
-    { x: 55.5, z: 136, r: 0.6, count: 5, spread: 2.4, seed: 7304, y: 0 },
+    { x: 57, z: 107.5/*@dz*/, r: 0.7, count: 6, spread: 3.2, seed: 7301, y: 0 },
+    { x: 80.5, z: 100.3/*@dz*/, r: 0.6, count: 5, spread: 2.4, seed: 7302, y: 0 },
+    { x: 95, z: 127/*@dz*/, r: 0.7, count: 6, spread: 2.6, seed: 7303, y: 0 },
+    { x: 55.5, z: 136/*@dz*/, r: 0.6, count: 5, spread: 2.4, seed: 7304, y: 0 },
   ]);
-  plant(ctx, 'camphor', { x: 95, z: 139, y: 0, scale: 1.2, seed: 7401 });
-  plant(ctx, 'maple', { x: 56.5, z: 117, y: 0, scale: 0.9, seed: 7402 });
-  plant(ctx, 'mapleRed', { x: 79, z: 101, y: 0, scale: 0.8, seed: 7404 });
+  plant(ctx, 'camphor', { x: 95, z: 139/*@dz*/, y: 0, scale: 1.2, seed: 7401 });
+  plant(ctx, 'maple', { x: 56.5, z: 117/*@dz*/, y: 0, scale: 0.9, seed: 7402 });
+  plant(ctx, 'mapleRed', { x: 79, z: 101/*@dz*/, y: 0, scale: 0.8, seed: 7404 });
 
   return { shore, seats };
 }

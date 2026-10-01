@@ -184,7 +184,9 @@ const trainWait = trainWaitLabel(hud.root);     // "Next train · 0:25" on the p
 if (shop) {
   shop.flash = (text, error = false) => hud.flash(text, error ? 2800 : 2200, error);
   // the Strong Nine: ten seconds a little tipsy
-  shop.onTipsy = () => { tipsy = 0; hud.flash(STRINGS.store.tipsy, 3200); GUIDE.tipsy(10); };   // and Hachi giggles and rolls about with you (Tan)
+  shop.onTipsy = () => { tipsy = 0; hud.flash(STRINGS.store.tipsy, 3200); };
+  // what you bought, in your hand, being eaten, gone: Hachi begs, then does its bit for it along with you (Tan; animals/guide.js)
+  shop.onSnack = (phase, id) => GUIDE.snack(phase, id);
 }
 /* The sound (M4): one engine for the town and the store, started by the
  * same first click that takes the pointer lock (browsers start no audio
@@ -314,7 +316,11 @@ canvas.addEventListener('click', () => {
 player.onInteract = (target) => {
   // an experience's action may seat the player or say a line (world/land/slowlife.js)
   if (target) target.action?.({ player, hud });
+  // after the tour, Hachi by you and looked at: the tour again (animals/guide.js)
+  else if (pupOffer && GUIDE.again()) pupOffer = false;
 };
+let pupOffer = false;
+GUIDE.onTour = () => hud.flash(STRINGS.hachi.againToast, 2600);
 
 /* ------------------------------- pipeline ------------------------------- */
 const pipeline = new Pipeline(renderer, scene, camera);
@@ -645,6 +651,8 @@ window.addEventListener('keydown', (e) => {
   /* Space pauses and plays (Tan).  Pausing is letting the pointer go, which
    * raises the same card Esc does; pressing it again takes the pointer back. */
   if (e.code === 'Space') {
+    // on one of the selfie's buttons (ui/postcardSelfie.js) Space is that button's, not the walk's
+    if (e.target?.closest?.('[data-sf]')) return;
     e.preventDefault();
     if (e.repeat) return;
     if (player.locked) document.exitPointerLock?.();
@@ -774,6 +782,7 @@ function frame(now = 0) {
   if (world.line) {
     const c = world.line.crossingPos;
     sound.bells(world.line.service.cross.bells, Math.hypot(camera.position.x - c.x, camera.position.z - c.z));
+    GUIDE.bells.on = world.line.service.cross.bells; GUIDE.bells.x = c.x; GUIDE.bells.z = c.z;      // (Hachi hears them too)
   }
 
   // the sky dome is centred on the flat origin, so it has to trail the camera
@@ -800,7 +809,8 @@ function frame(now = 0) {
     hovered = shop?.inside(camera) ? null : player.pick(world.interactables);
   }
   player.hovered = hovered;
-  controls.set(controlRows(hovered));
+  pupOffer = !hovered && player.locked && !FROZEN && !shop?.visiting && !shop?.busy && !player.seat && !player.suspended && !minimap?.fullOpen && GUIDE.offer();
+  controls.set(controlRows(hovered || pupOffer));
   // the sound: where you are and what time of day it is; a footstep each stride
   const inStore = !!shop?.inside(camera);
   sound.update(dt, { camera, inside: inStore, look: lookName, cooler: shop?.coolerAt });
@@ -809,7 +819,7 @@ function frame(now = 0) {
   // a footstep every other swing of the head-bob (Tan: half the old rate)
   const stride = Math.floor(player.bob / (2 * Math.PI));
   if (stride !== lastStride) { lastStride = stride; if (player.locked) sound.step(inStore); }
-  hud.setPrompt(hovered ? `E  ·  ${hovered.label.replace(/^.*?·\s*/, '')}` : '');
+  hud.setPrompt(hovered ? `E  ·  ${hovered.label.replace(/^.*?·\s*/, '')}` : pupOffer ? `E  ·  ${STRINGS.hachi.again}` : '');
   trainWait.update(world.line?.station?.wait, player.locked && !FROZEN && !minimap?.fullOpen);
   // flat authoring coordinates, so what the readout says is what the code uses
   hud.setCoords(player.pos, player.yaw, player.pitch, dt);

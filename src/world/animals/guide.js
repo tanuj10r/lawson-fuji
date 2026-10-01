@@ -6,6 +6,8 @@ import { SPECIALS } from '../town-plan.js';
 import { HAN_BAY, HAN_SHOW } from '../han/index.js';
 import { buildDrive, driveAt, T_DRIVE } from '../han/drive.js';
 import { shibaGeometry, RIG, SHADOW, BODY_R } from './shiba.js';
+import { makeReactions, SNACKS } from './reactions.js';
+import { PIGEONS } from './pigeons.js';
 import { animalMaterial, Herd, ease, turn } from './shade.js';
 import { soundBus } from '../../core/soundBus.js';
 import { STRINGS } from '../../data/strings.js';
@@ -49,7 +51,18 @@ import { HACHI_HOME } from './home.js';        // [tour-B] his own garden's ball
 const A = ANIMALS.guide;
 /** The pup, for main.js: `whistle()` (F) calls it to you from anywhere; set once it is built.  `onNap`, main.js's:
  *  called once when the tour is over and it has lain down for its nap by the gate (the postcard, ui/maker.js). */
-export const GUIDE = { whistle: () => false, tipsy: () => {}, greeting: () => null, onNap: null, watchShow: () => {}, showCue: () => {}, where: () => null };
+export const GUIDE = {
+  whistle: () => false, tipsy: () => {}, greeting: () => null, onNap: null,
+  /** the konbini (store/shop.js, by main.js): what you bought, and where you are with it: 'hold' | 'eat' | 'done' */
+  snack: () => {},
+  /** after the tour, the pup by you and looked at: true while "E · Take the tour again" is on offer; `again()` takes it
+   *  (true if the tour began again); `onTour`, main.js's: called when it does */
+  offer: () => false, again: () => false, onTour: null,
+  /** main.js, each frame: the level crossing's bells (on, and where: world { x, z }) */
+  bells: { on: false, x: 0, z: 0 },
+  /** ぺったん堂's show (world/mochi/): see buildGuide */
+  watchShow: () => {}, showCue: () => {}, where: () => null,
+};
 const INF = Infinity;
 const ENGAGE = A.engage;
 
@@ -378,7 +391,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   const W = new Walk(ctx, core);
   const geo = shibaGeometry();
   const mat = animalMaterial({ key: 'shibaGuide', rig: RIG, tint: 0x7a6488, bands: 4 });
-  const herd = new Herd(ctx, geo, mat, 1, 'shiba');
+  const herd = new Herd(ctx, geo, mat, 1, 'shiba', { extra: 3 });      // (three more pose vectors: the face, reactions.js)
   herd.mesh.frustumCulled = false;
   const shadow = shadows.slot();
   const turned = ctx.turnedFrame ? Math.PI : 0;
@@ -411,6 +424,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     lastSay = G.t;
     soundBus.oneShot(name, { x: G.x, z: G.z, y: 0.3, near: 3, far, gain, recipe: name });
   };
+  /* its face and its reactions (reactions.js), laid over the pose as it is drawn */
+  const FX = makeReactions({ say: (name, gain) => say(name, gain, true) });
   let list = [], listT = 0;
   const fields = { follow: null, whistle: null };
   const ready = new Map();            // goal key -> a Field; the last few kept (each is 2.6 MB of Float32 for the town)
@@ -680,7 +695,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   const answer = () => {
     const t0 = performance.now();
     const dP = dist(P, G), W_ = A.whistle;
-    G.act = null; G.roll = G.pitch = 0;
+    G.act = null; G.roll = G.pitch = 0; FX.stop(); G.charge = null; G.snack = null;
     // already just in front of you: the greeting there; beside or behind you (under or out of your view), it bounds
     // out to the spot in front and greets you from there
     const fs0 = frontSpot(W_.near);
@@ -717,18 +732,9 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     G.state = 'caught'; G.since = 0;
     play('greet', { yaw0: Math.atan2(P.x - G.x, P.z - G.z), s: Math.random() < 0.5 ? 1 : -1 });
   };
-  /** The Strong Nine (main.js, when it kicks in): the pup comes to just in front of you and giggles and rolls about for
-   * `dur` seconds.  Not during Han's show, and not when it is asleep for the day and far off. */
-  const tipsy = (dur = 10) => {
-    if (!W.built || HAN_SHOW.running() || G.state === 'staged') return;
-    G.resumeK = G.state === 'lead' || G.state === 'atSpot' || G.state === 'gate' ? G.leg : G.resumeK;
-    G.state = 'party'; G.partyT = dur; G.partyK = 0; G.since = 0; G.act = null; G.roll = G.pitch = 0; G.target = null; G.whistleAt = null;
-    G.field = aim('follow', P.x, P.z, 0.6, 120);
-    if (inSight(24, 40)) return;
-    const f = G.field;
-    while (!f.ready) f.work(50);
-    enterView(f, A.party.from, 30);
-  };
+  /** The Strong Nine going to its head, anywhere (dev, and the old hook): the konbini's bit for it, from the hiccups on,
+   * just in front of you (see `snack` below). */
+  const tipsy = () => snack('done', 'strong_nine');
   GUIDE.tipsy = tipsy;
   /** Its hello, for main.js's view: where its head is while it runs in front of you and says hello, else null. */
   const _head = { x: 0, y: 0, z: 0 };
@@ -742,7 +748,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   /* ---- a show to watch (world/mochi/: ぺったん堂's mochi pounding).  The show's own code calls these; nothing else
    * here knows about it.  GUIDE.watchShow({ seat, at }) while it plays (world points; null when it is over): if the
    * pup is free (leading, waiting, lingering) and within `reach` m it trots to `seat`, sits facing `at` and watches,
-   * its tour paused where it was.  GUIDE.showCue(kind): 'hit' a bob of the head, 'big' a hop back, 'end' a wag,
+   * its tour paused where it was.  GUIDE.showCue(kind): 'hit' a bob of the head, 'big' a startle where it sits, 'end' a happy wiggle,
    * 'treat' it looks up for what is thrown, 'catch' it has it (and sneezes).  GUIDE.where(): where it is, and
    * whether it is sat watching.  Only poses and acts the rig already has. ---- */
   const SHOW = { on: null, nod: 0, back: 0, wag: 0, up: 0, sat: false };
@@ -750,10 +756,12 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   GUIDE.showCue = (kind) => {
     if (!SHOW.sat) return;
     if (kind === 'hit') { SHOW.nod = 1; G.nod += 0.24; }          // (a nudge on the eased value: the bob reads at once)
-    else if (kind === 'big') { if (G.act?.name === 'sneeze') return; SHOW.back = 1.5; play('hop'); }   // (never over his sneeze)
-    else if (kind === 'end') SHOW.wag = 2.6;
+    // (the reactions layer, animals/reactions.js: a startle where he sits at the cheer, never over his sneeze; a
+    // happy wiggle at the bow; the kinako's sneeze)
+    else if (kind === 'big') { if (FX.is('sneeze')) return; G.act = null; FX.stop(); FX.play('startle', { seated: true }); }
+    else if (kind === 'end') { SHOW.wag = 2.6; if (!FX.busy) FX.play('happyWiggle', { seated: true, s: 1 }); }
     else if (kind === 'treat') SHOW.up = 0.9;
-    else if (kind === 'catch') { SHOW.up = 0; SHOW.wag = 1.2; G.act = null; play('sneeze'); }
+    else if (kind === 'catch') { SHOW.up = 0; SHOW.wag = 1.2; G.act = null; FX.stop(); FX.play('sneeze'); }
   };
   const _where = { x: 0, y: 0, z: 0, watching: false };
   GUIDE.where = () => { _where.x = G.x; _where.y = G.y; _where.z = G.z; _where.watching = SHOW.sat; return _where; };
@@ -767,7 +775,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     const q = SHOW.back > 0.7 ? { x: o.seat.x + (ax / al) * 0.5, z: o.seat.z + (az / al) * 0.5 } : o.seat;
     let r = 'still';
     const off = dist(G, q);
-    if (off > 0.15 && G.act?.name !== 'sneeze') r = move(dt, q, off > 1.5 ? A.trot : 1.3);
+    if (off > 0.15 && !FX.holding) r = move(dt, q, off > 1.5 ? A.trot : 1.3);
     SHOW.sat = dist(G, o.seat) < 1.0;
     if (r !== 'moving') G.yaw += turn(G.yaw, Math.atan2(o.at.x - G.x, o.at.z - G.z)) * Math.min(1, dt * 6);
     pose.posture = SHOW.sat && r !== 'moving' && SHOW.back <= 0 ? 1 : 0;
@@ -780,7 +788,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   /** "Not interested": it stops and waits where it is (the leg counts as skipped); a tilt of the head, "okay". */
   const drop = () => {
     if (G.target?.id && G.target.id !== 'gate') G.skipped.add(G.target.id);
-    G.drops++; G.dropT = G.t;
+    G.drops++; G.dropT = G.t; G.dropAt = { x: G.x, z: G.z };
     G.state = 'wait'; G.field = null; G.since = 0; G.waitT = 0; G.act = null; G.speed = 0;
     play('tilt');
   };
@@ -845,18 +853,53 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   };
 
   /* ---- placing ---- */
+  /* (rolled over, the pup turns about a centre at the body's height, not about its feet; and whatever way up it is, it
+   * rests ON the ground (Tan: tipsy and rolling, it sank under the road): `rollLift` is that centre's height, and how
+   * much more it must come up for nothing to go under, from the measured tables in config.js (`rollUp`)) */
+  const rollLift = (roll, posture) => {
+    let a = Math.abs(roll) % (2 * Math.PI);
+    if (a > Math.PI) a = 2 * Math.PI - a;
+    if (a < 1e-4) return [0, 0];
+    const U = A.rollUp, f = a / U.step, i = Math.min(U.lie.length - 2, Math.floor(f)), k = Math.min(1, f - i), lie = Math.max(0, Math.min(1, posture - 1));
+    const up = (t) => t[i] + (t[i + 1] - t[i]) * k;
+    return [a < 0.3 ? 0 : BODY_R * ease((a - 0.3) / 0.6), up(U.stand) + (up(U.lie) - up(U.stand)) * lie];
+  };
   const place = () => {
-    const l = ctx.toLocal({ x: G.x, z: G.z });
-    const yaw = G.yaw + turned;
-    // rolled on its back: turned about a centre at the body's height, not about its feet
-    const cy = G.roll !== 0 && Math.abs(G.roll) > 0.5 ? BODY_R : 0;
-    const ox = Math.sin(G.roll) * cy, oy = cy - Math.cos(G.roll) * cy;
-    herd.set(0, l.x + ox * Math.cos(yaw), G.y + oy, l.z - ox * Math.sin(yaw), yaw, G.pitch + (G.bpitch ?? 0), G.roll, A.size);
-    herd.setPose(0, G.ph, G.amp, G.look, G.nod);
-    herd.setPose2(0, G.posture, G.wag, G.perk, G.tilt);
+    const X = FX.out;
+    // a reaction's step aside (only onto ground it may stand on) and its turn on the spot
+    const yawG = G.yaw + X.dyaw;
+    let gx = G.x, gz = G.z;
+    if ((X.fwd || X.side) && W.built) {
+      const nx = G.x + Math.sin(yawG) * X.fwd + Math.cos(yawG) * X.side, nz = G.z + Math.cos(yawG) * X.fwd - Math.sin(yawG) * X.side;
+      if (W.free(nx, nz) && Math.abs(ground(nx, nz) - ground(G.x, G.z)) < 0.03) { gx = nx; gz = nz; }
+    }
+    const l = ctx.toLocal({ x: gx, z: gz });
+    const yaw = yawG + turned;
+    const roll = G.roll + X.roll, posture = X.posture;
+    const [cy, more] = rollLift(roll, posture);
+    const ox = Math.sin(roll) * cy, oy = cy - Math.cos(roll) * cy + more;
+    // (lying, the belly rests on the ground: the pose's posture may be a reaction's, not the one G.y was worked out for)
+    // (and tipped back on its haunches or nose-down, the low end stays on the ground)
+    // (on its back its paws go, but that is no trot: the stride's bob stays out of it)
+    const y = G.y - (G.bob ?? 0) * Math.min(1, Math.abs(roll)) + X.dy + A.tipLift * Math.abs(G.pitch + X.pitch) + A.bowLift * Math.max(0, -posture) + 0.012 * (Math.max(0, Math.min(1, posture - 1)) - Math.max(0, Math.min(1, G.posture - 1)));
+    herd.set(0, l.x + ox * Math.cos(yaw), y + oy, l.z - ox * Math.sin(yaw), yaw, G.pitch + (G.bpitch ?? 0) + X.pitch, roll, A.size);
+    // (on its side a turn of the head is a turn into the ground: it looks about on its feet or on its back)
+    herd.setPose(0, G.ph, X.amp, X.look * Math.abs(Math.cos(roll)), X.nod);
+    herd.setPose2(0, posture, X.wag, X.perk, X.tilt);
+    herd.setPoseN(0, 0, X.c[0], X.c[1], X.c[2], X.c[3]);
+    herd.setPoseN(1, 0, X.d[0], X.d[1], X.d[2], X.d[3]);
+    herd.setPoseN(2, 0, X.e[0], X.e[1], X.e[2], 0);
     herd.flush();
-    const sit = Math.max(0, Math.min(1, G.posture)), lie = Math.max(0, G.posture - 1), bow = Math.max(0, -G.posture);
+    const sit = Math.max(0, Math.min(1, posture)), lie = Math.max(0, posture - 1), bow = Math.max(0, -posture);
     shadows.set(shadow, l.x + Math.sin(yaw) * 0.02, G.y - G.hop, l.z + Math.cos(yaw) * 0.02, SHADOW[0] * (1 + 0.5 * lie + 0.1 * (cy > 0 ? 1 : 0)) * A.size, SHADOW[1] * (1 - 0.25 * sit + 0.2 * lie + 0.15 * bow) * A.size, yaw);
+  };
+  /** The pose as the guide has it, through the face and the reactions, ready to draw (`still`: a staged frame). */
+  const _B = {}, _E = {};
+  const express = (dt, face, toYou = 0, nodYou = 0, asleep = false) => {
+    _B.look = G.look; _B.nod = G.nod; _B.tilt = G.tilt; _B.posture = G.posture; _B.perk = G.perk; _B.amp = G.amp; _B.ph = G.ph;
+    _B.wag = G.wag; _B.wagAmp = G.wagA; _B.wagRate = G.wagRate ?? 8;
+    _E.toYou = toYou; _E.nodYou = nodYou; _E.face = face; _E.asleep = asleep;
+    return FX.step(dt, _B, _E);
   };
   const ground = (x, z) => { const p = ctx.toLocal({ x, z }); return ctx.groundAt(p.x, p.z); };
 
@@ -964,8 +1007,11 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   };
   /** An idle act, chosen by mood: playful near you, restful when tired, never the same twice running. */
   const idle = (dP, resting) => {
+    if (FX.busy) return;
     const near = THREE.MathUtils.clamp(1.5 - dP / 5, 0, 1), E = G.energy;
     const w = {
+      // (reactions.js: front paws pattering, a grin up at you, nose to the ground, a lick of the lips)
+      tippyTaps: 0.5 * near * E, bigSmile: G.posture > 0.6 && dP < 6 ? 0.5 : 0, sniff: G.posture < 0.5 ? 0.4 : 0, lick: dP < 6 ? 0.2 : 0,
       roll: dP < 4 ? 1.1 * near + 0.2 : 0,
       tail: E > 0.55 ? 0.7 * E : 0,
       zoom: E > 0.7 && dP > 1.8 ? 0.6 * (E - 0.4) * (0.5 + near) : 0,
@@ -980,12 +1026,16 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     let sum = 0;
     for (const k in w) sum += w[k];
     let r = Math.random() * sum;
-    for (const k in w) { if ((r -= w[k]) <= 0) { if (k === 'none') { G.last = 'none'; return; } if (k === 'zoom') { zoomies(); return; } play(k); return; } }
+    for (const k in w) { if ((r -= w[k]) <= 0) { if (k === 'none') { G.last = 'none'; return; } if (k === 'zoom') { zoomies(); return; } if (!ACTS[k]) { G.last = k; G.idleT = 0; FX.play(k); return; } play(k); return; } }
   };
   /** Zoomies: a happy tearing circle, where there is room. */
   const zoomies = () => {
-    for (const s of [1, -1]) {
-      const R = A.zoom.r, cx = G.x + Math.cos(G.yaw) * -s * R, cz = G.z + Math.sin(G.yaw) * s * R;   // the centre off to one side
+    const R = A.zoom.r, centre = (s) => ({ x: G.x + Math.cos(G.yaw) * -s * R, z: G.z + Math.sin(G.yaw) * s * R });   // the centre off to one side
+    // (waiting where you left it, the side that keeps it there: lap after lap it drifted off down the street)
+    const sides = G.state === 'wait' && G.dropAt && dist(centre(-1), G.dropAt) < dist(centre(1), G.dropAt) ? [-1, 1] : [1, -1];
+    for (const s of sides) {
+      const { x: cx, z: cz } = centre(s);
+      if (G.state === 'wait' && G.dropAt && dist({ x: cx, z: cz }, G.dropAt) > R + 0.4) continue;
       if (roomFor(cx, cz, R)) { play('zoom', { cx, cz, R, s, a: Math.atan2(G.x - cx, G.z - cz) }); return true; }
     }
     G.last = 'zoom';
@@ -1018,16 +1068,11 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         pose.posture = 2 * Math.min(1, ease(u / 0.18) + over) * (u < 0.85 ? 1 : 1 - ease((u - 0.85) / 0.15));
         pose.posture = Math.max(pose.posture, 2 * over);
         const wig = over * Math.sin(a.t * 9) * 0.35;
-        G.rollTo = (Math.PI + wig) * over + (u < 0.18 ? 0 : 0);
-        pose.amp = over * 0.7; pose.phRate = 13 * over;
+        // (over only once it is down: half-sat and upside down, its rump went under the ground)
+        G.rollTo = (Math.PI + wig) * over * ease((G.posture - 1) / 0.7);
+        pose.amp = Math.abs(G.roll) > 2.3 ? over * 0.7 : 0; pose.phRate = 13 * over;      // (the paws go once it is on its back: on its side they went into the ground)
         pose.wag = 0.6; pose.perk = 0.4 + 0.5 * (1 - over); pose.look = over > 0.5 ? 0.6 * Math.sin(a.t * 3) : pose.toYou; pose.nod = -0.2 * over;
-        if (G.state === 'party') {
-          // tipsy with you: giggling on its back, paws going, a wriggle side to side
-          if (!a.g1 && u > 0.2) { a.g1 = true; say('dog-giggle', 0.85, true); }
-          if (!a.g2 && u > 0.55) { a.g2 = true; say('dog-giggle', 0.8, true); }
-          pose.amp = over; pose.phRate = 17 * over;
-          G.rollTo += over * (A.party.lean + 0.12 * Math.sin(a.t * 5.5));   // tipped a little your way: the belly, not the flank
-        } else if (!a.said && u > 0.32) { a.said = true; say('dog-snort', 0.7, true); }
+        if (!a.said && u > 0.32) { a.said = true; say('dog-snort', 0.7, true); }
         return true;
       }
       case 'tail': {
@@ -1163,8 +1208,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       // over onto its back, paws going, a wriggle, and up again (as the idle roll, a touch quicker)
       const u = seg(T.roll), over = ease((u - 0.15) / 0.2) * (1 - ease((u - 0.8) / 0.16));
       pose.posture = Math.max(2 * Math.min(1, ease(u / 0.15) + over) * (u < 0.85 ? 1 : 1 - ease((u - 0.85) / 0.15)), 2 * over);
-      G.rollTo = (Math.PI + over * Math.sin(t * 9) * 0.35) * over;
-      pose.amp = over * 0.8; pose.phRate = 14 * over; pose.perk = 0.4 + 0.5 * (1 - over);
+      G.rollTo = (Math.PI + over * Math.sin(t * 9) * 0.35) * over * ease((G.posture - 1) / 0.7);
+      pose.amp = Math.abs(G.roll) > 2.3 ? over * 0.8 : 0; pose.phRate = 14 * over; pose.perk = 0.4 + 0.5 * (1 - over);
       pose.look = over > 0.5 ? 0.6 * Math.sin(t * 3) : toYou; pose.nod = -0.2 * over;
       if (!b.snort && u > 0.3) { b.snort = true; say('dog-snort', 0.75, true); }
       return null;
@@ -1216,6 +1261,300 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     if (u >= 1) offBench();
   };
 
+  /* ====================================================================================================================
+   * Reactions in play, the pigeons, the konbini bits, and after the tour (Tan, 2026-10-01: "the game has become centred
+   * on Hachi's cuteness; more reactions = more fun").  Kept apart from the tour's own logic: `own` runs a frame of the
+   * states that belong here (charge, snack, pal) or holds the pup where it stands under a reaction; `react` starts the
+   * reactions where they belong; `mood` is its face for the frame.
+   * ================================================================================================================== */
+  const R_ = A.react;
+  const STILL = { r: 'still', lookAt: 'player' }, MOVING = { r: 'moving', lookAt: 'way' };
+  const HOLDS = new Set(['lead', 'atSpot', 'gate', 'wait', 'linger', 'ready']);
+  const FACES = {
+    run: { earsBack: 0.5, mouth: 0.35 }, zoom: { earsBack: 0.6, mouth: 0.35, tuck: 0.2 }, wind: { big: 0.6 },
+    roll: { mouth: 0.45, lids: 0.6 }, bow: { mouth: 0.25 }, greet: { mouth: 0.4, lids: 0.3 }, hello: { mouth: 0.3, big: 0.3 },
+    sad: { big: 0.55, earsBack: 0.3 }, trip: { big: 0.7, earsBack: 0.4 }, chase: { mouth: 0.3 }, cheer: { mouth: 0.35, lids: 0.3 },
+    watch: { big: 0.5 }, asleep: { lids: 1 }, drowsy: { lids: 0.6 }, squeeze: { lids: 1, mouth: 0.2 },
+  };
+  const RX = { look: 0, lookNext: 5, petal: R_.petal[0], strut: R_.strut[0], yawned: 0, bells: false, bellT: -999, carT: -999, car: null, hopped: null, lingered: null, gate: false, after: null, dream: 6, charged: new Map() };
+  /** Its face for the frame, from what it is doing (a reaction lays its own over this). */
+  const mood = (pose, dP) => {
+    if (pose.face) return pose.face;
+    const a = G.act, u = a ? a.t / a.dur : 0, st = G.state;
+    if (a) {
+      if (a.name === 'roll') return u > 0.2 && u < 0.85 ? FACES.roll : null;
+      if (a.name === 'zoom') return u < 0.86 ? FACES.zoom : FACES.greet;
+      if (a.name === 'bow') return FACES.bow;
+      if (a.name === 'greet') return u < 0.68 ? FACES.greet : FACES.hello;
+      if (a.name === 'tail') return FACES.chase;
+      if (a.name === 'trip') return FACES.trip;
+      if (a.name === 'sneeze') return u > 0.4 && u < 0.6 ? FACES.squeeze : null;
+    }
+    if (st === 'nap' && G.bed) {
+      if (G.bed.phase === 'sleep') return dP < 3 ? null : FACES.asleep;
+      if (G.bed.phase === 'bed') return G.bed.t > A.bedtime.circle[1] ? FACES.drowsy : G.bed.t > A.bedtime.roll[0] + 0.4 && G.bed.t < A.bedtime.roll[1] - 0.4 ? FACES.roll : null;
+    }
+    if ((st === 'come' || st === 'intro') && G.speed > 3) return FACES.run;
+    if (st === 'intro' || st === 'ready') return FACES.hello;
+    if (st === 'wait' && G.since < 4) return FACES.sad;                 // you walked off: it watches you go
+    if (st === 'hazard') return FACES.watch;
+    if (G.cheerT > 0) return FACES.cheer;
+    return null;
+  };
+  const startle = () => {
+    const seated = G.posture > 0.6;
+    FX.stop();
+    FX.chain([['startle', { seated }], ['scared', { seated, dur: 1.3, delay: -0.15 }], ['shakeOff', { delay: -0.1 }], ['brave', { delay: -0.1 }]]);
+  };
+  /** Start the reactions that belong to the moment (once a frame, after the state's own step). */
+  const react = (dt, dP, show) => {
+    const st = G.state;
+    if (st !== 'charge' && PIGEONS.scare) PIGEONS.scare = null;      // (called off mid-charge: a whistle, the RX-7)
+    // ([tour-B] in his home and by the shrine's fox the visit is the show: nothing of this; sat at the barrier only the
+    // startle as the bells start, seated, and then he watches the train as the tour has him do)
+    const up = !['nap', 'staged', 'intro', 'snack', 'charge', 'come', 'caught', 'home', 'visit'].includes(st) && !G.hopOff;
+    const awake = up && st !== 'cross';
+    const calm = awake && !G.act && !FX.busy && G.speed < 0.1;
+    // the level crossing's bells start up near it, or the RX-7 comes sliding by: a jump out of its skin, low and
+    // trembling for a second, a shake... and a brave little woof at it
+    const b = GUIDE.bells;
+    if (b.on && !RX.bells && up && G.t - RX.bellT > R_.again && dist(G, b) < R_.bells) { RX.bellT = G.t; G.act = null; startle(); }      // (whatever it was up to)
+    RX.bells = b.on;
+    if (show) {
+      const c = HAN_SHOW.car();
+      if (c) {
+        const v = RX.car && dt > 0 ? dist(c, RX.car) / dt : 0;
+        RX.car = { x: c.x, z: c.z };
+        if (v > R_.carSpeed && dist(G, c) < R_.car && G.t - RX.carT > R_.again && st !== 'nap' && st !== 'staged' && st !== 'snack' && st !== 'visit') { RX.carT = G.t; if (G.act?.name !== 'zoom') G.act = null; startle(); }
+      }
+    } else RX.car = null;
+    // asleep on its bench: a dream now and then (an ear, a paw)
+    if (st === 'nap' && G.bed?.phase === 'sleep' && dP >= 3 && (RX.dream -= dt) <= 0) { RX.dream = 7 + Math.random() * 9; FX.play('dream'); }
+    if (!awake) return;
+    // you reach a place with it (it hopped as you came up; you stepped into the ring; the gate): tippy taps, a wiggle
+    if (G.hopped !== RX.hopped) { RX.hopped = G.hopped; if (G.hopped) RX.after = 'tippyTaps'; }
+    if (st === 'linger' && RX.lingered !== G.target?.id) { RX.lingered = G.target?.id ?? null; if (dP < 12 && !inStore(P)) RX.after = 'happyWiggle'; }
+    if (st !== 'linger') RX.lingered = null;
+    if (G.gateDone && !RX.gate) RX.after = 'tippyTaps';
+    RX.gate = !!G.gateDone;
+    if (RX.after && !G.act && !FX.busy) { FX.play(RX.after, { seated: G.posture > 0.6, s: Math.random() < 0.5 ? 1 : -1 }); RX.after = null; return; }
+    // leading you somewhere good, you right behind: a proud strut for a few strides
+    if (st === 'lead' && G.speed > 2 && P.speed > 1.2 && dP < 11 && !G.act && !FX.busy && (RX.strut -= dt) <= 0) { RX.strut = R_.strut[0] + Math.random() * (R_.strut[1] - R_.strut[0]); FX.play('proudStrut'); return; }
+    // and through the pigeons, if there are any
+    if (st === 'lead' && !G.act && !FX.busy && tryCharge()) return;
+    if (!calm) { RX.look = 0; return; }
+    // you stop and look at it: a head tilt, one ear up
+    RX.lookNext -= dt;
+    RX.look = dP < 8 && dP > 1 && P.speed < 0.3 && inCone(R_.look[0]) ? RX.look + dt : 0;
+    if (RX.look > R_.look[1] && RX.lookNext <= 0) { RX.lookNext = R_.look[2] + Math.random() * R_.look[2]; RX.look = 0; FX.play('headTilt', { side: Math.random() < 0.5 ? -1 : 1, ask: Math.random() < 0.35 }); return; }
+    // kept waiting: a big yawn, then slow blinks
+    if (G.waitT < 1) RX.yawned = 0;
+    if (G.waitT > R_.bored * (1 + RX.yawned)) { FX.play(RX.yawned++ % 2 ? 'slowBlink' : 'yawn'); return; }
+    // a petal comes down past its nose now and then
+    if (G.waitT > 1.5 && !inStore(G) && (RX.petal -= dt) <= 0) { RX.petal = R_.petal[0] + Math.random() * (R_.petal[1] - R_.petal[0]); FX.play('petal'); }
+  };
+
+  /* ---- the pigeons (the shopping street's and the plaza's): leading past them, it can't help itself ---- */
+  const _scare = { x: 0, z: 0 };
+  const scareAt = () => { const l = ctx.toLocal({ x: G.x, z: G.z }); _scare.x = l.x; _scare.z = l.z; PIGEONS.scare = _scare; };
+  const tryCharge = () => {
+    const C = A.charge, R = A.zoom.r;
+    if (!PIGEONS.flocks.length || dist(P, G) > C.you) return false;
+    for (const f of PIGEONS.flocks) {
+      const at = ctx.toWorld({ x: f.x, z: f.z }), d = dist(G, at);
+      if ((at.x - G.x) * Math.sin(G.yaw) + (at.z - G.z) * Math.cos(G.yaw) < 0.5 * d) continue;      // (only a flock on its way, ahead)
+      if (d > C.from || d < R + 1 || G.t - (RX.charged.get(f) ?? -999) < C.again || f.grounded() < 3 || !roomFor(at.x, at.z, R)) continue;
+      // onto a lap round them along a tangent: the two tangent points from here, the one with a clear run to it
+      const a0 = Math.atan2(G.x - at.x, G.z - at.z), beta = Math.acos(R / d);
+      for (const sg of [1, -1]) {
+        const a = a0 + sg * beta, q = { x: at.x + Math.sin(a) * R, z: at.z + Math.cos(a) * R };
+        if (!W.free(q.x, q.z) || !W.sight(G.x, G.z, q.x, q.z)) continue;
+        const s = (q.x - G.x) * Math.cos(a) - (q.z - G.z) * Math.sin(a) >= 0 ? 1 : -1;     // the way round its run carries it
+        RX.charged.set(f, G.t);
+        G.charge = { at, q, a, s, t: 0, phase: 'wind' };
+        G.state = 'charge'; G.speed = 0; G.field = null;
+        say('dog-hmm', 0.8, true);
+        return true;
+      }
+    }
+    return false;
+  };
+  const chargeStep = (dt, pose) => {
+    const c = G.charge;
+    const done = () => { G.charge = null; PIGEONS.scare = null; G.state = 'home'; lead(G.leg ?? 0); return STILL; };
+    if (!c || (c.t += dt) > 12) return done();
+    if (c.phase === 'wind') {
+      // it has seen them: down on its elbows, rump up and wiggling, eyes on them
+      G.yaw += turn(G.yaw, Math.atan2(c.q.x - G.x, c.q.z - G.z)) * Math.min(1, dt * 10);
+      pose.posture = -0.8; pose.wag = 1; pose.perk = 1.2; pose.look = 0; pose.nod = -0.1; pose.face = FACES.wind;
+      G.rollTo = 0.05 * Math.sin(c.t * 16);
+      if (c.t > A.charge.wind) { c.phase = 'run'; say('dog-yip', 0.85, true); }
+      return STILL;
+    }
+    if (c.phase === 'run') {
+      const r = move(dt, c.q, A.charge.speed, 9);
+      pose.bound = 1; pose.perk = 0.3; pose.wag = 0.6; pose.face = FACES.run;
+      scareAt();
+      if (dist(G, c.q) < 0.6 || r === 'there') { c.phase = 'lap'; G.act = null; play('zoom', { cx: c.at.x, cz: c.at.z, R: A.zoom.r, s: c.s, a: c.a, dur: A.charge.lap }); }
+      return MOVING;
+    }
+    if (c.phase === 'lap') {
+      scareAt();
+      if (G.act) return MOVING;
+      // they are up on the roof: it looks up after them, very pleased with itself, and on with the tour
+      c.phase = 'pleased'; PIGEONS.scare = null;
+      FX.play('pleased');
+      return STILL;
+    }
+    pose.wag = 0.9; pose.perk = 1.3;
+    return FX.busy ? STILL : done();
+  };
+
+  /* ---- the konbini (Tan: "Hachi jumps around and imitates the player ... a distinct short bit per product, cute, on
+   * the surface, near the player outside the store where they eat"): with something in your hand it sits out in front
+   * of where you eat, all eyes and a paw; while you eat it does the product's bit along with you; then the bit's end
+   * (reactions.js SNACKS).  Afterwards the tour goes on as it would have. ---- */
+  const EAT = { x: LAWSON.doorX, z: A.snack.eatZ };
+  const snack = (phase, id) => {
+    if (!W.built || !SNACKS[id] || HAN_SHOW.running() || G.state === 'staged' || G.state === 'intro' || G.intro === 0) return;
+    let s = G.snack;
+    if (!s || G.state !== 'snack' || s.id !== id) {
+      const back = (G.state === 'linger' || G.state === 'atSpot') && G.target ? G.target : null;
+      if (G.state === 'lead' || G.state === 'atSpot' || G.state === 'gate') G.resumeK = G.leg;
+      const atStore = dist(P, EAT) < 4 || inStore(P);
+      const c = atStore ? W.nearest(EAT.x + A.snack.side, EAT.z + A.snack.d, 1.5) : -1;
+      s = G.snack = { id, phase: null, t: 0, n: 0, back, bit: null, end: 0, spot: c >= 0 ? W.at(c) : frontSpot(A.snack.d) ?? { x: G.x, z: G.z } };
+      G.state = 'snack'; G.act = null; G.roll = G.pitch = 0; G.whistleAt = null; G.charge = null; PIGEONS.scare = null; G.since = 0; G.pal = null;
+      FX.stop();
+      G.field = aim('goal', s.spot.x, s.spot.z, 0.3);
+    }
+    if (s.phase === phase) return;
+    s.phase = phase; s.t = 0; s.bit = null;
+    if (phase !== 'hold' && dist(G, s.spot) > 8 && !inSight(24, 40)) {
+      // far off (asleep on its bench, waiting streets away): it comes into your view from round a corner, at a run
+      const f = aim('follow', P.x, P.z, 0.6, 120);
+      while (!f.ready) f.work(50);
+      enterView(f, A.snack.from, 30);
+      G.field = aim('goal', s.spot.x, s.spot.z, 0.3);
+    }
+  };
+  const snackEnd = () => {
+    const s = G.snack;
+    G.snack = null; G.since = 0; G.waitT = 0;
+    if (s?.back && !tourOver()) { G.state = 'linger'; G.target = s.back; } else { G.state = 'caught'; G.target = null; }
+    return STILL;
+  };
+  const snackStep = (dt, pose) => {
+    const s = G.snack;
+    if (!s) return snackEnd();
+    s.t += dt; G.since += dt;
+    const off = dist(G, s.spot), B = SNACKS[s.id];
+    // to its spot first, flat out (the food won't wait)
+    if (off > 0.4 && !s.bit && G.since < 14) {
+      const v = off > 3 ? A.run : A.trot;
+      let r = off < 24 && W.sight(G.x, G.z, s.spot.x, s.spot.z) ? move(dt, s.spot, v) : steer(dt, v);
+      if (r === 'there') r = move(dt, s.spot, A.trot);
+      if (r === 'lost' && G.since > 2) { const q = frontSpot(A.snack.d); s.spot = q && W.sight(G.x, G.z, q.x, q.z) ? q : { x: G.x, z: G.z }; }
+      pose.bound = off > 3 ? 1 : 0; pose.wag = 0.95; pose.perk = 1.2;
+      if (off > 3) pose.face = FACES.run;
+      return { r, lookAt: 'player' };
+    }
+    // there, facing you
+    G.yaw += turn(G.yaw, Math.atan2(P.x - G.x, P.z - G.z)) * Math.min(1, dt * 8);
+    pose.posture = 1; pose.wag = 0.6; pose.perk = 1.2;
+    if (s.phase === 'hold') {
+      // you have something: the eyes, then a paw, the eyes again
+      if (!FX.busy) FX.play(s.n++ % 2 ? 'beg' : 'puppyEyes');
+      if (s.t > 25) return snackEnd();
+    } else if (s.phase === 'eat') {
+      if (!s.bit) { s.bit = 'eat'; FX.stop(); if (s.t < B.eat.dur - 0.8) FX.play(B.eat, { at: s.t, name: 'eat' }); }
+      if (s.t > B.eat.dur + 3) return snackEnd();            // (never told you finished: it lets it go)
+    } else if (!s.bit) { s.bit = 'after'; FX.stop(); s.end = s.t + FX.play(B.after, { name: 'after' }); }
+    else if (s.t >= s.end) return snackEnd();
+    return STILL;
+  };
+  GUIDE.snack = snack;
+
+  /* ---- after the tour (Tan: "today after the tour ends Hachi goes back to the gate bench to sleep even when whistled.
+   * Make him stay interactive"): whistled, it comes and stays with you: at your side as you walk, sat in front of you
+   * and playing when you stop.  Looked at from close by it can be asked for the tour again (E, main.js: only E; a
+   * whistle just brings it to you): the tour starts over from the first place.  Left alone for a while (you `far` m off: it keeps up with a
+   * walk, not with a run; or in the store; for `alone` s) it goes back to its bench and its nap. ---- */
+  const tourOver = () => !!G.gateDone && allDone();
+  const startPal = () => {
+    G.state = 'pal'; G.pal = { t: 0, alone: 0, still: 0, side: Math.random() < 0.5 ? 1 : -1, spot: null };
+    G.palKeep = true; G.target = null; G.field = null; G.since = 0; G.waitT = 0; G.idleT = 0;
+  };
+  const palStep = (dt, pose, dP) => {
+    const p = G.pal ?? (G.pal = { t: 0, alone: 0, still: 0, side: 1, spot: null }), L = A.pal;
+    p.t += dt; G.since += dt;
+    // left alone: back to the bench
+    p.alone = dP > L.far || inStore(P) ? p.alone + dt : Math.max(0, p.alone - 2 * dt);
+    if (p.alone > L.alone) { G.pal = null; G.palKeep = false; G.act = null; toGateOrNap(); return STILL; }
+    pose.wag = dP < 6 ? 0.6 : 0.3;
+    if (G.act) return STILL;
+    let r = 'still', lookAt = 'player';
+    if (dP > L.far) {
+      // you have gone off without it (at a run, or in a jump): it doesn't chase; it sits and watches you go
+      G.waitT += dt; p.spot = null;
+      pose.posture = G.waitT > 1.2 ? 1 : 0; pose.wag = 0.15; pose.face = FACES.sad;
+    } else if (P.speed > 0.5) {
+      // you walk: at your side and a little ahead, where you see it; it runs to catch up
+      p.still = 0; p.spot = null; G.waitT = 0;
+      const d = intent();
+      let q = { x: P.x + d.x * L.ahead - d.z * p.side * L.aside, z: P.z + d.z * L.ahead + d.x * p.side * L.aside };
+      if (!W.free(q.x, q.z)) { const o = { x: P.x + d.x * L.ahead + d.z * p.side * L.aside, z: P.z + d.z * L.ahead - d.x * p.side * L.aside }; if (W.free(o.x, o.z)) { q = o; p.side = -p.side; } }
+      // (never faster than its jog: walk and it is with you; run off and you leave it behind)
+      const off = dist(G, q), v = Math.max(A.trot, Math.min(A.jog, P.speed + (off > 1.5 ? 1.2 : 0.2)));
+      if (off > 0.5) { r = W.free(q.x, q.z) && W.sight(G.x, G.z, q.x, q.z) ? move(dt, q, v) : pursue(dt, v); lookAt = 'way'; pose.bound = off > 5 ? 1 : 0.45; }
+    } else {
+      // you stop: out in front of you where you see it, sat, looking up at you; a little play now and then
+      p.still += dt;
+      if (!p.spot && (dP > L.sit[1] || dP < 1.4 || (!inCone(50) && p.still > 1))) p.spot = frontSpot(L.sit[0]);
+      if (p.spot && dist(G, p.spot) > 0.4 && p.still < 20) { r = W.sight(G.x, G.z, p.spot.x, p.spot.z) ? move(dt, p.spot, dist(G, p.spot) > 4 ? A.jog : A.trot) : pursue(dt, A.trot); G.waitT = 0; }
+      else {
+        p.spot = null; G.waitT += dt;
+        if (G.speed < 0.1) G.yaw += turn(G.yaw, Math.atan2(P.x - G.x, P.z - G.z)) * Math.min(1, dt * 4);
+        pose.posture = G.waitT > 1.2 ? 1 : 0;
+        if (G.speed < 0.1 && !FX.busy && (G.idleT += dt) > 2.5 + Math.random() * 3) idle(dP, G.waitT > 40);
+      }
+    }
+    return r === 'still' ? STILL : { r, lookAt };
+  };
+  /** The tour again, from the first place (asked for after the tour: E by it). */
+  const again = () => {
+    if (!W.built || !tourOver() || G.state === 'staged' || HAN_SHOW.running()) return false;
+    refresh();
+    // (what you have had stays had, as far as each place knows: this time round a place counts once you step into its ring)
+    G.reUsed = new Set(list.filter((e) => e.used).map((e) => e.id));
+    G.done = new Set(['view']); G.skipped = new Set(); G.gateDone = false; G.napped = false; G.drops = 0; G.resumeK = null;
+    G.pal = null; G.palKeep = false; G.snack = null; G.charge = null; G.shook = null; G.hopped = null; G.act = null; G.whistleAt = null;
+    RX.charged.clear();
+    tourReset();                                 // ([tour-B] his home and the shrine's fox are to visit again too)
+    queue.length = 0; G.leg = 0; prefetch();
+    FX.stop();
+    say('dog-yip', 0.9, true, 30);
+    G.state = 'home';
+    lead(0);
+    FX.play('hopSpin', { s: Math.random() < 0.5 ? 1 : -1 });
+    GUIDE.onTour?.();
+    return true;
+  };
+  GUIDE.again = again;
+  /** Is the tour on offer again: it is yours after the tour (or asleep on its bench as you stand by it), near, and you
+   * are looking at it? */
+  GUIDE.offer = () => W.built && (G.state === 'pal' || (G.state === 'nap' && G.bed?.phase === 'sleep')) && G.speed < 0.5
+    && dist(P, G) < A.pal.ask[0] && inCone(A.pal.ask[1]) && tourOver();
+  /** A frame of the states that are this block's, or the pup held where it stands under a reaction; else null. */
+  const own = (dt, pose, dP) => {
+    if (G.state === 'charge') return chargeStep(dt, pose);
+    if (G.state === 'snack') return snackStep(dt, pose);
+    if (G.state === 'pal') return FX.holding ? STILL : palStep(dt, pose, dP);
+    // (the tour over and it was yours: off the view, or after Han's show, it is yours again, not off to bed)
+    if (G.palKeep && G.state === 'nap' && !G.bed && !G.onBench) { startPal(); return STILL; }
+    if (FX.holding && HOLDS.has(G.state)) { pose.posture = G.posture > 0.5 ? 1 : 0; pose.wag = 0.5; return STILL; }
+    return null;
+  };
 
   /* ================================================================================================ *
    * [tour-B] The level crossing, Hachi's own home, the shrine's fox (Tan, 2026-10-01).
@@ -1452,7 +1791,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     // stepping into a ring is the engagement: done
     // done: its own code says it was had (the bench's seat, Han's show, the konbini, the train's announcement), or you
     // stepped into its ring while it was on offer
-    for (const e of list) if (!G.done.has(e.id) && (e.used || (!e.hidden && dist(P, e) < rOf(e) + 0.25))) { G.done.add(e.id); G.skipped.delete(e.id); if (G.target?.id === e.id && (G.state === 'lead' || G.state === 'atSpot')) { G.state = 'linger'; G.since = 0; G.act = null; G.drops = 0; } }
+    for (const e of list) if (!G.done.has(e.id) && ((e.used && !G.reUsed?.has(e.id)) || (!e.hidden && dist(P, e) < rOf(e) + 0.25))) { G.done.add(e.id); G.skipped.delete(e.id); if (G.target?.id === e.id && (G.state === 'lead' || G.state === 'atSpot')) { G.state = 'linger'; G.since = 0; G.act = null; G.drops = 0; } }
     // the famous views: never in the picture while you stand on one (keys 1-3
     // put you there in a jump: it is home at once; walking on, it trots out)
     const view = onView() && (P.speed < 0.6 || jumped);
@@ -1518,10 +1857,11 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     let r = 'still';
     // off somewhere from the bench (a whistle, the Strong Nine): down off it first
     if ((G.onBench || G.lift > 0) && G.state !== 'nap' && !G.hopOff) G.hopOff = { t: 0, from: { x: G.x, z: G.z }, lift: G.lift };
-    let watching = null;
+    let mine = null, watching = null;
     if (G.hopOff) hopOffStep(dt, pose);
     else if (railClear(dt, pose)) r = 'moving';             // [tour-B] caught on the level crossing as it shuts: off it at a run
-    else if ((watching = showStep(dt, pose)) !== null) { r = watching; lookAt = 'show'; }   // (world/mochi/: sat at ぺったん堂's show, the tour paused)
+    else if ((watching = showStep(dt, pose)) !== null) { r = watching; lookAt = 'show'; }   // (world/mochi/: sat at ぺったん堂's show, the tour and his own bits paused)
+    else if ((mine = own(dt, pose, dP))) { r = mine.r; lookAt = mine.lookAt; }      // (reactions, the pigeons, the konbini bits, after the tour: above)
     else switch (G.state) {
       case 'cross': lookAt = crossStep(dt, pose, dP, notInterested); break;                       // [tour-B] at the barrier, the train going by
       case 'visit': [r, lookAt] = visitStep(dt, pose, dP, toYou, nodYou, notInterested); break;   // [tour-B] his home, the shrine's fox
@@ -1646,7 +1986,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       case 'caught': {
         // the greeting (or the party) plays out; then off to the nearest place you haven't been
         pose.wag = 0.7; pose.perk = 1.3;
-        if (!G.act) rushNext();
+        if (!G.act) { if (tourOver()) startPal(); else rushNext(); }      // (after the tour it stays with you: `pal`)
         break;
       }
       case 'come': {
@@ -1685,25 +2025,6 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         pose.perk = 0.6; pose.wag = 0.95; pose.nod = 0.02;
         break;
       }
-      case 'party': {
-        // the Strong Nine: to just in front of you, then rolling about on its back, giggling, a play bow, round after its tail
-        G.since += dt; G.partyT -= dt;
-        const spot = frontSpot(A.party.d) ?? { x: G.x, z: G.z };
-        if (!G.act) {
-          const off = dist(G, spot);
-          if (off > 0.6 && G.partyT > 1) { r = off < 24 && W.sight(G.x, G.z, spot.x, spot.z) ? move(dt, spot, off > 3 ? A.run : A.trot) : pursue(dt, A.run); lookAt = 'player'; pose.bound = off > 3 ? 1 : 0; pose.wag = 0.95; }   // (flat out: the fun lasts ten seconds)
-          else if (G.partyT > 1.2) {
-            const seq = ['roll', 'roll', 'bow', 'roll', 'tail', 'roll'];
-            const next = seq[G.partyK++ % seq.length];
-            // rolls side-on to you, belly and paws your way; quicker than an idle roll, one after another
-            if (next === 'roll') G.yaw = Math.atan2(P.x - G.x, P.z - G.z) - 1.4;   // (this side on, the belly and paws face you; the other way you see its back)
-            play(next, next === 'roll' ? { dur: 3.0 } : next === 'bow' ? { dur: 1.6 } : {});
-          }
-        }
-        pose.perk = 1.3; pose.wag = Math.max(pose.wag, 0.9);
-        if (G.partyT <= 0 && !G.act) { G.state = 'caught'; G.since = 0; }
-        break;
-      }
       case 'hazard': {
         if (G.aside && dist(G, G.aside) > 0.25) { r = move(dt, G.aside, A.run); lookAt = 'way'; } else G.waitT += dt;
         pose.posture = G.waitT > 1.5 ? 1 : 0;
@@ -1726,6 +2047,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     if (G.cheerT > 0) { G.cheerT -= dt; pose.wag = 1; pose.perk = 1.3; }
     // your whistle: ears up until the notes are over (whatever it was doing), then the answer
     if (G.whistleAt !== null) { pose.perk = 1.2; if (fields.whistle && !fields.whistle.ready) fields.whistle.work(dt > 0 ? 3 : 40); if (G.t >= G.whistleAt) { G.whistleAt = null; answer(); } }
+    // the reactions that belong to the moment
+    if (dt > 0) react(dt, dP, show);
     // the acts shape the pose (and some of them move it)
     const acting = act(dt, pose);
     if (!acting && r !== 'moving') G.speed += (0 - G.speed) * Math.min(1, dt * 6);
@@ -1782,7 +2105,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     let wagTo = pose.wag;
     if (glancing) wagTo = Math.max(wagTo, 0.55);
     G.wagA += (wagTo - G.wagA) * k3;
-    G.wagPh += dt * (glancing || G.wagA > 0.6 ? 18 : G.wagA > 0.4 ? 13 : 8);
+    G.wagRate = glancing || G.wagA > 0.6 ? 18 : G.wagA > 0.4 ? 13 : 8;
+    G.wagPh += dt * G.wagRate;
     G.wag = Math.sin(G.wagPh) * G.wagA + G.amp * 0.08 * Math.sin(2 * G.ph);
     // ears: pricked when alert, back for the hop, the chase and the nap
     // excited (you close and it wagging hard): the tongue comes out (the rig reads ears past 1)
@@ -1804,8 +2128,11 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     G.boundA = (G.boundA ?? 0) + ((G.speed > 1 ? pose.bound : 0) - (G.boundA ?? 0)) * Math.min(1, dt * 5);
     G.bpitch = G.boundA * 0.1 * Math.cos(G.ph);
     // (`lift`: up on the bench; lying, the belly rests on the ground instead of a few mm into it)
-    G.y = ground(G.x, G.z) + (G.lift ?? 0) + 0.012 * THREE.MathUtils.clamp(G.posture - 1, 0, 1) + G.amp * 0.036 * (0.5 + 0.5 * Math.sin(2 * G.ph + 1)) + G.boundA * 0.055 * Math.abs(Math.sin(G.ph)) + G.hop + G.dip;
+    G.y = ground(G.x, G.z) + (G.lift ?? 0) + 0.012 * THREE.MathUtils.clamp(G.posture - 1, 0, 1) + (G.bob = G.amp * 0.036 * (0.5 + 0.5 * Math.sin(2 * G.ph + 1))) + G.boundA * 0.055 * Math.abs(Math.sin(G.ph)) + G.hop + G.dip;
     tickCard(dt);
+    // its face and its reactions over the pose (a reaction may be paddling its legs: the stride's phase runs on)
+    const X = express(dt, mood(pose, dP), toYou, nodYou, G.state === 'nap' && G.bed?.phase === 'sleep' && dP >= 3);
+    if (X.phRate) G.ph += dt * X.phRate;
     place();
   }
 
@@ -1846,8 +2173,11 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         else if (kind === 'chase') Object.assign(G, { yaw: toCam, amp: 1, ph: 0.6, wag: 0.4, perk: 0.3, pitch: 0.05, nod: 0.05 });
         else if (kind === 'tail') Object.assign(G, { yaw: toCam + 0.9, amp: 0.9, ph: 3.1, wag: 0.5, perk: 1.3, look: -1.35, nod: 0.25, pitch: 0.08 });
         G.y = ground(G.x, G.z) + G.hop + G.amp * 0.012;
+        FX.reset(); express(0, null, 0, 0, true);
         place();
       },
+      /** (tuning) draw G as it has been set by hand */
+      stage2() { FX.reset(); express(0, null, 0, 0, true); place(); },
       /** [tour-B] the tour from leg k on, everything before it had (the checks: the crossing, his home, the shrine) */
       leadFrom(k) { for (let j = 0; j < k; j++) { const L = TOUR[j]; if (L.id && L.id !== 'gate') G.done.add(L.id); if (L.visit) TB.visited.add(L.visit); } G.act = null; lead(k); },
       tour: TB, rail: () => ({ shut: crossShut(), on: inRail(G.x, G.z) }),
@@ -1855,6 +2185,39 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       step(dt, p) { update(dt, p); },
       whistle,
       tipsy,
+      /** the reactions (reactions.js), the konbini bits, the tour again, the crossing's bells, the pigeons' hook */
+      fx: FX, snack, again, offer: () => GUIDE.offer(), pal: startPal, bells: GUIDE.bells, pigeons: PIGEONS, RX,
+      /** How far the lowest drawn part of the pup is over the ground it stands on (m; negative: under it), and the
+       * highest: the pup alone, drawn side-on and end-on through an orthographic lens into a small target, read back
+       * (Tan: rolling about tipsy it sank under the road; the checks hold every bit to the surface with this). */
+      lowest() {
+        const r = window.__scene?.renderer;
+        if (!r) return null;
+        const size = 256, span = 1.0, floor = -0.3;
+        const L = (window.__guide._low ??= { rt: new THREE.WebGLRenderTarget(size, size), cam: new THREE.OrthographicCamera(-span / 2, span / 2, span + floor, floor, 0.05, 6), buf: new Uint8Array(size * size * 4), col: new THREE.Color() });
+        const gy = ground(G.x, G.z) + (G.lift ?? 0);
+        const prev = r.getRenderTarget(), pa = r.getClearAlpha();
+        r.getClearColor(L.col);
+        let low = Infinity, high = -Infinity;
+        for (const a of [0.4, 0.4 + Math.PI / 2]) {
+          L.cam.position.set(G.x + Math.sin(a) * 2, gy, G.z + Math.cos(a) * 2);
+          L.cam.lookAt(G.x, gy, G.z);
+          L.cam.updateMatrixWorld();
+          r.setRenderTarget(L.rt); r.setClearColor(0x000000, 0); r.clear();
+          r.render(herd.mesh, L.cam);
+          r.readRenderTargetPixels(L.rt, 0, 0, size, size, L.buf);
+          for (let row = 0; row < size; row++) {
+            let any = false;
+            for (let x = 0; x < size && !any; x++) any = L.buf[(row * size + x) * 4 + 3] > 0;
+            if (!any) continue;
+            const y = floor + (row / size) * span;
+            if (y < low) low = y;
+            if (y > high) high = y + span / size;
+          }
+        }
+        r.setRenderTarget(prev); r.setClearColor(L.col, pa);
+        return { low: +low.toFixed(3), high: +high.toFixed(3) };
+      },
       /** the tour over (everything done, the gate seen): off to the bench for its nap */
       napNow() { refresh(); for (const e of list) G.done.add(e.id); G.gateDone = true; G.act = null; G.leg = TOUR.length; toGateOrNap(); },
       bench: { x: BENCH.x, z: BENCH.z, nap: NAP, seat: GB.seat },
@@ -1862,7 +2225,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       intro: () => G.intro,
       introReset() { G.intro = 0; },
       introMark() { G.intro = 2; },
-      reset() { offBench(); Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 2, introT: 0, t: 0, gateDone: false, napped: false }); G.done = new Set(['view']); G.skipped = new Set(); tourReset(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
+      reset() { offBench(); FX.reset(); PIGEONS.scare = null; RX.charged.clear(); Object.assign(RX, { look: 0, lookNext: 5, petal: R_.petal[0], strut: R_.strut[0], yawned: 0, bells: false, bellT: -999, carT: -999, hopped: null, lingered: null, gate: false, after: null }); Object.assign(G, { snack: null, charge: null, pal: null, palKeep: false, reUsed: null, state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 2, introT: 0, t: 0, gateDone: false, napped: false }); G.done = new Set(['view']); G.skipped = new Set(); tourReset(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
     };
   }
   return { update, herd, G };

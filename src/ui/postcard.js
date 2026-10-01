@@ -33,6 +33,17 @@ const POSTCARD_CSS = `
     background: rgba(251,246,240,.94); color: #2b2542; box-shadow: 0 4px 14px -6px rgba(20,10,40,.5);
     font: inherit; font-size: max(12px, 1.35cqw); font-weight: 700; letter-spacing: .02em; cursor: pointer; }
   .mk-post .pc-back:hover { background: #fff; transform: translateX(-1px); }
+  /* Add your selfie: the postcard's first, plain-to-see button, over the share row (ui/postcardSelfie.js, loaded on
+   * its click).  While the selfie is on, its words and buttons take the place of the message and the address lines. */
+  .mk-post .pc-add { display: flex; align-items: center; justify-content: center; gap: .8cqw; width: 100%; margin: 1.4cqw 0 0; padding: 1.45cqw 1cqw;
+    border: 0; border-radius: .9cqw; background: #3b3263; color: #fff; box-shadow: 0 .9cqw 1.8cqw -1cqw rgba(40,25,80,.9), inset 0 -2px 0 rgba(0,0,0,.18);
+    font: inherit; font-size: max(14px, 1.75cqw); font-weight: 700; line-height: 1.2; white-space: nowrap; cursor: pointer; }
+  .mk-post .pc-add svg { width: 1.3em; height: 1.3em; flex: none; }
+  .mk-post .pc-add:hover { background: #4a3f7a; transform: translateY(-1px); }
+  .mk-post .pc-add:focus-visible { outline: 3px solid #e59bb0; outline-offset: 2px; }
+  .mk-post .pc-add + .share { margin-top: 0; padding-top: .9cqw; }
+  .mk-post.sf-on figcaption, .mk-post.sf-on .msg, .mk-post.sf-on .to, .mk-post.sf-on .pc-add { display: none; }
+  .mk-post.sf-on .share { margin-top: 0; padding-top: .9cqw; }
   .mk-post .pc-back:focus-visible { outline: 3px solid #e59bb0; outline-offset: 2px; }
   .mk-post .back { position: relative; padding: 2.8cqw 3cqw 2.4cqw 3.2cqw; display: flex; flex-direction: column; min-width: 0; }
   .mk-post .back::before { content: ''; position: absolute; left: 0; top: 3.2cqw; bottom: 3.2cqw; border-left: 1.5px solid #e2d6d0; }
@@ -78,6 +89,8 @@ const POSTCARD_CSS = `
     .mk-post h2 { font-size: 22px; margin: 0 62px 6px 0; }
     .mk-post .msg { font-size: 14px; margin: 0 62px 0 0; }
     .mk-post .share { gap: 8px; padding-top: 14px; }
+    .mk-post .pc-add { margin: 14px 0 0; padding: 13px 8px; border-radius: 9px; font-size: 16px; gap: 8px; }
+    .mk-post .pc-add + .share, .mk-post.sf-on .share { padding-top: 8px; }
     .mk-post .share > * { padding: 10px 6px; border-radius: 9px; font-size: 14px; gap: 6px; }
     .mk-post .maker { column-gap: 12px; margin-top: 14px; padding-top: 12px; font-size: 13.5px; }
     .mk-post .maker .mk-face { width: 44px; height: 44px; }
@@ -104,6 +117,20 @@ const POSTCARD_CSS = `
  */
 export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
   let el = null, copyLabel = null, msg = null, shown = 0;
+  let selfie = null, selfieLoad = null;      // ui/postcardSelfie.js: only once asked for
+  const goal = (name) => { try { window.datafast?.(name); } catch { /* analytics never in the way */ } };
+  const addSelfie = () => {
+    goal('selfie_open');
+    selfieLoad ??= import('./postcardSelfie.js').then(({ createSelfie }) => { selfie = createSelfie({ post: el.querySelector('.mk-post') }); });
+    selfieLoad.then(() => { if (api.open) selfie.open(); }).catch(() => { selfieLoad = null; });
+  };
+  /* Share: with the selfie postcard's picture where the share sheet takes files, else the link */
+  const share = () => {
+    const f = selfie?.file;
+    const withFile = f && navigator.canShare?.({ files: [f] });
+    navigator.share?.(withFile ? { files: [f], title: document.title, text: `${P.shareText} ${link}` } : { title: document.title, text: P.shareText, url: link })
+      .then(() => { if (withFile) goal('selfie_shared'); }).catch(() => {});
+  };
   const link = MAKER.share;
   const intent = `https://x.com/intent/tweet?text=${encodeURIComponent(P.shareText)}&url=${encodeURIComponent(link)}&via=${MAKER.handle}`;
   const build = () => {
@@ -122,9 +149,10 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
         <h2>${esc(P.title)}</h2>
         <p class="msg">${esc(P.msg)}</p>
         <p class="to">${esc(P.to)}</p>
+        <button class="pc-add" type="button" data-pc="selfie">${ICON.camera}<span>${esc(P.selfie.add)}</span></button>
         <div class="share">
-          <button class="primary${navigator.share ? '' : ' no-share'}" type="button" data-pc="share" data-fast-goal="postcard_share">${ICON.share}<span>${esc(P.share)}</span></button>
-          <button class="${navigator.share ? '' : 'primary'}" type="button" data-pc="copy" data-fast-goal="postcard_copy">${ICON.link}<span>${esc(P.copy)}</span></button>
+          <button class="${navigator.share ? '' : 'no-share'}" type="button" data-pc="share" data-fast-goal="postcard_share">${ICON.share}<span>${esc(P.share)}</span></button>
+          <button type="button" data-pc="copy" data-fast-goal="postcard_copy">${ICON.link}<span>${esc(P.copy)}</span></button>
           <a href="${esc(intent)}" target="_blank" rel="noopener" data-fast-goal="postcard_post" aria-label="${esc(P.postAria)}">${ICON.x}<span>${esc(P.post)}</span></a>
         </div>
         <div class="maker">${face(48)}<span class="mk-who">${esc(S.name)}<small>${esc(P.follow)}</small></span>
@@ -140,7 +168,8 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
       if (!b) { if (!e.target.closest('.mk-post')) onMenu(); return; }
       const what = b.getAttribute('data-pc');
       if (what === 'back') onMenu();
-      if (what === 'share') navigator.share?.({ title: document.title, text: P.shareText, url: link }).catch(() => {});
+      if (what === 'share') share();
+      if (what === 'selfie') addSelfie();
       if (what === 'copy') copy();
     });
     for (const t of ['pointerdown', 'pointerup', 'touchstart', 'touchend']) el.addEventListener(t, (e) => e.stopPropagation(), { passive: true });
@@ -178,16 +207,18 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
       requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
       window.addEventListener('keydown', onKey, true);
       if (!again) try { window.datafast?.('postcard_shown'); } catch { /* analytics never in the way */ }
-      requestAnimationFrame(() => el.querySelector('.share > :not(.no-share)')?.focus({ preventScroll: true }));
+      requestAnimationFrame(() => el.querySelector('.mk-post:not(.sf-on) .pc-add, .share > :not(.no-share)')?.focus({ preventScroll: true }));
     },
     hide() {
       if (!api.open) return;
       api.open = false;
+      selfie?.stop();                  // the camera never outlives the postcard
       el.classList.remove('on');
       el.style.display = 'none';
       window.removeEventListener('keydown', onKey, true);
     },
     get el() { return el; },
+    get selfie() { return selfie; },
   };
   return api;
 }

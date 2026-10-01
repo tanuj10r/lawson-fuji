@@ -1,7 +1,7 @@
 import { STRINGS } from '../data/strings.js';
 import { VOLUME_STEPS } from '../config.js';
 import { TOWN_NAME } from '../data/town.js';
-import { makerChip, STAMP } from '../ui/maker.js';
+import { makerChip, STAMP, ICON } from '../ui/maker.js';
 
 /* ------------------------------------------------------------------ *
  * Minimal HUD: the start and pause card, a small crosshair and an
@@ -52,7 +52,7 @@ export function createHud({ volume = 50 } = {}) {
         <span class="menu-paused pause-only">${STRINGS.paused}</span>
         <div class="menu-corner">
           <button class="menu-postcard" type="button" hidden data-fast-goal="postcard_reopen" aria-label="${STRINGS.postcard.miniAria}">
-            <span class="stamp">${STAMP}</span><span class="t">${STRINGS.postcard.mini}</span>
+            <span class="cam" aria-hidden="true">${ICON.camera}</span><span class="stamp">${STAMP}</span><span class="t">${STRINGS.postcard.mini}</span>
           </button>
           ${makerChip('start_card')}
         </div>
@@ -145,7 +145,7 @@ export function createHud({ volume = 50 } = {}) {
       overlay.classList.toggle('hidden', hide);
       overlay.setAttribute('aria-hidden', hide ? 'true' : 'false');
       crosshair.classList.toggle('on', locked);
-      mini.hidden = !startedOnce;
+      mini.hidden = hide || !startedOnce;      // only with a pause card: never a flash as the start card fades out (Tan)
       mini.classList.toggle('glow', !hide && startedOnce);
       if (!hide) requestAnimationFrame(() => actionButton.focus({ preventScroll: true }));
     },

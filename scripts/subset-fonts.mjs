@@ -8,7 +8,9 @@
  * kana sets; the brush face (heavy strokes, ~0.6 KB a glyph) only the sign
  * text in src/data/town.js and the kana.  It
  * writes woff2 to src/assets/fonts/, which is committed.  Needs fontTools'
- * pyftsubset (PYFTSUBSET=path, else on PATH).  Rerun after adding signs.
+ * pyftsubset and brotli (`python3 -m pip install --user fonttools brotli`;
+ * PYFTSUBSET=path, else on PATH, else pip's per-user bin).  Rerun after
+ * adding signs: a character not in the subset is drawn in a system face.
  *
  *   npm run fonts
  */
@@ -41,7 +43,18 @@ const walk = (set, dir) => {
   }
 };
 
-const tool = process.env.PYFTSUBSET || 'pyftsubset';
+/* pyftsubset: PYFTSUBSET, else the one on PATH, else pip's per-user install
+ * (`python3 -m pip install --user fonttools brotli` puts it in <user base>/bin, which is not on PATH on macOS) */
+const tool = process.env.PYFTSUBSET || (() => {
+  const has = (cmd, args) => { try { execFileSync(cmd, args, { stdio: 'ignore' }); return true; } catch { return false; } };
+  if (has('pyftsubset', ['--help'])) return 'pyftsubset';
+  try {
+    const user = path.join(execFileSync('python3', ['-m', 'site', '--user-base'], { encoding: 'utf8' }).trim(), 'bin', 'pyftsubset');
+    if (fs.existsSync(user)) return user;
+  } catch { /* no python3 */ }
+  console.error('pyftsubset not found: python3 -m pip install --user fonttools brotli   (or set PYFTSUBSET)');
+  process.exit(1);
+})();
 fs.mkdirSync(OUT, { recursive: true });
 const textFile = path.join(OUT, '.chars.txt');
 let total = 0;

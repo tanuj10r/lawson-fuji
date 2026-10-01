@@ -1964,3 +1964,10 @@ Tan's four notes on the experiment above, and what was done:
 - **Names:** ふじみ号 (the community bus), 富士川口湖駅前 (the stop), its loop 駅前 / 商店街 / ニッポン前 / 湖畔公園 / ふじみ稲荷 / 役場前: ours. They live in data/bus.js, not data/town.js, because the brush font is cut from town.js alone and nothing here is brushed (it would have cost about 5 KB of glyphs).
 - **Cost** (Tan's viewpoint, 1600x900, same run, main -> this): draw calls 338 -> 343, triangles 2,238k -> 2,279k (+41k: the vending machine, the five pot plants, the bench, planters; the shelter itself is 5 meshes, about 2k), frame 3.5-4.0 ms both (within the run's noise). Three small canvases (512x64, 256x72, 512x320: 0.4 MB with mipmaps). Code +2.6 KB gzip.
 - Frames: scratchpad desk5/busstop/ (before- and after-, tan / front / north / bay at day, golden, blue; after-inside-blue).
+
+## Sign fonts cut again (2026-10-02, Tan approved installing the tool)
+- **Why:** the subsets were last cut before ぺったん堂, the train's countdown and today's bus stop, so their new characters fell back to a system face. In the brush face: 兎 (the shop's seal) and 抹 (抹茶いちご餅), ¥, and 次 到 着 秒 (the boards' countdown strings in data/town.js); 速 茶 餅 高 were already there. In the round face 25: 丸 兎 到 増 役 担 杵 柔 漂 王 着 秒 組 臼 芋 苔 虫 軟 郎 鉢, É ū ’ ‹ › ↑ ↓. Hachi's home (ハチのおうち, いらっしゃい) is kana: always in.
+- **The tool:** fontTools 4.60.2 and brotli 1.2.0, `python3 -m pip install --user fonttools brotli` (Tan's user site, ~/Library/Python/3.9). scripts/subset-fonts.mjs now finds pip's per-user `pyftsubset` when it is not on PATH, so `npm run fonts` runs as is.
+- **Sizes:** round.woff2 180,532 -> 155,980 B (982 characters: 25 in, 155 out that nothing in src/ draws any more, from before the launch's clean-out); brush.woff2 385,748 -> 388,348 B (608 characters: 7 in). Together 566.3 -> 544.3 KB. `npm run size` 5.07 -> 5.05 MB in all, 1.66 -> 1.65 MB before the first click.
+- **Not in either font file** (so still a system face): ✉ (the postcard's button, UI) and 框 (a comment). 〜 is not in Yuji Syuku.
+- Checked on the page: the shop's 兎 seal before (gothic) and after (brush), the nobori, the noren, Hachi's gate: scratchpad desk5/fonts/.

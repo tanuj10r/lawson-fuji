@@ -140,7 +140,7 @@ class Walk {
     /* solid things: every collider a dog can't step over, with clearance */
     const R = A.radius;
     for (const c of ctx.colliders) {
-      if ((c.bottom ?? 0) >= 0.8 || (c.top ?? 9) <= 0.3 || c.x1 - c.x0 < 0.01 || c.z1 - c.z0 < 0.01) continue;
+      if ((c.bottom ?? 0) >= 0.8 || (c.top ?? 9) <= 0.3 || c.x1 - c.x0 < 0.01 || c.z1 - c.z0 < 0.01 || c.pet) continue;   // ([tour-B] `pet`: his own door, tunnel and hoop keep you out, not him: animals/home.js)
       rect(c.x0 - R, c.z0 - R, c.x1 + R, c.z1 + R, (i) => { cost[i] = 0; });
       if ((c.top ?? 9) >= 1.1) rect(c.x0, c.z0, c.x1, c.z1, (i) => { this.tall[i] = 1; });
     }
@@ -1521,8 +1521,8 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
    *   Whatever he is doing he never steps onto the crossing while it is shut (move()), and caught on it as
    *   it shuts he runs off it (railClear).
    * `visit` legs: places he goes into (config.js ANIMALS.guide.visit); visited once you come in after him.
-   *   home: his garden: the joy (bounces, spins, a lap of the lawn, his ball nosed along), then sat proudly
-   *   on his blanket looking at you.  shrine: in under the torii, he sits by the guardian fox looking back.
+   *   home: his garden: the joy (bounces, spins, through his tunnel and his hoop, into his house and out, his
+   *   ball nosed along), then a flop onto his cushion, looking at you.  shrine: in under the torii, he sits by the guardian fox looking back.
    * ================================================================================================ */
   const TB = { visited: new Set(), visit: null, crossSat: false, heard: false };
   const tourReset = () => { TB.visited.clear(); TB.visit = null; TB.crossSat = false; TB.heard = false; G.hopH = null; };
@@ -1611,7 +1611,16 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     if (kind === 'home') return p.x > HH.x0 && p.x < HH.x1 && p.z > HH.z0 + 0.1 && p.z < HH.z1;
     return !!SHRINE && p.x > SHRINE.x0 && p.x < SHRINE.x1 && p.z > SHRINE.z0 && p.z < SHRINE.z1;   // (in past its stone fence)
   };
-  const HOME_MID = tw(HH.mid[0], HH.mid[1]), HOME_MAT = tw(HH.mat[0], HH.mat[1] - 0.05);
+  // his garden's places, in the world: the open lawn, his tunnel's two mouths, the run-up to his hoop and where he
+  // lands, the foot of his porch, inside his house, his cushion
+  const HP = {
+    mid: tw(HH.mid[0], HH.mid[1]), bed: tw(HH.bed[0], HH.bed[1]),
+    tunIn: tw(HH.tunnel.x, HH.tunnel.z0 - 0.45), tunOut: tw(HH.tunnel.x, HH.tunnel.z1 + 0.45),
+    hoopA: tw(HH.hoop.x - 0.95, HH.hoop.z), hoopB: tw(HH.hoop.x + 0.95, HH.hoop.z),
+    porch: tw(HH.kennel[0], HH.kennel[1] - 1.75), door: tw(HH.kennel[0], HH.kennel[1] - 0.95), inside: tw(HH.kennel[0], HH.kennel[1] + 0.1),
+  };
+  /** Straight from a to b by u (0..1), the grid aside: through his tunnel, his hoop, his door. */
+  const glide = (a, b, u) => { const k = Math.max(0, Math.min(1, u)), x = a.x + (b.x - a.x) * k, z = a.z + (b.z - a.z) * k; G.moved += Math.hypot(x - G.x, z - G.z); G.x = x; G.z = z; G.yaw = Math.atan2(b.x - a.x, b.z - a.z); };
   const visitStep = (dt, pose, dP, toYou, nodYou, notInterested) => {
     const v = TB.visit, C = A.visit[v.kind];
     G.since += dt;
@@ -1652,7 +1661,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       }
       case 'in':
         // in at a bounding run to the middle of his lawn
-        if (dist(G, HOME_MID) > 0.3 && v.t < 3) { r = move(dt, HOME_MID, A.whistle.gallop); pose.bound = 1; pose.perk = 0.6; look = 'way'; break; }
+        if (dist(G, HP.mid) > 0.3 && v.t < 3) { r = move(dt, HP.mid, A.whistle.gallop); pose.bound = 1; pose.perk = 0.6; look = 'way'; break; }
         next('bounce'); say('dog-yip', 0.9, true, 30);
         break;
       case 'bounce': {
@@ -1670,21 +1679,55 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         G.hopH = null;
         G.yaw = v.yaw0 + v.s * Math.PI * 4 * ease(v.t / C.spin);
         pose.amp = 0.85; pose.phRate = 17; pose.look = -v.s * 0.55; pose.nod = 0.05; G.rollTo = v.s * 0.12;
-        if (v.t > C.spin) {
-          const R = 1.25, cx = G.x + Math.cos(G.yaw) * -v.s * R, cz = G.z + Math.sin(G.yaw) * v.s * R;
-          if (roomFor(cx, cz, R)) { next('lap'); Object.assign(v, { cx, cz, R, a: Math.atan2(G.x - cx, G.z - cz) }); say('dog-awoo', 0.8, true); } else next('toy');
-        }
+        if (v.t > C.spin) { next('tunnel'); say('dog-awoo', 0.8, true); }
         break;
       }
-      case 'lap': {
-        // a tearing lap of his lawn, leaning in, ears back
-        const sp = (Math.PI * 2 * v.R) / C.lap;
-        v.a += v.s * (sp / v.R) * dt;
-        const nx = v.cx + Math.sin(v.a) * v.R, nz = v.cz + Math.cos(v.a) * v.R;
-        if (W.free(nx, nz)) { G.moved += dist({ x: nx, z: nz }, G); G.x = nx; G.z = nz; }
-        G.yaw = v.a + v.s * Math.PI / 2; G.speed = sp; r = 'moving';
-        pose.amp = 1; pose.phRate = 16; pose.perk = 0.3; pose.look = -v.s * 0.5; pose.nod = 0.1; G.rollTo = v.s * 0.18; G.pitchTo = 0.04;
-        if (v.t > C.lap) next('toy');
+      case 'tunnel': {
+        // to his tunnel's mouth at a run, and through it, ears back, low
+        if (!v.at) {
+          if (dist(G, HP.tunIn) > 0.3 && v.t < 3) { r = move(dt, HP.tunIn, A.run); pose.bound = 0.6; look = 'way'; break; }
+          v.at = { x: G.x, z: G.z }; v.t = 0;
+        }
+        const T = dist(v.at, HP.tunOut) / 4.2;
+        glide(v.at, HP.tunOut, v.t / T);
+        G.speed = 4.2; r = 'moving'; look = 'way';
+        pose.amp = 1; pose.phRate = 17; pose.perk = 0.3; pose.nod = 0.15; G.pitchTo = 0.05;
+        if (v.t >= T) { next('hoop'); v.at = null; }
+        break;
+      }
+      case 'hoop': {
+        // round to the run-up, and a leap clean through his hoop
+        if (!v.at) {
+          if (dist(G, HP.hoopA) > 0.25 && v.t < 3) { r = move(dt, HP.hoopA, A.run); pose.bound = 0.6; look = 'way'; break; }
+          v.at = { x: G.x, z: G.z }; v.t = 0;
+          G.hopH = 0.4; G.hopT = 0; say('dog-yip', 0.9, true, 30);
+        }
+        glide(v.at, HP.hoopB, v.t / 0.5);
+        G.speed = 3.6; r = 'moving'; look = 'way';
+        G.pitchTo = -0.3 * Math.cos(Math.PI * Math.min(1, v.t / 0.5));          // nose up going up, down coming down
+        pose.amp = 0.3; pose.perk = 0.5; pose.nod = 0;
+        if (v.t >= 0.5) { next('kennel'); v.at = null; G.hopH = null; }
+        break;
+      }
+      case 'kennel': {
+        // up his porch and in at his door; round inside; his head out of the door, a yip at you; and out again
+        if (!v.at) {
+          if (dist(G, HP.porch) > 0.25 && v.t < 3) { r = move(dt, HP.porch, A.run * 0.8); look = 'way'; break; }
+          v.at = { x: G.x, z: G.z }; v.t = 0;
+        }
+        const tIn = 0.7, tTurn = tIn + 0.35, tOut = tTurn + C.inside;
+        if (v.t < tIn) { glide(v.at, HP.inside, v.t / tIn); G.speed = 2.6; r = 'moving'; look = 'way'; pose.amp = 1; pose.phRate = 15; pose.perk = 0.6; }
+        else if (v.t < tTurn) { G.speed = 0; G.yaw += turn(G.yaw, Math.atan2(HP.door.x - G.x, HP.door.z - G.z)) * Math.min(1, dt * 16); pose.amp = 0.6; pose.phRate = 14; }
+        else if (v.t < tOut) {
+          // out to the doorway, front paws on the sill: looking at you, a yip
+          glide(HP.inside, HP.door, (v.t - tTurn) / 0.35);
+          G.speed = 0; pose.look = toYou; pose.nod = nodYou - 0.05;
+          if (!v.said) { v.said = true; say('dog-yip', 0.9, true, 30); G.tiltT = 0; G.tiltSide = 1; }
+        } else {
+          glide(HP.door, HP.porch, (v.t - tOut) / 0.4);
+          G.speed = 2.6; r = 'moving'; pose.amp = 1; pose.phRate = 15; look = 'way';
+          if (v.t > tOut + 0.4) { next('toy'); v.at = null; v.said = false; }
+        }
         break;
       }
       case 'toy': {
@@ -1692,12 +1735,12 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         const ball = ctx.toWorld(HACHI_HOME.ball), d = dist(G, ball);
         const toBall = Math.atan2(ball.x - G.x, ball.z - G.z);
         if (!v.nosed) {
-          if (d > 0.3 && v.t < 1.6) { r = move(dt, ball, A.run * 0.7); look = 'way'; pose.nod = 0.2; break; }
+          if (d > 0.3 && v.t < 2.2) { r = move(dt, ball, A.run * 0.7); look = 'way'; pose.nod = 0.2; break; }
           G.yaw += turn(G.yaw, toBall) * Math.min(1, dt * 12);
           v.bow = (v.bow ?? 0) + dt;
           pose.posture = -1; pose.look = 0; pose.nod = 0.25; G.rollTo = 0.05 * Math.sin(v.bow * 14);
           if (v.bow > 0.55) {
-            v.nosed = true; say('dog-yip', 0.85, true);
+            v.nosed = true; v.t = 0; say('dog-yip', 0.85, true);
             // off across the lawn, away from him (toward its middle when he is at its edge), in the town's frame
             const b = HACHI_HOME.ball, g = ctx.toLocal({ x: G.x, z: G.z });
             HACHI_HOME.nudge((b.x - g.x) + 0.6 * (HH.mid[0] - b.x), (b.z - g.z) + 0.6 * (HH.mid[1] - b.z), 1.7);
@@ -1705,18 +1748,20 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         } else {
           if (d > 0.35) { r = move(dt, ball, A.run * 0.8); pose.bound = 0.6; }
           pose.look = THREE.MathUtils.clamp(turn(G.yaw, toBall), -1, 1); pose.nod = 0.2; pose.perk = 0.7;
+          if (v.t > C.toy) next('flop');
         }
-        if (v.t > C.toy + (v.bow ?? 0)) next('proud');
         break;
       }
-      case 'proud': {
-        // onto his blanket in front of his kennel, round to face you, and sat tall, chin up: this is my place
-        if (dist(G, HOME_MAT) > 0.2 && v.t < 3 && !v.sat) { r = move(dt, HOME_MAT, A.trot); look = 'way'; break; }
-        v.sat = true;
-        faceYou(6);
-        pose.posture = Math.abs(turn(G.yaw, toP)) < 0.7 ? 1 : 0; pose.wag = 0.5; pose.look = toYou; pose.nod = nodYou - 0.14;
-        if (G.posture > 0.8) { if (been || dP < 6) v.held += dt; if (!v.said && v.held > 1.2) { v.said = true; say('dog-boof', 0.7, true); } }
-        if (v.held > C.proud || v.t > 16) return on();      // (you only watch from the lane: he moves on after a while)
+      case 'flop': {
+        // to his cushion: a turn on it, and down in a happy heap, on his side a little, looking at you
+        if (dist(G, HP.bed) > 0.16 && v.t < 3.5 && !v.sat) { r = move(dt, HP.bed, A.trot * 1.2); look = 'way'; break; }
+        if (!v.sat) { v.sat = true; v.t = 0; v.yaw0 = G.yaw; v.s = Math.random() < 0.5 ? 1 : -1; }
+        if (v.t < 0.7) { G.yaw = v.yaw0 + v.s * Math.PI * 2 * ease(v.t / 0.7); pose.amp = 0.6; pose.phRate = 12; pose.nod = 0.25; break; }
+        faceYou(4);
+        pose.posture = 2; pose.wag = 0.7; pose.look = toYou; pose.nod = nodYou - 0.05; pose.perk = 1.3;
+        G.rollTo = 0.32 * v.s * ease((v.t - 0.9) / 0.5);
+        if (G.posture > 1.8) { if (been || dP < 7) v.held += dt; if (!v.said && v.held > 0.5) { v.said = true; say('dog-snort', 0.75, true); } }
+        if (v.held > C.flop || v.t > 16) return on();       // (you only watch from the lane: he moves on after a while)
         if (G.since > 1.0 && notInterested(true)) { TB.visit = null; G.hopH = null; drop(); }
         break;
       }

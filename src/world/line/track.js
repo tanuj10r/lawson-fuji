@@ -46,8 +46,39 @@ function mats() {
   };
 }
 
+/* A rail's head: its width, and how high its top stands (the boards of a crossing lie flush with it). */
+export const RAIL_HEAD_W = 0.075, RAIL_HEAD_TOP = RAIL_TOP + 0.01;
+
+/**
+ * Boards over the tracks, from x0 to x1 and z0 to z1, their top at `top`, `thick` deep: cut into strips along the
+ * rails with a groove at each (the flangeway: 4 cm clear of the head on the field side, 9 cm on the gauge side), so
+ * a rail stands in its groove and no board's face lies in a rail's (Tan: the rails flickered through the deck, both
+ * tops at the same height).  Each strip is laid in panels `panel` m long with a `seam` between.
+ * Returns [{ geometry, matrix }] for core/util.js bake().
+ */
+export function deckBoards({ x0, x1, z0, z1, top, thick = 0.1, panel = 1.2, seam = 0.03 }) {
+  const cuts = [];
+  for (const tz of TRACK_Z) for (const s of [-1, 1]) {
+    const zr = tz + (s * GAUGE) / 2, field = RAIL_HEAD_W / 2 + 0.04, gauge = RAIL_HEAD_W / 2 + 0.09;
+    cuts.push(s < 0 ? [zr - field, zr + gauge] : [zr - gauge, zr + field]);
+  }
+  cuts.sort((a, b) => a[0] - b[0]);
+  const strips = [];
+  let from = z0;
+  for (const [a, b] of cuts) { if (b <= z0 || a >= z1) continue; if (a - from > 0.02) strips.push([from, a]); from = Math.max(from, b); }
+  if (z1 - from > 0.02) strips.push([from, z1]);
+  const n = Math.max(1, Math.round((x1 - x0) / panel)), w = (x1 - x0) / n;
+  const parts = [];
+  for (const [a, b] of strips) for (let i = 0; i < n; i++) {
+    parts.push({ geometry: new THREE.BoxGeometry(w - seam, thick, b - a), matrix: trs(x0 + (i + 0.5) * w, top - thick / 2, (a + b) / 2) });
+  }
+  return parts;
+}
+
 /**
  * @param o.gaps  [{ x0, x1, side? }] where the lineside fences stop (crossings, the station)
+ * @param o.decks [{ x0, x1 }] where boards lie over the tracks (the level crossing, the station's own): no sleepers
+ *                under them (the boards own that ground; a sleeper's top would lie in the boards')
  */
 export function buildTrack(ctx, o = {}) {
   const m = mats();
@@ -86,13 +117,17 @@ export function buildTrack(ctx, o = {}) {
     const inst = new THREE.InstancedMesh(sleeper, m.sleeper, n * 2);
     const d = new THREE.Object3D();
     let k = 0;
+    const decks = o.decks ?? [];
     for (const tz of TRACK_Z) {
       for (let i = 0; i < n; i++) {
-        d.position.set(LOCAL[0] + i * step, 0.24, tz);
+        const sx = LOCAL[0] + i * step;
+        if (decks.some((q) => sx > q.x0 - 0.13 && sx < q.x1 + 0.13)) continue;
+        d.position.set(sx, 0.24, tz);
         d.updateMatrix();
         inst.setMatrixAt(k++, d.matrix);
       }
     }
+    inst.count = k;
     inst.receiveShadow = true;
     inst.userData.noOutline = true;
     g.add(inst);

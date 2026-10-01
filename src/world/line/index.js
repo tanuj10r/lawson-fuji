@@ -30,6 +30,11 @@ export function buildLine(ctx, { kit }) {
       { x0: R.crossX - crossHalf, x1: R.crossX + crossHalf },       // the level crossing
       { x0: B.x0, x1: B.x1, side: -1 },                              // the station building is the boundary
     ],
+    // boards over the tracks: the level crossing's deck, the station's own crossing (station.js): no sleepers under them
+    decks: [
+      { x0: R.crossX - ROADS.lane.asphalt / 2 - 0.7, x1: R.crossX + ROADS.lane.asphalt / 2 + 0.7 },
+      { x0: TOWN.station.platforms.x1 + 6 * 0.42, x1: TOWN.station.platforms.x1 + 6 * 0.42 + 2.6 },
+    ],
   });
   const crossing = buildCrossing(ctx, { x: R.crossX, kit });
   // its bells are a sound experience (Tan, 2026-09-28): a speaker on the map

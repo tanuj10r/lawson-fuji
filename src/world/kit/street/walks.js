@@ -232,12 +232,13 @@ export function dressWalks(ctx, net, kit, lots) {
     occupy(p.x, p.z); reg(p.x, p.z);
   }
 
-  /* ---- the level crossing: warning tiles on both lane edges ---- */
+  /* ---- the level crossing: warning tiles on both lane edges, on the town's side (south of the line the lane is the
+   * forecourt of Hachi's gate: line/crossing.js) ---- */
   const lane = net.edges.find((e) => e.axis === 'z' && e.c === TOWN.rail.crossX && e.s1 > TOWN.rail.z);
   if (lane) {
     const inner = lane.a - lane.spec.gutter - 0.55;
     const gap = TOWN.rail.spacing / 2 + 1.9 + 2.0;
-    for (const dz of [-gap, gap]) {
+    for (const dz of [-gap]) {
       for (const side of [-1, 1]) {
         const x = lane.c + side * inner, z = TOWN.rail.z + dz;
         tactilePad(kit.decals, x, z, { x: 0, z: Math.sign(dz) }, 2, ROADS.asphaltY);

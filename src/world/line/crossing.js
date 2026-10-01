@@ -4,8 +4,8 @@ import { cel, flat } from '../../core/toon.js';
 import { box, cyl, bake, trs } from '../../core/util.js';
 import { hullOutline } from '../../core/outline.js';
 import { crossingSign } from '../../core/textures.js';
-import { ROADS } from '../../config.js';
-import { TRACK_Z } from './track.js';
+import { ROADS, TOWN } from '../../config.js';
+import { TRACK_Z, deckBoards, RAIL_HEAD_TOP } from './track.js';
 import { RAIL_TOP } from '../railway.js';
 import { LAYER } from '../kit/decals.js';
 
@@ -22,7 +22,7 @@ import { LAYER } from '../kit/decals.js';
  * `setArrows`.  line/service.js decides from where the train is.
  * ------------------------------------------------------------------ */
 
-const DECK_TOP = RAIL_TOP + 0.01;
+const DECK_TOP = RAIL_HEAD_TOP;      // flush with the rails' heads, which stand in grooves between the boards (track.js deckBoards)
 
 export function buildCrossing(ctx, { x, kit }) {
   const g = new THREE.Group();
@@ -40,13 +40,9 @@ export function buildCrossing(ctx, { x, kit }) {
 
   /* ---- the deck: panels across both tracks, ramps at each end ---- */
   {
-    const parts = [];
-    const n = Math.round((zS - zN) / 1.2);
-    for (let i = 0; i < n; i++) {
-      const z0 = zN + ((zS - zN) * i) / n;
-      parts.push({ geometry: new THREE.BoxGeometry(halfW * 2, 0.1, (zS - zN) / n - 0.04), matrix: trs(x, DECK_TOP - 0.05, z0 + (zS - zN) / n / 2) });
-    }
-    const deck = new THREE.Mesh(bake(parts), deckMat);
+    // boards between and beside the rails, a groove at each rail: no board lies over a rail (nor over a sleeper:
+    // there are none under the deck, track.js `decks`)
+    const deck = new THREE.Mesh(bake(deckBoards({ x0: x - halfW, x1: x + halfW, z0: zN, z1: zS, top: DECK_TOP, thick: 0.13, panel: 1.3 })), deckMat);
     deck.receiveShadow = true;
     g.add(deck);
     ctx.platform({ x0: x - halfW, x1: x + halfW, z0: zN, z1: zS, top: DECK_TOP });
@@ -65,12 +61,37 @@ export function buildCrossing(ctx, { x, kit }) {
     for (const s of [-1, 1]) ctx.collide(x + s * (halfW + 0.05) - 0.08, zN + 0.3, x + s * (halfW + 0.05) + 0.08, zS - 0.3, 1.2);
   }
 
-  /* ---- stop lines and 止まれ on both approaches ---- */
+  /* ---- the stop line and 止まれ before the tracks, on the one approach traffic comes by (the north: south of the
+   * line the lane is only the forecourt of Hachi's gate, below).  The word sits between the lane's edge lines. ---- */
   if (kit) {
-    for (const [z, dir] of [[zN - 2.6, 1], [zS + 2.6, -1]]) {
-      kit.decals.add('white', x, z, laneHalf * 2 - 0.8, 0.45, { x: 0, z: dir }, ROADS.asphaltY, LAYER.paint);
-      kit.decals.add('tomare', x, z - dir * 3.0, 2.6, 2.6, { x: 0, z: dir }, ROADS.asphaltY, LAYER.symbol);
+    const z = zN - 2.6;
+    kit.decals.add('white', x, z, laneHalf * 2 - 0.8, 0.45, { x: 0, z: 1 }, ROADS.asphaltY, LAYER.paint);
+    kit.decals.add('tomare', x, z - 3.0, 2.1, 2.6, { x: 0, z: 1 }, ROADS.asphaltY, LAYER.symbol);
+  }
+
+  /* ---- south of the line: the lane's end, a paved forecourt up to the garden gate (Tan: a 止まれ, a stop line, warning
+   * tiles and the lane's green bands ran into Hachi's gate, left from when a house stood there).  Stone setts from the
+   * ramp's foot to the fence, kerbed at the sides; it lies over the lane's own paint, which ends at its edge. ---- */
+  {
+    const z0 = zS + 1.52, z1 = TOWN.bounds.z1 - 2 - 0.11, hw = laneHalf + 0.02, top = 0.06;
+    const setts = [cel({ color: 0xd9d2c4, bands: 3, tint: 0x6f6790 }), cel({ color: 0xcbc3b6, bands: 3, tint: 0x6f6790 }), cel({ color: 0xbfb8b0, bands: 3, tint: 0x6f6790 })];
+    const lots = [[], [], []];
+    // a bed (the joints' colour), the setts on it in a running bond, a soldier course down each side and across the gate
+    g.add(box(hw * 2, top - 0.012, z1 - z0, cel({ color: 0x8f8a92, bands: 3, tint: 0x5e5a80 }), x, (top - 0.012) / 2, (z0 + z1) / 2));
+    const border = 0.24, nz = Math.round((z1 - z0 - border) / 0.46), dz = (z1 - z0 - border) / nz, nx = Math.round((hw * 2 - border * 2) / 0.62), dx = (hw * 2 - border * 2) / nx;
+    for (let j = 0; j < nz; j++) for (let i = -1; i <= nx; i++) {
+      const off = j % 2 ? dx / 2 : 0;
+      const a = Math.max(-hw + border, -hw + border + i * dx + off), b = Math.min(hw - border, -hw + border + (i + 1) * dx + off);
+      if (b - a < 0.05) continue;
+      lots[(i * 7 + j * 3 + 30) % 3].push({ geometry: new THREE.BoxGeometry(b - a - 0.025, 0.02, dz - 0.025), matrix: trs(x + (a + b) / 2, top - 0.01, z0 + (j + 0.5) * dz) });
     }
+    for (const s of [-1, 1]) for (let zz = z0; zz < z1 - 0.01; zz += (z1 - z0) / 15) lots[2].push({ geometry: new THREE.BoxGeometry(border - 0.025, 0.02, (z1 - z0) / 15 - 0.025), matrix: trs(x + s * (hw - border / 2), top - 0.01, zz + (z1 - z0) / 30) });
+    for (let i = 0; i < 18; i++) { const w = (hw * 2 - border * 2) / 18; lots[1].push({ geometry: new THREE.BoxGeometry(w - 0.025, 0.02, border - 0.025), matrix: trs(x - hw + border + (i + 0.5) * w, top - 0.01, z1 - border / 2) }); }
+    lots.forEach((parts, k) => { if (!parts.length) return; const m = new THREE.Mesh(bake(parts), setts[k]); m.receiveShadow = true; m.userData.noOutline = true; g.add(m); });
+    // kerbs down the sides, from the ramp to the fence
+    const kerb = cel({ color: 0xd2d3da, bands: 3 });
+    for (const s of [-1, 1]) { const k = box(0.16, 0.12, z1 - z0, kerb, x + s * (hw + 0.08), 0.06, (z0 + z1) / 2); k.receiveShadow = true; g.add(k); }
+    ctx.platform({ x0: x - hw, x1: x + hw, z0, z1: z1 + 0.2, top });
   }
 
   /* ---- signals and barriers, one set per approach, on the driver's left ---- */

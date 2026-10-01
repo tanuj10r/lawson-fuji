@@ -298,12 +298,14 @@ export const TOWN = {
   /* Hachi's own home (Tan, 2026-10-01; animals/home.js): a little garden across the level crossing, where a house
    * beyond the line stood at the lane's end (line/index.js buildBeyond leaves that lot out).  Town frame.  The rect is
    * its lawn (it lies past TOWN.bounds: the player's one pocket outside the square, town.js `pocket`); `gate`: the
-   * opening in the south fence, on the lane; `kennel`, `mat`, `ball`, `mid`: where his things are (the guide's joy
-   * goes round them: animals/guide.js). */
+   * opening in the south fence, on the lane; where his things are (the guide's joy goes round them: animals/guide.js):
+   * `kennel` the doghouse's middle (its door looks at the gate), `bed` his cushion, `ball`, `mid` the open lawn,
+   * `tunnel` (along z), `hoop` (he leaps through it along x), `basket` the toys, `sand` the sandpit. */
   hachiHome: {
     x0: -83.5, x1: -73.2, z0: 172.2, z1: 180.4,
     gate: { x: -80, w: 2.6 },
-    kennel: [-78.6, 178.7], mat: [-78.6, 177.7], ball: [-79.9, 176.3], mid: [-78.2, 175.4],
+    kennel: [-78.3, 178.85], bed: [-75.7, 176.6], ball: [-78.6, 175.6], mid: [-79.2, 174.6],
+    tunnel: { x: -81.9, z0: 173.9, z1: 175.9 }, hoop: { x: -80.7, z: 177.3 }, basket: [-74.4, 175.2], sand: [-82.1, 179.2],
   },
   /* The station (M2c): building on the plaza's south side, platform 1 behind
    * its ticket gates, platform 2 across the tracks (in-station crossing). */
@@ -927,10 +929,11 @@ export const ANIMALS = {
       { id: 'gate', x: -30, z: 65, wait: 7 },     // 鹿公園, coming soon
     ],
     /* the stops that are places, not engagements (`visit` legs): Hachi goes in and does his bit, and the place counts
-     * as visited once you come in after him.  home: he waits at the gate for you to be `see` m near, then the joy
-     * (s from its start): bounces, a spin, a lap of the lawn, his ball nosed along, and `proud` s sat tall on his mat
-     * looking at you.  shrine: he sits by the fox looking back at you for `sit` s. */
-    visit: { home: { see: 9, bounce: 1.7, spin: 1.2, lap: 1.9, toy: 2.4, proud: 3.2 }, shrine: { sit: 3 } },
+     * as visited once you come in after him.  home: he waits at the gate for you to be `see` m near, then the joy:
+     * `bounce` s of jumping, a `spin`, through his tunnel and his hoop, into his house (`inside` s looking out of the
+     * door) and out, his ball nosed along (`toy` s), and a flop onto his cushion, `flop` s looking at you.
+     * shrine: he sits by the fox looking back at you for `sit` s. */
+    visit: { home: { see: 9, bounce: 1.3, spin: 1.0, inside: 1.1, toy: 2.2, flop: 3.4 }, shrine: { sit: 3 } },
     /* the level crossing (`cross` legs): he goes over only with the arms right up and no train due; else he sits at
      * the barrier and watches the train by (ears up when it is within `hear` m), and goes when the arms have lifted */
     crossing: { hear: 70, open: 0.04 },

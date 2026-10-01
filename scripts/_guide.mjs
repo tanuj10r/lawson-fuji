@@ -85,7 +85,7 @@ const SIM = async (kind) => {
   const dt = 1 / 30;
   const P = { x: 0, y: 1.6, z: 16.5, yaw: 0 };
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
-  const solid = world.colliders.filter((c) => (c.bottom ?? 0) < 0.8 && (c.top ?? 9) > 0.3 && c.x1 - c.x0 > 0.01);
+  const solid = world.colliders.filter((c) => (c.bottom ?? 0) < 0.8 && (c.top ?? 9) > 0.3 && c.x1 - c.x0 > 0.01 && !c.pet);   // (`pet`: his own door, tunnel and hoop)
   const hit = (x, z) => solid.some((c) => x > c.x0 && x < c.x1 && z > c.z0 && z < c.z1);
   const lookAt = (tx, tz) => { P.yaw = Math.atan2(-(tx - P.x), -(tz - P.z)); };
   const sync = () => { camera.position.set(P.x, P.y, P.z); camera.rotation.set(0, P.yaw, 0); camera.updateMatrixWorld(); world.update(0, camera); };
@@ -255,7 +255,7 @@ const SIM = async (kind) => {
     res.ok = rows.length === 4 && viol === 0 && wall === 0 && stuck < 5 && res.end.state === 'nap' && res.respawn.ok && cone > 60
       && heard && charges >= 1 && res.jog >= 2.7 && gateMin <= 8 && waterCells === 0 && alleyCells === 0 && sideEntries === 0 && feetLow === 0 && t < 900
       && res.visited.includes('home') && res.visited.includes('shrine') && railEnter === 0
-      && ['home:bounce', 'home:spin', 'home:toy', 'home:proud', 'shrine:sit'].every((q) => visitPhases.includes(q));
+      && ['home:bounce', 'home:spin', 'home:tunnel', 'home:hoop', 'home:kennel', 'home:toy', 'home:flop', 'shrine:sit'].every((q) => visitPhases.includes(q));
   } else if (kind === 'intro') {
     // the hello, every start (Tan, 2026-09-29): standing on the start view as the game begins, it runs out from
     // behind you to in front, faces you, sits, says hello; waits there while you stay; leads when you walk off.
@@ -530,7 +530,7 @@ const SIM = async (kind) => {
     }
     res.caught = caught;
     res.ok = staged && satAt !== null && satFor >= 4 && perked && passed && wentAt !== null && openAt !== null && wentAt >= openAt && armAtGo <= 0.05 && trainAtGo === false && onShut === 0 && railEnter === 0
-      && res.home.visited.includes('home') && ['home:gate', 'home:in', 'home:bounce', 'home:spin', 'home:toy', 'home:proud'].every((q) => visitPhases.includes(q)) && hopMax > 0.2
+      && res.home.visited.includes('home') && ['home:gate', 'home:in', 'home:bounce', 'home:spin', 'home:tunnel', 'home:hoop', 'home:kennel', 'home:toy', 'home:flop'].every((q) => visitPhases.includes(q)) && hopMax > 0.2
       && ['dog-yip', 'dog-boof', 'dog-giggle'].every((n) => said.includes(n))
       && caught.on !== null && caught.off !== null && caught.off <= 3 && caught.armOff < 0.6;
   } else if (kind === 'bedtime') {

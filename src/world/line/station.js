@@ -8,7 +8,7 @@ import { makeBench, makeBins, makePhoneBooth, makePlanter, makeBikeRack } from '
 import { makeBusStop, makeVehicle } from '../vehicles.js';
 import { addVending } from '../vending.js';
 import { LAYER } from '../kit/decals.js';
-import { TRACK_Z } from './track.js';
+import { TRACK_Z, deckBoards } from './track.js';
 import { SERVICE } from './service.js';
 import { PITCH, DOORS } from './emu.js';
 import {
@@ -472,7 +472,8 @@ export function buildStation(ctx, { kit, service, sets }) {
     for (const P of PLAT) {
       steps(ctx, { x: xw0, z: (P.z0 + P.z1) / 2, axis: 'x', dir: -1, n: 6, rise: (PH - 0.31) / 6, run: 0.42, w: PL.depth, y: 0.31, mat: m.deck });
     }
-    const walk = box(xw1 - xw0, 0.31, PLAT[1].z1 - PLAT[0].z0, m.edge, (xw0 + xw1) / 2, 0.155, (PLAT[0].z0 + PLAT[1].z1) / 2);
+    // boards with a groove at each rail (track.js deckBoards): the walk's top lay in the rails' heads, and flickered
+    const walk = new THREE.Mesh(bake(deckBoards({ x0: xw0, x1: xw1, z0: PLAT[0].z0, z1: PLAT[1].z1, top: 0.31, thick: 0.31, panel: 1.3 })), m.edge);
     walk.receiveShadow = true;
     g.add(walk);
     ctx.platform({ x0: PL.x1, x1: xw1, z0: PLAT[0].z0, z1: PLAT[1].z1, top: 0.31 });

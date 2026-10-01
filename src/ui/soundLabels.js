@@ -143,11 +143,9 @@ export function createSoundLabels(parent = document.body, { ms = SOUND_LABELS.ms
     while (box.children.length >= max) box.firstElementChild.remove();
     const el = document.createElement('div');
     el.className = 'snd-pill';
-    el.innerHTML = `${NOTE}<p><b lang="ja"></b><i>·</i><em></em><small></small></p>`;
+    el.innerHTML = `${NOTE}<p><b lang="ja"></b><i>·</i><em></em></p>`;      // (the name alone: no context line, Tan)
     el.querySelector('b').textContent = ja;
     el.querySelector('em').textContent = en;
-    const s = el.querySelector('small');
-    if (note) s.textContent = note; else s.remove();
     el.addEventListener('animationend', () => el.remove());
     box.appendChild(el);
     return el;

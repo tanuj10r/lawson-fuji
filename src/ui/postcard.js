@@ -86,7 +86,7 @@ const POSTCARD_CSS = `
   /* a phone on its side: everything a size down to fit the short screen */
   @media (orientation: landscape) and (max-height: 540px) {
     .mk-post { width: min(92vw, calc((100vh - 24px) * 1.62)); }
-    .mk-post .note, .mk-post .to, .mk-post .mark { display: none; }
+    .mk-post .note, .mk-post .mark { display: none; }
     .mk-post .share > * { font-size: 12.5px; padding: 7px 5px; }
     .mk-post .maker { font-size: 12px; }
     .mk-post .maker .mk-face { width: 34px; height: 34px; }

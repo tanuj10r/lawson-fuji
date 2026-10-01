@@ -33,6 +33,13 @@ const POSTCARD_CSS = `
     background: rgba(251,246,240,.94); color: #2b2542; box-shadow: 0 4px 14px -6px rgba(20,10,40,.5);
     font: inherit; font-size: max(12px, 1.35cqw); font-weight: 700; letter-spacing: .02em; cursor: pointer; }
   .mk-post .pc-back:hover { background: #fff; transform: translateX(-1px); }
+  /* Add your selfie (ui/postcardSelfie.js, loaded on its click) */
+  .mk-post .pc-selfie { position: absolute; right: 1cqw; top: 1cqw; z-index: 2; padding: .55cqw 1.2cqw; border: 0; border-radius: 999px;
+    background: rgba(251,246,240,.94); color: #2b2542; box-shadow: 0 4px 14px -6px rgba(20,10,40,.5);
+    font: inherit; font-size: max(12px, 1.35cqw); font-weight: 700; cursor: pointer; }
+  .mk-post .pc-selfie:hover { background: #fff; }
+  .mk-post .pc-selfie:focus-visible { outline: 3px solid #e59bb0; outline-offset: 2px; }
+  .mk-post .pic.sf-on figcaption, .mk-post .pic.sf-on .pc-selfie { display: none; }
   .mk-post .pc-back:focus-visible { outline: 3px solid #e59bb0; outline-offset: 2px; }
   .mk-post .back { position: relative; padding: 2.8cqw 3cqw 2.4cqw 3.2cqw; display: flex; flex-direction: column; min-width: 0; }
   .mk-post .back::before { content: ''; position: absolute; left: 0; top: 3.2cqw; bottom: 3.2cqw; border-left: 1.5px solid #e2d6d0; }
@@ -104,6 +111,17 @@ const POSTCARD_CSS = `
  */
 export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
   let el = null, copyLabel = null, msg = null, shown = 0;
+  let selfie = null, selfieLoad = null;      // ui/postcardSelfie.js: only once asked for
+  const addSelfie = () => {
+    selfieLoad ??= import('./postcardSelfie.js').then(({ createSelfie }) => { selfie = createSelfie({ pic: el.querySelector('.pic') }); });
+    selfieLoad.then(() => { if (api.open) selfie.open(); }).catch(() => { selfieLoad = null; });
+  };
+  /* Share: with the selfie postcard's picture where the share sheet takes files, else the link */
+  const share = () => {
+    const f = selfie?.file;
+    const withFile = f && navigator.canShare?.({ files: [f] });
+    navigator.share?.(withFile ? { files: [f], title: document.title, text: `${P.shareText} ${link}` } : { title: document.title, text: P.shareText, url: link }).catch(() => {});
+  };
   const link = MAKER.share;
   const intent = `https://x.com/intent/tweet?text=${encodeURIComponent(P.shareText)}&url=${encodeURIComponent(link)}&via=${MAKER.handle}`;
   const build = () => {
@@ -115,7 +133,8 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
     el.className = 'mk mk-post-scrim';
     el.innerHTML = `<article class="mk-post" role="dialog" aria-modal="true" aria-label="${esc(P.label)}">
       <button class="pc-back" type="button" data-pc="back" aria-label="${esc(P.backAria)}">‹ ${esc(P.back)}</button>
-      <figure class="pic"><img src="keyart-1280.webp" alt="" decoding="async" /><figcaption>${esc(TOWN_NAME.en)} · <span lang="ja">${esc(TOWN_NAME.jp)}</span></figcaption></figure>
+      <figure class="pic"><img src="keyart-1280.webp" alt="" decoding="async" /><figcaption>${esc(TOWN_NAME.en)} · <span lang="ja">${esc(TOWN_NAME.jp)}</span></figcaption>
+        <button class="pc-selfie" type="button" data-pc="selfie" data-fast-goal="postcard_selfie">${esc(P.selfie.add)}</button></figure>
       <div class="back">
         <div class="stamp">${STAMP}</div>
         <div class="mark" lang="ja" aria-hidden="true">${esc(TOWN_NAME.jp.replace(/町$/, ''))}<br>${d.getDate()}.${d.getMonth() + 1}.${String(d.getFullYear()).slice(2)}</div>
@@ -140,7 +159,8 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
       if (!b) { if (!e.target.closest('.mk-post')) onMenu(); return; }
       const what = b.getAttribute('data-pc');
       if (what === 'back') onMenu();
-      if (what === 'share') navigator.share?.({ title: document.title, text: P.shareText, url: link }).catch(() => {});
+      if (what === 'share') share();
+      if (what === 'selfie') addSelfie();
       if (what === 'copy') copy();
     });
     for (const t of ['pointerdown', 'pointerup', 'touchstart', 'touchend']) el.addEventListener(t, (e) => e.stopPropagation(), { passive: true });
@@ -183,11 +203,13 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
     hide() {
       if (!api.open) return;
       api.open = false;
+      selfie?.stop();                  // the camera never outlives the postcard
       el.classList.remove('on');
       el.style.display = 'none';
       window.removeEventListener('keydown', onKey, true);
     },
     get el() { return el; },
+    get selfie() { return selfie; },
   };
   return api;
 }

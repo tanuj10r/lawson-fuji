@@ -130,6 +130,22 @@ export const STRINGS = {
     backAria: 'Back to the menu',
     close: 'Space to walk on  ·  Back or Esc for the menu',
     closeTouch: 'Back, or a tap outside the card, for the menu',
+    /* the selfie postcard (ui/postcardSelfie.js): asked for, never by itself */
+    selfie: {
+      add: 'Add your selfie 📷',
+      note: 'Your photo stays on your device',
+      asking: 'Allow the camera to take your selfie',
+      noCamera: 'No camera? Choose a photo instead.',
+      badPhoto: 'That photo would not open. Try another.',
+      choose: 'Choose a photo',
+      shutter: 'Take photo',
+      cancel: 'Cancel',
+      retake: 'Retake',
+      save: 'Save image',
+      caption: 'Hachi and me',
+      alt: 'Your postcard: your photo in Fujikawaguchikko, Hachi over the corner',
+      file: 'takemebacktojapan-postcard.jpg',
+    },
     /* the little postcard by the pause card, every pause */
     mini: 'Your postcard ✉',
     miniAria: 'Open your postcard',

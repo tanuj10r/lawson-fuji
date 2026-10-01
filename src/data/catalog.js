@@ -669,6 +669,13 @@ export const FEATURED = [
   { key: 'ice', ids: ['choco_wafer_jumbo'] },
 ];
 
+/* Sold on the street, not in the store (ぺったん堂, world/mochi/): kept out of CATALOG and PRODUCT, so the store's
+ * shelves, labels, price tags and stock check never see it.  The matcha-strawberry mochi (a matcha-green mochi
+ * dusted with kinako, a whole strawberry on top) is built by world/mochi/food.js. */
+export const STREET = Object.fromEntries([
+  P('mochi_ichigo', '抹茶いちご餅', 'Matcha strawberry mochi', 200, 'street', 'mochi', { shape: 'mochi', body: 0xa9c468, band: 0xd8243a }, 'soft'),
+].map((p) => [p.id, p]));
+
 export const PRODUCT = Object.fromEntries(CATALOG.map((p) => [p.id, p]));
 /** Products by group, in catalogue order (the planogram fills from these). */
 export const GROUP = CATALOG.reduce((m, p) => ((m[p.group] ??= []).push(p.id), m), {});

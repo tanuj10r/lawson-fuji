@@ -1,4 +1,4 @@
-/* npm run size: what a first visit downloads (SPEC M7: under 5 MB), from a
+/* npm run size: what a first visit downloads (SPEC M7: under 5 MB; 5.25 MB since ぺったん堂, Tan 2026-10-01), from a
  * fresh build.  Code is counted as it travels (gzip), media as it is. */
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -27,6 +27,6 @@ const mb = (n) => (n / 1024 / 1024).toFixed(2) + ' MB';
 let total = 0;
 for (const [k, v] of Object.entries(rows)) { if (!k.startsWith('page extras') && !k.startsWith('key art alt')) total += v; console.log(`  ${k.padEnd(30)} ${mb(v)}`); }
 const first = total - (rows['audio (after the first click)'] ?? 0) - (rows['selfie postcard (on its click)'] ?? 0);
-console.log(`SIZE ${mb(total)} in all; ${mb(first)} before the first click (budget 5 MB: ${total <= 5 * 1024 * 1024 ? "pass" : "FAIL"}); plus ${mb(rows["page extras (not the game)"] ?? 0)} of page extras`);
+console.log(`SIZE ${mb(total)} in all; ${mb(first)} before the first click (budget 5.25 MB: ${total <= 5.25 * 1024 * 1024 ? "pass" : "FAIL"}); plus ${mb(rows["page extras (not the game)"] ?? 0)} of page extras`);
 const alt = fs.existsSync(path.join(DIST, 'keyart-2560.webp')) ? fs.statSync(path.join(DIST, 'keyart-2560.webp')).size - fs.statSync(path.join(DIST, 'keyart-1920.webp')).size : 0;
 if (alt) console.log(`  (a large high-DPI screen takes keyart-2560.webp instead of -1920: +${mb(alt)} before the first click)`);

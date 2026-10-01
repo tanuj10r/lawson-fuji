@@ -20,7 +20,7 @@
  * ------------------------------------------------------------------ */
 
 import { Vector3 } from 'three';
-import { SOUND } from '../config.js';
+import { SOUND, MOCHI } from '../config.js';
 
 /** 1 within `near`, easing to 0 at `far`. */
 export function falloff(d, { near, far }) {
@@ -190,7 +190,26 @@ export function createSound({ volume = 0.5 } = {}) {
       burst(d, t, o.inside ? 0.05 : 0.08, { freq: o.inside ? 2400 : 900, q: o.inside ? 1.2 : 0.7, level: o.inside ? 0.05 : 0.07 });
       tone(d, o.inside ? 140 : 90, t, 0.05, { level: 0.05 });
     },
+    /* ぺったん堂's show without its recording (world/mochi/): the same cue table (config MOCHI.cues), so the rabbits
+     * keep time with it: a woody thud for the mallet, a wet slap for the turner's paw, tiny rabbit squeaks for the
+     * calls, three together for the cheer */
+    'mochi-pound'(d, t) {
+      const squeak = (at, k = 1, lvl = 0.2) => voice(d, at, 0.09, [[0, 1700 * k], [0.35, 2500 * k], [1, 1900 * k]], { level: lvl, formants: [[2300, 3], [3900, 5]], breath: 0.015 });
+      for (const c of MOCHI.cues) {
+        const at = t + c.t;
+        if (c.kind === 'hit') {
+          tone(d, 150, at, 0.05, { level: 0.5, attack: 0.002 }); tone(d, 74, at, 0.2, { level: 0.6, attack: 0.003 });
+          burst(d, at, 0.035, { freq: 900, q: 0.7, level: 0.35 }); burst(d, at, 0.12, { freq: 240, q: 0.8, level: 0.3, type: 'lowpass' });
+        } else if (c.kind === 'turn') {
+          burst(d, at, 0.045, { freq: 1900, q: 0.8, level: 0.2 }); burst(d, at + 0.012, 0.07, { freq: 620, q: 1.2, level: 0.16 });
+          squeak(at + 0.03, 1.12, 0.12);
+        } else if (c.kind === 'shout') squeak(at, 1, 0.2);
+        else if (c.kind === 'big') { squeak(at, 1, 0.2); squeak(at + 0.02, 1.26, 0.17); squeak(at + 0.05, 0.84, 0.17); squeak(at + 0.3, 1.5, 0.14); }
+      }
+    },
   };
+  /** How long a recipe sounds (s), where it is longer than the short ones: its handle ends then. */
+  const RECIPE_LEN = { 'mochi-pound': MOCHI.len };
 
   /* ------------------------------ playing ------------------------------ */
   /**
@@ -264,6 +283,9 @@ export function createSound({ volume = 0.5 } = {}) {
       // announcement stayed at the level it had then, however far you walked)
       const r = { b, rate, dest, h, v, off: a, end, s: null, fg: null, t0: t };
       held.add(r);
+      /* where it is in the file (s), on the audio clock: it stands still while a card holds it (ぺったん堂's rabbits
+       * move by this, world/mochi/; config MOCHI.cues) */
+      h.pos = () => (r.s ? r.off + Math.max(0, now() - r.t0) * r.rate : r.off) - a;
       // started under a card only if it was waiting for its file (a click on the card itself plays at once, unheard)
       if (menuOn && o._waited) r.t0 = now();
       else holdStart(r, t);
@@ -283,7 +305,8 @@ export function createSound({ volume = 0.5 } = {}) {
       if (file && manifest[file]) buffer(file);            // next time
       entry.src = 'recipe';
       (RECIPES[recipe ?? file] ?? RECIPES['ui-tap'])(dest, t, o);
-      setTimeout(() => { if (v) voices.delete(v); h.ended = true; }, 4000);   // the recipes are all short
+      h.pos = () => now() - t;
+      setTimeout(() => { if (v) voices.delete(v); h.ended = true; }, (RECIPE_LEN[recipe ?? file] ?? 4) * 1000);   // the recipes are short, but for the mochi show's
     }
     return h;
   }

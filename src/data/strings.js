@@ -91,7 +91,15 @@ export const STRINGS = {
       slowlife: { en: 'Slow-life bench', jp: 'ひと休み' },
       river: { en: 'The river', jp: '桜川' },
       deerGate: { en: 'Deer Park (coming soon)', jp: '鹿公園' },
+      mochi: { en: 'Mochi pounding', jp: 'もちつき' },
     },
+  },
+  /* ぺったん堂, the mochi-pounding shop (world/mochi/): the E prompt on its ring, and the toast once you've eaten */
+  mochi: {
+    name: 'Mochi pounding',
+    jp: 'もちつき',
+    buy: (yen) => `Buy a mochi  ¥${yen}`,
+    ate: 'Still warm. Step back onto the highlight for another',
   },
   /* The konbini (Tan's experience): English only; product names come from
    * the catalogue (the Japanese shown small beside them). */

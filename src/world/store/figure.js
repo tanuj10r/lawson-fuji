@@ -74,8 +74,8 @@ export function figureMaterial({ onTop = false, light = new THREE.Vector3(-0.35,
 /** Make a basic (textured) material draw on top, near-clamped, as the figures do. */
 export function onTopClamped(mat) {
   mat.onBeforeCompile = (sh) => {
-    sh.vertexShader = sh.vertexShader.replace('#include project_vertex',
-      '#include project_vertex\n  gl_Position.z = -gl_Position.w + 0.02 * max( gl_Position.z + gl_Position.w, 0.0001 * gl_Position.w );');
+    sh.vertexShader = sh.vertexShader.replace('#include <project_vertex>',
+      '#include <project_vertex>\n  gl_Position.z = -gl_Position.w + 0.02 * max( gl_Position.z + gl_Position.w, 0.0001 * gl_Position.w );');
   };
   mat.customProgramCacheKey = () => 'onTopClamped';
   return mat;

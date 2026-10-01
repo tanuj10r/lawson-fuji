@@ -49,7 +49,7 @@ teasers. Full design: SPEC.md; read only the sections the work needs.
 ## Performance (read before adding anything; SPEC section 11)
 - Draw only what is seen: hidden draws nothing, paused draws 10 fps. New
   animation hooks into the main loop, never its own rAF or setInterval.
-- Budget: whole game 300 MB memory, 5 MB download. Measure before and
+- Budget: whole game 300 MB memory, 5.25 MB download. Measure before and
   after every change (npm run size, frame GPU ms) and put the numbers in
   the commit. Textures are most of the memory: 4096^2 = 89 MB, 2048^2 =
   22 MB. Make a texture the size it is seen at; never pad a page.

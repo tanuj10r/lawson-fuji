@@ -252,7 +252,7 @@ const SIM = async (kind) => {
     trail.forEach(([x, z], i) => { const px = ((x - W.X0) / W.C) * sc, pz = (W.nz - (z - W.Z0) / W.C) * sc; i ? ctx.lineTo(px, pz) : ctx.moveTo(px, pz); });
     ctx.stroke();
     res.map = c.toDataURL('image/png');
-    res.ok = rows.length === 4 && viol === 0 && wall === 0 && stuck < 5 && res.end.state === 'nap' && res.respawn.ok && cone > 60
+    res.ok = rows.length === 5 && viol === 0 && wall === 0 && stuck < 5 && res.end.state === 'nap' && res.respawn.ok && cone > 60
       && heard && charges >= 1 && res.jog >= 2.7 && gateMin <= 8 && waterCells === 0 && alleyCells === 0 && sideEntries === 0 && feetLow === 0 && t < 900
       && res.visited.includes('home') && res.visited.includes('shrine') && railEnter === 0
       && ['home:bounce', 'home:spin', 'home:tunnel', 'home:hoop', 'home:kennel', 'home:toy', 'home:flop', 'shrine:sit'].every((q) => visitPhases.includes(q));

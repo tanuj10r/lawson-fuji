@@ -164,6 +164,22 @@ export const SHOP_LETTERING = {
 /** The sweet shop's wooden menu tags, over its counter. */
 export const SWEET_TAGS = ['だんご', '大福', 'さくら餅', 'どら焼', 'もなか', '羊羹', 'おはぎ', '柏餅'];
 
+/* ---- ぺったん堂 (world/mochi/): the mochi-pounding shop, a homage to Kyoto's
+ * high-speed pounders under our own name, crest (a rabbit at a mortar) and words ---- */
+export const PETTAN = {
+  name: 'ぺったん堂',
+  en: 'PETTAN-DO',
+  sub: '名物 もちつき',
+  flags: ['つきたて', '高速餅つき'],
+  item: '抹茶いちご餅',
+  price: '¥200',
+  card: 'ひとつ',
+  dog: 'わんこ用',
+  dogSub: 'ほしいも',
+  side: ['つきたて', 'おもち'],
+  seal: '兎',
+};
+
 /* ---- the discount megastore (experiences): ドンペン堂, a loving homage to
  * the big discount palaces, in our own name, words and mascot ---- */
 export const DONPEN = {

@@ -80,7 +80,7 @@ process.on('exit', unlock);
 const server = await createServer({
   root: ROOT,
   logLevel: 'error',
-  server: { port: 5190, strictPort: false, host: '127.0.0.1' },
+  server: { port: +process.env.PORT || 5190, strictPort: !!process.env.PORT, host: '127.0.0.1' },
 });
 await server.listen();
 const base = server.resolvedUrls.local[0];

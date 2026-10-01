@@ -115,6 +115,13 @@ export function buildShrine(ctx, net, kit, s, F) {
   // moss along the fences and round the stones
   for (const sx of [-1, 1]) P.add('moss', ext(sx * (W / 2 - 0.5) - 0.28, sx * (W / 2 - 0.5) + 0.28, 0.04, 0.048, 0.6, D - 0.4));
 
+  // the ground you (and Hachi, 24 cm tall) stand on: the gravel, and the stone path a little above it
+  {
+    const plat = (x0, z0, x1, z1, top) => { const a = town(x0, z0), b = town(x1, z1); ctx.platform({ x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), z0: Math.min(a.z, b.z), z1: Math.max(a.z, b.z), top }); };
+    plat(-W / 2, 0, W / 2, D, 0.04);
+    plat(-0.82, 0.05, 0.82, L.hallF - 0.55, 0.075);
+  }
+
   /* ---- the front: stone fence either side of the gate, the name pillar ---- */
   fenceStone(P, -W / 2 + 0.2, -2.75, 0.3);
   fenceStone(P, 2.75, W / 2 - 0.2, 0.3);

@@ -253,8 +253,12 @@ export class Player {
     }
 
     const bounds = this.world.bounds;
-    this.pos.x = clamp(this.pos.x, bounds.x0, bounds.x1);
-    this.pos.z = clamp(this.pos.z, bounds.z0, bounds.z1);
+    // (a pocket: one walkable rect outside the bounds, fenced by its own colliders: Hachi's garden)
+    const pk = this.world.pocket;
+    if (!(pk && this.pos.x > pk.x0 && this.pos.x < pk.x1 && this.pos.z > pk.z0 && this.pos.z < pk.z1)) {
+      this.pos.x = clamp(this.pos.x, bounds.x0, bounds.x1);
+      this.pos.z = clamp(this.pos.z, bounds.z0, bounds.z1);
+    }
 
     /* Passing the current feet height is what lets an elevated platform be
      * walked under as well as on: `heightAt` only offers a platform within a

@@ -82,6 +82,7 @@ export const STRINGS = {
       plaza: { en: 'Station plaza', jp: '駅前広場' },
       station: { en: 'Fujikawaguchikko Station', jp: '富士川口湖駅' },
       crossing: { en: 'Level crossing', jp: '踏切' },
+      hachiHome: { en: "Hachi's home", jp: 'ハチのおうち' },
       pond: { en: 'Kagami Pond', jp: '鏡池' },
       slowlife: { en: 'Slow-life bench', jp: 'ひと休み' },
       river: { en: 'The river', jp: '桜川' },

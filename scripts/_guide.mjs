@@ -10,6 +10,8 @@
 //                                                            > 12 m off after catching up) and invites at most every 20 s
 //                                                   whistle  the pup far off (napping 40 m and 100+ m away): F brings it
 //                                                            to the player in a sensible time and it guides on
+//                                                   bedtime  the tour's end: up onto the gate's bench, a play, curled up asleep on
+//                                                            it; onNap once it has settled
 //                                                 plus the respawn rule (a jump onto the view: out of the frame) and a
 //                                                 map of the follow run's trail
 //   node scripts/_guide.mjs --measure [--root d]  draw calls, triangles and frame ms at the hero view
@@ -46,7 +48,7 @@ for (;;) {
 const unlock = () => { try { if (+fs.readFileSync(path.join(LOCK, 'pid'), 'utf8') === process.pid) fs.rmSync(LOCK, { recursive: true, force: true }); } catch {} };
 process.on('exit', unlock);
 
-const server = await createServer({ root: ROOT, configFile: path.join(ROOT, 'vite.config.js'), logLevel: 'error', server: { port: 5194, strictPort: false, host: '127.0.0.1' } });
+const server = await createServer({ root: ROOT, configFile: path.join(ROOT, 'vite.config.js'), logLevel: 'error', server: { port: +process.env.PORT || 5194, strictPort: !!process.env.PORT, host: '127.0.0.1' } });
 await server.listen();
 const base = server.resolvedUrls.local[0];
 const flags = ['--use-angle=metal', '--ignore-gpu-blocklist', '--enable-precise-memory-info', '--autoplay-policy=no-user-gesture-required'];
@@ -124,8 +126,10 @@ const SIM = async (kind) => {
     t += dt;
     if (Math.round(t * 30) % 15 === 0) sync();
     if (Math.round(t * 30) % 6 === 0) trail.push([+S.x.toFixed(2), +S.z.toFixed(2)]);
-    if (!W.free(S.x, S.z) && !(S.act?.name === 'circle')) viol++;
-    if (hit(S.x, S.z)) wall++;
+    // (up on the gate's bench, or hopping on or off it, it is over a collider by design)
+    const perched = S.onBench || !!S.hopOff || S.bed?.phase === 'hop';
+    if (!W.free(S.x, S.z) && !(S.act?.name === 'circle') && !perched) viol++;
+    if (hit(S.x, S.z) && !perched) wall++;
     for (const k in hear) { const v = A.hear[k], d = Math.hypot(P.x - v[0], P.z - v[1]); if (d < hear[k].min) hear[k].min = +d.toFixed(1); }
     if (gateW) gateMin = Math.min(gateMin, Math.hypot(P.x - gateW.x, P.z - gateW.z));
     const c = W.cell(S.x, S.z);
@@ -409,6 +413,36 @@ const SIM = async (kind) => {
       && (!behind || (behind.reached !== null && behind.reached <= 8 && behind.angle < 52 && behind.seen >= 0.25 && behind.popped === false && behind.greeted && !!behind.resumed && timing(behind)))
       && !!near && near.reached !== null && near.reached <= near.d0 / 3.5 + 3 && Math.abs(near.d1 - near.d0) < 0.5 && near.seen >= 0.85 && near.popped === false && near.greeted && !!near.resumed && timing(near) && near.earsUpFrames > 5
       && here.whistles === 1 && here.yips >= 1 && here.tYip - here.tWhistle >= 0.52 && here.hopped && !here.ran && here.greetAt >= 3.2 && here.greetAt <= 5.2;
+  } else if (kind === 'bedtime') {
+    // the tour's end (Tan: Hachi sank into the ground at the gate; make it "aww"): from 9 m off it trots to the gate's
+    // bench, hops up, plays (a bow, a spin, a roll, a tilt), circles and curls up asleep ON the seat; GUIDE.onNap fires
+    // once, when it has settled, not before.
+    g.reset();
+    const Bn = g.bench;
+    const fx = Bn.nap.x - Bn.x, fz = Bn.nap.z - Bn.z, fl = Math.hypot(fx, fz), F = { x: fx / fl, z: fz / fl }, L = { x: -F.z, z: F.x };
+    P.x = Bn.x + F.x * 3.1 + L.x * 0.7; P.z = Bn.z + F.z * 3.1 + L.z * 0.7; lookAt(Bn.x, Bn.z); sync();
+    // the listener where you stand (the frozen shots page doesn't move it; the pup's voice carries 16 m)
+    window.__scene.sound.update(0, { camera, inside: false, look: 'day' });
+    const c = W.nearest(Bn.nap.x + F.x * 9 - L.x * 2, Bn.nap.z + F.z * 9 - L.z * 2, 3), q = W.at(c);
+    Object.assign(S, { x: q.x, z: q.z });
+    const log = window.__scene.sound.debug.log; log.length = 0;
+    g.napNow();
+    let landed = null, settled = null, napAt = null, minY = 9, phases = [], last = null;
+    while (t < 40) {
+      step();
+      const ph = S.bed?.phase ?? S.state;
+      if (ph !== last) { phases.push(ph); last = ph; }
+      if (landed === null && S.bed?.phase === 'bed') landed = +t.toFixed(1);
+      if (S.bed?.phase === 'bed' || S.bed?.phase === 'sleep') minY = Math.min(minY, S.y);
+      if (napAt === null && S.napped) napAt = +t.toFixed(1);
+      if (settled === null && S.bed?.phase === 'sleep') settled = +t.toFixed(1);
+      if (settled !== null && t > settled + 3) break;
+    }
+    const said = [...new Set(log.map((e) => e.name).filter((n) => /^dog-/.test(n ?? '')))];
+    const asleep = { y: +S.y.toFixed(3), posture: +S.posture.toFixed(2), onBench: !!S.onBench };
+    res.bedtime = { phases, landed, settled, napAt, minY: +minY.toFixed(3), seat: Bn.seat, asleep, said, end: S.state };
+    res.ok = landed !== null && settled !== null && napAt === settled && minY >= Bn.seat - 0.005 && asleep.onBench && asleep.posture > 1.9
+      && ['dog-yip', 'dog-snort', 'dog-hmm', 'dog-snore'].every((n) => said.includes(n));
   } else if (kind === 'ground') {
     // nothing drawn over the ground it stands on along the tour (Tan: sunk into the track at the Deer Park gate, which
     // was drawn 12 cm up and never walkable): every half metre, the surface under it against the ground it uses
@@ -512,7 +546,7 @@ try {
     if (!loud) bad++;
     console.log(loud ? 'pass' : 'FAIL', 'voice', JSON.stringify(voice));
 
-    for (const kind of ['tour', 'intro', 'turnaway', 'wander', 'whistle', 'tipsy', 'ground'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
+    for (const kind of ['tour', 'intro', 'turnaway', 'wander', 'whistle', 'bedtime', 'tipsy', 'ground'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
       const r = await page.evaluate(SIM, kind);
       if (r.map) { fs.writeFileSync(path.join(out, 'trail.png'), Buffer.from(r.map.split(',')[1], 'base64')); delete r.map; }
       const said = await page.evaluate(() => { const l = [...new Set(window.__scene.sound.debug.log.map((e) => e.name).filter((n) => /^dog-|^whistle/.test(n ?? '')))]; window.__scene.sound.debug.log.length = 0; return l; });

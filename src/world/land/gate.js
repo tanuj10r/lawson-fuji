@@ -22,6 +22,8 @@ export function buildGate(ctx, parts) {
 
   // the forecourt: fine gravel, a little wider than the track
   parts.add('gravel', sheetGeo(x - 6.5, x + 6.5, z - 1.5, z + 6.2, 0.025));
+  // (its height is the ground's there: things stand on the gravel, not 2.5 cm into it; Hachi lay half sunk in it)
+  ctx.platform({ x0: x - 6.5, x1: x + 6.5, z0: z - 1.5, z1: z + 6.2, top: 0.025 });
 
   // posts, on stone footings
   for (const s of [-1, 1]) {
@@ -143,6 +145,24 @@ export function buildGate(ctx, parts) {
     ctx.add(poster);
     const [cx0, cz0] = along(-0.95), [cx1, cz1] = along(0.95);
     ctx.collide(Math.min(cx0, cx1) - 0.1, Math.min(cz0, cz1) - 0.12, Math.max(cx0, cx1) + 0.1, Math.max(cz0, cz1) + 0.12, 2.1);
+  }
+
+  // a little waiting bench (縁台) in front of the rope, for whoever waits for the park to open: Hachi's bed at the end
+  // of the tour (animals/guide.js).  Three slats on two leg frames, a stretcher between.
+  {
+    const b = TOWN.land.gateBench, hl = b.len / 2, hd = b.depth / 2, top = b.seat, sl = 0.045;
+    for (let k = 0; k < 3; k++) {
+      const w = (b.depth - 0.04) / 3, z0 = b.z - hd + k * (w + 0.02);
+      parts.box('door', b.x - hl, b.x + hl, top - sl, top, z0, z0 + w);
+    }
+    for (const s of [-1, 1]) {
+      const fx = b.x + s * (hl - 0.14);
+      parts.box('gateWood', fx - 0.05, fx + 0.05, top - sl - 0.05, top - sl, b.z - hd + 0.01, b.z + hd - 0.01);   // the cross bearer
+      for (const e of [-1, 1]) parts.box('gateWood', fx - 0.035, fx + 0.035, 0, top - sl - 0.05, b.z + e * (hd - 0.06) - 0.035, b.z + e * (hd - 0.06) + 0.035);
+      parts.box('gateWood', fx - 0.025, fx + 0.025, 0.1, 0.15, b.z - hd + 0.05, b.z + hd - 0.05);              // the low rail
+    }
+    parts.box('gateWood', b.x - hl + 0.14, b.x + hl - 0.14, 0.12, 0.16, b.z - 0.02, b.z + 0.02);                 // the stretcher
+    ctx.collide(b.x - hl, b.z - hd, b.x + hl, b.z + hd, top);
   }
 
   // a sakura either side of the forecourt

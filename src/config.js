@@ -366,6 +366,9 @@ export const TOWN = {
     bridge: { x: 30, w: 5.4, z0: -34, z1: -11, deck: 0.2 },  // road-level bridge over the whole channel
     hills: { r: [620, 900], span: 1.85 },   // the painted far hills: radii (m) and half-angle (rad) round the town's north
     deerGate: { x: 30, z: -40.6 },          // 鹿公園, coming soon: at the bridge's end, the town's edge
+    /* a little waiting bench (縁台) by the gate, in front of the rope, the seat along x: Hachi's bed at the end of the
+     * tour (animals/guide.js: he hops up, plays a moment, curls up asleep on it).  Town frame; `seat` is its top (m) */
+    gateBench: { x: 28.45, z: -38.5, len: 1.4, depth: 0.44, seat: 0.42 },
   },
 
 };
@@ -863,7 +866,10 @@ export const ANIMALS = {
       { id: 'gate', x: -30, z: 65, wait: 7 },     // 鹿公園, coming soon
     ],
     hear: { walk0: [-35, 13.8, 14], walk1: [50, -5, 14], walk2: [50, -75, 14], walk3: [-30, 1.5, 14], donki: [55.9, -41.4, 12], station: [51, -125.5, 14], crossing: [80, -134.3, 10], shrine: [-13, -64.4, 14] },   // each sound place and how near the tour must pass (m)
-    nap: [27.6, -38.4],                       // town frame: beside the Deer Park gate, the tour's last stop, where it sleeps once everything is done
+    nap: [28.45, -37.75],                     // town frame: in front of the gate's bench (TOWN.land.gateBench), the tour's last stop: it hops up from here and sleeps on it once everything is done
+    /* the bedtime on the bench (s from landing on it): a play bow at you, a happy spin, a roll belly-up, a sit and a
+     * head tilt, two slow circles, and down, curled up; `onNap` (the postcard) fires once it is settled */
+    bedtime: { hop: 0.5, bow: [0.35, 1.6], spin: [1.6, 2.5], roll: [2.5, 4.6], sit: [4.6, 5.6], circle: [5.6, 7.3], settle: 8.0 },
   },
   butterflies: { size: 1.15, beatHz: 9, speed: 0.9, near: 45, shy: 1.0 },
   pigeons: { plaza: 9, spine: 5, flush: 2.4, flushSpeed: 0.6, shy: 1.3, walkSpeed: 0.2, stepAngle: 0.36, flySpeed: 5, sit: [8, 20], back: 10 },

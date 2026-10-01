@@ -975,6 +975,8 @@ if (import.meta.env?.DEV) {
   window.__lastView = () => lastView;
   /** Stand the trains in a moment: 'platform', 'platform2', 'crossing', 'approach'. */
   window.__train = (kind) => world.line?.service.stage(kind);
+  /** The z-fighting detector (scripts/_zfight.mjs, src/dev/zfight.js): one pose, drawn N times a hair apart. */
+  window.__zfight = async (pose, o) => (await import('./dev/zfight.js')).zfight({ scene, camera, renderer, pipeline, world, sky, canvas }, pose, o);
   /** ?poster: stage the key art's diorama (src/dev/poster.js); resolves to its `__shot` options. */
   if (POSTER) window.__poster = async () => (await import('./dev/poster.js')).stagePoster({ scene, world, applyLook });
 

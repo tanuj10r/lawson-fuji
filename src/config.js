@@ -809,12 +809,15 @@ export const ANIMALS = {
     /* the hello, every start: `after` s into play (Tan: a look at the view first) it runs to `d` m in front of you and sits `hold` s; your view eases
      * down to it meanwhile (main.js watchPup: `follow` 1/s, the pitch no lower than `pitchMin`) and back after */
     intro: { after: 4, d: 3.2, hold: 5.5, follow: 3, pitchMin: -0.55, above: 0.18 },   // (`above`: the view aims this much over it: it sits in the lower third, the store still in the frame)
-    /* F (Tan: it must be seen running to you, wherever you look): it answers `answer` s after the whistle starts (the whistle
-     * is 0.52 s long).  If you can see it (within `see` m, `cone` degrees of the lens, nothing between) it runs from there;
-     * else it is set out of sight of nothing: on a street `from` m ahead of you, in view, with a clear run to you, and
-     * gallops in at `gallop` m/s, bounding; it stops `near` m from you and greets you (a skid, a spin, two bounces, a sit
-     * and a head tilt).  Only with no such street (a wall in your face) does it come from out of view, as before. */
-    whistle: { far: 80, near: 4.2, answer: 0.85, see: 40, cone: 30, from: [10, 18], gallop: 4.4 },   // (`near`: nearer than ~4 m a 24 cm pup is under the bottom of your view)
+    /* F: it answers `answer` s after the whistle starts (the whistle is 0.52 s long).  Within `runFrom` m of you (and
+     * `reach` m by the way) it runs from where it really is, by the way, at a `sprint` m/s while far, the bounding
+     * `gallop` m/s for the last ten metres: behind you, it comes from behind (Tan, QA: it used to be set on a street in
+     * front of you and run in from out of nowhere, having just been behind you).  Farther, or with no way from there, it
+     * is set on its own way to you, `hide` [min, max] m off by the way, where you can't see it (more than `view` degrees
+     * off your lens, or round a corner), and runs in from there.  It stops `near` m from you and greets you (a skid, a
+     * spin, two bounces, a sit and a head tilt).  `grow`: how far the way to you is grown over the whistle's notes, in
+     * pavement metres (a road crossed off a zebra counts ~20 a metre: 80 m by the way round the store is ~250). */
+    whistle: { far: 80, near: 4.2, answer: 0.85, gallop: 4.4, sprint: 8.5, runFrom: 60, reach: 80, hide: [14, 45], view: 62, grow: 320 },   // (`near`: nearer than ~4 m a 24 cm pup is under the bottom of your view)
     /* the Strong Nine (Tan: when you're tipsy, the pup giggles and rolls on the floor): it comes to `d` m in front of
      * you and plays for as long as the tipsiness lasts (main.js: 10 s) */
     party: { d: 4.0, from: [7, 12], lean: -0.35 },

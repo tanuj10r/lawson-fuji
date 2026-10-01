@@ -553,7 +553,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     G.lastWhistle = G.t; G.whistleAt = G.t + A.whistle.answer;
     // the way to you, grown over the notes (a frame's worth at a time), so the answer doesn't stall a frame
     const f = (fields.whistle ??= new Field(W));
-    grow(f, P.x, P.z, 0.6, A.whistle.far * 1.5);
+    grow(f, P.x, P.z, 0.6, A.whistle.grow);
     return true;
   };
   /** Where to come from so you see it come (Tan: no popping up, no coming from behind): a street `from` [min, max] m
@@ -630,29 +630,81 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   /** Can you see it now: near enough, in the lens, nothing between? */
   const inSight = (see, cone) => dist(P, G) <= see && inCone(cone) && W.sight(G.x, G.z, P.x, P.z);
   const setAt = (q) => { offBench(); G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); G.speed = 0; G.yaw = Math.atan2(P.x - G.x, P.z - G.z); };
+  /** Too far to run from where it is, or no way from there (QA, Tan: it ran in from in front of you out of nowhere,
+   * having just been behind you): set on its own way to you, `hide` [min, max] m from you by the way, at the first
+   * point of that way you can't see (behind you, off the side of your view by `view` degrees, or round a corner); else
+   * a street on the side it really is, out of your sight.  `f` is a field grown from you.  Null if nowhere. */
+  const comeFrom = (f) => {
+    const W_ = A.whistle, [m0, m1] = W_.hide, fc = facing?.(), cosV = Math.cos(W_.view * Math.PI / 180);
+    const look = fc && fc.lengthSq() > 0.5 ? fc : null;
+    const unseen = (q) => {
+      const dx = q.x - P.x, dz = q.z - P.z, d = Math.hypot(dx, dz) || 1;
+      return !look || (dx * look.x + dz * look.z) / d < cosV || W.hidden(q.x, q.z, P.x, P.z);
+    };
+    // its way to you, traced down the field from where it is (from the bench's foot when it is up on the bench)
+    const from = G.onBench ? NAP : G;
+    let c = W.cell(from.x, from.z);
+    if (c < 0 || f.m[c] === INF) c = W.nearest(from.x, from.z, 3, (i) => f.m[i] < INF);
+    if (c >= 0) {
+      const route = [];
+      for (let k = 0; k < 6000 && c >= 0; k++) { route.push(c); c = f.next(c); }
+      for (let i = route.length - 1; i >= 0; i--) {
+        const m = f.m[route[i]];
+        if (m < m0) continue;
+        if (m > m1) break;
+        const q = W.at(route[i]);
+        if (unseen(q)) return q;
+      }
+    }
+    // no way from there, or all of it in plain view: a street on its side of you that you can't see
+    const gx = G.x - P.x, gz = G.z - P.z, gl = Math.hypot(gx, gz) || 1;
+    let best = -1, bs = INF;
+    for (let i = 0; i < W.N; i++) {
+      const m = f.m[i];
+      if (m < m0 || m > m1) continue;
+      const q = W.at(i);
+      const dx = q.x - P.x, dz = q.z - P.z, d = Math.hypot(dx, dz) || 1;
+      const sc = 2 * (1 - (dx * gx + dz * gz) / (d * gl)) + m / m1;     // toward where it really is, and near
+      if (sc >= bs || !unseen(q)) continue;
+      bs = sc; best = i;
+    }
+    return best >= 0 ? W.at(best) : null;
+  };
   const answer = () => {
-    // the yip comes from where you'll see it (placed first when it was out of view: heard from far off, it is not at all)
-    const dP = dist(P, G);
-    if (dP <= 5 || inSight(A.whistle.see, A.whistle.cone)) say('dog-yip', 0.9, true, 30);   // (the answer carries: you called it)
-    else G.yipDue = true;
+    const t0 = performance.now();
+    const dP = dist(P, G), W_ = A.whistle;
     G.act = null; G.roll = G.pitch = 0;
     // already just in front of you: the greeting there; beside or behind you (under or out of your view), it bounds
     // out to the spot in front and greets you from there
-    const fs0 = frontSpot(A.whistle.near);
-    if (fs0 && dist(G, fs0) < 1.2 && G.state !== 'nap' && G.state !== 'home') { greet(); return; }
+    const fs0 = frontSpot(W_.near);
+    if (fs0 && dist(G, fs0) < 1.2 && G.state !== 'nap' && G.state !== 'home') { say('dog-yip', 0.9, true, 30); greet(); return; }
     G.target = null; G.resume = null; G.drops = 0;
     G.state = 'come'; G.since = 0; G.thinkT = -9; G.waitT = 0; G.cameYip = false;
     const pre = fields.whistle;
-    G.field = pre && pre.goalAt && dist(pre.goalAt, P) < 3 ? pre : aim('follow', P.x, P.z, 0.6, A.whistle.far * 1.5); G.thinkT = 0;
-    const W_ = A.whistle;
-    if (inSight(W_.see, W_.cone)) return;               // you can see it: it runs from where it is
-    // out of your view (behind you, round a corner, far off): it is set on a street ahead of you, in view, and runs in
+    G.field = pre && pre.goalAt && dist(pre.goalAt, P) < 3 ? pre : aim('follow', P.x, P.z, 0.6, W_.grow); G.thinkT = 0;
     const f = G.field;
     while (!f.ready) f.work(50);          // (grown over the notes already: this finishes it, if anything)
-    enterView(f, W_.from, W_.cone);        // 1-4 ms
-    sayDue();
+    /* Near enough (`runFrom` m, `reach` m by the way): it runs from where it really is, at a sprint, by the way:
+     * behind you, it comes from behind; round a corner, round the corner.  Only from farther (or with no way from
+     * there) is it set on its way to you, out of your sight (comeFrom), and runs in from there. */
+    const from = G.onBench ? NAP : G;
+    G.cameFrom = 'here';
+    if (!(dP <= W_.runFrom && f.near(from.x, from.z) <= W_.reach)) {
+      const q = comeFrom(f);       // 1-4 ms
+      if (q) {
+        setAt(q);
+        // facing down its way already, and off at a run: no turning on the spot where it comes out
+        const c = W.cell(q.x, q.z), n = c >= 0 ? f.next(c) : -1;
+        if (n >= 0) { const b = W.at(n); G.yaw = Math.atan2(b.x - q.x, b.z - q.z); }
+        G.speed = W_.gallop;
+        G.cameFrom = 'placed';
+      }
+    }
+    // the yip, from where it is (the answer carries, you called it; from beyond 30 m you don't hear it, and it yips
+    // again as it comes up to you)
+    say('dog-yip', 0.9, true, 30);
+    dbg.answerMs = performance.now() - t0;
   };
-  const sayDue = () => { if (G.yipDue) { G.yipDue = false; say('dog-yip', 0.9, true, 30); } };
   /** Arrived at your whistle (or already beside you): the greeting. */
   const greet = () => {
     G.state = 'caught'; G.since = 0;
@@ -780,11 +832,11 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     let cur = c, way = W.at(c), steps = 0;
     for (;;) {
       const n = f.next(cur);
-      if (n < 0 || ++steps > 12) break;
+      if (n < 0 || ++steps > 16) break;
       const q = W.at(n);
       if (!W.sight(G.x, G.z, q.x, q.z)) break;
       way = q; cur = n;
-      if (dist(q, G) > 2.5) break;
+      if (dist(q, G) > Math.max(2.5, wantSpeed * 0.5)) break;      // (farther at a sprint: it slows to arrive at the point it aims for)
     }
     // never through you: bend round when you are close to the line
     const dxp = P.x - G.x, dzp = P.z - G.z, dp = Math.hypot(dxp, dzp);
@@ -1341,11 +1393,28 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         const lead = THREE.MathUtils.clamp(0.5 * dP, A.whistle.near, 7);
         const fs = frontSpot(lead) ?? frontSpot(A.whistle.near);
         const dF = fs ? dist(G, fs) : dP;
-        if ((dF > 0.45 || lead > A.whistle.near + 0.3) && dP > 1.1) {
-          r = fs && dF < 24 && W.sight(G.x, G.z, fs.x, fs.z) ? move(dt, fs, A.whistle.gallop) : pursue(dt, A.whistle.gallop);
+        // the greeting is in front of you: at the spot, or bumping into you from the front; coming up from behind, it
+        // runs on past you (round your side, never through your legs) to greet you where you can see it
+        const front = inCone(70);
+        if ((dF > 0.45 || lead > A.whistle.near + 0.3) && (dP > 1.1 || !front)) {
+          // a sprint while far off (it runs from where it really is: it must not take long), the bounding gallop for
+          // the last ten metres or so, where you see it come
+          const v = A.whistle.gallop + (A.whistle.sprint - A.whistle.gallop) * THREE.MathUtils.clamp((dP - 10) / 12, 0, 1);
+          // (far off, down the whistle's own field while you stay about where you whistled: grown 120 m out, it has the
+          // whole way; pursue's fields, re-grown as you move, are shorter)
+          const wf = fields.whistle, onWf = wf?.ready && dist(wf.goalAt, P) < 3 && dP > 14 && wf.near(G.x, G.z) < INF;
+          if (onWf) G.field = wf;
+          // close and behind or beside you: first to a point off your shoulder, on the side it is
+          let by = null;
+          const fc = facing?.();
+          if (!front && dP < 3.5 && fc && fc.lengthSq() > 0.5) {
+            const px = fc.z, pz = -fc.x, sd = (G.x - P.x) * px + (G.z - P.z) * pz >= 0 ? 1 : -1;
+            for (const k of [1.3, 1.0, -1.3]) { const q = { x: P.x + px * sd * k + fc.x * 1.2, z: P.z + pz * sd * k + fc.z * 1.2 }; if (W.free(q.x, q.z) && W.sight(G.x, G.z, q.x, q.z)) { by = q; break; } }
+          }
+          r = by ? move(dt, by, v) : fs && dF < 24 && W.sight(G.x, G.z, fs.x, fs.z) ? move(dt, fs, v) : onWf ? steer(dt, v) : pursue(dt, v);
           lookAt = 'player'; pose.bound = 1;
-          // no way to you from where it is (a pocket of the grid): it comes in from where you'll see it, else to your side
-          if (r === 'lost' && G.since > 4) { const f = aim('follow', P.x, P.z, 0.6, 120); while (!f.ready) f.work(50); G.since = 0; if (!enterView(f, A.whistle.from, A.whistle.cone)) { const n = W.nearest(P.x, P.z, 4); if (n >= 0) setAt(W.at(n)); } }
+          // no way to you from where it is (a pocket of the grid): set on its way to you out of your sight, else by you
+          if (r === 'lost' && G.since > 4) { const f = aim('follow', P.x, P.z, 0.6, 120); while (!f.ready) f.work(50); G.since = 0; const q = comeFrom(f); if (q) setAt(q); else { const n = W.nearest(P.x, P.z, 4); if (n >= 0) setAt(W.at(n)); } }
           if (!G.cameYip && dP < 7) { G.cameYip = true; say('dog-yip', 0.8); }
         } else greet();
         pose.perk = 0.6; pose.wag = 0.95; pose.nod = 0.02;
@@ -1483,7 +1552,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   /* dev: state, staged poses for the screenshots, and a headless run */
   if (import.meta.env?.DEV && typeof window !== 'undefined') {
     window.__guide = {
-      state: () => ({ state: G.state, leg: G.leg, target: G.target?.id ?? null, done: [...G.done], skipped: [...G.skipped], act: G.act?.name ?? null, x: +G.x.toFixed(2), z: +G.z.toFixed(2), yaw: +G.yaw.toFixed(2), speed: +G.speed.toFixed(2), posture: +G.posture.toFixed(2), energy: +G.energy.toFixed(2), gridMs: +W.ms.toFixed(0), cells: W.N, paths: dbg.paths, ready: !!G.field?.ready }),
+      state: () => ({ state: G.state, leg: G.leg, target: G.target?.id ?? null, done: [...G.done], skipped: [...G.skipped], act: G.act?.name ?? null, x: +G.x.toFixed(2), z: +G.z.toFixed(2), yaw: +G.yaw.toFixed(2), speed: +G.speed.toFixed(2), posture: +G.posture.toFixed(2), energy: +G.energy.toFixed(2), gridMs: +W.ms.toFixed(0), cells: W.N, paths: dbg.paths, ready: !!G.field?.ready, answerMs: +(dbg.answerMs ?? 0).toFixed(1) }),
       walk: W, G, P, A,
       /** Stand the pup in a pose `d` metres in front of a player { pos, yaw } for a frame: `kind` or `kind@d`:
        *  trot | look | sit | tilt | nap | hop | stand | side | behind | bow | roll | lie | zoom | chase | tail */

@@ -1,7 +1,7 @@
 import { STRINGS } from '../data/strings.js';
 import { VOLUME_STEPS } from '../config.js';
 import { TOWN_NAME } from '../data/town.js';
-import { makerChip } from '../ui/maker.js';
+import { makerChip, STAMP } from '../ui/maker.js';
 
 /* ------------------------------------------------------------------ *
  * Minimal HUD: the start and pause card, a small crosshair and an
@@ -50,7 +50,12 @@ export function createHud({ volume = 50 } = {}) {
           <p class="menu-jp" lang="ja">${STRINGS.titleJp}</p>
         </figcaption>
         <span class="menu-paused pause-only">${STRINGS.paused}</span>
-        ${makerChip('start_card')}
+        <div class="menu-corner">
+          <button class="menu-postcard" type="button" hidden data-fast-goal="postcard_reopen" aria-label="${STRINGS.postcard.miniAria}">
+            <span class="stamp">${STAMP}</span><span class="t">${STRINGS.postcard.mini}</span>
+          </button>
+          ${makerChip('start_card')}
+        </div>
       </figure>
       <div class="menu-body">
         <div class="menu-left">
@@ -99,11 +104,20 @@ export function createHud({ volume = 50 } = {}) {
   let coordsOn = false;
   let coordsAcc = 0;
   let startedOnce = false;
+  /* the little postcard on the pause card (once the postcard has come): it glows the first time the card shows
+   * with it, then stays quiet.  none -> due -> glowing -> done */
+  const mini = overlay.querySelector('.menu-postcard');
+  let glow = 'none';
 
   const api = {
     root,
     overlay,
+    /** Start or Resume, on purpose: the button (Space is main.js's) */
     onStart: null,
+    /** any other click on the card: only wakes the sound (the title song), never starts the game */
+    onWake: null,
+    /** the little postcard was clicked */
+    onPostcard: null,
     onVolumeChange: null,
     /** Something else has the screen with the pointer free (the postcard, ui/maker.js): the card waits behind it. */
     holdCard: false,
@@ -131,8 +145,16 @@ export function createHud({ volume = 50 } = {}) {
       overlay.classList.toggle('hidden', hide);
       overlay.setAttribute('aria-hidden', hide ? 'true' : 'false');
       crosshair.classList.toggle('on', locked);
+      if (!hide && glow === 'due') { glow = 'glowing'; mini.classList.add('glow'); }
+      if (hide && glow === 'glowing') { glow = 'done'; mini.classList.remove('glow'); }
       if (!hide) requestAnimationFrame(() => actionButton.focus({ preventScroll: true }));
     },
+    /** The postcard has come (the end of Hachi's tour): the pause card keeps a little one that opens it again. */
+    setPostcard(on) {
+      mini.hidden = !on;
+      if (on && glow === 'none') glow = 'due';
+    },
+    get postcardGlow() { return mini.classList.contains('glow'); },
     setVolume(value) {
       setVolumeReadout(value);
     },
@@ -215,9 +237,13 @@ export function createHud({ volume = 50 } = {}) {
     e.stopPropagation();
     api.onStart?.();
   });
-  overlay.addEventListener('click', (e) => {
-    if (e.target.closest('.audio-control, a, .mk-chip')) return;   // the Credits link and Tan's chip open their pages, not the game
-    api.onStart?.();
+  /* Start and Resume only on purpose (Tan, 2026-10-01): a click anywhere else on the card wakes the sound, so the
+   * title song plays on the start card, and does nothing more.  Links (Credits, Tan's chip) open their pages. */
+  overlay.addEventListener('click', () => api.onWake?.());
+  mini.addEventListener('click', (e) => {
+    e.stopPropagation();
+    api.onWake?.();
+    api.onPostcard?.();
   });
   for (const event of ['click', 'pointerdown', 'pointerup']) {
     audioControl.addEventListener(event, (e) => e.stopPropagation());

@@ -221,41 +221,59 @@ hud.onVolumeChange = (step) => {
   rememberVolume();
 };
 
-hud.onStart = () => {
+/* Start and Resume only on purpose (Tan, 2026-10-01): the card's button or Space.  Any other click on the card
+ * only wakes the sound (hud.onWake), so the title song plays on the start card from the first click.  A browser
+ * may refuse the pointer to a key (all three take it from keydown, a user activation; Firefox checked headless):
+ * then the card stays and says to press its button. */
+hud.onStart = () => { sound.start(); player.lock(); };
+hud.onWake = () => sound.start();
+let refusedHint = null;
+function takePointer() {
   sound.start();
-  player.lock();
-};
+  const mode = hud.overlay.dataset.mode;
+  const refused = () => {
+    document.removeEventListener('pointerlockerror', refused);
+    if (player.locked) return;
+    if (postcard?.open) { closePostcard(); hud.setLocked(false); }   // its Resume is on the pause card
+    hud.flash(STRINGS.pointerRefused[mode === 'start' ? 'start' : 'resume'], 2600);
+  };
+  if (refusedHint) document.removeEventListener('pointerlockerror', refusedHint);
+  refusedHint = refused;
+  document.addEventListener('pointerlockerror', refused);
+  const r = player.lock();
+  if (r?.then) r.then(() => document.removeEventListener('pointerlockerror', refused), refused);
+}
 player.onLockChange = (locked) => {
-  if (locked && postcard?.open) closePostcard();   // Space or a click took the pointer back: the walk goes on
+  if (locked && refusedHint) { document.removeEventListener('pointerlockerror', refusedHint); refusedHint = null; }
+  if (locked && postcard?.open) closePostcard();   // Space took the pointer back: the walk goes on
   hud.setLocked(locked);
   // leaving pointer lock (Esc) closes the full map too
   if (!locked && minimap?.fullOpen) { minimap.setFull(false); player.suspended = false; }
   handsHud?.setLocked(locked);
 };
-/* The postcard (Tan, 2026-10-01; ui/maker.js): once a page load, a moment after Hachi's tour is over and he has
+/* The postcard (Tan, 2026-10-01; ui/postcard.js): once a page load, a moment after Hachi's tour is over and he has
  * lain down by the gate.  The pointer goes free for its buttons while it shows, and the pause card waits behind it
- * (hud.holdCard); the game stands still as it does behind any card.  A click anywhere off its buttons takes the
- * pointer back and the walk goes on (if the browser refuses, the pause card comes instead); Space does the same
- * (its own handler, below: taking the pointer back closes the postcard); Esc puts it away for the pause card. */
+ * (hud.holdCard); the game stands still as it does behind any card.  Back, Esc or a click outside it: the pause
+ * card.  Space: the walk goes on (its own handler, below: taking the pointer back closes the postcard).  After it,
+ * the pause card keeps a little postcard that opens it again (hud.setPostcard). */
 let postcard = null;           // ui/postcard.js, loaded at the nap
 let postcardDue = -1;          // s of play still to wait; -1: nothing due
 const loadPostcard = () => import('./ui/postcard.js').then(({ createPostcard }) => {
-  postcard ??= createPostcard({
-    onResume: () => {
-      closePostcard();
-      sound.start();
-      player.lock();
-      setTimeout(() => { if (!player.locked && !postcard.open) hud.setLocked(false); }, 900);
-    },
-    onMenu: () => { closePostcard(); hud.setLocked(false); },
-  });
+  postcard ??= createPostcard({ onMenu: () => { closePostcard(); hud.setLocked(false); } });
   return postcard;
 });
 GUIDE.onNap = () => {
   if (postcard?.shown) return;
   loadPostcard().then(() => { postcardDue = MAKER.postcardAfter; }).catch(() => {});   // (offline: no postcard, no harm)
 };
-function closePostcard() { hud.holdCard = false; postcard?.hide(); }
+function closePostcard() { hud.holdCard = false; postcard?.hide(); hud.setPostcard(true); }
+// the pause card's little postcard: the postcard again, over the card (the pointer is already free)
+hud.onPostcard = () => {
+  if (!postcard || player.locked) return;
+  hud.holdCard = true;
+  hud.setLocked(false);
+  postcard.show(true);
+};
 function watchPostcard(dt) {
   if (postcardDue < 0 || dt <= 0 || !postcard) return;
   postcardDue = Math.max(0, postcardDue - dt);
@@ -614,7 +632,7 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault();
     if (e.repeat) return;
     if (player.locked) document.exitPointerLock?.();
-    else { sound.start(); player.lock(); }
+    else takePointer();
     return;
   }
   // the postcard up: only Space (above) and its own Esc and buttons

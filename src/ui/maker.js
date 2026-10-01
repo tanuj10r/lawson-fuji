@@ -41,6 +41,12 @@ export const icons = (where) => out(L.x, 'mk-i', ICON.x, 'maker_x', where, S.x)
   + out(L.github, 'mk-i', ICON.github, 'maker_github', where, S.github)
   + out(L.site, 'mk-i', ICON.site, 'maker_site', where, S.site);
 
+/** The postcard's Fuji stamp (the postcard, and the little postcard on the pause card). */
+export const STAMP = '<svg viewBox="0 0 60 74" aria-hidden="true"><rect width="60" height="74" fill="#f6d9c8"/><rect width="60" height="44" fill="#c9a7d8"/>'
+  + '<path d="M0 52 22 20l6 5 5-6 27 33v22H0z" fill="#8a7fb8"/><path d="M22 20l6 5 5-6 6 7-5-1-6 4-5-3-6 3z" fill="#fff"/>'
+  + '<circle cx="47" cy="12" r="5" fill="#f4a96b"/><rect y="58" width="60" height="16" fill="#e59bb0"/>'
+  + '<text x="30" y="69" font-size="8" font-weight="700" text-anchor="middle" fill="#fff" font-family="sans-serif">¥120</text></svg>';
+
 /** The chip on the start and pause cards' art.  `where`: the DataFast label (hud.js updates it start/pause). */
 export const makerChip = (where = 'start_card') =>
   `<div class="mk mk-chip">${face(48)}<span class="mk-who">${esc(S.name)}<small>${esc(S.line)}</small></span>`

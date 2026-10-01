@@ -183,10 +183,11 @@ export class Player {
     if (s.dir < 0 && k === 0) this.seat = null;         // up again: walking resumes
   }
 
+  /** Ask for the pointer; the browser's promise where it gives one (a refusal is not an error: the next try may do). */
   lock() {
-    // a refusal (the window not focused yet, say) is not an error: the next click tries again
     const r = this.dom.requestPointerLock?.();
     r?.catch?.(() => {});
+    return r;
   }
 
   /** Push the player out of any collider it overlaps, one axis at a time. */

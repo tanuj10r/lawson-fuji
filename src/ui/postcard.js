@@ -1,7 +1,7 @@
 import { STRINGS } from '../data/strings.js';
 import { MAKER } from '../config.js';
 import { TOWN_NAME } from '../data/town.js';
-import { ICON, esc, face, coffee, icons } from './maker.js';
+import { ICON, STAMP, esc, face, coffee, icons } from './maker.js';
 
 /* The postcard (Tan, 2026-10-01; DECISIONS.md "Made by Tan"): once, when
  * Hachi's tour is over and he naps by the gate.  Share the town (the
@@ -10,11 +10,6 @@ import { ICON, esc, face, coffee, icons } from './maker.js';
 
 const S = STRINGS.maker;
 const P = STRINGS.postcard;
-
-const STAMP = '<svg viewBox="0 0 60 74" aria-hidden="true"><rect width="60" height="74" fill="#f6d9c8"/><rect width="60" height="44" fill="#c9a7d8"/>'
-  + '<path d="M0 52 22 20l6 5 5-6 27 33v22H0z" fill="#8a7fb8"/><path d="M22 20l6 5 5-6 6 7-5-1-6 4-5-3-6 3z" fill="#fff"/>'
-  + '<circle cx="47" cy="12" r="5" fill="#f4a96b"/><rect y="58" width="60" height="16" fill="#e59bb0"/>'
-  + '<text x="30" y="69" font-size="8" font-weight="700" text-anchor="middle" fill="#fff" font-family="sans-serif">¥120</text></svg>';
 
 const POSTCARD_CSS = `
   .mk-post-scrim { position: fixed; inset: 0; z-index: 8; display: grid; place-items: center; padding: 16px; cursor: pointer;
@@ -33,6 +28,11 @@ const POSTCARD_CSS = `
   .mk-post .pic figcaption { position: absolute; left: 1.4cqw; bottom: 1.2cqw; padding: .5cqw 1.1cqw; border-radius: 999px;
     background: rgba(251,246,240,.9); font-size: max(10px, 1.2cqw); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
   .mk-post .pic figcaption span { letter-spacing: .06em; }
+  .mk-post .pc-back { position: absolute; left: 3.4cqw; top: 3.4cqw; z-index: 2; padding: .55cqw 1.3cqw .55cqw 1cqw; border: 0; border-radius: 999px;
+    background: rgba(251,246,240,.94); color: #2b2542; box-shadow: 0 4px 14px -6px rgba(20,10,40,.5);
+    font: inherit; font-size: max(12px, 1.35cqw); font-weight: 700; letter-spacing: .02em; cursor: pointer; }
+  .mk-post .pc-back:hover { background: #fff; transform: translateX(-1px); }
+  .mk-post .pc-back:focus-visible { outline: 3px solid #e59bb0; outline-offset: 2px; }
   .mk-post .back { position: relative; padding: 2.8cqw 3cqw 2.4cqw 3.2cqw; display: flex; flex-direction: column; min-width: 0; }
   .mk-post .back::before { content: ''; position: absolute; left: 0; top: 3.2cqw; bottom: 3.2cqw; border-left: 1.5px solid #e2d6d0; }
   .mk-post .stamp { position: absolute; right: 2.6cqw; top: 2.4cqw; width: 8.6cqw; aspect-ratio: .82; padding: .5cqw;
@@ -70,6 +70,7 @@ const POSTCARD_CSS = `
     .mk-post { width: min(100%, 420px); aspect-ratio: auto; grid-template-columns: 1fr; transform: rotate(-.8deg) translateY(12px); }
     .mk-post-scrim.on .mk-post { transform: rotate(-.8deg); }
     .mk-post .pic { margin: 12px 12px 0; aspect-ratio: 16 / 10; }
+    .mk-post .pc-back { left: 20px; top: 20px; padding: 7px 14px 7px 11px; font-size: 14px; }
     .mk-post .back { padding: 16px 18px 16px; }
     .mk-post .back::before, .mk-post .mark, .mk-post .to { display: none; }
     .mk-post .stamp { top: 14px; right: 14px; width: 50px; padding: 3px; }
@@ -96,10 +97,11 @@ const POSTCARD_CSS = `
 
 /**
  * The postcard: built the first time it shows.  `touch`: the phone's words.
- * `onResume` (a click outside its buttons), `onMenu` (Esc): the caller
- * decides what each means; links and buttons inside never close it.
+ * `onMenu`: Back, Esc, or a click outside the card (Tan: walking on is only
+ * ever on purpose, Space or Resume; the caller shows the pause card).  Its
+ * links and buttons, and a click on the card itself, keep it up.
  */
-export function createPostcard({ touch = false, onResume = () => {}, onMenu = () => {} } = {}) {
+export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
   let el = null, copyLabel = null, shown = 0;
   const link = MAKER.share;
   const intent = `https://x.com/intent/tweet?text=${encodeURIComponent(P.shareText)}&url=${encodeURIComponent(link)}&via=${MAKER.handle}`;
@@ -111,6 +113,7 @@ export function createPostcard({ touch = false, onResume = () => {}, onMenu = ()
     el = document.createElement('div');
     el.className = 'mk mk-post-scrim';
     el.innerHTML = `<article class="mk-post" role="dialog" aria-modal="true" aria-label="${esc(P.label)}">
+      <button class="pc-back" type="button" data-pc="back" aria-label="${esc(P.backAria)}">‹ ${esc(P.back)}</button>
       <figure class="pic"><img src="keyart-1280.webp" alt="" decoding="async" /><figcaption>${esc(TOWN_NAME.en)} · <span lang="ja">${esc(TOWN_NAME.jp)}</span></figcaption></figure>
       <div class="back">
         <div class="stamp">${STAMP}</div>
@@ -132,8 +135,9 @@ export function createPostcard({ touch = false, onResume = () => {}, onMenu = ()
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       const b = e.target.closest('[data-pc], a');
-      if (!b) { if (!touch || !e.target.closest('.mk-post')) onResume(); return; }
+      if (!b) { if (!e.target.closest('.mk-post')) onMenu(); return; }
       const what = b.getAttribute('data-pc');
+      if (what === 'back') onMenu();
       if (what === 'share') navigator.share?.({ title: document.title, text: P.shareText, url: link }).catch(() => {});
       if (what === 'copy') copy();
     });
@@ -162,13 +166,14 @@ export function createPostcard({ touch = false, onResume = () => {}, onMenu = ()
     open: false,
     /** times it has shown (once a page load, by its caller) */
     get shown() { return shown; },
-    show() {
+    /** `again`: opened from the pause card's little postcard (counted by its own goal, not as shown) */
+    show(again = false) {
       if (!el) build();
       api.open = true; shown++;
       el.style.display = '';
       requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
       window.addEventListener('keydown', onKey, true);
-      try { window.datafast?.('postcard_shown'); } catch { /* analytics never in the way */ }
+      if (!again) try { window.datafast?.('postcard_shown'); } catch { /* analytics never in the way */ }
       requestAnimationFrame(() => el.querySelector('.share > :not(.no-share)')?.focus({ preventScroll: true }));
     },
     hide() {

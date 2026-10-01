@@ -21,7 +21,7 @@ import { STRINGS } from './data/strings.js';
 import { PRODUCT } from './data/catalog.js';
 import { hanShow } from './world/han/index.js';
 import { GUIDE } from './world/animals/guide.js';
-import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain, HAN_WATCH, ANIMALS } from './config.js';
+import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain, HAN_WATCH, ANIMALS, MAKER } from './config.js';
 
 /* ------------------------------------------------------------------ *
  * Take Me Back to Japan -- entry point.  Rendering is inherited from Sakura Crossing (MIT).
@@ -226,11 +226,48 @@ hud.onStart = () => {
   player.lock();
 };
 player.onLockChange = (locked) => {
+  if (locked && postcard?.open) closePostcard();   // Space or a click took the pointer back: the walk goes on
   hud.setLocked(locked);
   // leaving pointer lock (Esc) closes the full map too
   if (!locked && minimap?.fullOpen) { minimap.setFull(false); player.suspended = false; }
   handsHud?.setLocked(locked);
 };
+/* The postcard (Tan, 2026-10-01; ui/maker.js): once a page load, a moment after Hachi's tour is over and he has
+ * lain down by the gate.  The pointer goes free for its buttons while it shows, and the pause card waits behind it
+ * (hud.holdCard); the game stands still as it does behind any card.  A click anywhere off its buttons takes the
+ * pointer back and the walk goes on (if the browser refuses, the pause card comes instead); Space does the same
+ * (its own handler, below: taking the pointer back closes the postcard); Esc puts it away for the pause card. */
+let postcard = null;           // ui/postcard.js, loaded at the nap
+let postcardDue = -1;          // s of play still to wait; -1: nothing due
+const loadPostcard = () => import('./ui/postcard.js').then(({ createPostcard }) => {
+  postcard ??= createPostcard({
+    onResume: () => {
+      closePostcard();
+      sound.start();
+      player.lock();
+      setTimeout(() => { if (!player.locked && !postcard.open) hud.setLocked(false); }, 900);
+    },
+    onMenu: () => { closePostcard(); hud.setLocked(false); },
+  });
+  return postcard;
+});
+GUIDE.onNap = () => {
+  if (postcard?.shown) return;
+  loadPostcard().then(() => { postcardDue = MAKER.postcardAfter; }).catch(() => {});   // (offline: no postcard, no harm)
+};
+function closePostcard() { hud.holdCard = false; postcard?.hide(); }
+function watchPostcard(dt) {
+  if (postcardDue < 0 || dt <= 0 || !postcard) return;
+  postcardDue = Math.max(0, postcardDue - dt);
+  // never over something that holds you: the konbini's scene, the full map, Han's drive, a staged view
+  if (postcardDue > 0 || !player.locked || shop?.visiting || minimap?.fullOpen || player.suspended || player.scripted || watch.on) return;
+  postcardDue = -1;
+  hud.holdCard = true;
+  postcard.show();
+  document.exitPointerLock?.();
+}
+if (import.meta.env?.DEV) window.__postcard = { get card() { return postcard; }, due: (s = 0.01) => loadPostcard().then(() => { postcardDue = s; }), nap: () => GUIDE.onNap?.(), pending: () => postcardDue };
+
 /* The browser lets a page make sound only after a click or a key: the first one anywhere (the start card's volume,
  * the card itself, a key) starts the sound, and with it the song, before Start is even pressed */
 window.addEventListener('pointerdown', () => sound.start(), { once: true });
@@ -580,6 +617,8 @@ window.addEventListener('keydown', (e) => {
     else { sound.start(); player.lock(); }
     return;
   }
+  // the postcard up: only Space (above) and its own Esc and buttons
+  if (postcard?.open) return;
   // Tab never moves the page's focus off the game
   if (e.code === 'Tab') { e.preventDefault(); return; }
   if (e.repeat) return;
@@ -679,6 +718,7 @@ function frame(now = 0) {
 
   watchCar(dt);
   watchPup(dt);
+  watchPostcard(dt);
   if (!player.scripted) player.update(dt);
   /* watching the drive you stay put: the car's collider is a box round the
    * turned car, bigger than it as it swings out of the bay, and would shove

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { STRINGS } from './src/data/strings.js';
 import { TOWN_NAME } from './src/data/town.js';
+import { makerChip, makerRow, MAKER_CSS } from './src/ui/maker.js';
 
 /**
  * The cards index.html paints before any game code runs (loading, phone,
@@ -21,6 +22,12 @@ function htmlStrings() {
         const v = key.split('.').reduce((o, k) => o?.[k], table);
         if (typeof v !== 'string') throw new Error(`index.html: no string ${key} in src/data/strings.js`);
         return esc(v);
+      // Made by Tan (ui/maker.js): the chip on the loading card, the row on the gate's card, their look
+      }).replace(/%MAKER:(\w+)(?::(\w+))?%/g, (_, part, where) => {
+        if (part === 'css') return MAKER_CSS;
+        if (part === 'chip') return makerChip(where);
+        if (part === 'row') return makerRow(where);
+        throw new Error(`index.html: no maker part ${part}`);
       }),
     },
   };

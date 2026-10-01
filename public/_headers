@@ -27,6 +27,8 @@
   Cache-Control: public, max-age=86400
 /keyart-portrait.webp
   Cache-Control: public, max-age=86400
+/tan.webp
+  Cache-Control: public, max-age=86400
 /og.jpg
   Cache-Control: public, max-age=86400
 /og-square.jpg

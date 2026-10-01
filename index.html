@@ -338,6 +338,8 @@
   /* on a computer (no WebGL, a GPU reset) the card sits in the middle */
   @media (min-width: 700px) and (min-height: 500px) { .gate { justify-content: safe center; } }
 
+  /* ---------- Made by Tan: the chip on the cards' art, the row on the gate (src/ui/maker.js) ---------- */
+%MAKER:css%
   @media (prefers-reduced-motion: reduce) {
     .overlay, .menu-action { transition: none; }
     .boot-bar::after { animation: none; }
@@ -389,6 +391,7 @@
           <h1>%S:title%</h1>
           <p class="menu-jp" lang="ja">%S:titleJp%</p>
         </figcaption>
+        %MAKER:chip:loading_card%
       </figure>
       <div class="boot-body">
         <p class="boot-line">%S:boot.loading%</p>
@@ -431,6 +434,7 @@
             <button class="gate-btn" type="button" data-gate="reload">%S:gate.reload%</button>
           </div>
         </div>
+        %MAKER:row:phone_card%
         <p class="gate-url">%S:url%</p>
       </div>
     </section>

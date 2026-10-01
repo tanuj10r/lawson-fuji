@@ -40,6 +40,22 @@ export const LAWSON = {
  * 100% is comfortable (the old free slider's 60%). */
 export const VOLUME_STEPS = [0, 25, 50, 75, 100];
 export const volumeGain = (step) => (step / 100) * 0.6;
+
+/* Made by Tan (Tan, 2026-10-01; DECISIONS.md, Made by Tan): the chip on every card and the postcard
+ * at the end of Hachi's tour (ui/maker.js).  Plain links, opened in a new tab: nothing is loaded from
+ * these sites.  `avatar`: Tan's own portrait, cropped (scripts/_avatar.mjs), beside the page. */
+export const MAKER = {
+  avatar: 'tan.webp',
+  links: {
+    coffee: 'https://buymeacoffee.com/tanuj10r0',
+    x: 'https://x.com/tanuj10r',
+    github: 'https://github.com/tanuj10r',
+    site: 'https://tanuj.fyi',
+  },
+  handle: 'tanuj10r',                     // the X share's "via"
+  share: 'https://takemebacktojapan.com', // what the postcard shares (the canonical address, never a local one)
+  postcardAfter: 3.5,                     // s Hachi has been lying down at the gate before the postcard comes
+};
 export const DEFAULT_VOLUME = 50;                      // 30% of full scale: the level Tan liked
 
 /* The konbini (store/shop.js; SPEC 5 and 6.3). */

@@ -46,8 +46,9 @@ import { STRINGS } from '../../data/strings.js';
  * ------------------------------------------------------------------ */
 
 const A = ANIMALS.guide;
-/** The pup, for main.js: `whistle()` (F) calls it to you from anywhere; set once it is built. */
-export const GUIDE = { whistle: () => false, tipsy: () => {}, greeting: () => null };
+/** The pup, for main.js: `whistle()` (F) calls it to you from anywhere; set once it is built.  `onNap`, main.js's:
+ *  called once when the tour is over and it has lain down for its nap by the gate (the postcard, ui/maker.js). */
+export const GUIDE = { whistle: () => false, tipsy: () => {}, greeting: () => null, onNap: null };
 const INF = Infinity;
 const ENGAGE = A.engage;
 
@@ -1263,6 +1264,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         if (!there) { r = steer(dt, A.trot); lookAt = 'way'; G.waitT = 0; } else G.waitT += dt;
         const awake = dP < 3;
         pose.posture = there ? (G.waitT > 1.5 ? 2 : 1) : 0;
+        if (there && G.waitT > 1.5 && !G.napped) { G.napped = true; GUIDE.onNap?.(); }
         pose.perk = there ? (awake ? 1 : 0.35) : 1;
         pose.wag = awake ? 0.4 : 0;
         lookAt = there && !awake ? 'sleep' : 'player';
@@ -1402,7 +1404,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       intro: () => G.intro,
       introReset() { G.intro = 0; },
       introMark() { G.intro = 2; },
-      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 2, introT: 0, t: 0, gateDone: false }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
+      reset() { Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 2, introT: 0, t: 0, gateDone: false, napped: false }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
     };
   }
   return { update, herd, G };

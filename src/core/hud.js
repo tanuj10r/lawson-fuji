@@ -1,6 +1,7 @@
 import { STRINGS } from '../data/strings.js';
 import { VOLUME_STEPS } from '../config.js';
 import { TOWN_NAME } from '../data/town.js';
+import { makerChip } from '../ui/maker.js';
 
 /* ------------------------------------------------------------------ *
  * Minimal HUD: the start and pause card, a small crosshair and an
@@ -49,6 +50,7 @@ export function createHud({ volume = 50 } = {}) {
           <p class="menu-jp" lang="ja">${STRINGS.titleJp}</p>
         </figcaption>
         <span class="menu-paused pause-only">${STRINGS.paused}</span>
+        ${makerChip('start_card')}
       </figure>
       <div class="menu-body">
         <div class="menu-left">
@@ -78,6 +80,9 @@ export function createHud({ volume = 50 } = {}) {
   const audioControl = overlay.querySelector('.audio-control');
   const volumeSlider = overlay.querySelector('.volume-slider');
   const volumeOutput = overlay.querySelector('.audio-head output');
+  /* the chip's links say which card they were clicked on (DataFast's goal label) */
+  const makerLinks = overlay.querySelectorAll('.mk-chip a');
+  const setWhere = (mode) => { for (const a of makerLinks) a.dataset.fastGoalWhere = mode === 'paused' ? 'pause_card' : 'start_card'; };
   /* Five settings, not a free slider (M4, Tan): the value is the setting
    * itself (0, 25, 50, 75, 100), and config's volumeGain turns it into gain. */
   const setVolumeReadout = (value) => {
@@ -100,6 +105,8 @@ export function createHud({ volume = 50 } = {}) {
     overlay,
     onStart: null,
     onVolumeChange: null,
+    /** Something else has the screen with the pointer free (the postcard, ui/maker.js): the card waits behind it. */
+    holdCard: false,
     /** Brief centre-screen note that fades itself out. */
     flash(text, ms = 1400, error = false) {
       toast.textContent = text;
@@ -119,10 +126,12 @@ export function createHud({ volume = 50 } = {}) {
     setLocked(locked) {
       if (locked) startedOnce = true;
       overlay.dataset.mode = startedOnce ? 'paused' : 'start';
-      overlay.classList.toggle('hidden', locked);
-      overlay.setAttribute('aria-hidden', locked ? 'true' : 'false');
+      setWhere(overlay.dataset.mode);
+      const hide = locked || api.holdCard;
+      overlay.classList.toggle('hidden', hide);
+      overlay.setAttribute('aria-hidden', hide ? 'true' : 'false');
       crosshair.classList.toggle('on', locked);
-      if (!locked) requestAnimationFrame(() => actionButton.focus({ preventScroll: true }));
+      if (!hide) requestAnimationFrame(() => actionButton.focus({ preventScroll: true }));
     },
     setVolume(value) {
       setVolumeReadout(value);
@@ -207,7 +216,7 @@ export function createHud({ volume = 50 } = {}) {
     api.onStart?.();
   });
   overlay.addEventListener('click', (e) => {
-    if (e.target.closest('.audio-control, a')) return;   // the Credits link opens its page, not the game
+    if (e.target.closest('.audio-control, a, .mk-chip')) return;   // the Credits link and Tan's chip open their pages, not the game
     api.onStart?.();
   });
   for (const event of ['click', 'pointerdown', 'pointerup']) {

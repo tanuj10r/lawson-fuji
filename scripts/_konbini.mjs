@@ -67,6 +67,11 @@ const STOCK_CHECK = () => {
 };
 
 /* the shots lock (scripts/shots.mjs): one Chrome at a time on this machine */
+// one browser at a time on the shared laptop (taken first: a run that holds it may be queued on the shots lock)
+const BLOCK = '/tmp/lawson-browser.lock';
+let mineB = false;
+for (let k = 0; ; k++) { try { fs.mkdirSync(BLOCK); mineB = true; break; } catch { if (k % 6 === 0) console.log('  waiting for the browser lock'); await new Promise((r) => setTimeout(r, 10000)); } }
+process.on('exit', () => { if (mineB) { try { fs.rmdirSync(BLOCK); } catch {} mineB = false; } });
 const LOCK = path.join(os.tmpdir(), 'takemebacktojapan-shots.lock');
 for (;;) {
   try { fs.mkdirSync(LOCK); fs.writeFileSync(path.join(LOCK, 'pid'), String(process.pid)); break; } catch {
@@ -81,7 +86,7 @@ for (;;) {
 const unlock = () => { try { if (+fs.readFileSync(path.join(LOCK, 'pid'), 'utf8') === process.pid) fs.rmSync(LOCK, { recursive: true, force: true }); } catch {} };
 process.on('exit', unlock);
 
-const server = await createServer({ root: ROOT, logLevel: 'error', server: { port: 5191, strictPort: false, host: '127.0.0.1' } });
+const server = await createServer({ root: ROOT, logLevel: 'error', server: { port: +process.env.PORT || 5191, strictPort: !!process.env.PORT, host: '127.0.0.1' } });
 await server.listen();
 const base = server.resolvedUrls.local[0];
 let browser;

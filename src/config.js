@@ -818,9 +818,33 @@ export const ANIMALS = {
      * spin, two bounces, a sit and a head tilt).  `grow`: how far the way to you is grown over the whistle's notes, in
      * pavement metres (a road crossed off a zebra counts ~20 a metre: 80 m by the way round the store is ~250). */
     whistle: { far: 80, near: 4.2, answer: 0.85, gallop: 4.4, sprint: 8.5, runFrom: 60, reach: 80, hide: [14, 45], view: 62, grow: 320 },   // (`near`: nearer than ~4 m a 24 cm pup is under the bottom of your view)
-    /* the Strong Nine (Tan: when you're tipsy, the pup giggles and rolls on the floor): it comes to `d` m in front of
-     * you and plays for as long as the tipsiness lasts (main.js: 10 s) */
-    party: { d: 4.0, from: [7, 12], lean: -0.35 },
+    /* its reactions in play (animals/reactions.js; Tan, 2026-10-01).  `look`: you stand looking at it within [degrees]
+     * of the middle of your view for [s]: a head tilt, then not again for [s] to twice that; `bored`: a yawn after this
+     * long kept waiting (then a slow blink, a yawn...); `petal`: a petal lands on its nose every [min, max] s of waiting;
+     * `strut`: a proud strut every [min, max] s of leading you; the crossing's bells starting within `bells` m, or the
+     * RX-7 passing within `car` m at over `carSpeed` m/s: a startle (not again for `again` s) */
+    react: { look: [10, 1.1, 9], bored: 9, petal: [22, 50], strut: [14, 30], bells: 24, car: 10, carSpeed: 5, again: 45 },
+    /* the pigeons (Tan: "he does zoomies through the pigeons and scatters them"): leading you past a flock on the ground
+     * within `from` m (you within `you` m of it, to see it), it bows at them for `wind` s, tears in at `speed` m/s onto a
+     * lap of `lap` s round them (ANIMALS.pigeons flush as it would for you), and looks up after them; not the same flock
+     * again for `again` s */
+    charge: { from: 12, you: 13, wind: 0.55, speed: 6.4, lap: 2.5, again: 150 },
+    /* the konbini's bits (reactions.js SNACKS): you eat at the door's spot looking out over the road (`eatZ`, world;
+     * store/shop.js SPOT); it sits `d` m out in front of that and `side` m to your left (the hand with the food is on
+     * the right; your eyes are a little down the road while you eat, store/shop.js, so it is in your view from ~3.4 m).  From far off it is set where you see it
+     * come from, `from` [min, max] m away */
+    snack: { eatZ: 2.4, d: 3.9, side: 1.0, from: [7, 12] },
+    /* rolled over (the idle roll, tipsy on its back), how far the pup must come up for its lowest part to rest ON the
+     * ground, by the roll's angle every `step` radians from 0 to pi, standing and lying (measured: scripts/_hachi.mjs
+     * --only profile; Tan: it sank under the road) */
+    rollUp: { step: 0.3, stand: [0, 0.019, 0.03, 0.023, 0.015, 0.019, 0.046, 0.116, 0.171, 0.206, 0.21, 0.21], lie: [0, 0.027, 0.042, 0.042, 0.04, 0.033, 0.023, 0.029, 0.046, 0.07, 0.081, 0.085] },
+    bowLift: 0.03,                            // m up in a full play bow (the elbows rest on the ground, not in it)
+    tipLift: 0.11,                            // m up per radian it is tipped nose-up or nose-down (the low end stays on the ground)
+    /* after the tour, whistled: it stays with you, `ahead` m ahead and `aside` m to a side as you walk, sat `sit[0]` m in
+     * front of you when you stop (it comes round when you are past `sit[1]` m or it is out of your view).  Within
+     * `ask[0]` m and `ask[1]` degrees of the middle of your view the tour is on offer again (E).  You more than `far` m
+     * off (it follows at no more than its jog: run and you leave it behind) or in the store for `alone` s: back to its bench */
+    pal: { ahead: 2.6, aside: 1.0, sit: [3.6, 6], ask: [6, 22], far: 14, alone: 25 },
     engage: { konbini: 1.2, view: 1.0, han: 0.85, train: 1.1, slowlife: 1.1 },   // the engagements' ring radii (and which ids count until the list says `kind`)
     cell: 0.4, radius: 0.25,                  // its map of the town: cell size, and clearance from anything solid (its own half-width and a little)
     step: 0.45,                               // the biggest step between neighbouring cells it will take: kerbs yes, the channel no

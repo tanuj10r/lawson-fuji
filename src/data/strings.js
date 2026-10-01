@@ -61,7 +61,11 @@ export const STRINGS = {
   /* Hachi's hello (the guide pup, animals/guide.js): a caption the first time you look at it, off the famous view */
   /* Waiting on platform 1 for the next train (world/line/station.js, ui/trainWait.js): "Next train · 0:25" */
   nextTrain: (secs) => `Next train  ·  ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`,
-  hachi: { hi: "Hi, I'm Hachi!", line: "Follow me, I'll show you around town. Wander off whenever you like: press F to whistle and I'll come running." },
+  hachi: {
+    hi: "Hi, I'm Hachi!", line: "Follow me, I'll show you around town. Wander off whenever you like: press F to whistle and I'll come running.",
+    /* after the tour, Hachi by you and looked at: the prompt ("E · ..."), and the note when the tour starts over */
+    again: 'Take the tour again', againToast: 'Off we go again. Follow Hachi',
+  },
   map: {
     titleJp: '富士川口湖町 マップ',
     title: 'Fujikawaguchikko',

@@ -188,6 +188,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     /** What you can choose (catalogue ids), in the order main.js lists them. */
     menu: FEATURED.flatMap((f) => f.ids),
     onTipsy: null,             // main.js: after the Strong Nine
+    onSnack: null,             // main.js: (phase, id): 'hold' paid and on your way out with it, 'eat' the first of it, 'done' gone (Hachi's bits)
     flash: null,               // main.js: hud.flash
     onSound: null,             // main.js: (kind, unit) -> the sound engine (taking it off the shelf)
     onEnter: null, onExit: null,
@@ -365,8 +366,12 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     phase = 'eat';
     const h = held.find((x) => x.paid && x.where === 'hand');
     eating.start(h ? { id: h.id, mesh: h.mesh, onEaten: () => { h.where = 'gone'; } } : null);
+    snacking = h?.id ?? null;
+    if (snacking) api.onSnack?.('eat', snacking);
   }
+  let snacking = null;
   function finishEating() {
+    if (snacking) { api.onSnack?.('done', snacking); snacking = null; }
     for (const h of held) h.mesh.removeFromParent();
     held.length = 0;
     screen.show('idle');
@@ -526,7 +531,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     visit.active = true; visit.id = id; visit.eat = false; visit.t = 0; visit.marks = [];
     p.scripted = true; p.suspended = true;
     p.vel.set(0, 0, 0);
-    const street = new THREE.Vector3(SPOT.x + 0.6, 1.45, SPOT.z + 12);
+    const street = new THREE.Vector3(SPOT.x + 0.6, 0.55, SPOT.z + 12);      // (eyes a little down the road as you eat: Hachi sits there doing its bit, animals/guide.js)
     /* Tan (2026-09-28): in, the chime, the store's music on the way to the
      * shelf, take it, the self-checkout's sounds, out through the chime, eat;
      * 30-35 s in all.  No idle pauses: the hand goes up as you turn to the
@@ -545,6 +550,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
       L('checkout', face(TILL.look, 0.5)),
       act(() => startCheckout()),
       until(() => phase === 'paid'),
+      act(() => api.onSnack?.('hold', id)),
       L('out', walkTo(P2(SPOT.x, SPOT.z + 0.1))),
       L('eat', face(street, 0.6)),
       act(() => { visit.eat = true; }),

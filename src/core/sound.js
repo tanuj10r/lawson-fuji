@@ -152,6 +152,18 @@ export function createSound({ volume = 0.5 } = {}) {
       }
     },
     'dog-sneeze'(d, t) { burst(d, t, 0.03, { freq: 2600, q: 0.6, level: 0.22 }); voice(d, t + 0.02, 0.11, [[0, 1500], [1, 700]], { level: 0.3, formants: [[1800, 2], [3000, 3]], breath: 0.12 }); },   // a big little sneeze
+    /* its reactions (animals/reactions.js): a squeaky rising yawn, soft paw pats, a tiny yelp, sniffs, a hiccup, a lick
+     * of the lips, small wet chomps */
+    'dog-yawn'(d, t) {
+      voice(d, t, 0.9, [[0, 620], [0.25, 980], [0.55, 1320], [0.8, 1100], [1, 760]], { level: 0.3, formants: [[1200, 3], [2400, 4]], breath: 0.06, vib: 6 });
+      burst(d, t + 0.05, 0.8, { freq: 900, q: 0.7, level: 0.05, type: 'lowpass' });
+    },
+    'dog-tip'(d, t) { for (let i = 0; i < 2; i++) burst(d, t + i * 0.07, 0.035, { freq: 1600 + i * 300, q: 1.4, level: 0.3 }); },
+    'dog-yelp'(d, t) { voice(d, t, 0.13, [[0, 1500], [0.35, 2350], [1, 1650]], { level: 0.45, formants: [[2100, 3], [3600, 5]], breath: 0.03 }); },
+    'dog-sniff'(d, t) { for (let i = 0; i < 4; i++) burst(d, t + i * 0.1, 0.05, { freq: 3200 + (i % 2) * 500, q: 0.9, level: 0.26 }); },
+    'dog-hic'(d, t) { voice(d, t, 0.07, [[0, 1100], [0.5, 2300], [1, 2500]], { level: 0.4, formants: [[2000, 3], [3500, 5]], breath: 0.02 }); burst(d, t, 0.03, { freq: 700, q: 0.8, level: 0.14, type: 'lowpass' }); },
+    'dog-lick'(d, t) { for (let i = 0; i < 2; i++) { burst(d, t + i * 0.17, 0.07, { freq: 1900 + i * 500, q: 2.2, level: 0.34 }); burst(d, t + i * 0.17 + 0.05, 0.04, { freq: 600, q: 0.8, level: 0.2, type: 'lowpass' }); } },
+    'dog-munch'(d, t) { for (let i = 0; i < 3; i++) { burst(d, t + i * 0.16, 0.05, { freq: 800 + i * 80, q: 0.9, level: 0.5, type: 'lowpass' }); burst(d, t + i * 0.16 + 0.02, 0.04, { freq: 2300, q: 1.6, level: 0.2 }); } },
     // your whistle for the pup (F): two clear notes, breathy, the second higher
     'whistle'(d, t) {
       for (const [dt, f0, f1, dur] of [[0, 1420, 1560, 0.2], [0.24, 1780, 2080, 0.28]]) {

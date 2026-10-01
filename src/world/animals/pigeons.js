@@ -146,6 +146,11 @@ const FRAG = /* glsl */`
 /**
  * @param flocks [{ x, z, y, n, r, perches: [{ x, y, z, ry }] }]
  */
+/** For the pup (guide.js, Tan: "he does zoomies through the pigeons and scatters them"): where the flocks are and how
+ *  many of each are down on the ground (the town's own frame), and `scare`: a second thing that flushes them, set to
+ *  where the pup is ({ x, z }, the town's frame) while it charges, else null. */
+export const PIGEONS = { flocks: [], scare: null };
+
 export function buildPigeons(ctx, { flocks, shadows, bounds }) {
   const A = ANIMALS.pigeons;
   const r = rngKit(9701);
@@ -176,6 +181,7 @@ export function buildPigeons(ctx, { flocks, shadows, bounds }) {
   };
   list.forEach(place);
   herd.flush();
+  PIGEONS.flocks = flocks.map((f) => ({ x: f.x, z: f.z, r: f.r, grounded: () => list.reduce((n, b) => n + (b.f === f && (b.state === 'walk' || b.state === 'peck') ? 1 : 0), 0) }));
 
   const lastCam = { x: 0, z: 0, v: 0, ok: false };
   function update(dt, cam) {
@@ -185,7 +191,10 @@ export function buildPigeons(ctx, { flocks, shadows, bounds }) {
     for (const f of flocks) {
       const members = list.filter((b) => b.f === f);
       const close = members.some((b) => b.state !== 'perch' && b.state !== 'fly' && Math.hypot(b.x - cam.x, b.z - cam.z) < A.flush && Math.abs(cam.y - 1.6 - b.y) < 1.5);
-      if (close && lastCam.v > A.flushSpeed) {
+      // (or the pup tearing through them)
+      const dog = PIGEONS.scare;
+      const charged = !!dog && members.some((b) => b.state !== 'perch' && b.state !== 'fly' && b.state !== 'wait' && Math.hypot(b.x - dog.x, b.z - dog.z) < A.flush);
+      if ((close && lastCam.v > A.flushSpeed) || charged) {
         // up they go, not quite all at once
         for (const b of members) {
           if (b.state === 'fly' || b.state === 'perch') continue;

@@ -11,6 +11,10 @@
 //                                                   whistle  F with the pup behind you, ahead, to the side, out of sight
 //                                                            ~35 m off (it runs from there) and 100+ m off (set on its
 //                                                            way to you, out of sight): never a jump into view
+//                                                   reactions  blinks; a head tilt when you stand looking at it; a yawn
+//                                                            kept waiting; a startle at the crossing's bells, then brave
+//                                                   snack    the konbini's five bits: by you where you eat, on the surface
+//                                                   after    the tour over: whistled it stays with you; the tour again
 //                                                   crossing the level crossing shut as he comes to it: he sits at the barrier, the
 //                                                            train goes by, the arms lift, he goes over (never onto it while
 //                                                            it is shut; caught on it as it shuts, he runs off it); then his
@@ -39,6 +43,10 @@ const MEASURE = args.includes('--measure');
 const ONLY = opt('only');   // --only turnaway,whistle: just these scenarios
 fs.mkdirSync(out, { recursive: true });
 
+// one browser at a time on the shared laptop (taken first: a run that holds it may be queued on the shots lock)
+const BLOCK = '/tmp/lawson-browser.lock';
+let mineB = false;
+for (let k = 0; ; k++) { try { fs.mkdirSync(BLOCK); mineB = true; break; } catch { if (k % 6 === 0) console.log('  waiting for the browser lock'); await new Promise((r) => setTimeout(r, 10000)); } }
 const LOCK = path.join(os.tmpdir(), 'takemebacktojapan-shots.lock');
 for (;;) {
   try { fs.mkdirSync(LOCK); fs.writeFileSync(path.join(LOCK, 'pid'), String(process.pid)); break; } catch {
@@ -50,7 +58,7 @@ for (;;) {
     await new Promise((r) => setTimeout(r, 5000));
   }
 }
-const unlock = () => { try { if (+fs.readFileSync(path.join(LOCK, 'pid'), 'utf8') === process.pid) fs.rmSync(LOCK, { recursive: true, force: true }); } catch {} };
+const unlock = () => { try { if (+fs.readFileSync(path.join(LOCK, 'pid'), 'utf8') === process.pid) fs.rmSync(LOCK, { recursive: true, force: true }); } catch {} if (mineB) { try { fs.rmdirSync(BLOCK); } catch {} mineB = false; } };
 process.on('exit', unlock);
 
 const server = await createServer({ root: ROOT, configFile: path.join(ROOT, 'vite.config.js'), logLevel: 'error', server: { port: +process.env.PORT || 5194, strictPort: !!process.env.PORT, host: '127.0.0.1' } });
@@ -112,7 +120,7 @@ const SIM = async (kind) => {
   const angleTo = (e, hx, hz) => { const dx = e.x - P.x, dz = e.z - P.z, d = Math.hypot(dx, dz) || 1; return Math.acos(Math.max(-1, Math.min(1, (dx * hx + dz * hz) / d))) * 180 / Math.PI; };
   const rows = [], trail = [], events = [];
   let t = 0, away = null, lastDone = S.done.size, cur = null, viol = 0, wall = 0, pstuck = 0, stuck = 0, still = 0, lastPos = { x: S.x, z: S.z }, rest = 0, fieldMs = 0;
-  let state = S.state, act = null;
+  let state = S.state, act = null, charges = 0, wasCharge = false;
   const acts = new Set(), states = new Set();
   const cone = (() => { const dx = S.x - P.x, dz = S.z - P.z; return Math.acos(-dz / Math.hypot(dx, dz)) * 180 / Math.PI; })();
   sync();
@@ -158,6 +166,8 @@ const SIM = async (kind) => {
     const gy = world.heightAt(S.x, S.z), low = S.y - gy;
     if (low < -0.035) { feetLow++; feetWorst = Math.min(feetWorst, low); }
     if (S.state !== state) { events.push({ t: +t.toFixed(1), from: state, to: S.state, target: S.target?.id ?? null, dP: +dist(P, S).toFixed(1) }); state = S.state; states.add(state); }
+    if (S.state === 'charge' && !wasCharge) charges++;
+    wasCharge = S.state === 'charge';
     if (S.act?.name && S.act.name !== act) acts.add(S.act.name);
     act = S.act?.name ?? null;
   };
@@ -213,6 +223,7 @@ const SIM = async (kind) => {
     res.rows = rows; res.secs = +t.toFixed(0); res.tourM = +S.moved.toFixed(0); res.end = g.state(); res.pstuck = +pstuck.toFixed(1); res.stuck = +stuck.toFixed(1);
     res.hear = hear; res.gateMin = +gateMin.toFixed(1); res.waterCells = waterCells; res.alleyCells = alleyCells; res.plotCells = plotCells; res.sideEntries = sideEntries;
     res.feetLow = feetLow; res.feetWorst = +feetWorst.toFixed(3); res.legs = A.tour.length; res.lastLeg = S.leg;
+    res.charges = charges;                      // (through the pigeons, on the shopping street and the plaza)
     res.visited = [...g.tour.visited]; res.visitPhases = visitPhases; res.railEnter = railEnter; res.legsM = legsM;
     const heard = Object.values(hear).every((h) => h.min <= h.need);
     // the respawn (H, or anything that puts you back on the view in a jump): the pup is home, out of the frame, at once
@@ -242,7 +253,7 @@ const SIM = async (kind) => {
     ctx.stroke();
     res.map = c.toDataURL('image/png');
     res.ok = rows.length === 4 && viol === 0 && wall === 0 && stuck < 5 && res.end.state === 'nap' && res.respawn.ok && cone > 60
-      && heard && res.jog >= 2.7 && gateMin <= 8 && waterCells === 0 && alleyCells === 0 && sideEntries === 0 && feetLow === 0 && t < 900
+      && heard && charges >= 1 && res.jog >= 2.7 && gateMin <= 8 && waterCells === 0 && alleyCells === 0 && sideEntries === 0 && feetLow === 0 && t < 900
       && res.visited.includes('home') && res.visited.includes('shrine') && railEnter === 0
       && ['home:bounce', 'home:spin', 'home:toy', 'home:proud', 'shrine:sit'].every((q) => visitPhases.includes(q));
   } else if (kind === 'intro') {
@@ -580,8 +591,8 @@ const SIM = async (kind) => {
     res.samples = pts.length; res.sunk = bad.length; res.first = bad.slice(0, 12);
     res.ok = bad.length === 0;
   } else if (kind === 'tipsy') {
-    // the Strong Nine: the pup napping by the bench far off, you tipsy on the main road looking up it: it comes into
-    // view, to just in front of you, and giggles and rolls about until the ten seconds are up
+    // the Strong Nine going to its head anywhere (the old hook): the pup napping far off, you on the main road looking
+    // up it: it comes into view, to just in front of you, and hiccups, wobbles and rolls about giggling, ON the ground
     g.reset();
     const dt = 1 / 30;
     const bench = window.__scene.world.frame.toWorld({ x: 75.6, z: 103.6 });
@@ -590,17 +601,165 @@ const SIM = async (kind) => {
     for (let k = 0; k < 15; k++) g.step(dt, P);
     const log = window.__scene.sound.debug.log; log.length = 0;
     g.tipsy(10);
-    let tt = 0, there = null, rolls = 0, lastAct = null, inLens = 0, frames = 0, giggles = 0, seen = 0, endState = null;
-    while (tt < 13) {
+    let tt = 0, there = null, inLens = 0, frames = 0, giggles = 0, hics = 0, seen = 0, low = 9, onBack = 0, endState = null;
+    while (tt < 16) {
       g.step(dt, P); tt += dt;
-      for (; seen < log.length; seen++) if (log[seen].name === 'dog-giggle') giggles++;
-      if (S.act?.name !== lastAct) { lastAct = S.act?.name ?? null; if (lastAct === 'roll') rolls++; }
-      if (there === null && dist(P, S) < 5) there = +tt.toFixed(1);
+      for (; seen < log.length; seen++) { if (log[seen].name === 'dog-giggle') giggles++; if (log[seen].name === 'dog-hic') hics++; }
+      if (there === null && dist(P, S) < 5.5) there = +tt.toFixed(1);
+      if (S.snack?.bit === 'after') { const l = g.lowest(); if (l && l.low < low) low = l.low; if (Math.abs(g.fx.out.roll) > 2) onBack++; }
       if (tt > 1 && tt < 10) { frames++; const dx = S.x - P.x, dz = S.z - P.z, d = Math.hypot(dx, dz) || 1; if (-dz / d > Math.cos(40 * Math.PI / 180)) inLens++; }
     }
     endState = S.state;
-    res.tipsy = { there, rolls, giggles, inLens: +(inLens / frames).toFixed(2), endState };
-    res.ok = there !== null && there <= 4 && rolls >= 2 && giggles >= 3 && inLens >= 0.85 && endState !== 'party';
+    res.tipsy = { there, giggles, hics, onBack, low: +low.toFixed(3), inLens: +(inLens / frames).toFixed(2), endState };
+    res.ok = there !== null && there <= 5 && giggles >= 2 && hics >= 3 && onBack > 20 && low > -0.02 && inLens >= 0.8 && endState !== 'snack';
+  } else if (kind === 'reactions') {
+    /* reactions in play (Tan, 2026-10-01).  The pup waiting 5 m in front of you, you standing looking at it: it blinks
+     * (now and then, never long); a head tilt within a few seconds; a yawn when it has been kept waiting; the level
+     * crossing's bells starting up near it: a startle, then it gathers itself (a shake, a brave woof), all where it
+     * stands, on the ground; the bells again at once: no second startle */
+    g.reset();
+    P.x = 0; P.z = 11; P.yaw = 0; sync();
+    const c = W.nearest(0, 6, 2), q = W.at(c);
+    Object.assign(S, { x: q.x, z: q.z, state: 'wait', since: 10, waitT: 0, speed: 0, target: null });
+    lookAt(S.x, S.z); sync();
+    const seenFx = new Set();
+    let blinkF = 0, frames2 = 0, blinks = 0, wasShut = false, tilt = null, yawn = null, low = 9;
+    // (no idle acts of its own in this one: what is seen is what the moment asks for)
+    const tick = () => { S.idleT = Math.min(S.idleT, 0); S.tiltNext = 99; step(); for (const n of g.fx.names) seenFx.add(n); const l = g.lowest(); if (l && l.low < low) low = l.low; };
+    while (t < 22) {
+      tick(); frames2++;
+      const shut = g.fx.out.c[2] > 0.6 && !g.fx.busy;
+      if (shut) blinkF++;
+      if (shut && !wasShut) blinks++;
+      wasShut = shut;
+      if (tilt === null && seenFx.has('headTilt')) tilt = +t.toFixed(1);
+      if (yawn === null && seenFx.has('yawn')) yawn = +t.toFixed(1);
+    }
+    // the bells
+    for (let k = 0; k < 200 && (g.fx.busy || S.act); k++) tick();
+    const at0 = { x: S.x, z: S.z };
+    g.bells.on = false; tick();                // (whatever the real crossing is doing)
+    seenFx.clear();
+    Object.assign(g.bells, { on: true, x: S.x + 10, z: S.z });
+    tick();
+    const startled = g.fx.names.includes('startle');
+    let maxUp = 0, tCalm = null;
+    const t1 = t;
+    while (t - t1 < 9) { tick(); maxUp = Math.max(maxUp, g.fx.out.dy); if (tCalm === null && !g.fx.busy) tCalm = +(t - t1).toFixed(1); }
+    const chain = ['startle', 'scared', 'shakeOff', 'brave'].filter((n) => seenFx.has(n));
+    g.bells.on = false; tick(); seenFx.clear(); g.bells.on = true; tick();
+    const again = g.fx.names.includes('startle');
+    g.bells.on = false;
+    res.reactions = { blinks, blinkShare: +(blinkF / frames2).toFixed(3), tilt, yawn, startled, chain, maxUp: +maxUp.toFixed(3), tCalm, again, moved: +dist(at0, S).toFixed(2), low: +low.toFixed(3), state: S.state };
+    res.ok = blinks >= 2 && blinkF / frames2 < 0.1 && tilt !== null && tilt < 9 && yawn !== null && yawn < 16 && startled && chain.length === 4 && maxUp > 0.03
+      && tCalm !== null && tCalm < 6 && !again && dist(at0, S) < 0.5 && low > -0.02 && S.state === 'wait';
+  } else if (kind === 'snack') {
+    /* the konbini (Tan, 2026-10-01): you come out with something: Hachi sits out in front of where you eat, in your
+     * view, begging; does the product's own bit while you eat and after; ON the ground throughout; then the tour goes on */
+    const ids = ['strong_nine', 'sando_egg', 'fruit_sando', 'onigiri_tuna', 'choco_wafer_jumbo'];
+    const EAT = { x: -2.3, z: A.snack.eatZ };
+    const out = {};
+    let all = true;
+    const log = window.__scene.sound.debug.log;
+    for (const id of ids) {
+      g.reset();
+      P.x = EAT.x; P.z = EAT.z; P.yaw = Math.PI; sync();                    // (looking out over the road, +z)
+      for (let k = 0; k < 10; k++) g.step(dt, P);
+      const c = W.nearest(EAT.x + 9, EAT.z + 3, 3), q = W.at(c);
+      Object.assign(S, { x: q.x, z: q.z, state: 'wait', since: 10, target: null });
+      log.length = 0;
+      let low = 9, high = 0, inLens = 0, frames2 = 0, begged = false, tt = 0;
+      const run = (secs, bit) => {
+        for (let k = 0; k < secs * 30; k++) {
+          g.step(dt, P); tt += dt;
+          if (bit) {
+            const l = g.lowest(); if (l) { low = Math.min(low, l.low); high = Math.max(high, l.low); }
+            frames2++; const dx = S.x - P.x, dz = S.z - P.z, d = Math.hypot(dx, dz) || 1; if (dz / d > Math.cos(30 * Math.PI / 180)) inLens++;
+          }
+          if (g.fx.names.includes('puppyEyes') || g.fx.names.includes('beg')) begged = true;
+          if (S.state !== 'snack') return false;
+        }
+        return true;
+      };
+      g.snack('hold', id);
+      run(4.5, false);
+      const dSit = +dist(P, S).toFixed(1), sat = S.posture > 0.8;
+      g.snack('eat', id);
+      run(3.5, true);
+      const eatBit = g.fx.names.includes('eat');
+      g.snack('done', id);
+      let afterT = 0;
+      while (afterT < 14 && run(dt, true)) afterT += dt;
+      const said = [...new Set(log.map((e) => e.name).filter((n) => /^dog-/.test(n ?? '')))].sort();
+      const r = { dSit, sat, begged, eatBit, afterS: +afterT.toFixed(1), low: +low.toFixed(3), hop: +high.toFixed(3), inLens: +(inLens / Math.max(1, frames2)).toFixed(2), said, end: S.state };
+      r.ok = dSit > 3.8 && dSit < 5.6 && sat && begged && eatBit && afterT > 3 && afterT < 11 && low > -0.02 && r.inLens > 0.95 && said.length >= 3 && S.state !== 'snack';
+      if (!r.ok) all = false;
+      out[id] = r;
+    }
+    // each bit its own: no two with the same voice
+    const voices = new Set(Object.values(out).map((r) => r.said.join()));
+    res.snack = out; res.distinct = voices.size;
+    res.ok = all && voices.size === ids.length;
+  } else if (kind === 'after') {
+    /* after the tour (Tan, 2026-10-01: "he goes back to the gate bench to sleep even when whistled.  Make him stay
+     * interactive"): asleep on its bench (onNap once), whistled: it comes and STAYS (never straight back to bed): at
+     * your side on a walk, sat in front of you when you stop, the tour on offer when you look at it.  E by it
+     * (not a second whistle: that only brings it): the tour again, from the first place, everything to do again; and onNap fires again when that one is over.
+     * Left alone instead: back to its bench. */
+    g.reset();
+    const Bn = g.bench;
+    const fx = Bn.nap.x - Bn.x, fz = Bn.nap.z - Bn.z, fl = Math.hypot(fx, fz), F = { x: fx / fl, z: fz / fl };
+    let naps = 0;
+    const tick = () => { const was = !!S.napped; step(); if (S.napped && !was) naps++; };
+    const toSleep = () => { for (let k = 0; k < 60 * 30 && S.bed?.phase !== 'sleep'; k++) tick(); return S.bed?.phase === 'sleep'; };
+    P.x = Bn.x + F.x * 5; P.z = Bn.z + F.z * 5; lookAt(Bn.x, Bn.z); sync();
+    { const c = W.nearest(Bn.nap.x + F.x * 2, Bn.nap.z + F.z * 2, 3), q = W.at(c); Object.assign(S, { x: q.x, z: q.z }); }
+    g.napNow();
+    const slept = toSleep(), eyesShut0 = (() => { P.x += F.x * 2; P.z += F.z * 2; for (let k = 0; k < 30; k++) tick(); return g.fx.out.c[2]; })();
+    const naps1 = naps;
+    g.whistle();
+    let pal = null, bedAgain = false;
+    { const t0 = t; while (t - t0 < 20) { tick(); if (pal === null && S.state === 'pal') pal = +(t - t0).toFixed(1); } }
+    // it stays: half a minute standing with it
+    { const t0 = t; while (t - t0 < 30) { tick(); if (S.state === 'nap') bedAgain = true; } }
+    const stays = S.state === 'pal';
+    // a walk together: back along the bridge road
+    let far = 0, lost = false;
+    { const goal = { x: -30, z: 30 }; const t0 = t; while (t - t0 < 14) { lookAt(goal.x, goal.z); walk(goal, 2.3); tick(); if (t - t0 > 3) far = Math.max(far, dist(P, S)); if (S.state !== 'pal') lost = true; } }
+    // you stop and look for it: it comes round in front and sits; looked at, the tour is on offer
+    let satUp = 0;
+    { const t0 = t; while (t - t0 < 6) { tick(); satUp = Math.max(satUp, S.posture); } }
+    const dx = S.x - P.x, dz = S.z - P.z, fwd = { x: -Math.sin(P.yaw), z: -Math.cos(P.yaw) };
+    const front = (dx * fwd.x + dz * fwd.z) / (Math.hypot(dx, dz) || 1);
+    const sits = { d: +dist(P, S).toFixed(1), posture: +satUp.toFixed(1), frontDeg: +(Math.acos(Math.max(-1, Math.min(1, front))) * 180 / Math.PI).toFixed(0) };
+    lookAt(S.x, S.z); sync(); tick();
+    const offer = g.offer();
+    P.yaw += Math.PI; sync(); tick();
+    const offerAway = g.offer();
+    P.yaw -= Math.PI; sync(); tick();
+    // a second whistle only brings it to you (it stays yours); the tour again is asked for (E: g.again)
+    g.whistle();
+    let whistled2 = 'pal';
+    { const t0 = t; while (t - t0 < 7) { tick(); if (S.state === 'lead' || S.state === 'nap') whistled2 = S.state; } }
+    whistled2 = whistled2 === 'pal' ? S.state : whistled2;
+    g.again();
+    let again = null;
+    { const t0 = t; while (t - t0 < 6) { tick(); if (again === null && S.state === 'lead') again = { t: +(t - t0).toFixed(1), target: S.target?.id ?? null, leg: S.leg, done: [...S.done], napped: !!S.napped, gate: !!S.gateDone, visited: [...g.tour.visited] }; } }
+    // ...and that tour over: its bedtime and the postcard's hook again
+    g.napNow(); P.x = Bn.x + F.x * 5; P.z = Bn.z + F.z * 5; lookAt(Bn.x, Bn.z); sync();
+    const slept2 = toSleep();
+    const naps2 = naps;
+    // whistled once more, then left alone: back to its bench (and no third postcard)
+    g.whistle();
+    { const t0 = t; while (t - t0 < 20 && S.state !== 'pal') tick(); }
+    const pal2 = S.state === 'pal';
+    P.x = Bn.x + F.x * 30; P.z = Bn.z + F.z * 30; sync();
+    let leftT = null;
+    { const t0 = t; while (t - t0 < 70) { tick(); if (leftT === null && S.state === 'nap') leftT = +(t - t0).toFixed(1); if (S.bed?.phase === 'sleep') break; } }
+    res.after = { slept, eyesShut0: +eyesShut0.toFixed(2), naps1, pal, bedAgain, stays, far: +far.toFixed(1), lost, sits, offer, offerAway, whistled2, again, slept2, naps2, pal2, leftT, back: S.bed?.phase ?? S.state, naps3: naps };
+    res.ok = slept && eyesShut0 > 0.9 && naps1 === 1 && pal !== null && pal < 12 && !bedAgain && stays && far < 8 && !lost && sits.d < 6.5 && sits.posture > 0.8 && sits.frontDeg < 50
+      && offer && !offerAway && whistled2 === 'pal' && !!again && again.target === 'konbini' && again.done.length === 1 && again.visited.length === 0 && !again.napped && !again.gate && slept2 && naps2 === 2 && pal2
+      && leftT !== null && leftT > 15 && leftT < 40 && S.bed?.phase === 'sleep' && naps === 2;
   }
   res.viol = viol; res.wall = wall; res.gridMs = +W.ms.toFixed(0); res.cells = W.N; res.msPerStep = +(fieldMs / Math.max(1, Math.round(t * 30))).toFixed(3);
   return res;
@@ -644,7 +803,7 @@ try {
       // the engine really putting sound out before the first measure (it was 0 on a slow start)
       for (let k = 0; k < 20 && (await dbg.level(250)).peak < 0.001; k++) await new Promise((r) => setTimeout(r, 250));
       const out = {};
-      for (const n of ['dog-yip', 'dog-boof', 'dog-whine', 'dog-hmm', 'dog-pant', 'dog-shake', 'dog-snore', 'dog-awoo', 'dog-snort', 'dog-sneeze', 'dog-giggle', 'whistle']) {
+      for (const n of ['dog-yip', 'dog-boof', 'dog-whine', 'dog-hmm', 'dog-pant', 'dog-shake', 'dog-snore', 'dog-awoo', 'dog-snort', 'dog-sneeze', 'dog-giggle', 'dog-yawn', 'dog-tip', 'dog-yelp', 'dog-sniff', 'dog-hic', 'dog-lick', 'dog-munch', 'whistle']) {
         await new Promise((r) => setTimeout(r, 900));
         // the town's own sound varies: its level is the median of three short reads
         const bs = [(await dbg.level(200)).peak, (await dbg.level(200)).peak, (await dbg.level(200)).peak].sort((a, b) => a - b);
@@ -660,7 +819,7 @@ try {
     if (!loud) bad++;
     console.log(loud ? 'pass' : 'FAIL', 'voice', JSON.stringify(voice));
 
-    for (const kind of ['tour', 'crossing', 'intro', 'turnaway', 'wander', 'whistle', 'bedtime', 'tipsy', 'ground'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
+    for (const kind of ['tour', 'crossing', 'intro', 'turnaway', 'wander', 'whistle', 'bedtime', 'tipsy', 'reactions', 'snack', 'after', 'ground'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
       const r = await page.evaluate(SIM, kind);
       if (r.map) { fs.writeFileSync(path.join(out, 'trail.png'), Buffer.from(r.map.split(',')[1], 'base64')); delete r.map; }
       const said = await page.evaluate(() => { const l = [...new Set(window.__scene.sound.debug.log.map((e) => e.name).filter((n) => /^dog-|^whistle/.test(n ?? '')))]; window.__scene.sound.debug.log.length = 0; return l; });

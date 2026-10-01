@@ -109,7 +109,7 @@ export function reflectionOf(ctx, herd, { rig, key, waterY, tint = 0xbcd2ea, mix
  * roll), `pose` its two pose vectors; `flush` uploads what changed.
  */
 export class Herd {
-  constructor(ctx, geometry, material, count, name, { reflect = false, bounds = null } = {}) {
+  constructor(ctx, geometry, material, count, name, { reflect = false, bounds = null, extra = 0 } = {}) {
     this.n = count;
     this.pose = new THREE.InstancedBufferAttribute(new Float32Array(count * 4), 4);
     this.pose2 = new THREE.InstancedBufferAttribute(new Float32Array(count * 4), 4);
@@ -117,6 +117,14 @@ export class Herd {
     this.pose2.setUsage(THREE.DynamicDrawUsage);
     geometry.setAttribute('aPose', this.pose);
     geometry.setAttribute('aPose2', this.pose2);
+    // `extra`: more pose vectors (aPose3...), for a rig that reads them (the shiba's expressions)
+    this.more = [];
+    for (let k = 0; k < extra; k++) {
+      const a = new THREE.InstancedBufferAttribute(new Float32Array(count * 4), 4);
+      a.setUsage(THREE.DynamicDrawUsage);
+      geometry.setAttribute('aPose' + (k + 3), a);
+      this.more.push(a);
+    }
     const mesh = new THREE.InstancedMesh(geometry, material, count);
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     mesh.name = `animals-${name}`;
@@ -145,11 +153,14 @@ export class Herd {
   }
   setPose(i, a = 0, b = 0, c = 0, d = 0) { this.pose.setXYZW(i, a, b, c, d); this.dirty = true; }
   setPose2(i, a = 0, b = 0, c = 0, d = 0) { this.pose2.setXYZW(i, a, b, c, d); this.dirty = true; }
+  /** An extra pose vector (k 0 is aPose3). */
+  setPoseN(k, i, a = 0, b = 0, c = 0, d = 0) { this.more[k].setXYZW(i, a, b, c, d); this.dirty = true; }
   flush() {
     if (!this.dirty) return;
     this.mesh.instanceMatrix.needsUpdate = true;
     this.pose.needsUpdate = true;
     this.pose2.needsUpdate = true;
+    for (const a of this.more) a.needsUpdate = true;
     this.dirty = false;
   }
 }

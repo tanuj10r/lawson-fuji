@@ -81,7 +81,7 @@ for (;;) {
 const unlock = () => { try { if (+fs.readFileSync(path.join(LOCK, 'pid'), 'utf8') === process.pid) fs.rmSync(LOCK, { recursive: true, force: true }); } catch {} };
 process.on('exit', unlock);
 
-const server = await createServer({ root: ROOT, logLevel: 'error', server: { port: 5191, strictPort: false, host: '127.0.0.1' } });
+const server = await createServer({ root: ROOT, logLevel: 'error', server: { port: +process.env.PORT || 5191, strictPort: !!process.env.PORT, host: '127.0.0.1' } });
 await server.listen();
 const base = server.resolvedUrls.local[0];
 let browser;

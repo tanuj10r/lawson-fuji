@@ -7,7 +7,8 @@
  *   - no page errors
  *   node scripts/_maker.mjs [out-dir]     PORT (default 5187)
  * Its own dev server and one headless Chrome (on /tmp/lawson-browser.lock); both closed however it ends.
- * Other sites are never contacted: their requests are aborted, the new tab's address is what is checked. */
+ * Other sites are never contacted: Chrome resolves no host but this one (no request interception, which upsets
+ * the streamed title song); a new tab's address is what is checked. */
 import fs from 'node:fs';
 import path from 'node:path';
 import { createServer } from 'vite';
@@ -36,7 +37,7 @@ const shot = async (page, name) => {
   await page.screenshot({ path: f });
   console.log('  ' + f);
 };
-const local = (ctx) => ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (r) => r.abort());
+const local = async () => {};
 /** every link out on the page: target, rel, goal */
 const linksOk = (page, sel) => page.evaluate((sel) => [...document.querySelectorAll(sel)].map((a) => ({
   href: a.href, ok: a.target === '_blank' && /noopener/.test(a.rel) && !!a.dataset.fastGoal,
@@ -46,7 +47,7 @@ try {
   server = await createServer({ root: ROOT, logLevel: 'error', server: { port: PORT, strictPort: true, host: '127.0.0.1' } });
   await server.listen();
   const base = `http://127.0.0.1:${PORT}/`;
-  browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
+  browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1'] });
 
   /* ---- the desktop game ---- */
   {

@@ -3,7 +3,7 @@
  *   - the chip on the start and pause cards (1280x720, 1600x900), the row on the phone card (390x844)
  *   - every link: a new tab, rel=noopener, a DataFast goal; a click on the chip never starts the game
  *   - every link out carries ?ref=takemebacktojapan (config.js MAKER.ref)
- *   - the little postcard: never on the start card, on every pause card from the first (glowing that once); before
+ *   - the little postcard: never on the start card, on every pause card from the first (always glowing: Tan); before
  *     Hachi's tour is over the postcard says "wish you were here", after it "you've seen the whole town"
  *   - the postcard: comes by itself once, holds the pause card back while up; a click takes the pointer back (or,
  *     refused, the pause card comes); Esc shows the pause card; Space (the pointer back) closes it
@@ -116,8 +116,8 @@ try {
         const mini = await page.evaluate(() => { const b = document.querySelector('.menu-postcard'); const r = b.getBoundingClientRect();
           return { shown: !b.hidden && r.width > 0, glow: b.classList.contains('glow'), onScreen: r.right <= innerWidth && r.bottom <= innerHeight }; });
         if (m === 'start') check(`${w}x${h} start: no little postcard on the start card`, !mini.shown, mini);
-        else check(`${w}x${h} paused: the little postcard is there${w === 1280 ? ', glowing (the first pause)' : ', quiet (a later pause)'}`,
-          mini.shown && mini.onScreen && mini.glow === (w === 1280), mini);
+        else check(`${w}x${h} paused: the little postcard is there, glowing`,
+          mini.shown && mini.onScreen && mini.glow, mini);
         check(`${w}x${h} ${m}: the chip on the art, the card fits, coffee first, goal label`, r.inArt && r.fits && r.first === 'maker_coffee'
           && r.where.length === 1 && r.where[0] === (m === 'paused' ? 'pause_card' : 'start_card'), r);
         await shot(page, `A-${m}-${w}x${h}${m === 'paused' && w === 1280 ? '-postcard-glow' : ''}`);
@@ -198,14 +198,14 @@ try {
     await page.waitForTimeout(300);
     s = await pc();
     check('postcard: a click outside goes back to the pause card, not the walk', !s.open && s.card && !s.hold && await tries() === t2, s);
-    check('pause card: the little postcard is there, quiet (it glowed on the first pause)', s.mini && !s.glow, s);
+    check('pause card: the little postcard is there, glowing', s.mini && s.glow, s);
     // the little postcard opens it again; Back returns to the pause card
     await openMini();
     s = await pc();
     check('pause card: the little postcard opens the postcard again, the after-tour words', /seen the whole town/.test(await words()) && s.open && !s.card && s.hold, s);
     await page.click('.mk-post .pc-back');
     s = await pc();
-    check('postcard: Back returns to the pause card; the little postcard quiet now', !s.open && s.card && s.mini && !s.glow, s);
+    check('postcard: Back returns to the pause card; the little postcard glowing', !s.open && s.card && s.mini && s.glow, s);
     for (const [w, h] of [[1280, 720], [1600, 900]]) { await page.setViewportSize({ width: w, height: h }); await shot(page, `A-paused-postcard-${w}x${h}`); }
     await page.setViewportSize({ width: 1280, height: 720 });
     check('the little postcard: its goal', await page.evaluate(() => document.querySelector('.menu-postcard').dataset.fastGoal) === 'postcard_reopen');

@@ -38,7 +38,7 @@ export const POSTER = {
   shrine: { f: 0.34, a: 44 },
   bench: { f: 0.07, a: 9 },
   sakura: [{ f: -0.22, a: 7.5, s: 1.1 }],
-  hachi: { f: 0.45, a: 5.9, pose: 'sit', size: 1.4 },     // (a little larger than life in the picture: Tan)
+  hachi: { f: 0.45, a: 5.9, pose: 'sit', size: 1.8 },     // (a little larger than life in the picture: Tan)
 };
 
 /**

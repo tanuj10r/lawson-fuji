@@ -366,6 +366,9 @@ export const TOWN = {
     bridge: { x: 30, w: 5.4, z0: -34, z1: -11, deck: 0.2 },  // road-level bridge over the whole channel
     hills: { r: [620, 900], span: 1.85 },   // the painted far hills: radii (m) and half-angle (rad) round the town's north
     deerGate: { x: 30, z: -40.6 },          // 鹿公園, coming soon: at the bridge's end, the town's edge
+    /* a little waiting bench (縁台) by the gate, in front of the rope, the seat along x: Hachi's bed at the end of the
+     * tour (animals/guide.js: he hops up, plays a moment, curls up asleep on it).  Town frame; `seat` is its top (m) */
+    gateBench: { x: 28.45, z: -38.5, len: 1.4, depth: 0.44, seat: 0.42 },
   },
 
 };
@@ -806,12 +809,15 @@ export const ANIMALS = {
     /* the hello, every start: `after` s into play (Tan: a look at the view first) it runs to `d` m in front of you and sits `hold` s; your view eases
      * down to it meanwhile (main.js watchPup: `follow` 1/s, the pitch no lower than `pitchMin`) and back after */
     intro: { after: 4, d: 3.2, hold: 5.5, follow: 3, pitchMin: -0.55, above: 0.18 },   // (`above`: the view aims this much over it: it sits in the lower third, the store still in the frame)
-    /* F (Tan: it must be seen running to you, wherever you look): it answers `answer` s after the whistle starts (the whistle
-     * is 0.52 s long).  If you can see it (within `see` m, `cone` degrees of the lens, nothing between) it runs from there;
-     * else it is set out of sight of nothing: on a street `from` m ahead of you, in view, with a clear run to you, and
-     * gallops in at `gallop` m/s, bounding; it stops `near` m from you and greets you (a skid, a spin, two bounces, a sit
-     * and a head tilt).  Only with no such street (a wall in your face) does it come from out of view, as before. */
-    whistle: { far: 80, near: 4.2, answer: 0.85, see: 40, cone: 30, from: [10, 18], gallop: 4.4 },   // (`near`: nearer than ~4 m a 24 cm pup is under the bottom of your view)
+    /* F: it answers `answer` s after the whistle starts (the whistle is 0.52 s long).  Within `runFrom` m of you (and
+     * `reach` m by the way) it runs from where it really is, by the way, at a `sprint` m/s while far, the bounding
+     * `gallop` m/s for the last ten metres: behind you, it comes from behind (Tan, QA: it used to be set on a street in
+     * front of you and run in from out of nowhere, having just been behind you).  Farther, or with no way from there, it
+     * is set on its own way to you, `hide` [min, max] m off by the way, where you can't see it (more than `view` degrees
+     * off your lens, or round a corner), and runs in from there.  It stops `near` m from you and greets you (a skid, a
+     * spin, two bounces, a sit and a head tilt).  `grow`: how far the way to you is grown over the whistle's notes, in
+     * pavement metres (a road crossed off a zebra counts ~20 a metre: 80 m by the way round the store is ~250). */
+    whistle: { far: 80, near: 4.2, answer: 0.85, gallop: 4.4, sprint: 8.5, runFrom: 60, reach: 80, hide: [14, 45], view: 62, grow: 320 },   // (`near`: nearer than ~4 m a 24 cm pup is under the bottom of your view)
     /* the Strong Nine (Tan: when you're tipsy, the pup giggles and rolls on the floor): it comes to `d` m in front of
      * you and plays for as long as the tipsiness lasts (main.js: 10 s) */
     party: { d: 4.0, from: [7, 12], lean: -0.35 },
@@ -863,7 +869,10 @@ export const ANIMALS = {
       { id: 'gate', x: -30, z: 65, wait: 7 },     // 鹿公園, coming soon
     ],
     hear: { walk0: [-35, 13.8, 14], walk1: [50, -5, 14], walk2: [50, -75, 14], walk3: [-30, 1.5, 14], donki: [55.9, -41.4, 12], station: [51, -125.5, 14], crossing: [80, -134.3, 10], shrine: [-13, -64.4, 14] },   // each sound place and how near the tour must pass (m)
-    nap: [27.6, -38.4],                       // town frame: beside the Deer Park gate, the tour's last stop, where it sleeps once everything is done
+    nap: [28.45, -37.75],                     // town frame: in front of the gate's bench (TOWN.land.gateBench), the tour's last stop: it hops up from here and sleeps on it once everything is done
+    /* the bedtime on the bench (s from landing on it): a play bow at you, a happy spin, a roll belly-up, a sit and a
+     * head tilt, two slow circles, and down, curled up; `onNap` (the postcard) fires once it is settled */
+    bedtime: { hop: 0.5, bow: [0.35, 1.6], spin: [1.6, 2.5], roll: [2.5, 4.6], sit: [4.6, 5.6], circle: [5.6, 7.3], settle: 8.0 },
   },
   butterflies: { size: 1.15, beatHz: 9, speed: 0.9, near: 45, shy: 1.0 },
   pigeons: { plaza: 9, spine: 5, flush: 2.4, flushSpeed: 0.6, shy: 1.3, walkSpeed: 0.2, stepAngle: 0.36, flySpeed: 5, sit: [8, 20], back: 10 },

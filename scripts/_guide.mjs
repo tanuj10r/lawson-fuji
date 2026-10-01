@@ -8,8 +8,11 @@
 //                                                            spot that lies the player's way
 //                                                   wander   wanders aimlessly for 60 s: the pup stays with them (never
 //                                                            > 12 m off after catching up) and invites at most every 20 s
-//                                                   whistle  the pup far off (napping 40 m and 100+ m away): F brings it
-//                                                            to the player in a sensible time and it guides on
+//                                                   whistle  F with the pup behind you, ahead, to the side, out of sight
+//                                                            ~35 m off (it runs from there) and 100+ m off (set on its
+//                                                            way to you, out of sight): never a jump into view
+//                                                   bedtime  the tour's end: up onto the gate's bench, a play, curled up asleep on
+//                                                            it; onNap once it has settled; F: it hops down first
 //                                                 plus the respawn rule (a jump onto the view: out of the frame) and a
 //                                                 map of the follow run's trail
 //   node scripts/_guide.mjs --measure [--root d]  draw calls, triangles and frame ms at the hero view
@@ -46,7 +49,7 @@ for (;;) {
 const unlock = () => { try { if (+fs.readFileSync(path.join(LOCK, 'pid'), 'utf8') === process.pid) fs.rmSync(LOCK, { recursive: true, force: true }); } catch {} };
 process.on('exit', unlock);
 
-const server = await createServer({ root: ROOT, configFile: path.join(ROOT, 'vite.config.js'), logLevel: 'error', server: { port: 5194, strictPort: false, host: '127.0.0.1' } });
+const server = await createServer({ root: ROOT, configFile: path.join(ROOT, 'vite.config.js'), logLevel: 'error', server: { port: +process.env.PORT || 5194, strictPort: !!process.env.PORT, host: '127.0.0.1' } });
 await server.listen();
 const base = server.resolvedUrls.local[0];
 const flags = ['--use-angle=metal', '--ignore-gpu-blocklist', '--enable-precise-memory-info', '--autoplay-policy=no-user-gesture-required'];
@@ -124,8 +127,10 @@ const SIM = async (kind) => {
     t += dt;
     if (Math.round(t * 30) % 15 === 0) sync();
     if (Math.round(t * 30) % 6 === 0) trail.push([+S.x.toFixed(2), +S.z.toFixed(2)]);
-    if (!W.free(S.x, S.z) && !(S.act?.name === 'circle')) viol++;
-    if (hit(S.x, S.z)) wall++;
+    // (up on the gate's bench, or hopping on or off it, it is over a collider by design)
+    const perched = S.onBench || !!S.hopOff || S.bed?.phase === 'hop';
+    if (!W.free(S.x, S.z) && !(S.act?.name === 'circle') && !perched) viol++;
+    if (hit(S.x, S.z) && !perched) wall++;
     for (const k in hear) { const v = A.hear[k], d = Math.hypot(P.x - v[0], P.z - v[1]); if (d < hear[k].min) hear[k].min = +d.toFixed(1); }
     if (gateW) gateMin = Math.min(gateMin, Math.hypot(P.x - gateW.x, P.z - gateW.z));
     const c = W.cell(S.x, S.z);
@@ -328,47 +333,73 @@ const SIM = async (kind) => {
     res.states = [...states]; res.acts = [...acts];
     res.ok = tWait !== null && tWait <= 12 && moved <= 3.5 && [...seen].every((q) => q === 'wait');
   } else if (kind === 'whistle') {
-    // the pup left napping by the bench, the player at the view (about 100 m by the way): F
-    const run = (place, label, yaw = 0) => {
+    /* F, from wherever it is (QA, Tan: "it runs in from a random place in front of me, out of nowhere, even when I had
+     * just overtaken it"): within 60 m it runs from where it really is, by the way (behind you, it comes from behind);
+     * only from farther is it set on its own way to you, out of your sight (behind you, off the side of your view, or
+     * round a corner), and runs in from there.  Every frame: no jump that lands in your view ("popped"). */
+    const VIEW = A.whistle.view;
+    const inLens = (q, deg) => { const dx = q.x - P.x, dz = q.z - P.z, d = Math.hypot(dx, dz) || 1; return (-Math.sin(P.yaw) * dx - Math.cos(P.yaw) * dz) / d > Math.cos(deg * Math.PI / 180); };
+    const lensAngle = (q) => { const dx = q.x - P.x, dz = q.z - P.z, d = Math.hypot(dx, dz) || 1; return +(Math.acos(Math.max(-1, Math.min(1, (-Math.sin(P.yaw) * dx - Math.cos(P.yaw) * dz) / d))) * 180 / Math.PI).toFixed(0); };
+    const run = (place, label, yaw = 0, state = 'nap') => {
       g.reset();
       const dt = 1 / 30;
-      Object.assign(S, { x: place.x, z: place.z, state: 'nap', field: null, target: null });
+      Object.assign(S, { x: place.x, z: place.z, state, field: null, target: null });
       P.x = 0; P.z = 11; P.yaw = yaw; sync();          // (off the famous view: standing on one, the hero-frame rule wins and it waits behind you)
       for (let k = 0; k < 15; k++) g.step(dt, P);
-      const d0 = +dist(P, S).toFixed(1), from = { x: +S.x.toFixed(1), z: +S.z.toFixed(1) };
+      const d0 = +dist(P, S).toFixed(1), from = { x: +S.x.toFixed(1), z: +S.z.toFixed(1) }, fromAngle = lensAngle(S);
       // the sound log, in game time (the sim runs faster than the clock, so the log's own times mean nothing here)
       const log = window.__scene.sound.debug.log; log.length = 0;
       let seen = 0, tWhistle = null, tYip = null, whistles = 0, yips = 0;
       const readLog = (tt) => { for (; seen < log.length; seen++) { const n = log[seen].name; if (n === 'whistle') { whistles++; tWhistle ??= tt; } if (n === 'dog-yip') { yips++; tYip ??= tt; } } };
       g.whistle(); g.whistle();                          // a double press: one whistle, one answer
       readLog(0);
-      let tt = 0, reached = null, resumed = null, states = [], at = null, d1 = null, angle = null, perkUp = 0, runF = 0, seenF = 0, greeted = false, popped = null;
+      let tt = 0, reached = null, resumed = null, states = [], start = null, perkUp = 0, runF = 0, seenF = 0, greeted = false, popped = false, jumps = 0, onWay = null, frontBy = null;
+      let prev = { x: S.x, z: S.z };
       while (tt < 60) {
         g.step(dt, P); tt += dt;
         readLog(tt);
         if (tt < 0.8 && S.perk > 1.05) perkUp++;
-        if (at === null && tt >= 1.0) {
-          at = { x: +S.x.toFixed(1), z: +S.z.toFixed(1) }; d1 = +dist(P, S).toFixed(1);
-          const dx = S.x - P.x, dz = S.z - P.z; angle = +(Math.acos((-Math.sin(P.yaw) * dx - Math.cos(P.yaw) * dz) / Math.hypot(dx, dz)) * 180 / Math.PI).toFixed(0);   // out of the lens (looking -z)?
+        // a jump (more than a metre in a frame): only to where you can't see it
+        if (dist(prev, S) > 1.0) { jumps++; if (inLens(S, VIEW) && !W.hidden(S.x, S.z, P.x, P.z)) popped = true; }
+        prev = { x: S.x, z: S.z };
+        if (start === null && S.state === 'come') {
+          // (sideDeg: between the way it was from you and the way it is set from you)
+          const ax = from.x - P.x, az = from.z - P.z, bx = S.x - P.x, bz = S.z - P.z;
+          const sideDeg = +(Math.acos(Math.max(-1, Math.min(1, (ax * bx + az * bz) / ((Math.hypot(ax, az) * Math.hypot(bx, bz)) || 1)))) * 180 / Math.PI).toFixed(0);
+          start = { x: +S.x.toFixed(1), z: +S.z.toFixed(1), d: +dist(P, S).toFixed(1), angle: lensAngle(S), hidden: W.hidden(S.x, S.z, P.x, P.z), cameFrom: S.cameFrom, sideDeg, answerMs: g.state().answerMs };
+          // set somewhere: on its own way to you (the route down the whistle's field from where it was)?
+          if (S.cameFrom === 'placed') {
+            const f = S.field; let c = W.nearest(from.x, from.z, 3, (i) => f.m[i] < 1e9), best = 1e9;
+            for (let k = 0; k < 6000 && c >= 0; k++) { const q = W.at(c); best = Math.min(best, dist(q, S)); c = f.next(c); }
+            onWay = best < 1.0;
+          }
         }
         if (!states.includes(S.state)) states.push(S.state);
         if (S.act?.name === 'greet') greeted = true;
-        // the moment it answers: moved (a jump) only to where you can't see it, or far off; never popping up in view
-        if (popped === null && S.state === 'come') { const dx = S.x - P.x, dz = S.z - P.z, d = Math.hypot(dx, dz) || 1, jumped = Math.abs(d - d0) > 1; const lens = (-Math.sin(P.yaw) * dx - Math.cos(P.yaw) * dz) / d > Math.cos(40 * Math.PI / 180); popped = jumped && lens && d < 26 && !W.hidden(S.x, S.z, P.x, P.z); }
+        // from behind: when did it first come into the front half of your view (how near you)
+        if (start && frontBy === null && reached === null && inLens(S, 90)) frontBy = +dist(P, S).toFixed(1);
         // the run you watch: from the answer until it is with you, in the lens (35 degrees) with nothing between
-        if (tt > 0.9 && reached === null) { runF++; const dx = S.x - P.x, dz = S.z - P.z, d = Math.hypot(dx, dz) || 1; if ((-Math.sin(P.yaw) * dx - Math.cos(P.yaw) * dz) / d > Math.cos(33 * Math.PI / 180) && !W.hidden(S.x, S.z, P.x, P.z)) seenF++; }   // on screen (hfov 70) and not behind anything
+        if (tt > 0.9 && reached === null) { runF++; if (inLens(S, 33) && !W.hidden(S.x, S.z, P.x, P.z)) seenF++; }
         if (reached === null && dist(P, S) < 5) reached = +tt.toFixed(1);
         if (reached !== null && resumed === null && tt > 1.2 && ['lead', 'company', 'invite', 'nap'].includes(S.state)) { resumed = { t: +tt.toFixed(1), state: S.state, target: S.target?.id ?? null }; break; }
       }
-      return { label, from, d0, at, d1, angle, reached, resumed, states, whistles, yips, tWhistle, tYip: tYip === null ? null : +tYip.toFixed(2), earsUpFrames: perkUp, seen: +(seenF / Math.max(1, runF)).toFixed(2), greeted, popped };
+      return { label, from, d0, fromAngle, start, onWay, frontBy, reached, resumed, states, whistles, yips, tWhistle, tYip: tYip === null ? null : +tYip.toFixed(2), earsUpFrames: perkUp, seen: +(seenF / Math.max(1, runF)).toFixed(2), greeted, jumps, popped };
     };
+    const spot = (x, z, r = 4) => { const c = W.nearest(x, z, r); return c >= 0 ? W.at(c) : null; };
     const bench = window.__scene.world.frame.toWorld({ x: 75.6, z: 103.6 });
-    const far = run(bench, 'bench, 100+ m (you facing the store: it can only come round the store\'s corner)');
-    const far2 = run(bench, 'bench, 100+ m, you facing the car park', Math.PI);
-    // and 40 m up the main road (under the "appear from a corner" distance): it must run all the way
+    const far = run(bench, 'far: the slow-life bench, 100+ m, you facing the store');
+    const far2 = run(bench, 'far: the slow-life bench, 100+ m, you facing the car park', Math.PI);
+    // within 60 m: it runs from where it is, wherever that is
     let mid = null;
-    for (const cand of [{ x: 0, z: -24 }, { x: 4.6, z: -22 }, { x: -3, z: -22 }]) { const c = W.nearest(cand.x, cand.z, 4); if (c >= 0) { mid = W.at(c); break; } }
-    const behind = mid ? run(mid, 'behind the store, ~35 m') : null;
+    for (const cand of [{ x: 0, z: -24 }, { x: 4.6, z: -22 }, { x: -3, z: -22 }]) { mid = spot(cand.x, cand.z); if (mid) break; }
+    const behindStore = mid ? run(mid, 'out of sight: behind the store, ~35 m') : null;
+    // just overtaken: 18 m behind you on the far pavement, you walking on (looking -z)
+    const back = spot(0, 29) ?? spot(4.6, 29);
+    const behind = back ? run(back, 'behind you, ~18 m (just overtaken)', 0, 'wait') : null;
+    // to the side: 20-25 m along the street to your left or right
+    let sideQ = null;
+    for (const x of [-22, 22, -18, 18]) { const q = spot(x, 11, 3); if (q && W.sight(q.x, q.z, 0, 11)) { sideQ = q; break; } }
+    const side = sideQ ? run(sideQ, 'to the side, ~20 m', 0, 'wait') : null;
     // and in plain view ahead (the camera looking along open street): it runs from where it is, no jump
     let ahead = null;
     for (const yaw of [0, Math.PI, Math.PI / 2, -Math.PI / 2]) {
@@ -380,7 +411,7 @@ const SIM = async (kind) => {
       }
       if (ahead) break;
     }
-    const near = ahead ? run(ahead.q, 'in view, ~20 m', ahead.yaw) : null;
+    const near = ahead ? run(ahead.q, 'ahead, in view, ~20 m', ahead.yaw) : null;
     // and beside you already (2 m): no run, just the answer once the whistle is over
     const here = (() => {
       g.reset();
@@ -401,14 +432,54 @@ const SIM = async (kind) => {
       }
       return { d0, whistles, yips, tWhistle, tYip, hopped, ran, greetAt, d1: +dist(P, S).toFixed(1) };
     })();
-    res.far = far; res.far2 = far2; res.behind = behind; res.near = near; res.here = here;
+    res.far = far; res.far2 = far2; res.behindStore = behindStore; res.behind = behind; res.side = side; res.near = near; res.here = here;
     const timing = (r) => r.whistles === 1 && r.yips >= 1 && r.tYip !== null && r.tYip - (r.tWhistle ?? 0) >= 0.52;
-    // Tan: seen running to you, wherever you look: far off, it sets out ahead of you, in the lens, and you watch it come
-    res.ok = far.reached !== null && far.reached <= 8 && far.d1 >= 7 && far.d1 <= 20 && far.angle < 52 && far.seen >= 0.25 && far.popped === false && far.greeted && !!far.resumed && timing(far)
-      && far2.reached !== null && far2.reached <= 8 && far2.seen >= 0.6 && far2.popped === false && far2.greeted && !!far2.resumed && timing(far2)
-      && (!behind || (behind.reached !== null && behind.reached <= 8 && behind.angle < 52 && behind.seen >= 0.25 && behind.popped === false && behind.greeted && !!behind.resumed && timing(behind)))
-      && !!near && near.reached !== null && near.reached <= near.d0 / 3.5 + 3 && Math.abs(near.d1 - near.d0) < 0.5 && near.seen >= 0.85 && near.popped === false && near.greeted && !!near.resumed && timing(near) && near.earsUpFrames > 5
+    const came = (r, secs) => r.reached !== null && r.reached <= secs && r.greeted && !!r.resumed && timing(r) && !r.popped;
+    // far: set on its own way to you, out of your sight, and with you within ~10 s
+    const placed = (r) => came(r, 10) && r.start?.cameFrom === 'placed' && (r.start.angle > A.whistle.view || r.start.hidden) && (r.onWay === true || r.start.sideDeg <= 60);
+    // near enough: from where it is, no jump at all
+    const ranFrom = (r, secs) => came(r, secs) && r.start?.cameFrom === 'here' && r.jumps === 0;
+    res.ok = placed(far) && placed(far2)
+      && (!behindStore || ranFrom(behindStore, 12))
+      && !!behind && ranFrom(behind, 8) && behind.start.angle > 100 && (behind.frontBy === null || behind.frontBy <= 7)
+      && (!side || ranFrom(side, 8))
+      && !!near && ranFrom(near, near.d0 / 3.5 + 3) && near.seen >= 0.85 && near.earsUpFrames > 5
       && here.whistles === 1 && here.yips >= 1 && here.tYip - here.tWhistle >= 0.52 && here.hopped && !here.ran && here.greetAt >= 3.2 && here.greetAt <= 5.2;
+  } else if (kind === 'bedtime') {
+    // the tour's end (Tan: Hachi sank into the ground at the gate; make it "aww"): from 9 m off it trots to the gate's
+    // bench, hops up, plays (a bow, a spin, a roll, a tilt), circles and curls up asleep ON the seat; GUIDE.onNap fires
+    // once, when it has settled, not before.  Then F from 6 m: it hops down first (never walks off in the air).
+    g.reset();
+    const Bn = g.bench;
+    const fx = Bn.nap.x - Bn.x, fz = Bn.nap.z - Bn.z, fl = Math.hypot(fx, fz), F = { x: fx / fl, z: fz / fl }, L = { x: -F.z, z: F.x };
+    P.x = Bn.x + F.x * 3.1 + L.x * 0.7; P.z = Bn.z + F.z * 3.1 + L.z * 0.7; lookAt(Bn.x, Bn.z); sync();
+    // the listener where you stand (the frozen shots page doesn't move it; the pup's voice carries 16 m)
+    window.__scene.sound.update(0, { camera, inside: false, look: 'day' });
+    const c = W.nearest(Bn.nap.x + F.x * 9 - L.x * 2, Bn.nap.z + F.z * 9 - L.z * 2, 3), q = W.at(c);
+    Object.assign(S, { x: q.x, z: q.z });
+    const log = window.__scene.sound.debug.log; log.length = 0;
+    g.napNow();
+    let landed = null, settled = null, napAt = null, minY = 9, phases = [], last = null;
+    while (t < 40) {
+      step();
+      const ph = S.bed?.phase ?? S.state;
+      if (ph !== last) { phases.push(ph); last = ph; }
+      if (landed === null && S.bed?.phase === 'bed') landed = +t.toFixed(1);
+      if (S.bed?.phase === 'bed' || S.bed?.phase === 'sleep') minY = Math.min(minY, S.y);
+      if (napAt === null && S.napped) napAt = +t.toFixed(1);
+      if (settled === null && S.bed?.phase === 'sleep') settled = +t.toFixed(1);
+      if (settled !== null && t > settled + 3) break;
+    }
+    const said = [...new Set(log.map((e) => e.name).filter((n) => /^dog-/.test(n ?? '')))];
+    const asleep = { y: +S.y.toFixed(3), posture: +S.posture.toFixed(2), onBench: !!S.onBench };
+    // F from 6 m out in front: down off the bench, then to you
+    P.x += F.x * 3; P.z += F.z * 3; sync();
+    g.whistle();
+    let hopped = false, floating = 0, came = false;
+    for (let k = 0; k < 6 * 30; k++) { step(); if (S.hopOff) hopped = true; if (!S.onBench && !S.hopOff && (S.lift ?? 0) > 0.01) floating++; if (S.state === 'come' || S.state === 'caught') came = true; }
+    res.bedtime = { phases, landed, settled, napAt, minY: +minY.toFixed(3), seat: Bn.seat, asleep, said, hopped, floating, came, end: S.state };
+    res.ok = landed !== null && settled !== null && napAt === settled && minY >= Bn.seat - 0.005 && asleep.onBench && asleep.posture > 1.9
+      && ['dog-yip', 'dog-snort', 'dog-hmm', 'dog-snore'].every((n) => said.includes(n)) && hopped && floating === 0 && came && !S.onBench;
   } else if (kind === 'ground') {
     // nothing drawn over the ground it stands on along the tour (Tan: sunk into the track at the Deer Park gate, which
     // was drawn 12 cm up and never walkable): every half metre, the surface under it against the ground it uses
@@ -512,7 +583,7 @@ try {
     if (!loud) bad++;
     console.log(loud ? 'pass' : 'FAIL', 'voice', JSON.stringify(voice));
 
-    for (const kind of ['tour', 'intro', 'turnaway', 'wander', 'whistle', 'tipsy', 'ground'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
+    for (const kind of ['tour', 'intro', 'turnaway', 'wander', 'whistle', 'bedtime', 'tipsy', 'ground'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
       const r = await page.evaluate(SIM, kind);
       if (r.map) { fs.writeFileSync(path.join(out, 'trail.png'), Buffer.from(r.map.split(',')[1], 'base64')); delete r.map; }
       const said = await page.evaluate(() => { const l = [...new Set(window.__scene.sound.debug.log.map((e) => e.name).filter((n) => /^dog-|^whistle/.test(n ?? '')))]; window.__scene.sound.debug.log.length = 0; return l; });

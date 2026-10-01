@@ -90,6 +90,39 @@ export const STORE = {
  * and the pitch it keeps within (rad). */
 export const HAN_WATCH = { follow: 3.2, maxTurn: 1.9, pitch: [-0.3, 0.22] };
 
+/* Han's drive (world/han/drive.js; Tan, 2026-10-02: "The drift feels very fake").  A car's limits, in m, s, rad:
+ * the route's speeds come from them, then the whole drive is scaled a few per cent to the song. */
+export const HAN_DRIVE = {
+  ease: 0.6,                 // the path's curvature eased over this far each way (the wheel is turned, not snapped)
+  lat: 12, latSlide: 14,     // sideways grip (v^2 / R) gripping, and what a slide is allowed
+  acc: 7.5, brake: 10, accRev: 4.5,
+  /* the slide in the master junction: north at x `xIn`; from z `z` a feint east (radius rf, angle a), then round to
+   * the west (radius r, 270 deg + a) and the transition (radius re, 90 deg) onto the bridge road south.  `v` its
+   * speed; the slip angles: the feint's, the slide's (34 deg), the transition's (the other way) */
+  teardrop: { xIn: 28.9, z: 14.6, rf: 6, a: 0.3, r: 3.0, re: 4.0, v: 6.2, feint: 0.1, slip: 0.6, slipOut: 0.5 },
+  lead: 0.15,                // the hands lead the car: a slide is asked for this long before its arc
+  spring: 6.8, damp: 0.56,   // the slip angle chases what is asked (rad/s; under-damped: the catch wobbles)
+  waver: 0.07, waverHz: 1.7, // the throttle wavering through the slide
+  handbrake: 0.3,            // the rear wheels locked this long as the slide starts
+  counter: 0.85, counterTurn: 0.15, lock: 0.6, hands: 0.05,   // counter-steer per rad of slip, what of the turn's own steer stays, full lock, how quick the wheel is turned
+  spin: 0.9, launchV: 5, launchSpin: 6,                      // rear wheelspin over road speed in a slide; the launch's, until launchV
+  roll: 0.045, rollAt: 7, pitch: 0.022, pitchAt: 5, squat: 0.008, body: 9, bodyDamp: 0.4,   // the body on its springs
+  pivot: 0.6,                // the body turns about a point this far ahead of its middle: the tail swings, the nose keeps the line
+};
+/* What the slide leaves (world/han/fx.js): each one draw, there only while there is something of it. */
+export const HAN_FX = {
+  /* rear-tyre smoke: `rate` puffs a second from each tyre at full slide, `max` alive at once (the oldest go
+   * first), each living `life` s, `size` m across swelling by `swell`x, `alpha` at its thickest; it leaves the
+   * tyre with `carry` of the car's speed and `fling` of the wheelspin (backward), slowed by `drag`, rising */
+  smoke: { max: 160, rate: 36, life: 2.2, size: 1.0, swell: 2.0, alpha: 0.62, rise: 0.8, drag: 1.6, spread: 0.9, carry: 0.3, fling: 0.22 },
+  /* tyre marks: a ribbon of `quads` quads (both tyres), one every `step` m, `width` m wide, `lift` m over the
+   * road, `dark` opaque when laid at full slide, fading between fade[0] and fade[1] s old */
+  marks: { quads: 640, step: 0.14, width: 0.22, lift: 0.012, dark: 0.62, fade: [9, 17] },
+  /* the car's sound, made in code (no file): levels of the engine and the tyres' howl (0: not made at all), heard
+   * full within `near` m of the car and not at all beyond `far`; the gears' top speeds (m/s), the revs' pitch (Hz) */
+  sound: { engine: 0.05, squeal: 0.5, near: 8, far: 34, gears: [5, 9, 14], hz: [70, 240] },
+};
+
 /* Ground plan in front of the store, as z lines (the store glass is z = 0). */
 export const STREET = {
   apron: 1.6,      // concrete walk along the glass
@@ -627,9 +660,9 @@ export const SHOT_SPOTS = [
   { name: 'han-side', scene: 'town', pos: [17.6, 0, 4.7], yaw: -1.5708, pitch: -0.06, looks: ['day'] },                // the profile at 5 m
   { name: 'han-front34', scene: 'town', pos: [19.4, 0, 9.0], yaw: -0.72, pitch: -0.1, looks: ['day'] },                 // front three-quarter at 5.5 m
   { name: 'han-rear', scene: 'town', pos: [20.0, 0, -1.0], yaw: -2.66, pitch: -0.08, looks: ['day'] },                  // its tail, from the aisle
-  { name: 'han-drift-mid', scene: 'town', pos: [20.5, 0, 4.2], yaw: -2.35, pitch: -0.08, looks: ['day'], train: 'han:11.44' },   // mid-slide in the master junction, from the spot
-  { name: 'han-out', scene: 'town', pos: [20.5, 0, 4.2], yaw: -1.26, pitch: -0.05, looks: ['day'], train: 'han:6.46' },         // out of the car park's mouth onto the bridge road
-  { name: 'han-flick', scene: 'town', pos: [20.5, 0, 4.2], yaw: 2.23, pitch: -0.02, looks: ['day'], train: 'han:9.32' },        // the handbrake 180 on NIPPON's forecourt
+  { name: 'han-drift-mid', scene: 'town', pos: [20.5, 0, 4.2], yaw: -2.97, pitch: -0.08, looks: ['day'], train: 'han:10.0' },   // mid-slide over the forecourt's mouth, from the spot
+  { name: 'han-out', scene: 'town', pos: [20.5, 0, 4.2], yaw: -1.20, pitch: -0.05, looks: ['day'], train: 'han:7.0' },         // out of the car park's mouth onto the bridge road
+  { name: 'han-flick', scene: 'town', pos: [20.5, 0, 4.2], yaw: -2.55, pitch: -0.04, looks: ['day'], train: 'han:8.85' },        // the handbrake, the tail stepping out in the master junction
   { name: 'han-getin', scene: 'town', pos: [20.2, 0, 6.2], yaw: -1.0, pitch: -0.1, looks: ['day'], train: 'han:2.0' },              // the door open, Han getting in
   // the guide pup (animals/guide.js), staged in a pose `kind@metres` in front of the lens on the far pavement (world frame):
   // at eye height looking down (how you see it beside you), following it from behind, and at pup height

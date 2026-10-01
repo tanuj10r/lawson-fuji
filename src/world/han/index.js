@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { cel } from '../../core/toon.js';
 import { soundBus } from '../../core/soundBus.js';
-import { TOWN, SOUND } from '../../config.js';
+import { TOWN, SOUND, HAN_FX } from '../../config.js';
 import { makeRX7, RX7 } from './rx7.js';
 import { makeHan, POSES, blendPose } from './han.js';
 import { buildDrive, driveAt, T_DRIVE } from './drive.js';
+import { makeSmoke, makeMarks, makeVoice } from './fx.js';
 
 /* ------------------------------------------------------------------ *
  * Han and the RX-7 (Tan's experience 2, docs/EXPERIENCES.md).
@@ -13,10 +14,12 @@ import { buildDrive, driveAt, T_DRIVE } from './drive.js';
  * main road and the bridge road, Han leans on the orange-and-black RX-7.
  * Nothing plays as you walk up (Tan, 2026-09-28: the glow ring says where
  * the engagement is).  Step into the glow in front of him and the Tokyo
- * Drift track starts with the show: he nods, gets in, pulls out onto the
- * main road, runs east, flicks the car round, comes back and drifts it
- * round through the master junction in a cloud of smoke, reverses into
- * the bay, gets out and leans again: all of it on the song's 17.7 s.  The
+ * Drift track starts with the show: he nods, gets in, backs out, runs up
+ * the bridge road into the master junction, flicks the car and slides it
+ * round in one long drift in a cloud of smoke, throws the tail the other
+ * way into the bridge road, comes back into the bay, gets out and leans
+ * again: all of it on the song's 17.7 s (the drive: drive.js; the smoke,
+ * the tyre marks and the car's sound: fx.js).  The
  * camera is never taken.  The track is a placed one-shot (near 6 m, far
  * 24 m): heard at the car park, not across town.
  *
@@ -25,8 +28,9 @@ import { buildDrive, driveAt, T_DRIVE } from './drive.js';
  * If the player stands in the car's way it waits (the song plays on).
  *
  * Cost: the car ~30k triangles in about 14 draws, Han ~7k in about 25
- * (tiny ones), the smoke one instanced draw.  Nothing updates beyond
- * 60 m unless the drive is on.
+ * (tiny ones), the smoke one draw of points and the tyre marks one more,
+ * both only while there are any.  Nothing updates beyond 60 m unless the
+ * drive is on.
  * ------------------------------------------------------------------ */
 
 /** The bay Han's car stands in (town frame): parking.js keeps it and its
@@ -50,76 +54,6 @@ const SONG = 17.74;            // han-drift's length
 const T_IN = 2.8;              // Han is in and the door shut: the drive starts
 const T_END = T_IN + T_DRIVE + 2.3;
 const NEAR = 60;               // beyond this nothing updates (the drive aside)
-
-/* ------------------------------- smoke ------------------------------- */
-function makeSmoke(ctx) {
-  /* Tyre smoke (Tan: real, not cartoon): soft translucent puffs, one
-   * Points draw, each puff swelling from the tyre and thinning to nothing.
-   * A PointsMaterial with a per-puff size and opacity. */
-  const MAX = 64;
-  const geo = new THREE.BufferGeometry();
-  const pos = new Float32Array(MAX * 3), size = new Float32Array(MAX), alpha = new Float32Array(MAX);
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
-  geo.setAttribute('aAlpha', new THREE.BufferAttribute(alpha, 1));
-  geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e5);
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const g = c.getContext('2d');
-  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  r.addColorStop(0, 'rgba(255,255,255,0.9)'); r.addColorStop(0.45, 'rgba(255,255,255,0.45)'); r.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = r; g.fillRect(0, 0, 64, 64);
-  const tex = new THREE.CanvasTexture(c);
-  const mat = new THREE.PointsMaterial({ color: 0xdedbd8, map: tex, size: 1, sizeAttenuation: true, transparent: true, depthWrite: false });
-  mat.onBeforeCompile = (sh) => {
-    sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute float aSize;\nattribute float aAlpha;\nvarying float vAlpha;')
-      .replace('gl_PointSize = size;', 'gl_PointSize = size * aSize;\n  vAlpha = aAlpha;');
-    sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying float vAlpha;')
-      .replace('#include <premultiplied_alpha_fragment>', 'gl_FragColor.a *= vAlpha;\n#include <premultiplied_alpha_fragment>');
-  };
-  mat.customProgramCacheKey = () => 'han-smoke';
-  const mesh = new THREE.Points(geo, mat);
-  mesh.name = 'han-smoke';
-  mesh.userData.dynamic = true;
-  mesh.userData.noOutline = true;
-  mesh.frustumCulled = false;
-  mesh.visible = false;
-  ctx.add(mesh);
-  const P = [];
-  const LIFE = 2.2;
-  let seed = 1;
-  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-  return {
-    mesh,
-    reset() { P.length = 0; geo.setDrawRange(0, 0); seed = 1; },
-    emit(x, y, z, vx, vz) {
-      if (P.length >= MAX) P.shift();
-      P.push({ x, y, z, vx: vx * 0.25 + (rnd() - 0.5) * 1.2, vy: 0.35 + rnd() * 0.4, vz: vz * 0.25 + (rnd() - 0.5) * 1.2, age: 0, s: 0.9 + rnd() * 0.6 });
-    },
-    update(dt) {
-      for (let i = P.length - 1; i >= 0; i--) {
-        const p = P[i];
-        p.age += dt;
-        if (p.age > LIFE) { P.splice(i, 1); continue; }
-        p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
-        p.vx *= 1 - dt * 1.4; p.vz *= 1 - dt * 1.4; p.vy *= 1 - dt * 0.8;
-      }
-      for (let i = 0; i < P.length; i++) {
-        const p = P[i], u = p.age / LIFE;
-        pos[i * 3] = p.x; pos[i * 3 + 1] = p.y; pos[i * 3 + 2] = p.z;
-        size[i] = p.s * (0.8 + 2.8 * Math.sqrt(u));                         // swelling as it drifts
-        alpha[i] = 0.62 * Math.min(1, u / 0.12) * (1 - u) ** 1.6;             // in quickly, thinning away
-      }
-      geo.attributes.position.needsUpdate = true;
-      geo.attributes.aSize.needsUpdate = true;
-      geo.attributes.aAlpha.needsUpdate = true;
-      geo.setDrawRange(0, P.length);
-      mesh.visible = P.length > 0 && mesh.userData.on !== false;   // no puffs, no draw
-    },
-  };
-}
 
 /* ------------------------------- building ------------------------------- */
 
@@ -148,7 +82,7 @@ export function buildHan(ctx) {
   }
 
   const han = makeHan();
-  cg.add(han.group);
+  car.body.add(han.group);            // (he leans on it, sits in it: he rolls with the body)
 
   // where Han stands, car frame (the car's right side, +z, is the driver's)
   const HW = car.halfW(-0.55);
@@ -171,7 +105,7 @@ export function buildHan(ctx) {
     label: "ハン  ·  Han's RX-7", action: () => trigger(),
   });
 
-  const smoke = makeSmoke(ctx);
+  const smoke = makeSmoke(ctx), marks = makeMarks(ctx), voice = makeVoice();
 
   /* state */
   const S = { run: false, t: 0, held: 0, rate: 1, armed: true, frozen: false, songT: 0, idle: 0, look: 0, lookP: 0, groundY: 0.03, door: 0 };
@@ -202,12 +136,13 @@ export function buildHan(ctx) {
   /** Put the car at drive time dt (0 = parked). */
   function placeCar(dtm) {
     driveAt(D, dtm, cp);
-    const psi = cp.th + cp.drift;
+    const psi = cp.psi;
     const gy = groundAt(cp.x, cp.z);
     S.groundY += (gy - S.groundY) * 0.35;
     cg.position.set(cp.x, S.groundY, cp.z);
     cg.rotation.y = -psi;
-    car.setWheels(cp.dist / RX7.R * (cp.rev ? 1 : 1), cp.steer);
+    car.setWheels(cp.dist / RX7.R, cp.steer, cp.rear / RX7.R);
+    car.setLean(cp.roll, cp.pitch);
     // its collider, 6 cm in from the paint
     const hl = RX7.L / 2 - 0.08, hw = RX7.W / 2 - 0.1;
     setBox(carCol, [[hl, hw], [hl, -hw], [-hl, hw], [-hl, -hw]].map(([lx, lz]) => ({ ...toTown(cp.x, cp.z, lx, lz, psi, {}) })));
@@ -221,7 +156,7 @@ export function buildHan(ctx) {
     const f = {};
     for (const a of [0.12, 0.3, 0.5, 0.7]) {
       driveAt(D, dt0 + a, f);
-      const psi = f.th + f.drift, c = Math.cos(psi), s = Math.sin(psi);
+      const psi = f.psi, c = Math.cos(psi), s = Math.sin(psi);
       const dx = p.x - f.x, dz = p.z - f.z;
       const lx = dx * c + dz * s, lz = -dx * s + dz * c;
       if (Math.abs(lx) < RX7.L / 2 + 0.55 && Math.abs(lz) < RX7.W / 2 + 0.55) return true;
@@ -308,6 +243,7 @@ export function buildHan(ctx) {
     }
     S.pending = false; S.songWait = null;
     S.run = true; S.t = 0; S.held = 0; S.rate = 1; S.songT = 0; S.armed = false;
+    tyres[0].ok = tyres[1].ok = false; S.rear = null;
     // from the top, with the animation; local: full to 6 m, gone by 24 m (the famous view is 22.8 m off)
     soundBus.oneShot('han-drift', { x: spotW.x, z: spotW.z, y: 1.2, near: 6, far: 24, gain: songLevel });
     spot?.done();
@@ -332,7 +268,7 @@ export function buildHan(ctx) {
     if (!S.run && dCar > NEAR) return;
     if (sun) {
       const k = THREE.MathUtils.clamp(sun.intensity / 2.2, 0.22, 1.1);
-      if (Math.abs(k - envK) > 0.01) { envK = k; car.setEnv(k); }
+      if (Math.abs(k - envK) > 0.01) { envK = k; car.setEnv(k); smoke.setLight(k); }
     }
     /* The show keeps the song's time, not the game's (the game's clock is
      * capped at 1/20 s a frame).  Paused (dt 0) both stand still: the engine
@@ -358,7 +294,7 @@ export function buildHan(ctx) {
       if (!want && S.rate < 0.03) S.rate = 0;
       S.held += dt * (1 - S.rate);
       S.t += dt;
-      if (S.t - S.held >= T_END) S.run = false;
+      if (S.t - S.held >= T_END) { S.run = false; voice.stop(); }
     }
     const e = S.run ? S.t - S.held : -1;
     const dtm = e < T_IN ? 0 : Math.min(e - T_IN, T_DRIVE);
@@ -387,22 +323,41 @@ export function buildHan(ctx) {
       setBox(hanCol, [{ x: a.x - 0.25, z: a.z - 0.25 }, { x: b.x + 0.25, z: b.z + 0.25 }, { x: a.x + 0.25, z: a.z + 0.25 }, { x: b.x - 0.25, z: b.z - 0.25 }]);
     } else { hanCol.x0 = hanCol.x1 = hanCol.z0 = hanCol.z1 = 1e6; }
 
-    // smoke from the rear wheels while it slides, and a puff or two at the launch
-    if (S.run && !S.frozen && dt > 0) smokeStep(dt, psi);
-    if (!S.frozen) smoke.update(dt);
+    // what the rear tyres leave while they slide: smoke, and black on the road; and the sound of it
+    const driving = S.run && !S.frozen && dt > 0 && e >= T_IN && e < T_IN + T_DRIVE;
+    if (driving) {
+      trail(dt * S.rate, S.rate);
+      const wheel = Math.abs(cp.rear - S.rear) / Math.max(1e-3, dt), dv = (cp.speed - S.speed) / Math.max(1e-3, dt);
+      voice.step(dCar, wheel, cp.speed * S.rate, cp.slide * S.rate, THREE.MathUtils.clamp(Math.max(cp.slide, dv / 5, 0.15) * S.rate, 0, 1));
+    } else if (voice.on && !S.frozen && dt > 0) voice.stop();
+    S.rear = cp.rear; S.speed = cp.speed;
+    if (!S.frozen) { smoke.update(dt); marks.update(dt); }
   });
 
-  let acc = 0;
-  function smokeStep(dt, psi) {
-    if (!(cp.sliding || cp.launch)) return;
-    acc += dt * (cp.sliding ? 30 : 16);
-    const vx = Math.cos(cp.th) * cp.speed, vz = Math.sin(cp.th) * cp.speed;
-    while (acc >= 1) {
-      acc -= 1;
-      for (const sz of [-1, 1]) {
-        const w = toTown(cp.x, cp.z, RX7.axle.r - 0.1, sz * 0.82, psi, {});
-        smoke.emit(w.x, 0.3, w.z, -vx, -vz);
+  /* The rear tyres' tracks over the last `dt` s of the drive (`k`: 0 while the car waits for you): marks laid
+   * along each tyre's own path on the ground, puffs born along it and leaving with some of the car's speed and
+   * some of the wheelspin's (thrown back off the tyre). */
+  const tyres = [{ x: 0, z: 0, ok: false, acc: 0 }, { x: 0, z: 0, ok: false, acc: 0 }], tp = {};
+  function trail(dt, k = 1) {
+    const F = HAN_FX.smoke, slide = cp.slide * k;
+    const c = Math.cos(cp.psi), s = Math.sin(cp.psi);
+    const spin = cp.rev ? 0 : Math.max(0, (cp.rear - (S.rear ?? cp.rear)) / Math.max(1e-3, dt) - cp.speed);   // how much faster than the road the tyres turn
+    for (let w = 0; w < 2; w++) {
+      const T = tyres[w];
+      toTown(cp.x, cp.z, RX7.axle.r, (w ? 1 : -1) * RX7.track.r, cp.psi, tp);
+      const gy = groundAt(tp.x, tp.z);
+      marks.lay(w, tp.x, gy, tp.z, slide > 0.3 ? slide : 0);
+      if (slide > 0.05 && T.ok && dt > 0) {
+        const vx = (tp.x - T.x) / dt, vz = (tp.z - T.z) / dt;
+        T.acc += dt * F.rate * slide;
+        const n = Math.floor(T.acc);
+        T.acc -= n;
+        for (let i = 0; i < n; i++) {
+          const u = (i + 0.5) / n;                                              // along the stretch it covered this frame
+          smoke.emit(T.x + (tp.x - T.x) * u, gy + 0.12, T.z + (tp.z - T.z) * u, vx * F.carry - c * spin * F.fling, vz * F.carry - s * spin * F.fling, slide);
+        }
       }
+      T.x = tp.x; T.z = tp.z; T.ok = true;
     }
   }
 
@@ -428,15 +383,18 @@ export function buildHan(ctx) {
   if (import.meta.env?.DEV) {
     const set = (t) => {
       S.run = true; S.frozen = true; S.t = t; S.held = 0; S.songT = SONG;
-      smoke.reset();
-      // the smoke of the two seconds before
-      const t0 = Math.max(0, t - 2);
-      for (let u = t0; u < t; u += 1 / 60) {
-        const e = u, dtm = e < T_IN ? 0 : Math.min(e - T_IN, T_DRIVE);
-        const psi = placeCar(dtm);
-        smokeStep(1 / 60, psi);
-        smoke.update(1 / 60);
+      smoke.reset(); marks.reset();
+      tyres[0].ok = tyres[1].ok = false; S.rear = null;
+      // what the drive has left by then: its marks, and the smoke still hanging
+      for (let u = T_IN; u < Math.min(t, T_IN + T_DRIVE); u += 1 / 60) {
+        driveAt(D, u - T_IN, cp);
+        trail(1 / 60);
+        S.rear = cp.rear;
+        smoke.update(1 / 60); marks.update(1 / 60);
       }
+      for (let u = T_IN + T_DRIVE; u < t; u += 1 / 60) { smoke.update(1 / 60); marks.update(1 / 60); }
+      placeCar(t < T_IN ? 0 : Math.min(t - T_IN, T_DRIVE));
+      S.rear = cp.rear; S.speed = cp.speed;
     };
     // what it costs: triangles and draws, car and Han apart
     const stats = (root) => {
@@ -450,12 +408,12 @@ export function buildHan(ctx) {
       return { tris: Math.round(tris), draws };
     };
     window.__han = {
-      set, play: () => { S.frozen = false; start(); }, stop: () => { S.run = false; S.frozen = false; smoke.reset(); },
-      state: () => ({ run: S.run, t: S.t, held: S.held, armed: S.armed, x: cg.position.x, z: cg.position.z, psi: -cg.rotation.y }),
-      show: (on) => { cg.visible = on; smoke.mesh.userData.on = on; smoke.mesh.visible = false; },
+      set, play: () => { S.frozen = false; start(); }, stop: () => { S.run = false; S.frozen = false; smoke.reset(); marks.reset(); voice.stop(); },
+      state: () => ({ run: S.run, t: S.t, held: S.held, armed: S.armed, x: cg.position.x, z: cg.position.z, psi: -cg.rotation.y, slide: cp.slide, smoke: smoke.count, marks: marks.quads, voice: voice.on }),
+      show: (on) => { cg.visible = on; smoke.mesh.userData.on = marks.mesh.userData.on = on; smoke.mesh.visible = marks.mesh.visible = false; },
       stats: () => {
         const h = stats(han.group), all = stats(cg);
-        return { car: { tris: all.tris - h.tris, draws: all.draws - h.draws }, han: h, smoke: stats(smoke.mesh) };
+        return { car: { tris: all.tris - h.tris, draws: all.draws - h.draws }, han: h, smoke: smoke.count, marks: marks.quads };
       },
     };
     const prev = Object.getOwnPropertyDescriptor(window, '__train');

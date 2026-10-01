@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TOWN, STREET, LAWSON, HERO_VIEWS, ANIMALS } from '../../config.js';
+import { TOWN, STREET, LAWSON, HERO_VIEWS, ANIMALS, ROADS } from '../../config.js';
 import { pondShore } from '../land/pond.js';
 import { planPaddies } from '../land/paddies.js';
 import { SPECIALS } from '../town-plan.js';
@@ -9,6 +9,7 @@ import { shibaGeometry, RIG, SHADOW, BODY_R } from './shiba.js';
 import { animalMaterial, Herd, ease, turn } from './shade.js';
 import { soundBus } from '../../core/soundBus.js';
 import { STRINGS } from '../../data/strings.js';
+import { HACHI_HOME } from './home.js';        // [tour-B] his own garden's ball
 
 /* ------------------------------------------------------------------ *
  * The guide (Tan, 2026-09-28): a shiba that leads you to the town's
@@ -63,6 +64,8 @@ class Walk {
     // the town's bounds are in its own (turned) frame: in the world's
     const b0 = ctx.toWorld({ x: TOWN.bounds.x0, z: TOWN.bounds.z0 }), b1 = ctx.toWorld({ x: TOWN.bounds.x1, z: TOWN.bounds.z1 });
     const B = { x0: Math.min(b0.x, b1.x), x1: Math.max(b0.x, b1.x), z0: Math.min(b0.z, b1.z), z1: Math.max(b0.z, b1.z) };
+    // [tour-B] Hachi's garden lies past the town's south fence: the grid reaches it
+    { const hh = TOWN.hachiHome, q = ctx.toWorld({ x: hh.x0, z: hh.z1 + 1.2 }); B.z0 = Math.min(B.z0, q.z); B.z1 = Math.max(B.z1, q.z); }
     const X0 = this.X0 = B.x0, Z0 = this.Z0 = B.z0;
     const nx = this.nx = Math.ceil((B.x1 - B.x0) / C), nz = this.nz = Math.ceil((B.z1 - B.z0) / C);
     const N = this.N = nx * nz;
@@ -98,6 +101,9 @@ class Walk {
     { const [x0, z0, x1, z1] = TOWN.land.paddies.box; wrect(x0 - 1.5, z0 - 1.5, x1 + 1.5, z1 + 1.5, K.ground); }
     { const [x0, z0, x1, z1] = TOWN.land.pond.box; wrect(x0 - 1.5, z0 - 1.5, x1 + 1.5, z1 + 1.5, K.ground); }
     for (const s of SPECIALS) if (s.kind === 'plaza' || s.kind === 'station') wrect(s.x0, s.z0, s.x1, s.z1, K.plaza);
+    // [tour-B] the shrine's grounds and Hachi's own garden (and the lane's end at its gate) are places he goes into
+    for (const s of SPECIALS) if (s.kind === 'shrine') wrect(s.x0, s.z0 - 0.5, s.x1, s.z1, K.plaza);
+    { const hh = TOWN.hachiHome; wrect(hh.x0, hh.z0 - 0.6, hh.x1, hh.z1, K.plaza); }
     /* the roads: pavements cheap, asphalt dear, the zebras cheap again */
     const net = this.core?.kit?.net, feats = this.core?.kit?.features;
     if (net) {
@@ -461,7 +467,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     if (L.id && L.id !== 'gate') { refresh(); const e = list.find((q) => q.id === L.id); return e ? { ...e, k, leg: L } : null; }
     return { x: L.x, z: L.z, id: L.id ?? null, k, leg: L };
   };
-  const legDone = (k) => { const L = TOUR[k]; return !L || (!!L.id && L.id !== 'gate' && (G.done.has(L.id) || !legTarget(k))); };
+  const legDone = (k) => { const L = TOUR[k]; return !L || (!!L.visit && TB.visited.has(L.visit)) || (!!L.id && L.id !== 'gate' && (G.done.has(L.id) || !legTarget(k))); };   // ([tour-B] `visit` legs: a place you have been into)
   /** The first leg from `from` on that still wants doing. */
   const nextLeg = (from) => { let k = from; while (k < TOUR.length && legDone(k)) k++; return k; };
   /** Ahead of need: this leg's field and the next one's, one at a time while the pup isn't waiting on one. */
@@ -540,8 +546,9 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     G.drops = 0;
     const e = pickTarget();
     if (!e) { toGateOrNap(); return; }
-    const k = TOUR.findIndex((L) => L.id === e.id);
-    if (k >= 0) { G.leg = k; startLead(legTarget(k) ?? { ...e, k, leg: TOUR[k] }); }
+    const k = tourRush(TOUR.findIndex((L) => L.id === e.id));   // ([tour-B] his home or the shrine first, if they come before it and you haven't been in)
+    if (k >= 0 && !TOUR[k].id) lead(k);
+    else if (k >= 0) { G.leg = k; startLead(legTarget(k) ?? { ...e, k, leg: TOUR[k] }); }
     else { G.leg = TOUR.length; startLead({ ...e, k: TOUR.length, leg: { id: e.id } }); }
   };
   /** Your whistle (F): the two notes sound at you; Hachi answers once they are over (ears up meanwhile): a yip, and
@@ -865,7 +872,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     const s = G.speed * dt;
     let nx = G.x + Math.sin(G.yaw) * s, nz = G.z + Math.cos(G.yaw) * s;
     if (!W.free(nx, nz)) { nx = G.x + (dx / d) * s; nz = G.z + (dz / d) * s; }      // straight at it, then
-    if (W.free(nx, nz)) { G.moved += Math.hypot(nx - G.x, nz - G.z); G.x = nx; G.z = nz; G.stall = 0; }
+    if (W.free(nx, nz) && !railShut(nx, nz)) { G.moved += Math.hypot(nx - G.x, nz - G.z); G.x = nx; G.z = nz; G.stall = 0; }   // ([tour-B] railShut: never onto the level crossing while it is shut)
     else {
       G.speed = 0;
       // held against something for a while: back to the middle of its own cell
@@ -1170,6 +1177,219 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     if (u >= 1) offBench();
   };
 
+
+  /* ================================================================================================ *
+   * [tour-B] The level crossing, Hachi's own home, the shrine's fox (Tan, 2026-10-01).
+   *
+   * `cross` legs: at the barrier he goes on only with the arms right up; else he sits facing the line and
+   *   watches the train by (ears up, a boof as it comes), and is off with a hop when the arms have lifted.
+   *   Whatever he is doing he never steps onto the crossing while it is shut (move()), and caught on it as
+   *   it shuts he runs off it (railClear).
+   * `visit` legs: places he goes into (config.js ANIMALS.guide.visit); visited once you come in after him.
+   *   home: his garden: the joy (bounces, spins, a lap of the lawn, his ball nosed along), then sat proudly
+   *   on his blanket looking at you.  shrine: in under the torii, he sits by the guardian fox looking back.
+   * ================================================================================================ */
+  const TB = { visited: new Set(), visit: null, crossSat: false, heard: false };
+  const tourReset = () => { TB.visited.clear(); TB.visit = null; TB.crossSat = false; TB.heard = false; G.hopH = null; };
+  const LINE = core?.line ?? null;
+  const HH = TOWN.hachiHome, SHRINE = SPECIALS.find((s) => s.kind === 'shrine');
+  const tw = (x, z) => ctx.toWorld({ x, z });
+  // between the two barrier arms (they come down 5.3 m either side of the line's middle), in the town's frame
+  const RAILZ = [TOWN.rail.z - 5.15, TOWN.rail.z + 5.15], RAILX = ROADS.lane.asphalt / 2 + 0.9;
+  const inRail = (x, z) => { const p = ctx.toLocal({ x, z }); return Math.abs(p.x - TOWN.rail.crossX) < RAILX && p.z > RAILZ[0] && p.z < RAILZ[1]; };
+  const crossShut = () => { const c = LINE?.service?.cross; return !!c && (c.closing || c.armT > A.crossing.open); };
+  const railShut = (nx, nz) => crossShut() && inRail(nx, nz) && !inRail(G.x, G.z);
+  const RAIL_OUT = [tw(TOWN.rail.crossX, RAILZ[0] - 1.2), tw(TOWN.rail.crossX, RAILZ[1] + 1.2)];
+  const RAIL_MID = tw(TOWN.rail.crossX, TOWN.rail.z);
+  const railClear = (dt, pose) => {
+    if (G.state === 'staged' || !inRail(G.x, G.z) || !crossShut()) return false;
+    G.act = null;
+    // on along his way if he has one, else out by the nearer side
+    const way = G.field?.ready && G.state === 'lead' ? steer(dt, A.run) : 'lost';
+    if (way !== 'moving') move(dt, dist(G, RAIL_OUT[0]) < dist(G, RAIL_OUT[1]) ? RAIL_OUT[0] : RAIL_OUT[1], A.run);
+    pose.bound = 1; pose.perk = 0.6; pose.wag = 0.3;
+    return true;
+  };
+  /** The train nearest the crossing: where its middle is (world) and how far its nearer end is from the lane; null if none is about. */
+  const trainNear = () => {
+    let best = null;
+    for (const t of LINE?.service?.runs ?? []) {
+      if (t.phase === 'idle') continue;
+      const d = Math.max(0, Math.abs(t.x - TOWN.rail.crossX) - t.len / 2);
+      if (!best || d < best.d) { const w = tw(t.x, t.z); best = { x: w.x, z: w.z, d }; }
+    }
+    return best;
+  };
+  /** Arrived at a waypoint that is a crossing's barrier or a place: true if he stays for it. */
+  const tourStop = (L) => {
+    if (L?.cross) {
+      if (!crossShut()) return false;
+      G.state = 'cross'; G.waitT = 0; G.since = 0; G.speed = 0; TB.crossSat = false; TB.heard = false;
+      return true;
+    }
+    if (L?.visit) {
+      G.state = 'visit'; G.waitT = 0; G.since = 0;
+      TB.visit = { kind: L.visit, phase: L.visit === 'home' ? 'gate' : 'go', t: 0, held: 0 };
+      return true;
+    }
+    return false;
+  };
+  /** Whistled: the leg to rush to.  A place on the tour before engagement leg k that you haven't been into comes
+   * first (from its crossing's barrier, if it has one just before it). */
+  const tourRush = (k) => {
+    const from = Math.min(G.leg ?? 0, TOUR.length), to = k < 0 ? TOUR.length : k;
+    for (let j = from; j < to; j++) {
+      if (!TOUR[j].visit || TB.visited.has(TOUR[j].visit)) continue;
+      for (let c = j - 1; c >= Math.max(from, j - 2); c--) if (TOUR[c].cross) return c;
+      return j;
+    }
+    return k;
+  };
+  const crossStep = (dt, pose, dP, notInterested) => {
+    G.since += dt; G.waitT += dt;
+    if (!crossShut()) {
+      // the arms are up: over we go (a hop and a yip, having waited)
+      if (TB.crossSat) { G.hopT = 0; say('dog-yip', 0.8, true); }
+      TB.crossSat = false; TB.heard = false;
+      advance();
+      return 'way';
+    }
+    TB.crossSat = true;
+    // sat at the barrier, facing the line; the train coming, ears up and a boof; his head follows it by; the arms
+    // lifting, up on his feet, tail going, a look back at you: "come on"
+    const want = Math.atan2(RAIL_MID.x - G.x, RAIL_MID.z - G.z), off = turn(G.yaw, want);
+    G.yaw += THREE.MathUtils.clamp(off, -dt * 3, dt * 3);
+    const lifting = !LINE.service.cross.closing, t = trainNear(), near = !!t && t.d < A.crossing.hear;
+    pose.posture = lifting || Math.abs(off) > 0.6 ? 0 : 1;
+    pose.wag = lifting ? 0.9 : near ? 0.5 : 0.25;
+    pose.perk = lifting ? 1.3 : 1;
+    if (near && !TB.heard) { TB.heard = true; say('dog-boof', 0.75, true); }
+    if (G.since > 1.0 && notInterested(true)) { drop(); return 'player'; }
+    if (lifting) return 'player';
+    if (near) { pose.look = THREE.MathUtils.clamp(turn(G.yaw, Math.atan2(t.x - G.x, t.z - G.z)), -1.4, 1.4); pose.nod = -0.06; return 'line-alert'; }
+    // nothing in sight yet: down the line, with a look back at you now and then
+    return G.since % 6 > 4.4 ? 'player' : 'line';
+  };
+  /** Have you come in (the place counts as visited)? */
+  const visitIn = (kind) => {
+    const p = ctx.toLocal({ x: P.x, z: P.z });
+    if (kind === 'home') return p.x > HH.x0 && p.x < HH.x1 && p.z > HH.z0 + 0.1 && p.z < HH.z1;
+    return !!SHRINE && p.x > SHRINE.x0 && p.x < SHRINE.x1 && p.z > SHRINE.z0 && p.z < SHRINE.z1;   // (in past its stone fence)
+  };
+  const HOME_MID = tw(HH.mid[0], HH.mid[1]), HOME_MAT = tw(HH.mat[0], HH.mat[1] - 0.05);
+  const visitStep = (dt, pose, dP, toYou, nodYou, notInterested) => {
+    const v = TB.visit, C = A.visit[v.kind];
+    G.since += dt;
+    if (!TB.visited.has(v.kind) && visitIn(v.kind)) TB.visited.add(v.kind);
+    const been = TB.visited.has(v.kind);
+    const toP = Math.atan2(P.x - G.x, P.z - G.z);
+    const faceYou = (rate) => { G.yaw += turn(G.yaw, toP) * Math.min(1, dt * rate); };
+    const next = (phase) => { v.phase = phase; v.t = 0; };
+    // on with the tour: a little hop, and off
+    const on = () => { TB.visit = null; G.hopH = null; G.hopT = 0; advance(); return ['still', 'way']; };
+    let r = 'still', look = 'player';
+    v.t += dt;
+    if (v.kind === 'shrine') {
+      // up the path to the guardian fox; there he turns, sits beside it and looks back at you until you come in
+      const spot = v.spot ??= (() => { const c = W.nearest(G.target.x, G.target.z, 1.5); return c >= 0 ? W.at(c) : G.target; })();
+      if (v.phase === 'go') {
+        if (dist(G, spot) > 0.22 && v.t < 4) return [move(dt, spot, A.trot), 'way'];
+        next('sit');
+      }
+      faceYou(5);
+      pose.posture = Math.abs(turn(G.yaw, toP)) < 0.7 ? 1 : 0; pose.wag = dP < 7 ? 0.5 : 0.25; pose.look = toYou; pose.nod = nodYou;
+      if (been && G.posture > 0.8) { v.held += dt; if (!v.said) { v.said = true; say('dog-boof', 0.6, true); G.tiltT = 0; G.tiltSide = 1; } }
+      if (v.held > C.sit || v.t > 14) return on();          // (you only watch from the lane: he moves on after a while)
+      if (G.since > 1.0 && notInterested(true)) { TB.visit = null; drop(); }
+      return [r, look];
+    }
+    /* his home */
+    pose.wag = 1; pose.perk = 1.3;
+    switch (v.phase) {
+      case 'gate': {
+        // just inside his gate, looking back for you: little hops, "come on, come on"
+        faceYou(8);
+        if (G.hopT < 0 && v.t % 1.1 < 0.1) G.hopT = 0;
+        pose.look = toYou; pose.nod = nodYou;
+        if ((dP < C.see && W.sight(G.x, G.z, P.x, P.z)) || been) { next('in'); say('dog-yip', 0.9, true, 30); }
+        else if (G.since > 1.0 && notInterested(true)) { TB.visit = null; drop(); }
+        break;
+      }
+      case 'in':
+        // in at a bounding run to the middle of his lawn
+        if (dist(G, HOME_MID) > 0.3 && v.t < 3) { r = move(dt, HOME_MID, A.whistle.gallop); pose.bound = 1; pose.perk = 0.6; look = 'way'; break; }
+        next('bounce'); say('dog-yip', 0.9, true, 30);
+        break;
+      case 'bounce': {
+        // jumping for joy on the spot, turning to you
+        G.hopH = 0.3;
+        if (G.hopT < 0) G.hopT = 0;
+        faceYou(6);
+        G.pitchTo = -0.25 * Math.sin(Math.PI * Math.min(1, Math.max(0, G.hopT) / 0.5));
+        pose.look = toYou; pose.nod = nodYou - 0.1;
+        if (v.t > C.bounce) { next('spin'); v.yaw0 = G.yaw; v.s = Math.random() < 0.5 ? 1 : -1; say('dog-giggle', 0.8, true); }
+        break;
+      }
+      case 'spin': {
+        // two happy spins on the spot
+        G.hopH = null;
+        G.yaw = v.yaw0 + v.s * Math.PI * 4 * ease(v.t / C.spin);
+        pose.amp = 0.85; pose.phRate = 17; pose.look = -v.s * 0.55; pose.nod = 0.05; G.rollTo = v.s * 0.12;
+        if (v.t > C.spin) {
+          const R = 1.25, cx = G.x + Math.cos(G.yaw) * -v.s * R, cz = G.z + Math.sin(G.yaw) * v.s * R;
+          if (roomFor(cx, cz, R)) { next('lap'); Object.assign(v, { cx, cz, R, a: Math.atan2(G.x - cx, G.z - cz) }); say('dog-awoo', 0.8, true); } else next('toy');
+        }
+        break;
+      }
+      case 'lap': {
+        // a tearing lap of his lawn, leaning in, ears back
+        const sp = (Math.PI * 2 * v.R) / C.lap;
+        v.a += v.s * (sp / v.R) * dt;
+        const nx = v.cx + Math.sin(v.a) * v.R, nz = v.cz + Math.cos(v.a) * v.R;
+        if (W.free(nx, nz)) { G.moved += dist({ x: nx, z: nz }, G); G.x = nx; G.z = nz; }
+        G.yaw = v.a + v.s * Math.PI / 2; G.speed = sp; r = 'moving';
+        pose.amp = 1; pose.phRate = 16; pose.perk = 0.3; pose.look = -v.s * 0.5; pose.nod = 0.1; G.rollTo = v.s * 0.18; G.pitchTo = 0.04;
+        if (v.t > C.lap) next('toy');
+        break;
+      }
+      case 'toy': {
+        // to his ball: a play bow at it, a push with his nose, and after it as it rolls
+        const ball = ctx.toWorld(HACHI_HOME.ball), d = dist(G, ball);
+        const toBall = Math.atan2(ball.x - G.x, ball.z - G.z);
+        if (!v.nosed) {
+          if (d > 0.3 && v.t < 1.6) { r = move(dt, ball, A.run * 0.7); look = 'way'; pose.nod = 0.2; break; }
+          G.yaw += turn(G.yaw, toBall) * Math.min(1, dt * 12);
+          v.bow = (v.bow ?? 0) + dt;
+          pose.posture = -1; pose.look = 0; pose.nod = 0.25; G.rollTo = 0.05 * Math.sin(v.bow * 14);
+          if (v.bow > 0.55) {
+            v.nosed = true; say('dog-yip', 0.85, true);
+            // off across the lawn, away from him (toward its middle when he is at its edge), in the town's frame
+            const b = HACHI_HOME.ball, g = ctx.toLocal({ x: G.x, z: G.z });
+            HACHI_HOME.nudge((b.x - g.x) + 0.6 * (HH.mid[0] - b.x), (b.z - g.z) + 0.6 * (HH.mid[1] - b.z), 1.7);
+          }
+        } else {
+          if (d > 0.35) { r = move(dt, ball, A.run * 0.8); pose.bound = 0.6; }
+          pose.look = THREE.MathUtils.clamp(turn(G.yaw, toBall), -1, 1); pose.nod = 0.2; pose.perk = 0.7;
+        }
+        if (v.t > C.toy + (v.bow ?? 0)) next('proud');
+        break;
+      }
+      case 'proud': {
+        // onto his blanket in front of his kennel, round to face you, and sat tall, chin up: this is my place
+        if (dist(G, HOME_MAT) > 0.2 && v.t < 3 && !v.sat) { r = move(dt, HOME_MAT, A.trot); look = 'way'; break; }
+        v.sat = true;
+        faceYou(6);
+        pose.posture = Math.abs(turn(G.yaw, toP)) < 0.7 ? 1 : 0; pose.wag = 0.5; pose.look = toYou; pose.nod = nodYou - 0.14;
+        if (G.posture > 0.8) { if (been || dP < 6) v.held += dt; if (!v.said && v.held > 1.2) { v.said = true; say('dog-boof', 0.7, true); } }
+        if (v.held > C.proud || v.t > 16) return on();      // (you only watch from the lane: he moves on after a while)
+        if (G.since > 1.0 && notInterested(true)) { TB.visit = null; G.hopH = null; drop(); }
+        break;
+      }
+    }
+    return [r, look];
+  };
+  /* ======================================== [tour-B] ends ======================================== */
+
   /* ---- what it does ---- */
   function update(dt, cam) {
     if (!W.built) { W.build(); const c = W.nearest(HOME.x, HOME.z, 3); if (c >= 0) { const q = W.at(c); G.x = q.x; G.z = q.z; } G.y = ground(G.x, G.z); prefetch(); }
@@ -1260,7 +1480,10 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     // off somewhere from the bench (a whistle, the Strong Nine): down off it first
     if ((G.onBench || G.lift > 0) && G.state !== 'nap' && !G.hopOff) G.hopOff = { t: 0, from: { x: G.x, z: G.z }, lift: G.lift };
     if (G.hopOff) hopOffStep(dt, pose);
+    else if (railClear(dt, pose)) r = 'moving';             // [tour-B] caught on the level crossing as it shuts: off it at a run
     else switch (G.state) {
+      case 'cross': lookAt = crossStep(dt, pose, dP, notInterested); break;                       // [tour-B] at the barrier, the train going by
+      case 'visit': [r, lookAt] = visitStep(dt, pose, dP, toYou, nodYou, notInterested); break;   // [tour-B] his home, the shrine's fox
       case 'home': {
         if (!G.field) goTo('home', HOME);
         const there = dist(G, HOME) < 0.6;
@@ -1279,6 +1502,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         if (G.field?.ready && G.field.at(G.x, G.z) < 1.2 && G.field.at(G.x, G.z) !== INF) {
           if (isStop(G.target) || G.leg >= TOUR.length) { G.state = 'atSpot'; G.aside = beside(G.target); G.waitT = 0; G.minD = INF; break; }
           if (G.target.leg?.wait) { G.state = 'gate'; G.waitT = 0; G.since = 0; break; }
+          if (tourStop(G.target.leg)) break;                // [tour-B] the level crossing shut: he waits; a place: he goes in
           // a waypoint passed: a glance back where there is something to hear, and on
           if (G.target.leg?.hear) { G.glance = -1.3; if (Math.random() < 0.5) say('dog-boof', 0.6); }
           advance(); break;
@@ -1527,7 +1751,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     G.perk += (perk - G.perk) * Math.min(1, dt * 5);
     // the little hop, the shake, the lean and the roll
     G.hop = 0;
-    if (G.hopT >= 0) { G.hopT += dt; const u = G.hopT / 0.5; G.hop = 0.14 * Math.sin(Math.PI * Math.min(1, u)); if (u >= 1) G.hopT = -1; }
+    if (G.hopT >= 0) { G.hopT += dt; const u = G.hopT / 0.5; G.hop = ((G.state === 'visit' && G.hopH) || 0.14) * Math.sin(Math.PI * Math.min(1, u)); if (u >= 1) G.hopT = -1; }
     let shakeRoll = 0;
     if (G.shakeT >= 0) { G.shakeT += dt; const u = G.shakeT / 0.7; shakeRoll = 0.16 * Math.sin(G.shakeT * 70) * (1 - u); G.tilt += 0.3 * Math.sin(G.shakeT * 70 + 1) * (1 - u); if (u >= 1) G.shakeT = -1; }
     G.roll += (G.rollTo - G.roll) * Math.min(1, dt * 7);
@@ -1552,7 +1776,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   /* dev: state, staged poses for the screenshots, and a headless run */
   if (import.meta.env?.DEV && typeof window !== 'undefined') {
     window.__guide = {
-      state: () => ({ state: G.state, leg: G.leg, target: G.target?.id ?? null, done: [...G.done], skipped: [...G.skipped], act: G.act?.name ?? null, x: +G.x.toFixed(2), z: +G.z.toFixed(2), yaw: +G.yaw.toFixed(2), speed: +G.speed.toFixed(2), posture: +G.posture.toFixed(2), energy: +G.energy.toFixed(2), gridMs: +W.ms.toFixed(0), cells: W.N, paths: dbg.paths, ready: !!G.field?.ready, answerMs: +(dbg.answerMs ?? 0).toFixed(1) }),
+      state: () => ({ state: G.state, leg: G.leg, target: G.target?.id ?? null, done: [...G.done], visited: [...TB.visited], visit: TB.visit?.phase ?? null, skipped: [...G.skipped], act: G.act?.name ?? null, x: +G.x.toFixed(2), z: +G.z.toFixed(2), yaw: +G.yaw.toFixed(2), speed: +G.speed.toFixed(2), posture: +G.posture.toFixed(2), energy: +G.energy.toFixed(2), gridMs: +W.ms.toFixed(0), cells: W.N, paths: dbg.paths, ready: !!G.field?.ready, answerMs: +(dbg.answerMs ?? 0).toFixed(1) }),
       walk: W, G, P, A,
       /** Stand the pup in a pose `d` metres in front of a player { pos, yaw } for a frame: `kind` or `kind@d`:
        *  trot | look | sit | tilt | nap | hop | stand | side | behind | bow | roll | lie | zoom | chase | tail */
@@ -1583,6 +1807,9 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         G.y = ground(G.x, G.z) + G.hop + G.amp * 0.012;
         place();
       },
+      /** [tour-B] the tour from leg k on, everything before it had (the checks: the crossing, his home, the shrine) */
+      leadFrom(k) { for (let j = 0; j < k; j++) { const L = TOUR[j]; if (L.id && L.id !== 'gate') G.done.add(L.id); if (L.visit) TB.visited.add(L.visit); } G.act = null; lead(k); },
+      tour: TB, rail: () => ({ shut: crossShut(), on: inRail(G.x, G.z) }),
       /** Step the pup by `dt` with the player at `p` (the headless run drives it). */
       step(dt, p) { update(dt, p); },
       whistle,
@@ -1594,7 +1821,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       intro: () => G.intro,
       introReset() { G.intro = 0; },
       introMark() { G.intro = 2; },
-      reset() { offBench(); Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 2, introT: 0, t: 0, gateDone: false, napped: false }); G.done = new Set(['view']); G.skipped = new Set(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
+      reset() { offBench(); Object.assign(G, { state: 'home', target: null, field: null, resume: null, speed: 0, posture: 0, moved: 0, shook: null, hopped: null, act: null, roll: 0, pitch: 0, drops: 0, energy: 0.7, leg: 0, resumeK: null, whistleAt: null, lastWhistle: -9, intro: 2, introT: 0, t: 0, gateDone: false, napped: false }); G.done = new Set(['view']); G.skipped = new Set(); tourReset(); ready.clear(); queue.length = 0; growing = null; prefetch(); P.first = true; const c = W.nearest(HOME.x, HOME.z, 3); const q = c >= 0 ? W.at(c) : HOME; G.x = q.x; G.z = q.z; G.y = ground(G.x, G.z); place(); },
     };
   }
   return { update, herd, G };

@@ -104,6 +104,13 @@ export function paintMap(world) {
   const built = world.core?.built ?? [];
   for (const lot of lots) box(trect(lot.rect), lot.kind === 'shop' ? M.yard : M.garden);
 
+  /* ---- Hachi's garden, past the south fence at the crossing lane's end: a lawn, his kennel's red roof (animals/home.js) ---- */
+  {
+    const hh = TOWN.hachiHome, q = trect([hh.x0, hh.z0 - 0.2, hh.x1, hh.z1]);
+    box(q, M.park, 0.8); edge(q, M.parkEdge, 0.25, 0.8);
+    box(trect([hh.kennel[0] - 0.7, hh.kennel[1] - 0.7, hh.kennel[0] + 0.7, hh.kennel[1] + 0.7]), '#b5503f', 0.3);
+  }
+
   /* ---- the special lots ---- */
   const spec = (k) => SPECIALS.find((s) => s.kind === k) ?? { x0: 0, z0: 0, x1: 0, z1: 0 };
   const sRect = (s) => trect([s.x0, s.z0, s.x1, s.z1]);

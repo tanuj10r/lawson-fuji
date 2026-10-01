@@ -158,7 +158,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   const pageMat = new Map();
   const topMat = (u) => {
     const src = u.mat;
-    if (!pageMat.has(src)) { const m = onTopClamped(src.clone()); lit.push(m); pageMat.set(src, m); }
+    if (!pageMat.has(src)) { const m = onTopClamped(src.clone()); u.page.adopt(m); lit.push(m); pageMat.set(src, m); }   // (it follows its page: store/pages.js)
     return pageMat.get(src);
   };
   const itemMesh = (u) => {

@@ -145,7 +145,7 @@ export function createHud({ volume = 50 } = {}) {
       overlay.classList.toggle('hidden', hide);
       overlay.setAttribute('aria-hidden', hide ? 'true' : 'false');
       crosshair.classList.toggle('on', locked);
-      mini.hidden = !startedOnce;
+      mini.hidden = hide || !startedOnce;      // only with a pause card: never a flash as the start card fades out (Tan)
       mini.classList.toggle('glow', !hide && startedOnce);
       if (!hide) requestAnimationFrame(() => actionButton.focus({ preventScroll: true }));
     },

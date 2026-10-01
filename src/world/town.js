@@ -180,6 +180,8 @@ export function buildTown(scene, { merge = true } = {}) {
     colliders: ctx.colliders,
     interactables: ctx.interactables,
     bounds: WORLD.bounds,
+    /** The one walkable rect outside the bounds: Hachi's garden beyond the south fence (core/player.js). */
+    pocket: (() => { const H = TOWN.hachiHome, a = T.toWorld({ x: H.x0, z: H.z0 - 2.5 }), b = T.toWorld({ x: H.x1, z: H.z1 }); return { x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), z0: Math.min(a.z, b.z), z1: Math.max(a.z, b.z) }; })(),
     lawson,
     /** The falling petals' meshes (M3d: checked to stay out of the store). */
     petalMeshes: [...petals.meshes, ...fall.meshes],

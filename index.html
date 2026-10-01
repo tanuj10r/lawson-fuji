@@ -49,6 +49,28 @@
   /* paused, the game's own captions (Hachi's hello) wait under the card, and come back on resume */
   body.game-paused #hachi-card { visibility: hidden; }
 
+  /* ---------- sound labels (ui/soundLabels.js): top left, a sound's name as you come near it ---------- */
+  .snd { position: absolute; left: 18px; top: 16px; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  body.game-paused .snd { visibility: hidden; }
+  .snd-pill {
+    display: flex; align-items: center; gap: 10px; max-width: min(420px, 44vw);
+    padding: 7px 16px 8px 11px; border-radius: 18px;
+    background: rgba(251,246,240,.92); color: #2b2542; border: 1.5px solid rgba(58,51,80,.22);
+    box-shadow: 0 6px 18px -8px rgba(20,10,40,.45);
+    font: 600 13.5px/1.25 -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    animation: snd-in var(--snd-ms, 5600ms) ease both;
+  }
+  .snd-pill svg { flex: none; width: 15px; height: 15px; padding: 5px; border-radius: 50%; background: #f3d9e0;
+    fill: none; stroke: #3b3263; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; box-sizing: content-box; }
+  .snd-pill p { margin: 0; }
+  .snd-pill b { font-weight: 700; font-family: 'NF Round', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', Meiryo, sans-serif; }
+  .snd-pill i { font-style: normal; margin: 0 .4em; color: #6c6482; }
+  .snd-pill em { font-style: normal; }
+  .snd-pill small { display: block; margin-top: 1px; font-size: 12px; font-weight: 500; color: #6c6482; }
+  @keyframes snd-in { 0% { opacity: 0; transform: translateX(-8px); } 7%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .snd-pill { animation-name: snd-still; animation-timing-function: step-end; } }
+  @keyframes snd-still { 0%, 99% { opacity: 1; } 100% { opacity: 0; } }
+
   /* ---------- crosshair ---------- */
   .crosshair {
     position: absolute; left: 50%; top: 50%;

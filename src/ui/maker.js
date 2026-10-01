@@ -8,9 +8,10 @@ import { MAKER } from '../config.js';
  *             road below the RX-7): Tan's face, the name, Coffee first,
  *             then X, GitHub and the site
  *   row       the same under a phone card's words
- *   postcard  once, when Hachi's tour is over and he naps by the gate:
- *             share the town, follow the maker (ui/postcard.js, loaded
- *             only then)
+ *   postcard  from the pause card's little postcard, any pause; and by
+ *             itself once, when Hachi's tour is over and he naps by the
+ *             gate: share the town, follow the maker (ui/postcard.js,
+ *             loaded only then)
  *
  * Plain links in a new tab (rel=noopener); icons drawn here as inline
  * SVG; nothing loaded from another site.  Each link and button carries a
@@ -20,7 +21,12 @@ import { MAKER } from '../config.js';
  * ------------------------------------------------------------------ */
 
 const S = STRINGS.maker;
-const L = MAKER.links;
+/** A link out with where it came from (config.js MAKER.ref). */
+export const makerLink = (key) => {
+  const url = MAKER.links[key];
+  return MAKER.ref ? `${url}${url.includes('?') ? '&' : '?'}ref=${encodeURIComponent(MAKER.ref)}` : url;
+};
+const L = Object.fromEntries(Object.keys(MAKER.links).map((k) => [k, makerLink(k)]));
 
 export const ICON = {
   coffee: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h12.5v4.2A5.8 5.8 0 0 1 10.7 19h-.9A5.8 5.8 0 0 1 4 13.2z"/><path d="M16.3 10.3h1.4a2.4 2.4 0 0 1 0 4.8h-1.9" class="o"/><path d="M7.6 3.2c-.8 1 .8 1.6 0 2.8M11 3.2c-.8 1 .8 1.6 0 2.8" class="o"/><rect x="3" y="20" width="15" height="1.6" rx=".8"/></svg>',

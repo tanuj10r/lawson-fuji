@@ -15,6 +15,8 @@ import { createMinimap } from './ui/minimap.js';
 import { createHandsHud } from './ui/hands.js';
 import { createControls } from './ui/controls.js';
 import { trainWaitLabel } from './ui/trainWait.js';
+import { watchSoundLabels, createSoundLabels } from './ui/soundLabels.js';
+import { TRAIN_SOUND } from './world/line/sfx.js';
 import { buildKitTest } from './world/kit-test.js';
 import { atSpot, bareStretches } from './world/kit/density.js';
 import { STRINGS } from './data/strings.js';
@@ -188,6 +190,10 @@ if (shop) {
  * same first click that takes the pointer lock (browsers start no audio
  * before a gesture).  Every sound of a place is local to it. */
 const sound = createSound({ volume: volumeGain(volumeStep) });
+/* the sounds' names, top left, as you come near one (ui/soundLabels.js); wrapped before the world's zones pass through */
+const soundLabels = FROZEN ? null : watchSoundLabels(sound, {
+  names: STRINGS.soundNames, isPlaying: () => player.locked, show: createSoundLabels(hud.root),
+});
 soundBus.attach(sound);          // the world's zones and one-shots (core/soundBus.js)
 hud.setMuted(sound.muted);
 const rememberVolume = () => {
@@ -195,6 +201,7 @@ const rememberVolume = () => {
 };
 world.line?.onEvent((name, run) => {
   if (name === 'chime') sound.chime(Math.hypot(camera.position.x - run.x, camera.position.z - run.z));
+  if (name === 'arrive' || name === 'depart') soundLabels?.at('train-' + name, run.x, run.z, TRAIN_SOUND);   // (the trains' own sounds: line/sfx.js)
 });
 const _v = new THREE.Vector3();
 let lastStride = 0;
@@ -257,24 +264,30 @@ player.onLockChange = (locked) => {
  * lain down by the gate.  The pointer goes free for its buttons while it shows, and the pause card waits behind it
  * (hud.holdCard); the game stands still as it does behind any card.  Back, Esc or a click outside it: the pause
  * card.  Space: the walk goes on (its own handler, below: taking the pointer back closes the postcard).  After it,
- * the pause card keeps a little postcard that opens it again (hud.setPostcard). */
-let postcard = null;           // ui/postcard.js, loaded at the nap
+ * and on every pause before it, the pause card has a little postcard that opens it (hud.onPostcard); before the
+ * tour is over its words are "wish you were here". */
+let postcard = null;           // ui/postcard.js, loaded when first wanted (the little postcard, or the nap)
+let toured = false;            // Hachi's tour is over: the postcard's words say so
+let postcardCame = false;      // it has come by itself (once a page load)
 let postcardDue = -1;          // s of play still to wait; -1: nothing due
 const loadPostcard = () => import('./ui/postcard.js').then(({ createPostcard }) => {
   postcard ??= createPostcard({ onMenu: () => { closePostcard(); hud.setLocked(false); } });
   return postcard;
 });
 GUIDE.onNap = () => {
-  if (postcard?.shown) return;
+  toured = true;
+  if (postcardCame) return;
   loadPostcard().then(() => { postcardDue = MAKER.postcardAfter; }).catch(() => {});   // (offline: no postcard, no harm)
 };
-function closePostcard() { hud.holdCard = false; postcard?.hide(); hud.setPostcard(true); }
+function closePostcard() { hud.holdCard = false; postcard?.hide(); }
 // the pause card's little postcard: the postcard again, over the card (the pointer is already free)
 hud.onPostcard = () => {
-  if (!postcard || player.locked) return;
-  hud.holdCard = true;
-  hud.setLocked(false);
-  postcard.show(true);
+  loadPostcard().then(() => {
+    if (player.locked || postcard.open) return;
+    hud.holdCard = true;
+    hud.setLocked(false);
+    postcard.show(true, toured);
+  }).catch(() => {});   // (offline: no postcard, no harm)
 };
 function watchPostcard(dt) {
   if (postcardDue < 0 || dt <= 0 || !postcard) return;
@@ -282,8 +295,9 @@ function watchPostcard(dt) {
   // never over something that holds you: the konbini's scene, the full map, Han's drive, a staged view
   if (postcardDue > 0 || !player.locked || shop?.visiting || minimap?.fullOpen || player.suspended || player.scripted || watch.on) return;
   postcardDue = -1;
+  postcardCame = true;
   hud.holdCard = true;
-  postcard.show();
+  postcard.show(false, true);
   document.exitPointerLock?.();
 }
 if (import.meta.env?.DEV) window.__postcard = { get card() { return postcard; }, due: (s = 0.01) => loadPostcard().then(() => { postcardDue = s; }), nap: () => GUIDE.onNap?.(), pending: () => postcardDue };

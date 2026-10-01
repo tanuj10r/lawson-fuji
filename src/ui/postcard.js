@@ -3,10 +3,11 @@ import { MAKER } from '../config.js';
 import { TOWN_NAME } from '../data/town.js';
 import { ICON, STAMP, esc, face, coffee, icons } from './maker.js';
 
-/* The postcard (Tan, 2026-10-01; DECISIONS.md "Made by Tan"): once, when
+/* The postcard (Tan, 2026-10-01; DECISIONS.md "Made by Tan"): from the
+ * pause card's little postcard on any pause, and by itself once, when
  * Hachi's tour is over and he naps by the gate.  Share the town (the
  * system's share sheet where there is one, the link, a post on X) and
- * follow the maker.  Its own chunk: loaded at the nap, never before. */
+ * follow the maker.  Its own chunk: loaded when first wanted, never before. */
 
 const S = STRINGS.maker;
 const P = STRINGS.postcard;
@@ -102,7 +103,7 @@ const POSTCARD_CSS = `
  * links and buttons, and a click on the card itself, keep it up.
  */
 export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
-  let el = null, copyLabel = null, shown = 0;
+  let el = null, copyLabel = null, msg = null, shown = 0;
   const link = MAKER.share;
   const intent = `https://x.com/intent/tweet?text=${encodeURIComponent(P.shareText)}&url=${encodeURIComponent(link)}&via=${MAKER.handle}`;
   const build = () => {
@@ -132,6 +133,7 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
       <p class="note" aria-hidden="true">${esc(touch ? P.closeTouch : P.close)}</p>
     </article>`;
     copyLabel = el.querySelector('[data-pc=copy] span');
+    msg = el.querySelector('.msg');
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       const b = e.target.closest('[data-pc], a');
@@ -166,9 +168,11 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
     open: false,
     /** times it has shown (once a page load, by its caller) */
     get shown() { return shown; },
-    /** `again`: opened from the pause card's little postcard (counted by its own goal, not as shown) */
-    show(again = false) {
+    /** `again`: opened from the pause card's little postcard (counted by its own goal, not as shown).
+     *  `toured`: Hachi's tour is over (the words say so); before that, wish you were here. */
+    show(again = false, toured = true) {
       if (!el) build();
+      msg.textContent = toured ? P.msg : P.msgEarly;
       api.open = true; shown++;
       el.style.display = '';
       requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));

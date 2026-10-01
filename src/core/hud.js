@@ -104,11 +104,10 @@ export function createHud({ volume = 50 } = {}) {
   let coordsOn = false;
   let coordsAcc = 0;
   let startedOnce = false;
-  /* the little postcard on the pause card (once the postcard has come): it glows the first time the card shows
-   * with it, then stays quiet.  none -> due -> glowing -> done */
+  /* the little postcard by the pause card, every pause from the first (Tan, 2026-10-01), never on the start card:
+   * it glows on every pause (Tan) */
   const mini = overlay.querySelector('.menu-postcard');
   overlay.appendChild(mini);          // out of the card, to the screen's bottom-right corner (index.html .menu-postcard)
-  let glow = 'none';
 
   const api = {
     root,
@@ -146,14 +145,9 @@ export function createHud({ volume = 50 } = {}) {
       overlay.classList.toggle('hidden', hide);
       overlay.setAttribute('aria-hidden', hide ? 'true' : 'false');
       crosshair.classList.toggle('on', locked);
-      if (!hide && glow === 'due') { glow = 'glowing'; mini.classList.add('glow'); }
-      if (hide && glow === 'glowing') { glow = 'done'; mini.classList.remove('glow'); }
+      mini.hidden = !startedOnce;
+      mini.classList.toggle('glow', !hide && startedOnce);
       if (!hide) requestAnimationFrame(() => actionButton.focus({ preventScroll: true }));
-    },
-    /** The postcard has come (the end of Hachi's tour): the pause card keeps a little one that opens it again. */
-    setPostcard(on) {
-      mini.hidden = !on;
-      if (on && glow === 'none') glow = 'due';
     },
     get postcardGlow() { return mini.classList.contains('glow'); },
     setVolume(value) {

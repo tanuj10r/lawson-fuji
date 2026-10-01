@@ -163,10 +163,13 @@ function buildCoreEdge(ctx) {
     buildGrove(ctx, spots, { far: true });
   }
   // along the south, behind the railway: the cutting's own banks close the line
-  ctx.add(makeTimberFence({ x: 0, z: zEnd, y: 0, len: C.x1 - C.x0, axis: 'x', h: 1.2 }));
-  ctx.collide(C.x0, zEnd - 0.2, C.x1, zEnd + 0.2, 1.2);
-  // the lane over the level crossing ends at a guardrail
-  ctx.add(makeGuardrail({ x: -80, z: zEnd - 1.5, y: 0, ry: 0, len: 5.6 }));
+  // (the lane over the level crossing ended at a guardrail here; it leads to the gate of Hachi's garden now:
+  // the fence opens for it, TOWN.hachiHome, animals/home.js)
+  const HG = TOWN.hachiHome.gate;
+  for (const [a, b] of [[C.x0, HG.x - HG.w / 2], [HG.x + HG.w / 2, C.x1]]) {
+    ctx.add(makeTimberFence({ x: (a + b) / 2, z: zEnd, y: 0, len: b - a, axis: 'x', h: 1.2 }));
+    ctx.collide(a, zEnd - 0.2, b, zEnd + 0.2, 1.2);
+  }
   // and so do the lanes that stop short (town pass)
   const P = TOWN.land.pond;
   for (const r of TOWN.grid.ew) {

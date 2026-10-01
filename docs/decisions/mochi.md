@@ -103,3 +103,15 @@ paint). Before/after frames: the report.
 - download: 5.03 MB in all (budget raised to 5.25 MB; mochi-pound.m4a is 73 KB), 1.64 MB before the first click
 - checks: _mochi all pass; hero guard 0.336 / 0.130 / 0.094 %; _play 20 pass; _audio all pass; _guide 10 pass;
   _konbini 9 pass
+
+## After merging main's reactions (02a78ca), same day
+- **The show and his own bits.** `showStep` runs after the shut-crossing guard and before `own()` (reactions, pigeons,
+  the konbini bits, after-the-tour): while he sits at the show those wait. The cues use the reactions layer: a seated
+  `startle` at the cheer (never over his sneeze), `happyWiggle` at the bow, `sneeze` for the kinako; a reaction that
+  holds him keeps the show's own steering off him.
+- **`onTopClamped` fixed** (store/figure.js: `#include <project_vertex>`): what you carry is now clamped on top like the
+  hand, so it is no longer cut by shelves and takes its true place among the fingers (the can hides the fingers behind
+  it). Frames: hand-after-clamp/.
+- Checks: _mochi all pass; _guide 13; _hachi 12 (one run: "after the tour ... on offer" failed while he was mid-zoomie,
+  passed on the rerun); _konbini 9; _play 20; _audio all; _maker 37; _selfie 23; hero guard 0.336 / 0.130 / 0.094 %;
+  build; size 5.06 MB (budget 5.25), 1.65 MB before the first click.

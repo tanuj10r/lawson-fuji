@@ -105,10 +105,9 @@ export function createHud({ volume = 50 } = {}) {
   let coordsAcc = 0;
   let startedOnce = false;
   /* the little postcard by the pause card, every pause from the first (Tan, 2026-10-01), never on the start card:
-   * it glows the first pause, then stays quiet.  due -> glowing -> done */
+   * it glows on every pause (Tan) */
   const mini = overlay.querySelector('.menu-postcard');
   overlay.appendChild(mini);          // out of the card, to the screen's bottom-right corner (index.html .menu-postcard)
-  let glow = 'due';
 
   const api = {
     root,
@@ -147,8 +146,7 @@ export function createHud({ volume = 50 } = {}) {
       overlay.setAttribute('aria-hidden', hide ? 'true' : 'false');
       crosshair.classList.toggle('on', locked);
       mini.hidden = !startedOnce;
-      if (!hide && startedOnce && glow === 'due') { glow = 'glowing'; mini.classList.add('glow'); }
-      if (hide && glow === 'glowing') { glow = 'done'; mini.classList.remove('glow'); }
+      mini.classList.toggle('glow', !hide && startedOnce);
       if (!hide) requestAnimationFrame(() => actionButton.focus({ preventScroll: true }));
     },
     get postcardGlow() { return mini.classList.contains('glow'); },

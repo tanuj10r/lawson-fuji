@@ -21,6 +21,7 @@ import { STRINGS } from './data/strings.js';
 import { PRODUCT } from './data/catalog.js';
 import { hanShow } from './world/han/index.js';
 import { GUIDE } from './world/animals/guide.js';
+import { PETTAN } from './world/mochi/index.js';
 import { PLAYER, PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain, HAN_WATCH, ANIMALS, MAKER } from './config.js';
 
 /* ------------------------------------------------------------------ *
@@ -155,6 +156,7 @@ const controls = createControls();
 if (shop) {
   scene.add(shop.view, shop.fx);
   shop.player = player;
+  PETTAN.attach({ hands: shop.hands });      // ぺったん堂 borrows your hand for its mochi (world/mochi/)
   world.interactables.push(...(world.lawson.interactables ?? []));
 }
 /* The sound setting: one of the five (config VOLUME_STEPS), not a free

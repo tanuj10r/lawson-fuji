@@ -199,6 +199,15 @@
       "kbps": 48,
       "_": "the in-train announcement, played at the train's listening spot on platform 1 (nobody boards)"
     },
+    "mochi-pound": {
+      "src": "mochimochi",
+      "start": 0.0,
+      "len": 0,
+      "peak": 0.8,
+      "kbps": 44,
+      "fadeOut": 0.12,
+      "_": "ぺったん堂's show (world/mochi/): Tan's 13 s recording of high-speed mochi pounding, whole, mono, decoded (not streamed: the rabbits move by its clock). The cue table that follows it is config.js MOCHI.cues: do not trim the head without shifting the table"
+    },
     "bite": { "src": "bite", "ext": ".wav", "start": 0.0, "len": 0, "peak": 0.8, "kbps": 40, "fadeOut": 0.02, "_": "the konbini, synthesised (scripts/gen-sfx.mjs)" },
     "munch": { "src": "munch", "ext": ".wav", "start": 0.0, "len": 0, "peak": 0.8, "kbps": 40, "fadeOut": 0.02, "_": "the konbini, synthesised (scripts/gen-sfx.mjs)" },
     "gulp": { "src": "gulp", "ext": ".wav", "start": 0.0, "len": 0, "peak": 0.8, "kbps": 40, "fadeOut": 0.02, "_": "the konbini, synthesised (scripts/gen-sfx.mjs)" },

@@ -1,8 +1,9 @@
-import { TOWN } from '../config.js';
+import { TOWN, MOCHI } from '../config.js';
 import { buildKit } from './kit/index.js';
 import { cutLots } from './kit/lots.js';
 import { buildLot } from './kit/buildings.js';
 import { buildSpecial } from './kit/specials.js';
+import { buildMochi } from './mochi/index.js';
 import { dressStreets } from './kit/dress.js';
 import { planNetwork, SPECIALS } from './town-plan.js';
 import { makeTimberFence } from './buildings.js';
@@ -70,7 +71,14 @@ export function buildCore(ctx) {
   ctx.cats = [];                 // the dressing's cats, whose tails life.js swishes
   ctx.green ??= {};              // painted trees and potted plants by species (kit/green.js), built in one batch each
 
-  const built = lots.map((lot) => buildLot(ctx, net, kit, lot));
+  /* one generated lot is ぺったん堂's (world/mochi/; config MOCHI.lot), found by its rect once the lots are cut, so no
+   * other lot moves (a special lot would re-cut the street).  It stays a 'house' to the dressing and the map. */
+  const isMochi = (lot) => lot.rect.every((v, i) => Math.abs(v - MOCHI.lot[i]) < 0.2);
+  const built = lots.map((lot) => {
+    if (!isMochi(lot)) return buildLot(ctx, net, kit, lot);
+    lot.kind = 'house';
+    return buildMochi(ctx, net, kit, lot);
+  });
   for (const s of SPECIALS) buildSpecial(ctx, net, kit, s);
   streetTrees(ctx, kit);          // before the dressing, so the walks' clutter keeps off the pits
   dressStreets(ctx, net, kit, lots, SPECIALS);

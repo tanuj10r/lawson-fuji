@@ -41,6 +41,8 @@ const GLYPH = {
   river: [['s', 'M-66-20Q0-66 66-20M-66-42v30M66-42v30M-66 12Q-33 0 0 12T66 12M-56 42Q-28 32 0 42T56 42']],
   // a deer's head with antlers
   deer: [['w', 'M0-18c14 0 20 20 20 36s-6 36-20 36-20-18-20-36 6-36 20-36zM-18-8l-28-8-6 12 30 8zM18-8l28-8 6 12-30 8z'], ['s', 'M-10-14L-26-44-30-68M-26-44L-50-50M-19-30L-4-50M10-14L26-44 30-68M26-44L50-50M19-30L4-50']],
+  // a mortar and mallet (臼と杵): the tub with its rim, the dough's mound, the mallet coming down
+  mochi: [['w', 'M-52-2h104v15h-104zM-44 18h88l-11 46h-66z' + O(0, -6, 19)], ['s', 'M-66-52L8-40'], ['w', 'M4-68L34-62L26-18L-4-24z']],
   // a bench under a leaf: sit a while
   bench: [['w', 'M-62-2h124v14h-124zM-62 22h124v12h-124zM-52 22h12v38h-12zM40 22h12v38h-12zM-20-20Q-14-66 36-62Q34-20-20-20z']],
 };
@@ -49,7 +51,7 @@ const cache = {};
 /* The colour of each kind: the game's accents, a touch deeper than the map's pastels. */
 export const ICON = {
   konbini: '#1f6fb8', view: '#e0773a', car: '#3c3f5c', shops: '#c0632e', mega: '#d99a12', shrine: '#c63d2f',
-  plaza: '#d4608c', station: '#2f8a55', crossing: '#3a3440', pond: '#3f8fae', river: '#4a7fbf', deer: '#8a7a3a', bench: '#7f9a4a',
+  plaza: '#d4608c', station: '#2f8a55', crossing: '#3a3440', pond: '#3f8fae', river: '#4a7fbf', deer: '#8a7a3a', bench: '#7f9a4a', mochi: '#4a4fa6',
 };
 
 /** A place's pictogram at (x, y), radius r (canvas px). */

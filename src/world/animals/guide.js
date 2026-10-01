@@ -48,7 +48,7 @@ import { STRINGS } from '../../data/strings.js';
 const A = ANIMALS.guide;
 /** The pup, for main.js: `whistle()` (F) calls it to you from anywhere; set once it is built.  `onNap`, main.js's:
  *  called once when the tour is over and it has lain down for its nap by the gate (the postcard, ui/maker.js). */
-export const GUIDE = { whistle: () => false, tipsy: () => {}, greeting: () => null, onNap: null };
+export const GUIDE = { whistle: () => false, tipsy: () => {}, greeting: () => null, onNap: null, watchShow: () => {}, showCue: () => {}, where: () => null };
 const INF = Infinity;
 const ENGAGE = A.engage;
 
@@ -731,6 +731,45 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     return _head;
   };
   GUIDE.whistle = whistle;
+
+  /* ---- a show to watch (world/mochi/: ぺったん堂's mochi pounding).  The show's own code calls these; nothing else
+   * here knows about it.  GUIDE.watchShow({ seat, at }) while it plays (world points; null when it is over): if the
+   * pup is free (leading, waiting, lingering) and within `reach` m it trots to `seat`, sits facing `at` and watches,
+   * its tour paused where it was.  GUIDE.showCue(kind): 'hit' a bob of the head, 'big' a hop back, 'end' a wag,
+   * 'treat' it looks up for what is thrown, 'catch' it has it (and sneezes).  GUIDE.where(): where it is, and
+   * whether it is sat watching.  Only poses and acts the rig already has. ---- */
+  const SHOW = { on: null, nod: 0, back: 0, wag: 0, up: 0, sat: false };
+  GUIDE.watchShow = (o) => { SHOW.on = o; if (!o) SHOW.sat = false; };
+  GUIDE.showCue = (kind) => {
+    if (!SHOW.sat) return;
+    if (kind === 'hit') { SHOW.nod = 1; G.nod += 0.24; }          // (a nudge on the eased value: the bob reads at once)
+    else if (kind === 'big') { SHOW.back = 1.5; play('hop'); }
+    else if (kind === 'end') SHOW.wag = 2.6;
+    else if (kind === 'treat') SHOW.up = 0.9;
+    else if (kind === 'catch') { SHOW.up = 0; SHOW.wag = 1.2; G.act = null; play('sneeze'); }
+  };
+  const _where = { x: 0, y: 0, z: 0, watching: false };
+  GUIDE.where = () => { _where.x = G.x; _where.y = G.y; _where.z = G.z; _where.watching = SHOW.sat; return _where; };
+  /** The pup's frame while it watches: returns how it moved ('still' | 'moving' ...), or null when it isn't watching. */
+  const showStep = (dt, pose) => {
+    const o = SHOW.on;
+    if (!o || !['lead', 'atSpot', 'linger', 'wait'].includes(G.state) || dist(G, o.seat) > (o.reach ?? 14)) { SHOW.sat = false; return null; }
+    SHOW.nod = Math.max(0, SHOW.nod - dt * 5); SHOW.back = Math.max(0, SHOW.back - dt); SHOW.wag = Math.max(0, SHOW.wag - dt); SHOW.up = Math.max(0, SHOW.up - dt);
+    // its seat; for a moment after the cheer, half a metre further back
+    const ax = o.seat.x - o.at.x, az = o.seat.z - o.at.z, al = Math.hypot(ax, az) || 1;
+    const q = SHOW.back > 0.7 ? { x: o.seat.x + (ax / al) * 0.5, z: o.seat.z + (az / al) * 0.5 } : o.seat;
+    let r = 'still';
+    const off = dist(G, q);
+    if (off > 0.15 && G.act?.name !== 'sneeze') r = move(dt, q, off > 1.5 ? A.trot : 1.3);
+    SHOW.sat = dist(G, o.seat) < 1.0;
+    if (r !== 'moving') G.yaw += turn(G.yaw, Math.atan2(o.at.x - G.x, o.at.z - G.z)) * Math.min(1, dt * 6);
+    pose.posture = SHOW.sat && r !== 'moving' && SHOW.back <= 0 ? 1 : 0;
+    pose.look = 0;
+    pose.nod = -0.14 + 0.36 * SHOW.nod - 0.32 * Math.min(1, SHOW.up * 4);
+    pose.wag = SHOW.wag > 0 ? 1 : 0.35;
+    pose.perk = SHOW.wag > 0 || SHOW.up > 0 ? 1.3 : 1;
+    return r;
+  };
   /** "Not interested": it stops and waits where it is (the leg counts as skipped); a tilt of the head, "okay". */
   const drop = () => {
     if (G.target?.id && G.target.id !== 'gate') G.skipped.add(G.target.id);
@@ -1259,7 +1298,9 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     let r = 'still';
     // off somewhere from the bench (a whistle, the Strong Nine): down off it first
     if ((G.onBench || G.lift > 0) && G.state !== 'nap' && !G.hopOff) G.hopOff = { t: 0, from: { x: G.x, z: G.z }, lift: G.lift };
+    const watching = G.hopOff ? null : showStep(dt, pose);   // (world/mochi/: sat at ぺったん堂's show, the tour paused)
     if (G.hopOff) hopOffStep(dt, pose);
+    else if (watching !== null) { r = watching; lookAt = 'show'; }
     else switch (G.state) {
       case 'home': {
         if (!G.field) goTo('home', HOME);

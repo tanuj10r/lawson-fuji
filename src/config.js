@@ -674,6 +674,7 @@ export const PLACES = [
   { id: 'lawson', kind: 'konbini', at: [0, -5], frame: 'world', exp: 'konbini' },
   { id: 'start', kind: 'view', at: [0, 16.5], frame: 'world', exp: 'view' },   // the map draws it at HERO_VIEWS.morning.play.pos
   { id: 'han', kind: 'car', at: [24.15, 4.7], exp: 'han' },                    // the RX-7 in its bay (han/index.js HAN_BAY)
+  { id: 'mochi', kind: 'mochi', at: [39.2, 22.0], frame: 'world', exp: 'mochi' },   // ぺったん堂's mortar (MOCHI)
   { id: 'spine', kind: 'shops', at: [-50, 100] },
   { id: 'donpen', kind: 'mega', at: [-62.3, 67.1], exp: 'donki' },            // ドンペン堂's lot (town-plan.js SPECIALS)
   { id: 'shrine', kind: 'shrine', at: [13, 88], exp: 'shrine' },
@@ -730,6 +731,51 @@ export const SLOWLIFE = {
   glints: { count: 34, box: [60, 115, 88, 140] },
 };
 
+/* ぺったん堂 / PETTAN-DO (world/mochi/): the mochi-pounding shop on the main road's far side, opposite the shopping
+ * street's mouth: three moon rabbits at a stone mortar (a homage to Kyoto's high-speed mochi pounders; no real name,
+ * mark or person).  `lot`: the generated lot it takes, in the town's frame (matched by rect after cutLots in
+ * town-core.js, so no other lot moves).  Everything else is in the lot's own frame, metres: x along the frontage
+ * (+x is the world's -x, toward the monthly car park), z out toward the main road from the frontage line (the
+ * pavement's edge), so the stage is z -`setback`..0 and the shop stands behind it. */
+export const MOCHI = {
+  id: 'mochi_ichigo',                        // data/catalog.js STREET
+  lot: [-44.6, -6.9, -33.9, 7.1],
+  setback: 3.0,
+  usu: [0.05, -1.4],                         // the mortar: world (39.2, 22.0)
+  spot: [0.05, 1.2, 1.2],                    // the engagement's ring on the pavement: x, z, radius: world (39.2, 19.4)
+  stand: [-1.35, -0.5],                      // the serving stand the turner sets your mochi on
+  hachi: [0.5, -0.35],                       // where Hachi sits to watch: the stage's edge, before the mortar
+  near: 9,                                   // the show plays while you are within this of the mortar (m)
+  live: 26,                                  // the rabbits idle (ears, brows) within this; beyond it only the steamer steams
+  hide: 60,                                  // and beyond this nothing of the show is drawn or moved
+  rest: [2.2, 3.0],                          // s between shows (the finale: the turner holds a mochi up, all three bow)
+  gain: 0.75,
+  /* The show is one 13 s recording (scripts/audio-cuts.json mochi-pound; Tan's assets/audio/mochimochi.mp3) and the
+   * rabbits move to it by this table: seconds into the file, read from the AUDIO clock (core/sound.js: the one-shot's
+   * `pos()`), never frame time.  Keyed by hand from an offline analysis of the file (band envelopes: the mallet's
+   * thud is a broadband crack with a 35-110 Hz body about every 1.6 s; between thuds the chant falls on a 0.4 s
+   * pulse, read from the 250-1800 Hz and 3.5-9 kHz onsets; docs/decisions/mochi.md):
+   *   hit    the mallet lands (the two pounders take turns)        turn   the turner's paw darts in, folds the dough
+   *   shout  a call on the pulse: ears bob, the next mallet lifts  big    the long cheer: everyone jumps
+   * `sync`: seconds added to the audio clock before the table is read (+ if the picture runs late on a machine). */
+  sync: 0.03,
+  len: 12.98,
+  cues: [
+    { t: 0.05, kind: 'shout' }, { t: 0.55, kind: 'shout' },
+    { t: 1.01, kind: 'hit' }, { t: 1.41, kind: 'turn' }, { t: 1.83, kind: 'shout' }, { t: 2.21, kind: 'turn' },
+    { t: 2.67, kind: 'hit' }, { t: 3.04, kind: 'turn' }, { t: 3.44, kind: 'shout' }, { t: 3.83, kind: 'turn' },
+    { t: 4.28, kind: 'hit' }, { t: 4.67, kind: 'turn' }, { t: 5.03, kind: 'shout' }, { t: 5.42, kind: 'turn' },
+    { t: 5.87, kind: 'hit' }, { t: 6.23, kind: 'turn' }, { t: 6.64, kind: 'shout' }, { t: 7.04, kind: 'turn' },
+    { t: 7.47, kind: 'hit' }, { t: 7.90, kind: 'turn' }, { t: 8.24, kind: 'shout' }, { t: 8.67, kind: 'turn' },
+    { t: 9.06, kind: 'hit' }, { t: 9.44, kind: 'turn' }, { t: 9.85, kind: 'shout' }, { t: 10.33, kind: 'turn' },
+    { t: 10.66, kind: 'hit' }, { t: 10.86, kind: 'big' }, { t: 11.83, kind: 'turn' },
+    { t: 12.29, kind: 'hit' }, { t: 12.54, kind: 'shout' },
+  ],
+  /* buying one (E on the ring; s from the key): the card's tap and ka-ching, the turner's hop to the stand, the
+   * mochi set down, your hand taking it; then store/eat.js eats it (RECIPE.mochi).  Hachi's treat follows. */
+  buy: { tap: 0.5, serve: 0.7, set: 1.9, take: 2.5, treat: 3.05, eat: 3.3 },
+};
+
 /* Local sounds (SPEC section 9): anything that belongs to a place is heard
  * only as you near that place, never across town.  `near`: full volume
  * within this many metres; `far`: silent (and not playing at all) beyond it.
@@ -772,6 +818,7 @@ export const SOUND = {
   autoDoor: { near: 4, far: 18 },
   fridge: { near: 2.5, far: 9 },           // the cooler: its doors and its compressor
   shelf: { near: 3, far: 10 },             // taking it off the shelf
+  mochi: { near: 7, far: 26 },             // ぺったん堂's pounding and chant (MOCHI): the stage and the pavement by it; silent at the famous view (40 m off) and down the shopping street
 };
 
 /* The animals (town pass, wave 3; src/world/animals/).  Distances in metres,
@@ -824,7 +871,7 @@ export const ANIMALS = {
     /* the Strong Nine (Tan: when you're tipsy, the pup giggles and rolls on the floor): it comes to `d` m in front of
      * you and plays for as long as the tipsiness lasts (main.js: 10 s) */
     party: { d: 4.0, from: [7, 12], lean: -0.35 },
-    engage: { konbini: 1.2, view: 1.0, han: 0.85, train: 1.1, slowlife: 1.1 },   // the engagements' ring radii (and which ids count until the list says `kind`)
+    engage: { konbini: 1.2, view: 1.0, han: 0.85, train: 1.1, slowlife: 1.1, mochi: 1.2 },   // the engagements' ring radii (and which ids count until the list says `kind`)
     cell: 0.4, radius: 0.25,                  // its map of the town: cell size, and clearance from anything solid (its own half-width and a little)
     step: 0.45,                               // the biggest step between neighbouring cells it will take: kerbs yes, the channel no
     /* a metre of each, relative: it keeps to pavements, plazas and lanes, crosses kerbed roads on the zebras (main-road
@@ -844,6 +891,7 @@ export const ANIMALS = {
       { x: -30, z: 4, hear: 'walk3' },            // the master junction's lane zebra (piyo)
       { x: -12, z: 19.3 },                        // east along the far pavement, behind the famous view
       { x: 20, z: 19.3 },
+      { id: 'mochi', x: 39.2, z: 19.4 },          // ぺったん堂: the rabbits' mochi pounding (world/mochi/)
       { x: 50, z: 17 },                           // the shopping street's mouth
       { x: 50, z: -2.3, hear: 'walk1' },          // its first zebra
       { x: 50, z: -40, hear: 'donki' },           // ドンペン堂's theme

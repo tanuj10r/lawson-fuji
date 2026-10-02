@@ -262,8 +262,8 @@ player.onLockChange = (locked) => {
   if (!locked && minimap?.fullOpen) { minimap.setFull(false); player.suspended = false; }
   handsHud?.setLocked(locked);
 };
-/* The postcard (Tan, 2026-10-01; ui/postcard.js): once a page load, a moment after Hachi's tour is over and he has
- * hopped up onto his bench by the gate.  The pointer goes free for its buttons while it shows, and the pause card waits behind it
+/* The postcard (Tan, 2026-10-01; ui/postcard.js): once a page load, a moment after Hachi's tour is over and his happy
+ * bit on his bench by the gate has played in full.  The pointer goes free for its buttons while it shows, and the pause card waits behind it
  * (hud.holdCard); the game stands still as it does behind any card.  Back, Esc or a click outside it: the pause
  * card.  Space: the walk goes on (its own handler, below: taking the pointer back closes the postcard).  After it,
  * and on every pause before it, the pause card has a little postcard that opens it (hud.onPostcard); before the
@@ -272,18 +272,20 @@ let postcard = null;           // ui/postcard.js, loaded when first wanted (the 
 let toured = false;            // Hachi's tour is over: the postcard's words say so
 let postcardCame = false;      // it has come by itself (once a page load)
 let postcardDue = -1;          // s of play still to wait; -1: nothing due
+let postcardSeen = false;      // it has been up this page load (by itself or from the pause card), or can't be had: the tour may be offered again
 const loadPostcard = () => import('./ui/postcard.js').then(({ createPostcard }) => {
   postcard ??= createPostcard({ onMenu: () => { closePostcard(); hud.setLocked(false); } });
   return postcard;
 });
-/* (Tan, 2026-10-02: it came several seconds after the nap, with "Take the tour again" already on offer.  It is the
- * tour's ending: it comes a moment after Hachi hops up onto his bench (GUIDE.onTourEnd), and the tour is not on offer
- * again while it is due: `postcardDue` counts from then, once the card has loaded) */
+/* (Tan, 2026-10-02: the ending's order.  Hachi's happy bit on the bench plays in full and is watched; then, a moment
+ * after he has settled (GUIDE.onTourEnd), the postcard; then, once it is put away, "Take the tour again" (pupOffer,
+ * below: never while the card is due, never before it has been up).  Seen already from the pause card: no second
+ * card, the tour is on offer as soon as he has settled.) */
 GUIDE.onTourEnd = () => {
   toured = true;
-  if (postcardCame) return;
+  if (postcardCame || postcardSeen) return;
   postcardDue = MAKER.postcardAfter;
-  loadPostcard().catch(() => { postcardDue = -1; });   // (offline: no postcard, no harm)
+  loadPostcard().catch(() => { postcardDue = -1; postcardSeen = true; });   // (offline: no postcard, no harm)
 };
 function closePostcard() { hud.holdCard = false; postcard?.hide(); }
 // the pause card's little postcard: the postcard again, over the card (the pointer is already free)
@@ -292,6 +294,7 @@ hud.onPostcard = () => {
     if (player.locked || postcard.open) return;
     hud.holdCard = true;
     hud.setLocked(false);
+    postcardSeen = true;
     postcard.show(true, toured);
   }).catch(() => {});   // (offline: no postcard, no harm)
 };
@@ -301,12 +304,12 @@ function watchPostcard(dt) {
   // never over something that holds you: the konbini's scene, the full map, Han's drive, a staged view
   if (postcardDue > 0 || !player.locked || shop?.visiting || minimap?.fullOpen || player.suspended || player.scripted || watch.on) return;
   postcardDue = -1;
-  postcardCame = true;
+  postcardCame = postcardSeen = true;
   hud.holdCard = true;
   postcard.show(false, true);
   document.exitPointerLock?.();
 }
-if (import.meta.env?.DEV) window.__postcard = { get card() { return postcard; }, due: (s = 0.01) => loadPostcard().then(() => { postcardDue = s; }), nap: () => GUIDE.onTourEnd?.(), pending: () => postcardDue };
+if (import.meta.env?.DEV) window.__postcard = { get card() { return postcard; }, due: (s = 0.01) => loadPostcard().then(() => { postcardDue = s; }), nap: () => GUIDE.onTourEnd?.(), pending: () => postcardDue, get seen() { return postcardSeen; }, gate: () => postcardDue < 0 && postcardSeen, forget() { postcardSeen = postcardCame = false; postcardDue = -1; } };
 
 /* The browser lets a page make sound only after a click or a key: the first one anywhere (the start card's volume,
  * the card itself, a key) starts the sound, and with it the song, before Start is even pressed */
@@ -813,7 +816,7 @@ function frame(now = 0) {
     hovered = shop?.inside(camera) ? null : player.pick(world.interactables);
   }
   player.hovered = hovered;
-  pupOffer = !hovered && player.locked && !FROZEN && !shop?.visiting && !shop?.busy && !player.seat && !player.suspended && !minimap?.fullOpen && postcardDue < 0 && GUIDE.offer();   // (not while the tour's postcard is still to come)
+  pupOffer = !hovered && player.locked && !FROZEN && !shop?.visiting && !shop?.busy && !player.seat && !player.suspended && !minimap?.fullOpen && postcardDue < 0 && postcardSeen && GUIDE.offer();   // (only once the tour's postcard has been up and put away)
   controls.set(controlRows(hovered || pupOffer));
   // the sound: where you are and what time of day it is; a footstep each stride
   const inStore = !!shop?.inside(camera);

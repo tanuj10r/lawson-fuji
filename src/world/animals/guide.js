@@ -50,9 +50,9 @@ import { HACHI_HOME } from './home.js';        // [tour-B] his own garden's ball
 
 const A = ANIMALS.guide;
 /** The pup, for main.js: `whistle()` (F) calls it to you from anywhere; set once it is built.  `onTourEnd`, main.js's:
- *  called once a tour, when the tour is over and it has hopped up onto the gate's bench and begun its happy bit (the
- *  postcard, ui/postcard.js: the tour's natural ending; it plays on and settles once the card is put away).  `onNap`:
- *  called once it has lain down asleep there. */
+ *  called once a tour, when the tour is over and its happy bit on the gate's bench has played in full and it has
+ *  settled (the postcard, ui/postcard.js: the tour's ending), or when you whistle it to you before that (the bit cut
+ *  short at your call).  `onNap`: called once it has lain down asleep there. */
 export const GUIDE = {
   whistle: () => false, tipsy: () => {}, greeting: () => null, onNap: null, onTourEnd: null,
   /** the konbini (store/shop.js, by main.js): what you bought, and where you are with it: 'hold' | 'eat' | 'done' */
@@ -1273,10 +1273,9 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   /* ---- bedtime on the gate's bench (Tan: "catchy and aww"): it faces the bench, hops up, lands with a yip, a play
    * bow at you with its rump wiggling, a happy spin, over onto its back with its paws going, a sit and a head tilt,
    * two slow circles sniffing the seat, and down, curled up along the bench, a sleepy breath; then it is settled
-   * (`GUIDE.onNap`, once) and snores now and then.  The postcard's `GUIDE.onTourEnd` fires as it lands on the seat
-   * (Tan, 2026-10-02: the card came several seconds after "Take the tour again" was already on offer; it is the tour's
-   * ending, so it comes first, and the happy bit plays out once it is put away).  Returns where it looks, or null
-   * for the pose's own. ---- */
+   * (`GUIDE.onNap`, once) and snores now and then.  The postcard's `GUIDE.onTourEnd` fires then too, once a tour
+   * (Tan, 2026-10-02: the bit is watched in full, then the card, then "Take the tour again": main.js).  Returns where
+   * it looks, or null for the pose's own. ---- */
   const bedtime = (dt, pose, dP, toYou, nodYou) => {
     const b = G.bed, T = A.bedtime;
     b.t += dt;
@@ -1298,7 +1297,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
       G.x = b.from.x + (BENCH.x - b.from.x) * ease(k); G.z = b.from.z + (BENCH.z - b.from.z) * ease(k);
       G.lift = seatLift() * ease(Math.min(1, k * 1.25)) + 0.16 * Math.sin(Math.PI * k);
       G.pitchTo = -0.35 * Math.cos(Math.PI * k); pose.perk = 0.55; pose.amp = 0.4; pose.phRate = 12; pose.wag = 0.6;
-      if (u >= 1) { G.lift = seatLift(); G.onBench = true; Object.assign(b, { phase: 'bed', t: 0, yaw0: G.yaw }); say('dog-yip', 0.85, true); if (!G.ended) { G.ended = true; GUIDE.onTourEnd?.(); } }
+      if (u >= 1) { G.lift = seatLift(); G.onBench = true; Object.assign(b, { phase: 'bed', t: 0, yaw0: G.yaw }); say('dog-yip', 0.85, true); }
       return null;
     }
     // on the bench (b.phase 'bed', or 'sleep' once settled)
@@ -1365,6 +1364,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     if (t >= T.settle && G.posture > 1.9) {
       b.phase = 'sleep';
       if (!G.napped) { G.napped = true; GUIDE.onNap?.(); }
+      endTour();
     }
     return 'sleep';
   };
@@ -1603,7 +1603,10 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
    * whistle just brings it to you): the tour starts over from the first place.  Left alone for a while (you `far` m off: it keeps up with a
    * walk, not with a run; or in the store; for `alone` s) it goes back to its bench and its nap. ---- */
   const tourOver = () => !!G.gateDone && allDone();
+  /** The tour's ending, once a tour (main.js's postcard): settled on its bench, or yours before it got that far. */
+  const endTour = () => { if (!G.ended) { G.ended = true; GUIDE.onTourEnd?.(); } };
   const startPal = () => {
+    if (tourOver()) endTour();
     G.state = 'pal'; G.pal = { t: 0, alone: 0, still: 0, side: Math.random() < 0.5 ? 1 : -1, spot: null };
     G.palKeep = true; G.target = null; G.field = null; G.since = 0; G.waitT = 0; G.idleT = 0;
   };

@@ -697,8 +697,8 @@ const SIM = async (kind) => {
       && caught.on !== null && caught.off !== null && caught.off <= 3 && caught.armOff < 0.6;
   } else if (kind === 'bedtime') {
     // the tour's end (Tan: Hachi sank into the ground at the gate; make it "aww"): from 9 m off it trots to the gate's
-    // bench, hops up, plays (a bow, a spin, a roll, a tilt), circles and curls up asleep ON the seat; GUIDE.onNap fires
-    // once, when it has settled, not before.  Then F from 6 m: it hops down first (never walks off in the air).
+    // bench, hops up, plays (a bow, a spin, a roll, a tilt), circles and curls up asleep ON the seat; GUIDE.onNap and
+    // GUIDE.onTourEnd (the postcard) fire once, when it has settled, not before.  Then F from 6 m: it hops down first (never walks off in the air).
     g.reset();
     const Bn = g.bench;
     const fx = Bn.nap.x - Bn.x, fz = Bn.nap.z - Bn.z, fl = Math.hypot(fx, fz), F = { x: fx / fl, z: fz / fl }, L = { x: -F.z, z: F.x };
@@ -709,9 +709,10 @@ const SIM = async (kind) => {
     Object.assign(S, { x: q.x, z: q.z });
     const log = window.__scene.sound.debug.log; log.length = 0;
     g.napNow();
-    let landed = null, settled = null, napAt = null, minY = 9, phases = [], last = null;
+    let landed = null, settled = null, napAt = null, endAt = null, minY = 9, phases = [], last = null;
     while (t < 40) {
       step();
+      if (endAt === null && S.ended) endAt = +t.toFixed(1);   // (GUIDE.onTourEnd, the postcard: once the bit is over and it has settled, never at the landing)
       const ph = S.bed?.phase ?? S.state;
       if (ph !== last) { phases.push(ph); last = ph; }
       if (landed === null && S.bed?.phase === 'bed') landed = +t.toFixed(1);
@@ -727,8 +728,8 @@ const SIM = async (kind) => {
     g.whistle();
     let hopped = false, floating = 0, came = false;
     for (let k = 0; k < 6 * 30; k++) { step(); if (S.hopOff) hopped = true; if (!S.onBench && !S.hopOff && (S.lift ?? 0) > 0.01) floating++; if (S.state === 'come' || S.state === 'caught') came = true; }
-    res.bedtime = { phases, landed, settled, napAt, minY: +minY.toFixed(3), seat: Bn.seat, asleep, said, hopped, floating, came, end: S.state };
-    res.ok = landed !== null && settled !== null && napAt === settled && minY >= Bn.seat - 0.005 && asleep.onBench && asleep.posture > 1.9
+    res.bedtime = { phases, landed, settled, napAt, endAt, minY: +minY.toFixed(3), seat: Bn.seat, asleep, said, hopped, floating, came, end: S.state };
+    res.ok = landed !== null && settled !== null && napAt === settled && endAt === settled && settled - landed > 7 && minY >= Bn.seat - 0.005 && asleep.onBench && asleep.posture > 1.9
       && ['dog-yip', 'dog-snort', 'dog-hmm', 'dog-snore'].every((n) => said.includes(n)) && hopped && floating === 0 && came && !S.onBench;
   } else if (kind === 'ground') {
     // nothing drawn over the ground it stands on along the tour (Tan: sunk into the track at the Deer Park gate, which

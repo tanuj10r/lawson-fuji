@@ -57,7 +57,7 @@ export const MAKER = {
   ref: 'takemebacktojapan',
   handle: 'tanuj10r',                     // the X share's "via"
   share: 'https://takemebacktojapan.com', // what the postcard shares (the canonical address, never a local one)
-  postcardAfter: 3.5,                     // s Hachi has been lying down at the gate before the postcard comes
+  postcardAfter: 1.0,                     // s after Hachi has hopped up onto his bench at the gate (his happy bit begun) before the postcard comes
 };
 export const DEFAULT_VOLUME = 50;                      // 30% of full scale: the level Tan liked
 
@@ -89,6 +89,39 @@ export const STORE = {
  * car (1/s), the most it turns (rad/s: a head turning, not a camera rig),
  * and the pitch it keeps within (rad). */
 export const HAN_WATCH = { follow: 3.2, maxTurn: 1.9, pitch: [-0.3, 0.22] };
+
+/* Han's drive (world/han/drive.js; Tan, 2026-10-02: "The drift feels very fake").  A car's limits, in m, s, rad:
+ * the route's speeds come from them, then the whole drive is scaled a few per cent to the song. */
+export const HAN_DRIVE = {
+  ease: 0.6,                 // the path's curvature eased over this far each way (the wheel is turned, not snapped)
+  lat: 12, latSlide: 14,     // sideways grip (v^2 / R) gripping, and what a slide is allowed
+  acc: 7.5, brake: 10, accRev: 4.5,
+  /* the slide in the master junction: north at x `xIn`; from z `z` a feint east (radius rf, angle a), then round to
+   * the west (radius r, 270 deg + a) and the transition (radius re, 90 deg) onto the bridge road south.  `v` its
+   * speed; the slip angles: the feint's, the slide's (34 deg), the transition's (the other way) */
+  teardrop: { xIn: 28.9, z: 14.6, rf: 6, a: 0.3, r: 3.0, re: 4.0, v: 6.2, feint: 0.1, slip: 0.6, slipOut: 0.5 },
+  lead: 0.15,                // the hands lead the car: a slide is asked for this long before its arc
+  spring: 6.8, damp: 0.56,   // the slip angle chases what is asked (rad/s; under-damped: the catch wobbles)
+  waver: 0.07, waverHz: 1.7, // the throttle wavering through the slide
+  handbrake: 0.3,            // the rear wheels locked this long as the slide starts
+  counter: 0.85, counterTurn: 0.15, lock: 0.6, hands: 0.05,   // counter-steer per rad of slip, what of the turn's own steer stays, full lock, how quick the wheel is turned
+  spin: 0.9, launchV: 5, launchSpin: 6,                      // rear wheelspin over road speed in a slide; the launch's, until launchV
+  roll: 0.045, rollAt: 7, pitch: 0.022, pitchAt: 5, squat: 0.008, body: 9, bodyDamp: 0.4,   // the body on its springs
+  pivot: 0.6,                // the body turns about a point this far ahead of its middle: the tail swings, the nose keeps the line
+};
+/* What the slide leaves (world/han/fx.js): each one draw, there only while there is something of it. */
+export const HAN_FX = {
+  /* rear-tyre smoke: `rate` puffs a second from each tyre at full slide, `max` alive at once (the oldest go
+   * first), each living `life` s, `size` m across swelling by `swell`x, `alpha` at its thickest; it leaves the
+   * tyre with `carry` of the car's speed and `fling` of the wheelspin (backward), slowed by `drag`, rising */
+  smoke: { max: 160, rate: 36, life: 2.2, size: 1.0, swell: 2.0, alpha: 0.62, rise: 0.8, drag: 1.6, spread: 0.9, carry: 0.3, fling: 0.22 },
+  /* tyre marks: a ribbon of `quads` quads (both tyres), one every `step` m, `width` m wide, `lift` m over the
+   * road, `dark` opaque when laid at full slide, fading between fade[0] and fade[1] s old */
+  marks: { quads: 640, step: 0.14, width: 0.22, lift: 0.012, dark: 0.62, fade: [9, 17] },
+  /* the car's sound, made in code (no file): levels of the engine and the tyres' howl (0: not made at all), heard
+   * full within `near` m of the car and not at all beyond `far`; the gears' top speeds (m/s), the revs' pitch (Hz) */
+  sound: { engine: 0.05, squeal: 0.5, near: 8, far: 34, gears: [5, 9, 14], hz: [70, 240] },
+};
 
 /* Ground plan in front of the store, as z lines (the store glass is z = 0). */
 export const STREET = {
@@ -627,9 +660,9 @@ export const SHOT_SPOTS = [
   { name: 'han-side', scene: 'town', pos: [17.6, 0, 4.7], yaw: -1.5708, pitch: -0.06, looks: ['day'] },                // the profile at 5 m
   { name: 'han-front34', scene: 'town', pos: [19.4, 0, 9.0], yaw: -0.72, pitch: -0.1, looks: ['day'] },                 // front three-quarter at 5.5 m
   { name: 'han-rear', scene: 'town', pos: [20.0, 0, -1.0], yaw: -2.66, pitch: -0.08, looks: ['day'] },                  // its tail, from the aisle
-  { name: 'han-drift-mid', scene: 'town', pos: [20.5, 0, 4.2], yaw: -2.35, pitch: -0.08, looks: ['day'], train: 'han:11.44' },   // mid-slide in the master junction, from the spot
-  { name: 'han-out', scene: 'town', pos: [20.5, 0, 4.2], yaw: -1.26, pitch: -0.05, looks: ['day'], train: 'han:6.46' },         // out of the car park's mouth onto the bridge road
-  { name: 'han-flick', scene: 'town', pos: [20.5, 0, 4.2], yaw: 2.23, pitch: -0.02, looks: ['day'], train: 'han:9.32' },        // the handbrake 180 on NIPPON's forecourt
+  { name: 'han-drift-mid', scene: 'town', pos: [20.5, 0, 4.2], yaw: -2.97, pitch: -0.08, looks: ['day'], train: 'han:10.0' },   // mid-slide over the forecourt's mouth, from the spot
+  { name: 'han-out', scene: 'town', pos: [20.5, 0, 4.2], yaw: -1.20, pitch: -0.05, looks: ['day'], train: 'han:7.0' },         // out of the car park's mouth onto the bridge road
+  { name: 'han-flick', scene: 'town', pos: [20.5, 0, 4.2], yaw: -2.55, pitch: -0.04, looks: ['day'], train: 'han:8.85' },        // the handbrake, the tail stepping out in the master junction
   { name: 'han-getin', scene: 'town', pos: [20.2, 0, 6.2], yaw: -1.0, pitch: -0.1, looks: ['day'], train: 'han:2.0' },              // the door open, Han getting in
   // the guide pup (animals/guide.js), staged in a pose `kind@metres` in front of the lens on the far pavement (world frame):
   // at eye height looking down (how you see it beside you), following it from behind, and at pup height
@@ -873,7 +906,7 @@ export const ANIMALS = {
      * left off; F calls
      * it to you, and it rushes you to the nearest place you haven't been (one you walked away from counts `skipped` m
      * further off). */
-    drop: { angle: 100, angleT: 1.7, grow: 6, away: 16, rejoin: 4, skipped: 30 },
+    drop: { angle: 100, angleT: 1.7, grow: 6, away: 16, rejoin: 4, skipped: 30, near: 25 },   // (`near`: whistled with the tour under way, it is the tour's next stop unless you stand within this of another place not had)
     zoom: { r: 1.5, speed: 4.6 },             // zoomies: the circle's radius and speed
     tripEvery: 45,                            // trips over its own paws about once in this many seconds at a trot
     fields: 6,                                // distance fields kept grown at once (2.6 MB each)
@@ -910,7 +943,15 @@ export const ANIMALS = {
      * ground, by the roll's angle every `step` radians from 0 to pi, standing and lying (measured: scripts/_hachi.mjs
      * --only profile; Tan: it sank under the road) */
     rollUp: { step: 0.3, stand: [0, 0.019, 0.03, 0.023, 0.015, 0.019, 0.046, 0.116, 0.171, 0.206, 0.21, 0.21], lie: [0, 0.027, 0.042, 0.042, 0.04, 0.033, 0.023, 0.029, 0.046, 0.07, 0.081, 0.085] },
-    bowLift: 0.03,                            // m up in a full play bow (the elbows rest on the ground, not in it)
+    /* m up by posture, every `step` from `from` (-1 a full play bow: the elbows rest on the ground, not in it; 0
+     * standing; 1 sat: the rump; 2 lying), so the lowest part of the pup rests ON the ground (measured:
+     * scripts/_hachi.mjs --only posture; Tan, 2026-10-02: sat, he was 1.5 cm into the platform) */
+    postureUp: {
+      from: -1, step: 0.0625,
+      up: [0.038, 0.042, 0.042, 0.038, 0.038, 0.038, 0.038, 0.034, 0.031, 0.031, 0.027, 0.027, 0.023, 0.017, 0.012, 0.007,       // the bow (4 mm more: its rump wiggles)
+        0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.007,            // standing, sitting down
+        0.015, 0.011, 0.011, 0.011, 0.011, 0.011, 0.011, 0.011, 0.007, 0.007, 0.007, 0.007, 0.007, 0.003, 0.003, 0.003, 0.003],    // sat, lying down
+    },
     tipLift: 0.11,                            // m up per radian it is tipped nose-up or nose-down (the low end stays on the ground)
     /* after the tour, whistled: it stays with you, `ahead` m ahead and `aside` m to a side as you walk, sat `sit[0]` m in
      * front of you when you stop (it comes round when you are past `sit[1]` m or it is out of your view).  Within
@@ -920,6 +961,14 @@ export const ANIMALS = {
     engage: { konbini: 1.2, view: 1.0, han: 0.85, train: 1.1, slowlife: 1.1, mochi: 1.2 },   // the engagements' ring radii (and which ids count until the list says `kind`)
     cell: 0.4, radius: 0.25,                  // its map of the town: cell size, and clearance from anything solid (its own half-width and a little)
     step: 0.45,                               // the biggest step between neighbouring cells it will take: kerbs yes, the channel no
+    /* steps and kerbs (Tan, 2026-10-02: "he must JUMP ... never sliding up a riser or dropping instantly").  A change
+     * of the ground's height of `min` m or more within `look` m ahead (+ `lookV` s of its speed): a `crouch` s dip,
+     * then `air` [min, max] s off the ground over the edge, landing `land` m past it (+ `landV` s of its speed; on a
+     * flight the middle of the next tread, of the one after at over `two` m/s; a strip narrower than `run` m, a kerb
+     * stone, is cleared whole), `arc` m over the higher side, nose up then down by `pitch` rad, and a `squash` s dip
+     * as it lands.  Anything else that takes it over an edge (zoomies, its garden's bits): `pop` s of a small hop
+     * `popArc` m high instead of a snap. */
+    jump: { min: 0.06, look: 0.3, lookV: 0.07, land: 0.2, landV: 0.035, run: 0.3, crouch: 0.08, air: [0.22, 0.32], arc: 0.09, pitch: 0.3, squash: 0.14, two: 4.2, pop: 0.2, popArc: 0.07 },
     /* a metre of each, relative: it keeps to pavements, plazas and lanes, crosses kerbed roads on the zebras (main-road
      * asphalt is dear), keeps off paddy plots, and never takes an alley or a gap between houses (`alley`: every cell
      * that is not a street, a plaza, the land's paths or a lot; forty pavements a metre, so only where nothing else leads) */
@@ -988,7 +1037,8 @@ export const ANIMALS = {
     hear: { walk0: [-35, 13.8, 14], walk1: [50, -5, 14], walk2: [50, -75, 14], walk3: [-30, 1.5, 14], donki: [55.9, -41.4, 12], station: [51, -125.5, 14], crossing: [80, -134.3, 10], shrine: [-13, -64.4, 14] },   // each sound place and how near the tour must pass (m)
     nap: [28.45, -37.75],                     // town frame: in front of the gate's bench (TOWN.land.gateBench), the tour's last stop: it hops up from here and sleeps on it once everything is done
     /* the bedtime on the bench (s from landing on it): a play bow at you, a happy spin, a roll belly-up, a sit and a
-     * head tilt, two slow circles, and down, curled up; `onNap` (the postcard) fires once it is settled */
+     * head tilt, two slow circles, and down, curled up; `onTourEnd` (the postcard) fires as it lands on the seat,
+     * `onNap` once it is settled */
     bedtime: { hop: 0.5, bow: [0.35, 1.6], spin: [1.6, 2.5], roll: [2.5, 4.6], sit: [4.6, 5.6], circle: [5.6, 7.3], settle: 8.0 },
   },
   butterflies: { size: 1.15, beatHz: 9, speed: 0.9, near: 45, shy: 1.0 },

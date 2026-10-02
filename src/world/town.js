@@ -39,6 +39,7 @@ export function buildTown(scene, { merge = true } = {}) {
   const lawson = buildLawson(root);
   ctx.colliders.push(...lawson.colliders);
   ctx.platforms.push(...lawson.platforms);
+  for (const s of lawson.surfaces) ctx.surface(s);
 
   /* --- the town (M2e.3): built in its own tested frame, turned half round
    * about the main road, so it stands between the Lawson and Fuji and you

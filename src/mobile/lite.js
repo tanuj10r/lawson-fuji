@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { MOBILE, TOWN, ANIMALS } from '../config.js';
+import { MOBILE, TOWN, ANIMALS, LAWSON } from '../config.js';
 import { decalAtlas } from '../world/kit/tex.js';
 import { storePages } from '../world/store/pages.js';
 
@@ -191,8 +191,11 @@ export function shrinkCanvases(root, { store = false, real = 16384 } = {}) {
     if (!(img instanceof HTMLCanvasElement) || SMALL.has(img)) continue;
     const limit = Math.min(real, u.store ? MOBILE.storeTexture : MOBILE.maxTexture);
     const side = Math.max(img.width, img.height);
-    if (side <= limit) continue;
-    const k = limit / side;
+    /* BUDGET (the light tier, MOBILE.texScale): its frame has 0.7 of the full tier's pixels each way, so a
+     * painting at 0.75 of its size is as fine on its screen as the whole one is on the full tier's */
+    const scale = img.width * img.height >= 128 * 128 ? MOBILE.texScale ?? 1 : 1;
+    if (side <= limit && scale >= 1) continue;
+    const k = Math.min(1, limit / side) * scale;
     const cv = document.createElement('canvas');
     const w = Math.max(1, Math.floor(img.width * k)), h = Math.max(1, Math.floor(img.height * k));
     cv.width = w; cv.height = h;
@@ -217,7 +220,7 @@ export function shrinkCanvases(root, { store = false, real = 16384 } = {}) {
  * upload, so the GPU and the CPU copy both shrink.
  */
 export function packBatches(scene) {
-  let before = 0, after = 0;
+  let before = 0, after = 0, indexed = 0;
   const pack = (g, name, Type, bytes) => {
     const a = g.attributes[name];
     if (!a || !(a.array instanceof Float32Array) || a.isInterleavedBufferAttribute) return;
@@ -255,8 +258,56 @@ export function packBatches(scene) {
     // POCKET: and the position in 16 bits a side over the batch's own box (the mesh carries the box)
     const b0 = g.attributes.position?.array.byteLength ?? 0, b1 = quantizePositions(o);
     if (b1) { before += b0; after += b1; }
+    // BUDGET: ... and each corner once (indexLocal, below)
+    const saved = indexLocal(g);
+    after -= saved; indexed += saved;
   });
-  return { beforeMB: +(before / 1048576).toFixed(1), afterMB: +(after / 1048576).toFixed(1) };
+  return { beforeMB: +(before / 1048576).toFixed(1), afterMB: +(after / 1048576).toFixed(1), indexedMB: +(indexed / 1048576).toFixed(1) };
+}
+
+/**
+ * BUDGET: a static batch is baked unindexed (world/merge.js): a wall's two triangles carry its four corners as six
+ * vertices, a pillar's every corner comes four or six times.  Here a vertex that is byte for byte one of the last
+ * few written (same place, normal, colour, tint, uv: the same corner of the same face) is written once and
+ * pointed at, so the triangles are the same triangles and the picture the same picture, in a quarter to a half
+ * fewer bytes.  One pass, a short look back (a quad's and a strip's shared corners are never further apart).
+ * Returns the bytes saved (0: left alone).
+ */
+const LOOK = 8;
+export function indexLocal(g) {
+  if (g.index || g.morphAttributes.position || g.groups.length) return 0;
+  const attrs = Object.values(g.attributes);
+  const n = g.attributes.position?.count ?? 0;
+  if (n < 6 || attrs.some((a) => a.isInterleavedBufferAttribute || !a.array || a.count !== n)) return 0;
+  // a vertex as 32-bit words would need aligned sizes: a hash of every attribute's numbers, then the numbers themselves
+  const hash = new Int32Array(n);
+  for (const a of attrs) {
+    const arr = a.array, k = a.itemSize, f = arr instanceof Float32Array ? new Int32Array(arr.buffer, arr.byteOffset, arr.length) : arr;
+    for (let i = 0, j = 0; i < n; i++) { let h = hash[i]; for (let e = 0; e < k; e++, j++) h = (Math.imul(h, 31) + f[j]) | 0; hash[i] = h; }
+  }
+  const same = (i, j) => { for (const a of attrs) { const arr = a.array, k = a.itemSize; for (let e = 0; e < k; e++) if (arr[i * k + e] !== arr[j * k + e]) return false; } return true; };
+  const index = new Uint32Array(n), keep = new Uint32Array(n);   // keep[m]: the old vertex written as new vertex m
+  let m = 0;
+  for (let i = 0; i < n; i++) {
+    let at = -1;
+    for (let q = m - 1, lo = Math.max(0, m - LOOK); q >= lo; q--) if (hash[keep[q]] === hash[i] && same(keep[q], i)) { at = q; break; }
+    if (at < 0) { keep[m] = i; at = m++; }
+    index[i] = at;
+  }
+  const idx = m <= 65535 ? new Uint16Array(index) : index;
+  let from = 0, to = idx.byteLength;
+  for (const a of attrs) from += a.array.byteLength;
+  if (m > n * 0.85) return 0;                 // (hardly anything shared: not worth an index)
+  for (const [name, a] of Object.entries(g.attributes)) {
+    const k = a.itemSize, src = a.array, dst = new src.constructor(m * k);
+    for (let v = 0; v < m; v++) { const o = keep[v] * k; for (let e = 0; e < k; e++) dst[v * k + e] = src[o + e]; }
+    const out = new THREE.BufferAttribute(dst, k, a.normalized);
+    out.usage = a.usage;
+    g.setAttribute(name, out);
+    to += dst.byteLength;
+  }
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  return from - to;
 }
 
 
@@ -382,77 +433,105 @@ export function packStoreQuads(scene, { page = 2048 } = {}) {
     list.push(o);
   });
   if (list.length < 2) return null;
-  // each picture once at its own size: shelf packing, tallest first, `page` wide and as tall as it takes
-  const texs = [...new Set(list.map((o) => o.material.map))];
-  const PAD = 4, slots = new Map();
-  let x = 0, y = 0, shelf = 0;
-  for (const t of [...texs].sort((a, b) => b.image.height - a.image.height)) {
-    const w = t.image.width, h = t.image.height;
-    if (x + w + PAD * 2 > page) { x = 0; y += shelf; shelf = 0; }
-    slots.set(t, { x: x + PAD, y: y + PAD, w, h });
-    x += w + PAD * 2; shelf = Math.max(shelf, h + PAD * 2);
-  }
-  const pageH = y + shelf;
-  const cv = document.createElement('canvas');
-  cv.width = page; cv.height = pageH;
-  const c = cv.getContext('2d');
-  for (const [t, s] of slots) {
-    c.drawImage(t.image, s.x - PAD, s.y - PAD, s.w + PAD * 2, s.h + PAD * 2);   // its own edge bled into the padding
-    c.clearRect(s.x, s.y, s.w, s.h);
-    c.drawImage(t.image, s.x, s.y, s.w, s.h);
-  }
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = list[0].material.map.colorSpace;
-  tex.anisotropy = 8;
-  tex.name = 'store-quads';
   const inv = store.matrixWorld.clone().invert(), rel = new THREE.Matrix4();
-  const groups = new Map();
-  for (const o of list) {
-    const m = o.material, key = `${m.transparent}|${m.opacity}|${m.alphaTest}|${m.side}|${m.depthWrite}|${m.color.getHexString()}|${m.fog}|${o.renderOrder}|${m.toneMapped}`;
-    if (!groups.has(key)) groups.set(key, { src: m, order: o.renderOrder, geos: [], meshes: [] });
-    const s = slots.get(m.map);
-    const g = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone());
-    for (const name of Object.keys(g.attributes)) if (name !== 'position' && name !== 'uv') g.deleteAttribute(name);
-    const uv = g.attributes.uv;
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, (s.x + uv.getX(i) * s.w) / page, 1 - (s.y + (1 - uv.getY(i)) * s.h) / pageH);
-    g.applyMatrix4(rel.multiplyMatrices(inv, o.matrixWorld));
-    const G = groups.get(key);
-    G.geos.push(g); G.meshes.push(o);
-  }
   let removed = 0;
-  for (const { src, order, geos, meshes } of groups.values()) {
-    const geo = mergeGeometries(geos, false);
-    if (!geo) continue;
-    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: src.transparent, opacity: src.opacity, alphaTest: src.alphaTest, side: src.side, depthWrite: src.depthWrite, fog: src.fog, toneMapped: src.toneMapped });
-    mat.color = src.color;               // the same Color object: setLook brightens it in place
-    mat.userData = src.userData;
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.name = 'store-quads-lite';
-    mesh.userData.noOutline = true;
-    mesh.castShadow = mesh.receiveShadow = false;
-    mesh.renderOrder = order;
-    mesh.matrixAutoUpdate = false;
-    store.add(mesh);
-    for (const o of meshes) { o.parent.remove(o); removed++; }
-    removed--;
-  }
-  // the pictures now on the page, where nothing else draws with them: their canvases go
+  /** One page of these quads: each picture once at its own size, drawn as one mesh a kind.  Returns show(k). */
+  const pageOf = (list, name) => {
+    const texs = [...new Set(list.map((o) => o.material.map))];
+    /* BUDGET: shelf packing, tallest first, the page as wide as packs them tightest (2048 across left a quarter of
+     * it empty: four 512-wide posters and their padding are 2080); WebGL 2 has no powers of two to keep. */
+    const PAD = 4, sorted = [...texs].sort((a, b) => b.image.height - a.image.height);
+    const packAt = (W, slots = null) => {
+      let x = 0, y = 0, shelf = 0;
+      for (const t of sorted) {
+        const w = t.image.width, h = t.image.height;
+        if (x + w + PAD * 2 > W) { x = 0; y += shelf; shelf = 0; }
+        slots?.set(t, { x: x + PAD, y: y + PAD, w, h });
+        x += w + PAD * 2; shelf = Math.max(shelf, h + PAD * 2);
+      }
+      return y + shelf;
+    };
+    let pageW = page, area = Infinity;
+    for (let W = Math.max(Math.max(...sorted.map((t) => t.image.width)) + PAD * 2, 512); W <= 4096; W += 8) { const a = W * packAt(W); if (a < area) { area = a; pageW = W; } }
+    const slots = new Map();
+    const pageH = packAt(pageW, slots);
+    const cv = document.createElement('canvas');
+    cv.width = pageW; cv.height = pageH;
+    const c = cv.getContext('2d');
+    for (const [t, s] of slots) {
+      c.drawImage(t.image, s.x - PAD, s.y - PAD, s.w + PAD * 2, s.h + PAD * 2);   // its own edge bled into the padding
+      c.clearRect(s.x, s.y, s.w, s.h);
+      c.drawImage(t.image, s.x, s.y, s.w, s.h);
+    }
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = list[0].material.map.colorSpace;
+    tex.anisotropy = 8;
+    tex.name = name;
+    const groups = new Map();
+    for (const o of list) {
+      const m = o.material, key = `${m.transparent}|${m.opacity}|${m.alphaTest}|${m.side}|${m.depthWrite}|${m.color.getHexString()}|${m.fog}|${o.renderOrder}|${m.toneMapped}`;
+      if (!groups.has(key)) groups.set(key, { src: m, order: o.renderOrder, geos: [], meshes: [] });
+      const s = slots.get(m.map);
+      const g = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone());
+      for (const an of Object.keys(g.attributes)) if (an !== 'position' && an !== 'uv') g.deleteAttribute(an);
+      const uv = g.attributes.uv;
+      for (let i = 0; i < uv.count; i++) uv.setXY(i, (s.x + uv.getX(i) * s.w) / pageW, 1 - (s.y + (1 - uv.getY(i)) * s.h) / pageH);
+      g.applyMatrix4(rel.multiplyMatrices(inv, o.matrixWorld));
+      const G = groups.get(key);
+      G.geos.push(g); G.meshes.push(o);
+    }
+    for (const { src, order, geos, meshes } of groups.values()) {
+      const geo = mergeGeometries(geos, false);
+      if (!geo) continue;
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: src.transparent, opacity: src.opacity, alphaTest: src.alphaTest, side: src.side, depthWrite: src.depthWrite, fog: src.fog, toneMapped: src.toneMapped });
+      mat.color = src.color;               // the same Color object: setLook brightens it in place
+      mat.userData = src.userData;
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.name = 'store-quads-lite';
+      mesh.userData.noOutline = true;
+      mesh.castShadow = mesh.receiveShadow = false;
+      mesh.renderOrder = order;
+      mesh.matrixAutoUpdate = false;
+      store.add(mesh);
+      for (const o of meshes) { o.parent.remove(o); removed++; }
+      removed--;
+    }
+    // (its smaller copies: the same picture as its first and second mipmaps, made once)
+    const copies = new Map([[1, cv]]);
+    const at = (k) => {
+      if (!copies.has(k)) {
+        const small = document.createElement('canvas');
+        small.width = Math.max(4, Math.round(pageW * k)); small.height = Math.max(4, Math.round(pageH * k));
+        const q = small.getContext('2d'); q.imageSmoothingQuality = 'high'; q.drawImage(cv, 0, 0, small.width, small.height);
+        copies.set(k, small);
+      }
+      return copies.get(k);
+    };
+    let cur = 1;
+    return { texs, show(k) { if (k === 1) k = MOBILE.texScale ?? 1; if (k === cur) return; cur = k; tex.dispose(); tex.image = at(k); tex.needsUpdate = true; } };
+  };
+  /* BUDGET: two pages.  `front`: what hangs on the glass, stands outside it, or within MOBILE.store.quadsDeep m
+   * behind it (what you can put your nose to from the forecourt); `deep`: the signs further in.  Away from the
+   * store both are quarter-size copies (what a poster 110 px tall from the famous view samples); on the forecourt
+   * the front page is whole and the deep one a half (its nearest sign is 5 m from the door's spot: a phone shows
+   * ~240 px of a metre there, the half holds 190-310); inside, and through a visit, both whole. */
+  const c3 = new THREE.Vector3(), deepZ = LAWSON.frontZ - (MOBILE.store.quadsDeep ?? 3);
+  const isFront = (o) => { if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); return o.geometry.boundingBox.getCenter(c3).applyMatrix4(o.matrixWorld).z > deepZ; };
+  const front = list.filter(isFront), deep = list.filter((o) => !front.includes(o));
+  const pages = [front.length ? pageOf(front, 'store-quads-front') : null, deep.length ? pageOf(deep, 'store-quads') : null];
+  if (import.meta.env?.DEV) window.__storeQuads = { front: front.length, deep: deep.length };
+  // the pictures now on the pages, where nothing else draws with them: their canvases go
   const still = new Set();
   scene.traverse((o) => { for (const m of [o.material].flat()) if (m?.map) still.add(m.map); });
-  for (const t of texs) if (!still.has(t)) { t.dispose(); t.image.width = 1; t.image.height = 1; }
-  /* The page is 2048 x ~3700 (39 MB with its mipmaps): from the street the GPU only ever samples its small
-   * mipmaps (a poster on the glass is ~110 px tall from the famous view).  So away from the store it is a
-   * quarter-size copy (the same picture as its second mipmap: 2.4 MB), the whole page again as you walk up. */
-  const small = document.createElement('canvas');
-  small.width = Math.round(page / 4); small.height = Math.max(4, Math.round(pageH / 4));
-  { const k = small.getContext('2d'); k.imageSmoothingQuality = 'high'; k.drawImage(cv, 0, 0, small.width, small.height); }
-  let near = true;
-  const level = (want) => {
-    if (want === near) return;
-    near = want;
-    tex.dispose(); tex.image = near ? cv : small; tex.needsUpdate = true;
+  for (const pg of pages) if (pg) for (const t of pg.texs) if (!still.has(t)) { t.dispose(); t.image.width = 1; t.image.height = 1; }
+  let near = null, visit = null;
+  const level = (n, i = false) => {
+    if (n === near && i === visit) return;
+    near = n; visit = i;
+    pages[0]?.show(n || i ? 1 : 0.25);
+    pages[1]?.show(i ? 1 : n ? 0.5 : 0.25);
   };
-  level(false);
+  level(false, false);
   return { removed, level, get near() { return near; } };
 }
 
@@ -576,6 +655,69 @@ export function liteFuji(mesh) {
 }
 
 /**
+ * BUDGET: the water's mirrors (land/mirror.js: the pond's, the river's, the paddies') draw what stands round them
+ * a second time, upside down, into a target of their own (4-7 MB each), whenever you are within 45-70 m of their
+ * water: also when the water is behind a row of shops, or the konbini, and not a pixel of it is on the screen
+ * (the pond's ran at the konbini's door, 66 m off through the whole town: 100-170 draws and 7 MB for nothing).
+ *
+ * Here each mirror asks the GPU whether any of its water was drawn (an occlusion query round its own draw, read a
+ * frame later).  While none is, the second drawing is skipped; after `rest` seconds of none, or when the game hides
+ * the mirror, its target is given back.  The moment a pixel of water shows, the reflection is drawn again before
+ * the water is (the first frame samples the last picture it held: a sliver, a frame).  The water itself is drawn
+ * after everything opaque, so what stands in front of it has already claimed its pixels.
+ * Returns update(dt), for every frame.
+ */
+export function lazyMirrors(scene, renderer, { rest = 2.5 } = {}) {
+  const gl = renderer.getContext();
+  const blank = new THREE.DataTexture(new Uint8Array([120, 130, 140, 255]), 1, 1);
+  blank.needsUpdate = true;
+  const list = [];
+  scene.traverse((o) => {
+    if (!o.isMesh || typeof o.getRenderTarget !== 'function' || !o.material?.uniforms?.tDiffuse) return;
+    const st = { o, q: null, pending: null, seen: true, drawn: false, unseen: 0, held: true, rt: o.getRenderTarget() };
+    const inner = o.onBeforeRender;
+    o.renderOrder = Math.max(o.renderOrder, 6);
+    o.onBeforeRender = function (r, sc, camera, ...more) {
+      st.drawn = true;
+      try {
+        if (st.pending && gl.getQueryParameter(st.pending, gl.QUERY_RESULT_AVAILABLE)) {
+          st.seen = !!gl.getQueryParameter(st.pending, gl.QUERY_RESULT);
+          gl.deleteQuery(st.pending); st.pending = null;
+        }
+      } catch { st.pending = null; st.seen = true; }
+      if (st.seen) {
+        if (!st.held) { o.material.uniforms.tDiffuse.value = st.rt.texture; st.held = true; }
+        inner.call(this, r, sc, camera, ...more);
+      }
+      if (!st.pending && !st.q) { st.q = gl.createQuery(); gl.beginQuery(gl.ANY_SAMPLES_PASSED_CONSERVATIVE, st.q); }
+    };
+    o.onAfterRender = function () {
+      if (!st.q) return;
+      gl.endQuery(gl.ANY_SAMPLES_PASSED_CONSERVATIVE);
+      st.pending = st.q; st.q = null;
+    };
+    list.push(st);
+  });
+  const drop = (st) => {
+    if (!st.held || !renderer.properties.get(st.rt).__webglFramebuffer) return;
+    st.o.material.uniforms.tDiffuse.value = blank;
+    st.rt.dispose();
+    st.held = false;
+  };
+  return {
+    list,
+    update(dt) {
+      for (const st of list) {
+        if (!st.o.visible) { st.seen = true; st.unseen = 0; st.drawn = false; drop(st); continue; }   // (hidden by the game: it comes back drawing)
+        // none of it on the screen (hidden behind something, or out of the view altogether) for a while
+        if (st.seen && st.drawn) st.unseen = 0; else if ((st.unseen += dt) > rest) drop(st);
+        st.drawn = false;
+      }
+    },
+  };
+}
+
+/**
  * Distance culling.  `far`: the static batches (their bounds are in world
  * space); `detail`: small instanced kinds (clutter, weeds, flowers: one
  * draw each, spread town-wide, so they are shown when their nearest
@@ -583,12 +725,6 @@ export function liteFuji(mesh) {
  */
 export function makeCuller(scene, world, renderer) {
   const list = [];
-  /* BUDGET: the water's mirrors (land/mirror.js: the pond's, the river's, the paddies') each hold a target of
-   * their own (half-float colour and a depth buffer: 4-7 MB) from the first time they are drawn.  A mirror shows
-   * only while you stand by its water: away from it the target is given back, and three makes it again when the
-   * mirror is next drawn. */
-  const mirrors = [];
-  scene.traverse((o) => { if (o.isMesh && typeof o.getRenderTarget === 'function') mirrors.push(o); });
   const sphere = new THREE.Sphere(), box = new THREE.Box3();
   scene.updateMatrixWorld(true);
   scene.traverse((o) => {
@@ -663,6 +799,34 @@ export function makeCuller(scene, world, renderer) {
    * konbini every one is at most a half (texLod.store): what is outside is
    * seen through the glass from metres off, while you are walked to a
    * shelf.  The konbini's own pages have their own levels (konbini.js). */
+  /* BUDGET: how finely a page is painted on what wears it: its texels a metre, at the coarsest place (where it is
+   * seen largest).  From that, the distance past which a phone's screen cannot show more than the page's half or
+   * its quarter (update, below): a 0.6 m plate painted 256 across is a quarter's worth from 14 m, a 5 m fascia
+   * painted 1024 across from 29 m.  Not for a kind's instances (the leaf skins: the old near and far apply). */
+  const density = (src, es, img) => {
+    let lo = Infinity;
+    const p = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    for (const e of es) {
+      const o = e.o, g = o.geometry, pos = g.attributes.position, uv = g.attributes.uv;
+      if (o.isInstancedMesh || !pos || !uv || !(pos.array?.length > 0)) return 0;
+      let rep = 1;
+      for (const m of [o.material].flat()) if (m) for (const t of texturesOf(m)) if (t.source === src) rep = Math.abs(t.repeat.x * t.repeat.y) || 1;
+      const E = o.matrixWorld.elements, ix = g.index, n = ix ? ix.count : pos.count, texels = img.width * img.height * rep;
+      for (let i = 0; i + 2 < n; i += 3) {
+        const a = ix ? ix.getX(i) : i, b = ix ? ix.getX(i + 1) : i + 1, c = ix ? ix.getX(i + 2) : i + 2;
+        let k = 0;
+        for (const v of [a, b, c]) {
+          const x = pos.getX(v), y = pos.getY(v), z = pos.getZ(v);
+          p[k++] = E[0] * x + E[4] * y + E[8] * z; p[k++] = E[1] * x + E[5] * y + E[9] * z; p[k++] = E[2] * x + E[6] * y + E[10] * z;
+        }
+        const ux = p[3] - p[0], uy = p[4] - p[1], uz = p[5] - p[2], vx = p[6] - p[0], vy = p[7] - p[1], vz = p[8] - p[2];
+        const world = Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx) / 2;
+        const tu = Math.abs((uv.getX(b) - uv.getX(a)) * (uv.getY(c) - uv.getY(a)) - (uv.getX(c) - uv.getX(a)) * (uv.getY(b) - uv.getY(a))) / 2;
+        if (world > 1e-4 && tu > 1e-10) lo = Math.min(lo, Math.sqrt(tu * texels / world));
+      }
+    }
+    return Number.isFinite(lo) ? lo : 0;
+  };
   const lod = [];
   if (stream && MOBILE.texLod) {
     const inStore = new Set();
@@ -677,7 +841,7 @@ export function makeCuller(scene, world, renderer) {
       if (!(img instanceof HTMLCanvasElement) || img.width * img.height < MOBILE.texLod.min || es.some((e) => inStore.has(e.o))) continue;
       // (only when every clone is one the culler streams: a clone drawn elsewhere keeps the page whole)
       if (!ts.every((t) => list.some((e) => e.tex.includes(t)))) continue;
-      lod.push({ ts, src, es, full: img, imgs: new Map(), k: 1 });
+      lod.push({ ts, src, es, full: img, imgs: new Map(), k: 1, tpm: density(src, es, img) });
     }
   }
   /** A page's copy at `k` its size (made once, kept), the same picture as that mip level. */
@@ -701,6 +865,7 @@ export function makeCuller(scene, world, renderer) {
     list,
     lod,
     lodFar: 0,
+    pxm: 1300,                 // the screen's pixels a metre at a metre (main.js sets it at every resize)
     get out() { return out; },
     /** Every few frames: what is near enough to draw. */
     update(cam, every = 3, behind = null, force = false) {
@@ -746,17 +911,21 @@ export function makeCuller(scene, world, renderer) {
           for (const t of e.tex) t.__in++;          // (three uploads it when it is drawn)
         }
       }
-      if (streamNow && renderer) for (const m of mirrors) {
-        if (m.visible) continue;
-        const rt = m.getRenderTarget();
-        if (renderer.properties.get(rt).__webglFramebuffer) rt.dispose();
-      }
       if (streamNow) for (const L of lod) {
         let d = Infinity;
         for (const e of L.es) if (e.d < d) d = e.d;
         const T = MOBILE.texLod;
         let want = L.k;
-        if (d > T.far) want = T.k; else if (d < T.near) want = 1;
+        if (L.tpm > 0 && T.safe) {
+          /* by what the screen can show (api.pxm: its pixels a metre, a metre away): the half from where the
+           * page's half is still finer than the screen, the quarter likewise; never later than `far`, and
+           * coming nearer the finer copy is back before it is needed (the margin is in `safe`) */
+          const dq = Math.min(T.far, Math.max(T.least, 4 * api.pxm * T.safe / L.tpm)), dh = Math.min(dq, Math.max(T.least / 2, 2 * api.pxm * T.safe / L.tpm));
+          const at = (x) => (x > dq ? 0.25 : x > dh ? 0.5 : 1);
+          // (finer a little before it is due; coarser only well past it, so standing on a line changes nothing)
+          const fine = at(d * 0.9 - 0.5), coarse = at(d * 0.8 - 0.5);
+          if (fine > L.k) want = fine; else if (coarse < L.k) want = coarse;
+        } else if (d > T.far) want = T.k; else if (d < T.near) want = 1;
         // in the konbini, what is outside is seen through the glass, metres off: at most `store` its size
         if (behind !== null && want > T.store) want = T.store;
         if (want === L.k) continue;

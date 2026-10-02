@@ -2,4 +2,5 @@
  * first (plan.js sets config.js to the compact Fujikawaguchikko before any builder reads it:
  * docs/decisions/mobile-lite.md, "Mobile v3"), then the game. */
 import './plan.js';
+import './pages.js';     // (the konbini's pages painted at a phone's size: before world/store/ makes any)
 import './main.js';

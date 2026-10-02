@@ -44,7 +44,7 @@ try {
   await page.addInitScript(`window.__budgetArg = ${flags.arg ?? 'null'};\n` + init);
   const t0 = Date.now();
   await page.goto((flags.url ?? 'http://127.0.0.1:5195') + '/m.html?stats' + (flags.q ? '&' + flags.q : ''), { waitUntil: 'domcontentloaded', timeout: 240000 });
-  await page.waitForFunction(() => document.getElementById('boot')?.classList.contains('ready') && window.__m, null, { timeout: 240000 });
+  try { await page.waitForFunction(() => document.getElementById('boot')?.classList.contains('ready') && window.__m, null, { timeout: Number(flags.wait ?? 120000) }); } catch (e) { console.error('the page never became ready:', errs.join('\n')); throw e; }
   report.wall = Date.now() - t0;
   report.load = await page.evaluate(() => ({ marks: window.__m.marks, stages: window.__m.diag.stages, tier: window.__m.tier, scale: window.__m.scale, lots: window.__m.world.core.lots.length, timings: window.__timings ?? null }));
   report.systems = await page.evaluate(() => window.__systems ?? null);

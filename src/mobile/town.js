@@ -132,6 +132,12 @@ function mergeMini(root, { cell, bulkCell, detailCell }) {
   ];
   // (measuring: how many pictures and texels each pass holds)
   { const st = {}; const seen = new Set(); for (const m of meshes) { const t = m.o.material?.map; if (!m.packs || seen.has(m.pass + t.source.uuid)) continue; seen.add(m.pass + t.source.uuid); const e = (st[m.pass] ??= { n: 0, mtx: 0 }); e.n++; e.mtx += t.image.width * t.image.height / 1e6; } globalThis.__mergeStats = st; }
+  if (import.meta.env?.DEV) {
+    // (measuring: the shared pass's pictures, their size, how many regions wear them, and who)
+    const seen = new Map();
+    for (const m of meshes) if (m.pass === 'shared') { const t = m.o.material.map; let who = ''; for (let a = m.o; a && !who; a = a.parent) who = a.name; const e = seen.get(t.source) ?? [t.image.width, t.image.height, regionsOf.get(t.source).size, 0, who]; e[3]++; seen.set(t.source, e); }
+    globalThis.__mergeShared = [...seen.values()].sort((x, y) => y[0] * y[1] - x[0] * x[1]);
+  }
   let out = null;
   for (const [name, opts, atlas] of passes) {
     for (const m of meshes) {

@@ -33,6 +33,8 @@
   for (const [name, x, z, yaw, pitch, train] of P) {
     M.goto({ x, z, yaw, pitch, look: 'golden', train });
     await wait(quick ? 250 : 450);
+    // (at the konbini: its pages as they are once you have stood there a few seconds, painted now)
+    if (/konbini/.test(name)) { M.world.update(0, M.camera); for (const p of M.storePages ?? []) p.update('near', true); }
     const r = M.goto({ x, z, yaw, pitch });
     out.places[name] = { gpu: r.gpu, tex: r.tex, buf: r.buf, rb: r.rb, calls: r.calls, withShadow: r.withShadow, tris: r.tris };
   }
@@ -40,7 +42,9 @@
   if (quick) return out;
   // what is on the GPU, by picture, at three stops
   const listAt = async (x, z, yaw, pitch) => {
-    M.goto({ x, z, yaw, pitch }); await wait(600); M.goto({ x, z, yaw, pitch });
+    M.goto({ x, z, yaw, pitch }); await wait(600);
+    if (Math.hypot(x, z) < 6) { M.world.update(0, M.camera); for (const p of M.storePages ?? []) p.update('near', true); }
+    M.goto({ x, z, yaw, pitch });
     const props = M.renderer.properties, gl = new Map(M.meter.textureList());
     const texs = new Map();
     const of = (m) => { const l = []; for (const v of Object.values(m)) if (v?.isTexture) l.push(v); if (m.uniforms) for (const u of Object.values(m.uniforms)) if (u?.value?.isTexture) l.push(u.value); return l; };

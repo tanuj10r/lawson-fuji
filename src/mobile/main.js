@@ -7,7 +7,7 @@ import { setOutlineResolution } from '../core/outline.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { WALK_SIGNALS } from '../world/signals.js';
 import { buildTown } from './town.js';                      // WORLD: the mini town (the desktop's generator on plan.js's plan)
-import { liteConfig, liteScene, liteFuji, makeCuller, census, shrinkCanvases } from './lite.js';
+import { liteConfig, liteScene, liteFuji, makeCuller, lazyMirrors, census, shrinkCanvases } from './lite.js';
 import { storePages, pagesRenderer } from '../world/store/pages.js';
 import { tagReflections } from '../world/land/mirror.js';
 import { STRINGS, MOBILE_STRINGS as M } from '../data/strings.js';
@@ -97,6 +97,7 @@ canvas.addEventListener('webglcontextlost', (e) => {
 canvas.addEventListener('webglcontextrestored', () => {
   meter?.reset();
   diag.stage('context restored');
+  for (const p of storePages) p.reset?.();                // (the konbini's pages are painted again: mobile/pages.js)
   if (!MOBILE.keepCpu || !world) return;
   contextLost = false;
   document.documentElement.classList.remove('gate-lost');
@@ -493,6 +494,7 @@ function resize() {
   renderer.setPixelRatio(pipeline.scale);
   renderer.setSize(w, h, true);
   setOutlineResolution(pipeline.size.x, pipeline.size.y);
+  if (culler) culler.pxm = pipeline.size.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));   // WORLD: what the screen can show of a page (lite.js)
   shell.resize();                                          // SHELL: the stick's rest, the open map, the portrait hint
 }
 window.addEventListener('resize', resize);
@@ -592,7 +594,8 @@ function frame(now = 0) {
   /* WORLD: what is near enough to draw, to keep on the GPU and to show whole (lite.js); in the store, what is
    * behind its walls goes; the konbini's quad page whole within reach of its glass, a small copy from the street */
   culler.update(camera.position, 3, inStore ? MOBILE.store.behind : null);
-  lite.storeQuads?.level(inStore || !!shop?.visiting || Math.hypot(camera.position.x - LAWSON.x, camera.position.z - LAWSON.frontZ + LAWSON.depth / 2) < (lite.storeQuads.near ? MOBILE.store.quadsFar : MOBILE.store.quadsNear));
+  mirrors.update(tick);
+  lite.storeQuads?.level(Math.hypot(camera.position.x - LAWSON.x, camera.position.z - LAWSON.frontZ + LAWSON.depth / 2) < (lite.storeQuads.near ? MOBILE.store.quadsFar : MOBILE.store.quadsNear), inStore || !!shop?.visiting);
   shell.update(dt, { inStore });                           // SHELL: the cards' song, the map, the context button, the chips, the countdown, the postcard
   sound.update(dt, { camera, inside: inStore, look: lookName, cooler: shop?.coolerAt });
   walkAt.forEach(({ w }, i) => { walkList[i].on = w.walk(); });
@@ -609,6 +612,8 @@ function frame(now = 0) {
 diag.stage('lite');
 const lite = liteScene(scene, renderer, world);
 culler = makeCuller(scene, world, renderer);
+const mirrors = lazyMirrors(scene, renderer);        // WORLD: the water's mirrors drawn only while their water is on the screen
+viewW = 0;                                       // (the resize below hands the culler the screen's pixels a metre)
 world.fuji.ready?.then((m) => { lite.fuji = liteFuji(m); });
 if (world.reflectRect) {
   tagReflections(scene, world.root, world.reflectRect);
@@ -646,7 +651,7 @@ if (import.meta.env?.DEV || params.has('stats')) {
   window.__m = {
     scene, camera, renderer, pipeline, world, player, sound, hud, shell, THREE, marks, perf, applyLook, enterHero, setTime,
     hanShow, GUIDE, diag, meter, get scale() { return renderScale; }, touch: shell.touch,
-    lite, culler, tier, census: () => census(scene, renderer),
+    lite, culler, mirrors, tier, storePages, census: () => census(scene, renderer),
     /** dev (scripts/_mini.mjs): stand at a spot and draw it: { x, z, yaw, pitch, look, lift, train, trainX } */
     goto(o = {}) {
       if (o.look && o.look !== lookName) applyLook(o.look);

@@ -1099,10 +1099,10 @@ export const MOBILE = {
   /* A painted page farther than `far` m from you (its nearest user) shows a copy `k` its size, the whole one
    * again within `near`; in the konbini, every town page (seen through the glass) at most `store` its size
    * (lite.js makeCuller). */
-  texLod: { min: 256 * 256, near: 40, far: 48, k: 0.25, store: 0.5 },
+  texLod: { min: 256 * 256, near: 40, far: 48, k: 0.25, store: 0.5, safe: 1.1, least: 10 },   // (safe, least: a page whose texels a metre are known steps to its half and quarter by what the screen can show, lite.js; never nearer than `least` m)
   /* In the store, what lies wholly north of `behind` (world z: the glass; the walls hide the rest) is neither
    * drawn nor kept; its goods are drawn (and kept) only within `goods` m. */
-  store: { behind: -0.5, goods: 45, quadsNear: 15, quadsFar: 17.5 },
+  store: { behind: -0.5, goods: 45, quadsNear: 15, quadsFar: 17.5, quadsDeep: 3 },
   /* The town's sign atlas (mobile/town.js mergePocket): only pages of at most `max` texels that belong to one
    * region go in, packed per region of a grid cut at these world z and x lines; the rest keep their own. */
   atlas: { max: 256 * 256, z: [-35, -70], x: [-45, 45] },
@@ -1113,11 +1113,12 @@ export const MOBILE = {
   tiers: {
     light: {
       far: 80, fog: { near: 28, far: 76 }, detail: 26,
-      texLod: { min: 256 * 256, near: 20, far: 26, k: 0.25, store: 0.5 },
-      store: { behind: -0.5, goods: 34, quadsNear: 15, quadsFar: 17.5 },
+      texLod: { min: 256 * 256, near: 20, far: 26, k: 0.25, store: 0.5, safe: 1.0, least: 8 },
+      store: { behind: -0.5, goods: 34, quadsNear: 15, quadsFar: 17.5, quadsDeep: 3 },
       shadow: { size: 1024, half: 28, every: 2.5 },
       render: { maxDpr: 2, pixels: 1.9e6, minScale: 1.25, step: 0.25, fpsLow: 50, fpsHigh: 57 },
       stream: 5,
+      texScale: 0.75,          // every painting at this much of its size: the light frame has 0.7 of the full one's pixels each way
     },
   },
 };

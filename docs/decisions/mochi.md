@@ -171,3 +171,22 @@ show playing while you are near, the serving stand's reader and plate, the throw
   the rabbit until it arrives; the stage is in the eave's shade by day, so the white rabbits read lavender there.
 
 ### Numbers after the rework (dev build, 1280x720, at the order stand)
+- the show: 5 draw calls, 9,756 triangles (three rabbits 8,448; dough, steam, shadows, the two mallets); quiet, the
+  same meshes are drawn (the rabbits are behind the counter), so the main pass is 151 calls either way (153 before)
+- the mochi 7,388 triangles while it is on the plate or in your hand; the three on the tray 5,196 in one mesh (the
+  old two were 1,120: the seeds and speckle are shader now, the form is what costs); the house and stage 2,544, static
+- textures: one more canvas (your card, 320 x 200, made at the first order) and the order sign (128 x 128, in the
+  town's atlas; its pages are unchanged, 4096x4096 + 4096x1520); renderer textures 168
+- heap 303-318 MB after a full order in the dev build; frame 4.3-6.2 ms quiet or with the show on (headless, the
+  machine shared with other runs: 8-11 ms when it was busy)
+- building the three eating stages (the clipping) happens once, at the first order's key press
+- download: 5.08 MB in all after merging main (budget 5.25), 1.67 MB before the first click (5.07 on this branch before the merge; 5.06 / 1.65 before the rework)
+- checks, after merging main (Han's drift, Hachi's hops, the z-fighting sweep): _mochi all pass (quiet on the ring;
+  one order start to end with the card in view, the show once and only after paying, Hachi sat, fed in view and
+  sneezing, three bites, the ring back; cues against the file; pause; local); _konbini 9; _play 20; _guide 14;
+  _audio 22, all passed; build
+- **Z-fighting** (the sweep's two poses of this house): the corner posts' outer faces lay in the flank walls' planes
+  and the back posts' in the back wall's; they stand 2.5 cm and 2 cm proud now.  `carpark-paint` 40 -> 0 solid
+  flickering pixels (its allowance removed), `town-main-west` 87 -> 18 (what is left there is two far houses' roofs,
+  not this building; allowance 100 -> 30).
+

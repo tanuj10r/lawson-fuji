@@ -106,10 +106,11 @@ export function buildShopfront(ctx, { cx, fz }) {
     for (let i = 0; i < 7; i++) bx('wood', 0.04, h, 0.032, x + s * 0.045, y, z - w / 2 + (w * (i + 0.5)) / 7);
   }
   // posts and beams: the frame a machiya shows
-  for (const x of [-hw + 0.08, -hw + BAY, hw - BAY, hw - 0.08]) bx('wood', 0.16, WALL, 0.16, x, wy, zf + 0.03);
+  // (the corner posts stand 2.5 cm proud of the flank and the back wall: no face of theirs lies in a wall's plane)
+  for (const x of [-hw + 0.055, -hw + BAY, hw - BAY, hw - 0.055]) bx('wood', 0.16, WALL, 0.16, x, wy, zf + 0.03);
   bx('wood', W + 0.1, 0.2, 0.2, 0, Y0 + WALL - 0.1, zf + 0.03);
   bx('wood', W - 2 * BAY, 0.3, 0.16, 0, Y0 + 2.42, zf + 0.02);          // the lintel the noren hangs under
-  for (const s of [-1, 1]) bx('wood', 0.12, WALL, 0.12, s * (hw - 0.04), wy, zb + 0.06);
+  for (const s of [-1, 1]) bx('wood', 0.12, WALL, 0.12, s * (hw - 0.04), wy, zb + 0.04);
 
   /* the lattice window (the car park's side: +x): glass that glows after dark, bars before it */
   {

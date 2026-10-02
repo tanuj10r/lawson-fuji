@@ -42,17 +42,22 @@ export function buildLine(ctx, { kit }) {
       { x0: TOWN.station.platforms.x1 + 6 * 0.42, x1: TOWN.station.platforms.x1 + 6 * 0.42 + 2.6 },
     ],
   });
+  /*@mini globalThis.__sys?.('line-track'); @*//*@@*/
   const crossing = buildCrossing(ctx, { x: R.crossX, kit });
+  /*@mini globalThis.__sys?.('line-crossing'); @*//*@@*/
   // its bells are a sound experience (Tan, 2026-09-28): a speaker on the map
   ctx.experiences?.add({ kind: 'sound', id: 'crossing', name: 'Level crossing bells', jp: '踏切', x: R.crossX, z: LINE_Z });
   // the fleet: a slot per track, showing whichever of the three types its run needs (config TOWN.rail.trains)
   const fleet = makeFleet(ctx, { slots: 2 });
   fleet.prime(R.trains ?? ['box']);       // built at load, hidden until their run: no hitch when one first appears
+  /*@mini globalThis.__sys?.('line-trains'); @*//*@@*/
   const sets = fleet.slots;
   const listeners = [];
   const service = makeService({ sets, crossing, onEvent: (name, run) => listeners.forEach((f) => f(name, run)) });
   const station = buildStation(ctx, { kit, service, sets });
+  /*@mini globalThis.__sys?.('line-station'); @*//*@@*/
   buildBeyond(ctx, kit);
+  /*@mini globalThis.__sys?.('line-beyond'); @*//*@@*/
   lineCherries(ctx);
   // Hachi's own cherry, in his garden's corner (last in the list: the town's cherries keep their order, and the
   // famous views their petals and shadows)

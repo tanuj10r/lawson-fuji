@@ -122,7 +122,7 @@ export function createShell({ canvas, camera, world, held = () => false, famous 
    * drawn as for a window MAP_ZOOM times the phone's, shown at that size, and panned with a finger (m.html
    * .fullmap scrolls); a tap closes it. */
   const fullmap = document.querySelector('.fullmap');
-  const MAP_ZOOM = 1.6;
+  const MAP_ZOOM = 1.6, MAP_PAD = 14;
   let mapAt = 0;
   function drawMap() {
     const keep = ['innerWidth', 'innerHeight'].map((k) => [k, Object.getOwnPropertyDescriptor(window, k), window[k]]);
@@ -132,7 +132,14 @@ export function createShell({ canvas, camera, world, held = () => false, famous 
     } finally {
       for (const [k, d] of keep) { if (d) Object.defineProperty(window, k, d); else delete window[k]; }
     }
-    if (fullmap) { fullmap.scrollLeft = (fullmap.scrollWidth - fullmap.clientWidth) / 2; fullmap.scrollTop = (fullmap.scrollHeight - fullmap.clientHeight) / 2; }
+    /* it opens on "you are here": the sheet covers the world's bounds and MAP_PAD m round them (ui/mapArt.js PAD),
+     * north up, so where you stand on it is a fraction of its width and height */
+    const cv = fullmap?.querySelector('canvas'), B = world.bounds;
+    if (cv && B) {
+      const fx = (player.pos.x - B.x0 + MAP_PAD) / (B.x1 - B.x0 + 2 * MAP_PAD), fz = (player.pos.z - B.z0 + MAP_PAD) / (B.z1 - B.z0 + 2 * MAP_PAD);
+      fullmap.scrollLeft = Math.max(0, Math.min(fullmap.scrollWidth - fullmap.clientWidth, cv.offsetLeft + fx * cv.offsetWidth - fullmap.clientWidth / 2));
+      fullmap.scrollTop = Math.max(0, Math.min(fullmap.scrollHeight - fullmap.clientHeight, cv.offsetTop + fz * cv.offsetHeight - fullmap.clientHeight / 2));
+    }
   }
   function toggleMap(open = !minimap.fullOpen) {
     if (open === minimap.fullOpen) return;

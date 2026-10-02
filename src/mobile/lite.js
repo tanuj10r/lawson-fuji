@@ -581,8 +581,14 @@ export function liteFuji(mesh) {
  * draw each, spread town-wide, so they are shown when their nearest
  * instance is within reach) and merge.js's detail cells.
  */
-export function makeCuller(scene) {
+export function makeCuller(scene, world, renderer) {
   const list = [];
+  /* BUDGET: the water's mirrors (land/mirror.js: the pond's, the river's, the paddies') each hold a target of
+   * their own (half-float colour and a depth buffer: 4-7 MB) from the first time they are drawn.  A mirror shows
+   * only while you stand by its water: away from it the target is given back, and three makes it again when the
+   * mirror is next drawn. */
+  const mirrors = [];
+  scene.traverse((o) => { if (o.isMesh && typeof o.getRenderTarget === 'function') mirrors.push(o); });
   const sphere = new THREE.Sphere(), box = new THREE.Box3();
   scene.updateMatrixWorld(true);
   scene.traverse((o) => {
@@ -739,6 +745,11 @@ export function makeCuller(scene) {
           e.gone = false; out--;
           for (const t of e.tex) t.__in++;          // (three uploads it when it is drawn)
         }
+      }
+      if (streamNow && renderer) for (const m of mirrors) {
+        if (m.visible) continue;
+        const rt = m.getRenderTarget();
+        if (renderer.properties.get(rt).__webglFramebuffer) rt.dispose();
       }
       if (streamNow) for (const L of lod) {
         let d = Infinity;

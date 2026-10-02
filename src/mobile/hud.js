@@ -126,7 +126,7 @@ const CSS = `
   .mh-pause .col + .col { border-left: 1.5px solid #efe5ea; background: linear-gradient(180deg, #fffaf5, var(--paper)); }
   .mh-pause .badge { align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: #efe5ea; color: var(--ink);
     font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; }
-  .mh-pause h2 { margin: 7px 0 0; font-family: var(--serif); font-size: 23px; line-height: 1.1; font-weight: 600; color: #2a2140; }
+  .mh-pause h2 { margin: 7px 0 0; font-family: var(--title); font-size: 22px; line-height: 1.1; font-weight: 700; letter-spacing: -.01em; color: #2a2140; }
   .mh-pause .btn { margin-top: 14px; }
   .mh-pause .btn.soft { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 8px; }
   .mh-pause .btn.soft svg { width: 16px; height: 16px; }

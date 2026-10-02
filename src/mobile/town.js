@@ -156,6 +156,7 @@ export function buildTown(scene, { cell = 128, bulkCell = 128, detailCell = 0, s
   root.name = 'town';
   scene.add(root);
   const ctx = makeCtx(scene, root);
+  if (import.meta.env?.DEV) globalThis.__sysRoot = root;   // dev (scripts/_budget.mjs): what each part of the build made, and how long it took
   // the shared painted weather every worn surface reads (M2e, kit/paint.js)
   /* POCKET: the painted weather at MOBILE.wear texels a side (the desktop's 2048): soft grime and
    * streaks, low in detail, seen magnified on every wall */
@@ -178,6 +179,7 @@ export function buildTown(scene, { cell = 128, bulkCell = 128, detailCell = 0, s
   ctx.platforms.push(...lawson.platforms);
   for (const s of lawson.surfaces) ctx.surface(s);
   shrink?.(lawson.root, true);            // LITE: the konbini's pages, now
+  globalThis.__sys?.('konbini');
   stage('built: konbini');
 
   /* --- the town (M2e.3): built in its own tested frame, turned half round
@@ -206,8 +208,10 @@ export function buildTown(scene, { cell = 128, bulkCell = 128, detailCell = 0, s
   for (const sx of [-1, 1]) ctx.collide(Math.min(sx * 97.2, sx * 123), 6.6, Math.max(sx * 97.2, sx * 123), 7.0, 3);
   T.sakura = [];                 // the old town's trees join the town's batch
   buildOldTown(T);
+  globalThis.__sys?.('frame');
   T.night = makeNight(T);        // before the land, so its lantern can light the ground
   buildLand(T);                  // paddies, the river, the Deer Park gate (town pass)
+  globalThis.__sys?.('land');
   stage('built: land');
   // the Lawson's lot is worn with the town's own decals (oil, scuffs,
   // patches), placed in world terms and turned into the town's frame
@@ -218,6 +222,7 @@ export function buildTown(scene, { cell = 128, bulkCell = 128, detailCell = 0, s
     },
   });
   const core = buildCore(T);
+  globalThis.__sys?.('core-rest');
   shrink?.(root, false);                  // LITE: the town's pages, before they are packed into the atlas
   stage('built: town core');
   // wave 3: koi, ducks, herons, pigeons... (world/animals/), and the guide shiba, which
@@ -229,6 +234,7 @@ export function buildTown(scene, { cell = 128, bulkCell = 128, detailCell = 0, s
    * that run in its own frame). */
   // the two cherries framing the famous view: the town's painted tree, in
   // the world's frame (its own small batch; lit at night like the rest)
+  globalThis.__sys?.('animals');
   const frameSakura = buildTownSakura({ ...ctx, night: T.night }, frame.sakura, { classic: true });   // the famous views' own trees keep their look
   const L = core.line;
   const line = Object.create(L, {
@@ -246,6 +252,7 @@ export function buildTown(scene, { cell = 128, bulkCell = 128, detailCell = 0, s
   });
 
 
+  globalThis.__sys?.('frame-sakura');
   const camPos = new THREE.Vector3(0, 0, 16.5);
   // no petals fall inside the store (M3d): its footprint under the roof
   const indoors = [{ x0: -LAWSON.width / 2 - 0.1, x1: LAWSON.width / 2 + LAWSON.wingWidth, z0: -LAWSON.depth - 0.1, z1: 0.05, top: LAWSON.height }];
@@ -267,6 +274,7 @@ export function buildTown(scene, { cell = 128, bulkCell = 128, detailCell = 0, s
    * Every other flat piece of street-level ground (the Lawson's lot, walks)
    * is cut back to the sinks' edges too, or it caps the channel from above
    * (sinkcut.js; quality pass). --- */
+  globalThis.__sys?.('petals');
   cutSinks(root, ctx.sinks);
   const groundMat = cel({ color: WORLD.groundColor, bands: 3, tint: 0x7a7396, cache: false });
   groundMat.userData.live = true;
@@ -310,9 +318,11 @@ export function buildTown(scene, { cell = 128, bulkCell = 128, detailCell = 0, s
     else if (o.material.isMeshToonMaterial) o.receiveShadow = true;
   });
   shrink?.(root, false);
+  globalThis.__sys?.('ground');
   if (import.meta.env?.DEV && window.__preMerge) window.__preMerge(root, core, T);   // dev: the cost of each part, before batching
   stage('batching');
   const batching = mergeMini(root, { cell, bulkCell, detailCell });   // MINI: in passes by what a mesh is painted with (above)
+  globalThis.__sys?.('merge');
   stage('batched');
 
   /* --- Mt. Fuji, riding with the camera like the sky --- */

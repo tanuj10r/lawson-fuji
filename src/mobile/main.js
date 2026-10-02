@@ -4,6 +4,7 @@ import { PAL } from '../core/palette.js';
 import { Pipeline } from '../core/post.js';
 import { buildSky } from '../core/sky.js';
 import { setOutlineResolution } from '../core/outline.js';
+import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { WALK_SIGNALS } from '../world/signals.js';
 import { buildTown } from './town.js';                      // WORLD: the mini town (the desktop's generator on plan.js's plan)
 import { liteConfig, liteScene, liteFuji, makeCuller, census, shrinkCanvases } from './lite.js';
@@ -65,7 +66,7 @@ diag.stage(`tier ${tier}`);
 /* Our own context, so every GPU allocation is counted (diag.js). */
 let renderer, meter = null, shell = null;
 try {
-  const gl = canvas.getContext('webgl2', { antialias: false, powerPreference: 'high-performance', stencil: false, depth: true, alpha: false, premultipliedAlpha: true, preserveDrawingBuffer: false });
+  const gl = canvas.getContext('webgl2', { antialias: false, powerPreference: 'high-performance', stencil: false, depth: false, alpha: false, premultipliedAlpha: true, preserveDrawingBuffer: false });
   if (!gl) throw new Error('no webgl2 context');
   meter = gpuMeter(gl);
   renderer = new THREE.WebGLRenderer({ canvas, context: gl, antialias: false, stencil: false });
@@ -81,7 +82,7 @@ renderer.shadowMap.enabled = !!MOBILE.shadow;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.shadowMap.autoUpdate = false;
 renderer.setClearColor(new THREE.Color(PAL.fog), 1);
-diag.source({ renderer, meter, canvas, extra: () => `tier ${tier}  scale ${renderScale?.toFixed?.(2)}  rt ${leanTargets ? '32' : '64'}  ${world ? `streamed out ${culler?.out ?? 0}` : ''}` });
+diag.source({ renderer, meter, canvas, extra: () => `tier ${tier}  scale ${renderScale?.toFixed?.(2)}  rt ${leanTargets ? '32' : '64'}${onePass ? ' x1' : ''}  ${world ? `streamed out ${culler?.out ?? 0}` : ''}` });
 canvas.addEventListener('webglcontextlost', (e) => {
   e.preventDefault();
   contextLost = true;
@@ -242,6 +243,39 @@ if (params.get('rt') !== 'half' && renderer.getContext().getExtension('EXT_color
     pipeline.ink.mat.uniforms.tDepth.value = rtScene.depthTexture;
     leanTargets = true;
   } else { rtScene.depthTexture.dispose(); rtScene.dispose(); rtA.dispose(); }
+}
+/* BUDGET: the ink and the grade in one pass, straight to the screen.  The grade reads the inked frame only at its
+ * own pixel, so grade(ink(pixel)) in one shader is the same picture; the target between them (a whole frame: 12 MB
+ * at 3 Mpx) and a full-screen pass go.  The two shaders are core/post.js's own text, joined here (the uniforms are
+ * the same objects, so the looks and the resize set them as before); if the text ever stops matching, the two
+ * passes stay.  ?passes=2 keeps them. */
+let onePass = false;
+if (params.get('passes') !== '2') {
+  const ink = pipeline.ink.mat, grade = pipeline.grade.mat;
+  let n = 0;
+  const rep = (src, re, to) => src.replace(re, (...m) => { n++; return typeof to === 'function' ? to(...m) : to; });
+  let f = rep(ink.fragmentShader, /void main\(\)/, 'vec3 inked()');
+  f = rep(f, /gl_FragColor = vec4\( col, 1\.0 \);\s*return;/, 'return col;');
+  f = rep(f, /gl_FragColor = vec4\( (mix\( col, line, clamp\( edge, 0\.0, 1\.0 \) \)), 1\.0 \);/, (_, e) => `return ${e};`);
+  let g = rep(grade.fragmentShader, /uniform sampler2D tDiffuse;/, '');
+  g = rep(g, /varying vec2 vUv;/, '');
+  g = rep(g, /texture2D\( tDiffuse, vUv \)\.rgb/, 'inked()');
+  if (n === 6) {
+    const uniforms = { ...grade.uniforms, ...ink.uniforms };       // (tDiffuse: the ink's, the scene)
+    const mat = new THREE.ShaderMaterial({ uniforms, vertexShader: ink.vertexShader, fragmentShader: f + g, depthTest: false, depthWrite: false });
+    const quad = new FullScreenQuad(mat);
+    pipeline.render = function () {
+      const r = this.renderer;
+      r.setRenderTarget(this.rtScene);
+      r.clear();
+      r.render(this.scene, this.camera);
+      uniforms.tDiffuse.value = this.rtScene.texture;
+      r.setRenderTarget(null);
+      quad.render(r);
+    };
+    pipeline.rtA.dispose();                // (never drawn into again: it holds nothing)
+    onePass = true;
+  }
 }
 /* WORLD: the phone's own pixels (its DPR, up to render.maxDpr): the frame is drawn 1:1 onto the screen, and steps
  * down only while frames run under render.fpsLow (adapt, below). */
@@ -574,7 +608,7 @@ function frame(now = 0) {
 // WORLD: the town made light (lite.js): merged, packed, its far parts ready to leave the GPU and come back
 diag.stage('lite');
 const lite = liteScene(scene, renderer, world);
-culler = makeCuller(scene, world);
+culler = makeCuller(scene, world, renderer);
 world.fuji.ready?.then((m) => { lite.fuji = liteFuji(m); });
 if (world.reflectRect) {
   tagReflections(scene, world.root, world.reflectRect);

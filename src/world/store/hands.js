@@ -318,7 +318,7 @@ export const HOLDS = {
   can: ['round', { r: 0.033 }],
   onigiri: ['clasp', { t: 0.036, edge: [-0.025, 0], roll: 1.07, x: 0.026 }],             // over its left slope
   wafer: ['clasp', { t: 0.028, edge: [0.022, 0.034], roll: 0.12 }],            // over its top edge, toward its right end
-  sando: ['clasp', { t: 0.014, edge: [0.012, 0.06], roll: 0.2, face: 0.03, back: 0.0375 }],   // a wedge: over its ridge from behind, the thumb on its slope
+  sando: ['clasp', { t: 0.014, edge: [0.012, 0.06], roll: 0.2, x: 0.024, face: 0.03, back: 0.0375 }],   // a wedge: over its ridge from behind, the thumb on its slope
   card: ['pinch', { t: 0.0016, hold: [0.024, -0.01], roll: 0.65 }],
   'eat:onigiri': ['clasp', { t: 0.039, edge: [-0.027, -0.012], roll: 1.07, x: 0.026 }],     // as it was carried, a little lower: the top is yours to bite
   'eat:sando': ['clasp', { t: 0.03, edge: [-0.03, -0.02], roll: 1.25, x: 0.02 }],

@@ -14,7 +14,7 @@ import { FUJI } from '../config.js';
  * widens and raises the mountain k times without bringing it any closer, so
  * Fuji keeps its famous-view size on screen wherever the player walks.
  *
- * Shading is Sakura Crossing's anime idiom done by hand: two flat light
+ * Shading is src/core's anime idiom done by hand: two flat light
  * bands (no outline), a posterised snow line that runs further down the
  * gullies, alpenglow on the snow at golden and blue hour, and haze that
  * swallows the base.

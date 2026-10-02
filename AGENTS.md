@@ -7,14 +7,15 @@ signals, ドンペン堂, station, level crossing, shrine), Osaka and Deer Park
 teasers. Full design: SPEC.md; read only the sections the work needs.
 
 ## Base
-- Fork of Sakura Crossing (MIT). Keep LICENSE and credit it in the game.
+- Built on Sakura Crossing (MIT) by Kenton Wang. Keep LICENSE and the
+  credit in the game.
 - Reuse src/core (toon, post, outline, sky, palette, textures, player, hud)
   for all rendering. Its technique wins over SPEC.md; SPEC.md and reference/
   win on colour, mood and anything specific to the Lawson and Fuji.
 - The world is flat. Never reintroduce the planet or spherical placement.
-- Sakura Crossing's world modules are a parts library. Place nothing from
-  them unless the current milestone in SPEC.md says so, and always in our
-  layout with our own signs. The first thing players see is ours.
+- src/world's base modules (street, buildings, trees, props, railway) are
+  parts: place one only when the current milestone in SPEC.md says so, in
+  our layout with our own signs.
 
 ## Hard rules
 - Desktop only. No touch or mobile fallbacks. Never lower visual quality
@@ -40,9 +41,8 @@ teasers. Full design: SPEC.md; read only the sections the work needs.
 - No bloom by default.
 - Sounds are local: a place's sounds and cues are heard only near that
   place (config.js SOUND), never across town. SPEC section 9.
-- Repurpose, don't copy: reused Sakura Crossing buildings get our own
-  names, signage and placement. No Sakura Crossing place or shop names
-  in the game.
+- All place and shop names are our own (src/data/town.js; npm run
+  check:names).
 - UI text in src/data/strings.js, products in src/data/catalog.js,
   tunables in src/config.js.
 

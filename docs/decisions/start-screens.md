@@ -26,9 +26,8 @@ on the cards marked `lang="ja"`. scripts/_cards.mjs checks it.
   the key art), package.json's description and the README heading. It is
   not written in the world: the town has no reason to know its own website.
 - **The store stays NIPPON.** Untouched.
-- **Credit.** AGENTS.md asks for Sakura Crossing to be credited in the game;
-  there was no in-game credit. One small line under the URL: "Built on
-  Sakura Crossing (MIT)". A credit, not a place name.
+- **Credit.** AGENTS.md asks for the licence credit in the game; there was
+  none. One small line under the URL: "Built on Sakura Crossing (MIT)".
 - Left for the owner of world/lawson.js: its experience is still named
   "The Nippon Fuji view" / ニッポン富士 (shown where experiences are listed).
 

@@ -21,7 +21,7 @@ const Z1_DEFAULT = 34;
 const HALF_DEFAULT = 9.5;
 
 /**
- * @param opts.count   petals in the air (default Sakura Crossing's 980)
+ * @param opts.count   petals in the air (default 980)
  * @param opts.half    half-size of the square field (default: the street band)
  * @param opts.follow  () => {x, z}: the field is centred there every frame
  *                     and petals wrap round it (here: the player), on

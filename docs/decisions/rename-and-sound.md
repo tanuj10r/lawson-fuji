@@ -31,8 +31,8 @@ the train, and the station master goes.
   そば処 ふじみ), the pole-line tag 富士見幹. Also kept: the river 桜川, the
   ticket office さくらの窓口 (a play on みどりの窓口), さくら湯, さくら餅,
   さくらおにぎり. Each is one string in `data/town.js` if Tan wants them too.
-- **The fork credit stays**: LICENSE, README's credits, SPEC, AGENTS, code
-  comments on what came from Sakura Crossing. There is no in-game credits
+- **The licence credit stays**: LICENSE, README's credits, SPEC, AGENTS.
+  There is no in-game credits
   screen yet (SPEC M7), so nothing to change there.
 - **Audio.** The station's recording (station-ambience) is Tan's file; I
   can't hear what station it names. If it says a real station's name that

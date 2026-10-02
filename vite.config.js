@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
-import { STRINGS } from './src/data/strings.js';
+import { STRINGS, MOBILE_STRINGS } from './src/data/strings.js';
 import { TOWN_NAME } from './src/data/town.js';
 import { makerChip, makerRow, MAKER_CSS } from './src/ui/maker.js';
+import { MOBILE } from './src/config.js';
 
 /**
  * The cards index.html paints before any game code runs (loading, phone,
@@ -12,7 +13,8 @@ import { makerChip, makerRow, MAKER_CSS } from './src/ui/maker.js';
  * An unknown key fails the build rather than ship a placeholder.
  */
 function htmlStrings() {
-  const table = { ...STRINGS, town: TOWN_NAME };
+  // `%S:mobile.route%`: the phone switch (config.js MOBILE.route), 'on' or 'off', read by index.html's head script
+  const table = { ...STRINGS, town: TOWN_NAME, m: MOBILE_STRINGS, mobile: { route: MOBILE.route ? 'on' : 'off' } };
   const esc = (v) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   return {
     name: 'html-strings',
@@ -80,7 +82,23 @@ const SHOT_DIR = path.resolve(process.cwd(), '.shots');
 const LOOKDEV_DIR = path.resolve(process.cwd(), 'reference/lookdev');
 const SCREENSHOT_DIR = path.resolve(process.cwd(), 'screenshots');
 
-export default defineConfig({
+/* The phone build (src/mobile/, m.html) is a second, separate pass
+ * (`vite build --mode mobile`; npm run build runs both), so the desktop
+ * bundle is built exactly as before: its chunks never split to share code
+ * with the phone page.  The page is dist/m.html beside index.html (so
+ * ./audio/ and the ./keyart-*.webp are the same files), its code in dist/m/. */
+const mobileBuild = {
+  outDir: 'dist',
+  emptyOutDir: false,
+  copyPublicDir: false,
+  assetsDir: 'm/assets',
+  target: 'es2022',
+  assetsInlineLimit: 0,
+  chunkSizeWarningLimit: 1200,
+  rollupOptions: { input: { m: path.resolve(process.cwd(), 'm.html') } },
+};
+
+export default defineConfig(({ mode }) => ({
   /* Relative asset URLs, so a build runs from any subdirectory -- opened off
    * the filesystem, served from a GitHub Pages project path, anywhere. */
   base: './',
@@ -94,11 +112,11 @@ export default defineConfig({
     port: 5179,
     host: '127.0.0.1',
   },
-  build: {
+  build: mode === 'mobile' ? mobileBuild : {
     outDir: 'dist',
     target: 'es2022',       // top-level await: the sign fonts load before the town draws (desktop browsers only)
     assetsInlineLimit: 0,
     // three.js is one big chunk on purpose, so the size warning is just noise
     chunkSizeWarningLimit: 1200,
   },
-});
+}));

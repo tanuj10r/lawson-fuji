@@ -1028,3 +1028,106 @@ export const ANIMALS = {
   pigeons: { plaza: 9, spine: 5, flush: 2.4, flushSpeed: 0.6, shy: 1.3, walkSpeed: 0.2, stepAngle: 0.36, flySpeed: 5, sit: [8, 20], back: 10 },
   egret: { flee: 6, hop: [8, 30], flySpeed: 3.0, cruise: 1.6, beatHz: 2.8, beatAmp: 0.62, walkChance: 0.55, walkSpeed: 0.2, stepAngle: 0.38 },
 };
+
+/* ------------------------------------------------------------------ *
+ * The phone build (src/mobile/, m/index.html; docs/decisions/mobile-lite.md).
+ * The desktop game reads none of this.
+ *
+ *   route   false: phones get the "made for a computer" card (today's
+ *           launch).  true: index.html sends phones and tablets to m/,
+ *           the lite version, instead.  Tan flips it once the lite version
+ *           is approved; nothing else changes.
+ * ------------------------------------------------------------------ */
+export const MOBILE = {
+  route: false,
+  /* The render: internal pixels at most `pixels` (the ink pass wants a
+   * little supersampling, a phone's GPU wants few pixels), `scale` the most
+   * it supersamples; when frames run long it steps down to `minScale`. */
+  /* The pocket edition (Tan, 2026-09-30: the town smaller, what is left at
+   * desktop quality): the phone's own pixels, up to 2x (an iPhone 15 in
+   * landscape: 1704 x 786), stepping down only when frames run long. */
+  render: { pixels: 2.2e6, scale: 2, start: 2, minScale: 1.0, fpsLow: 26, fpsHigh: 45 },
+  maxTexture: 4096,          // the largest painted texture's side on the GPU: the desktop's own sizes
+  storeTexture: 4096,        // ... and in the konbini (konbini.js sizes its labels by what is seen)
+  wear: 1024,                // the painted weather's page (kit/paint.js wearAtlas: 2048 on the desktop; soft grime)
+  shadow: { size: 1536, half: 32, every: 2.0 },   // map size, half-width (m), refresh at most every s when still (desktop 2048 over 40; 4.2 cm a texel here, 3.9 there)
+  /* Draw distance: batches whose bounds lie past `far` m are not drawn; the
+   * fog closes in before it so the edge is never seen. */
+  far: 100,
+  fog: { near: 30, far: 95 },
+  detail: 36,                // small instanced things (clutter, flowers, weeds) only this close
+  cell: 64,                  // static batches per cell (m): small enough to cull and stream by distance
+  detailCell: 32,            // ... and the small props' own cells (drawn within `detail`)
+  dt: 1 / 20,                // the longest step a frame may take (s)
+  look: 0.0052,              // drag to look: radians per CSS pixel
+  stick: { radius: 56, dead: 0.12, run: 0.92 },   // the joystick: px; dead zone and the push that runs (0..1)
+  aimAssist: { reach: 2.8, cone: 0.6 },           // no crosshair hit: the nearest thing within reach (m) and this cone (rad)
+  /* `stream`: batches and textures farther than far + stream (m) give their
+   * GPU copy back, and upload again as you come near (0: never). */
+  stream: 8,
+  /* A painted page farther than `far` m from you (its nearest user) shows a
+   * copy `k` its size, the whole one again within `near`; in the konbini,
+   * every town page (seen through the glass) at most `store` its size
+   * (lite.js makeCuller). */
+  texLod: { min: 256 * 256, near: 36, far: 44, k: 0.25, store: 0.5 },
+  /* The konbini's painted pages (src/mobile/konbini.js levelPage): in the
+   * store, the level of the visit playing; outside within `near` m of its
+   * middle (the door's spot is ~9 m off; `far` the way back out) the near
+   * level, farther (the famous views, ~23 m) the far one.  In the store,
+   * what lies wholly north of `behind` (world z: the glass; the walls hide
+   * the rest) is neither drawn nor kept; its goods are drawn (and kept)
+   * only within `goods` m. */
+  store: { near: 15, far: 18, behind: -0.5, goods: 45 },
+  /* The pocket town (src/mobile/core.js): lots are built only where their
+   * middle lies in `keep` (world rects [x0, z0, x1, z1]): the block round
+   * the konbini, what the famous views see past its corners, the car park's
+   * row and the shops at the zebra and the spine's mouth.  Every other lot
+   * is a kitchen garden behind a block wall.  The places (the shrine,
+   * ドンペン堂, the station, the park, the land) are all built. */
+  pocket: {
+    /* The Pocket Town (docs/pocket-diorama.md, Tan 2026-10-01): on, m.html
+     * plays the purpose-built diorama (src/mobile/pocket/) instead of the
+     * town below (mobile/town.js, kept, off).  ?pocket=0 plays the old one. */
+    on: true,
+    /* One tier: the phone's own pixels (its DPR, up to maxDpr); the scale steps
+     * down by `step` only while the frame rate stays under `fpsLow`, and back up
+     * over `fpsHigh`.  `pixels` caps the frame (an iPhone 15 Pro Max in
+     * landscape at 3x is 3.5 M). */
+    render: { maxDpr: 3, pixels: 3.6e6, minScale: 1.5, step: 0.25, fpsLow: 50, fpsHigh: 57 },
+    fog: { near: 70, far: 260 },             // the diorama is small: the looks' own fog, a little closer
+    shadow: { size: 1536, half: 32, every: 2.0 },   // the old pocket edition's map: 4.2 cm a texel (desktop 2048 over 80 m: 3.9)
+    /* built after the first frame, one a frame, while the start card waits: nothing of them is in the famous view */
+    defer: ['donpen', 'crossing', 'shrine', 'bench'],
+    /* in the konbini, the places its walls hide give their GPU copies back (index.js streamOut) */
+    hidden: ['crossing', 'shrine', 'bench'],
+    /* the old pocket town's lots (mobile/core.js, when `on` is off): */
+    keep: [[-52, -52, 46, 35]],
+    /* ... but for these (lot middles, world [x, z]): the shops and houses of the block behind the
+     * store's corners that neither the famous views nor the zebras show much of (Tan: 3-4 shops
+     * near the konbini and the zebras, no residential filler) */
+    cut: [[-10, -25], [38, -44], [-22, -35], [-10, -37], [-10, -47], [-22, -45], [-40, -38]],
+    // about half the street clutter: these kinds, every other one, beyond keep[2] m of the famous views' spot [x, z]
+    clutter: { kinds: ['bike', 'crate', 'cone', 'gashapon'], keep: [0, 16.5, 40] },
+  },
+  /* The town's sign atlas (mobile/town.js mergePocket): only pages of at
+   * most `max` texels that belong to one region go in, packed per region of
+   * a grid cut at these world z and x lines; the rest keep their own. */
+  atlas: { max: 256 * 256, z: [-35, -90], x: [0] },
+  keepCpu: true,             // keep the CPU copies (needed to stream, and to survive a lost GPU context)
+  /* The light tier: iOS browsers that are not Safari (Chrome, the in-app
+   * ones: a tighter memory budget), the 4 GB iPhones, small Android phones
+   * (main.js picks).  The same textures, so nothing near is blurred: what
+   * goes is the far detail and some pixels (1.5x; the konbini's labels are
+   * sized to it), and the shadow map is smaller.  ?tier=light / ?tier=full
+   * picks one by hand. */
+  tiers: {
+    light: {
+      far: 52, fog: { near: 16, far: 48 }, detail: 20,
+      texLod: { min: 256 * 256, near: 18, far: 24, k: 0.25, store: 0.5 },
+      store: { near: 15, far: 18, behind: -0.5, goods: 34 },
+      shadow: { size: 1024, half: 28, every: 2.5 },
+      render: { pixels: 0.9e6, scale: 1.35, start: 1.35, minScale: 1.0, fpsLow: 26, fpsHigh: 45 },
+      cell: 64, stream: 5, keepCpu: true,
+    },
+  },
+};

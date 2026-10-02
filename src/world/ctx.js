@@ -34,6 +34,23 @@ export function makeCtx(scene, root) {
     return h;
   }
 
+  /* The drawn surface, to the centimetre (Tan, 2026-10-02: Hachi's paws must rest ON what is drawn; a pup 24 cm tall
+   * shows 2 cm of sinking that a walker's eye height never does).  `heightAt` and its platforms stay as they are for
+   * the player; this adds what they leave out:
+   *   `fine` surfaces   (ctx.surface): what is drawn a little over the ground plane and is no step to a person: the
+   *                     asphalt (2 cm), a gutter, a lawn, a gravel pad.  The highest of the platforms and these wins.
+   *   ramps             a platform with `ramp` { axis, a, b, ya, yb } (streetprops.js droppedKerb: for the player a
+   *                     ramp is two flat steps) is the slope itself: ya at a, yb at b along the axis. */
+  const fine = [];
+  function surfaceAt(x, z) {
+    let h = 0, on = null;
+    for (const k of sinks) if (x > k.x0 && x < k.x1 && z > k.z0 && z < k.z1 && k.y < h) h = k.y;
+    for (const p of platforms) if (x > p.x0 && x < p.x1 && z > p.z0 && z < p.z1 && p.top > h) { h = p.top; on = p; }
+    if (on?.ramp) { const r = on.ramp, t = ((r.axis === 'x' ? x : z) - r.a) / (r.b - r.a); h = r.ya + (r.yb - r.ya) * Math.max(0, Math.min(1, t)); }
+    for (const p of fine) if (p.top > h && x > p.x0 && x < p.x1 && z > p.z0 && z < p.z1) h = p.top;
+    return h;
+  }
+
   /* A context's frame: world = (s·x + dx, s·z + dz), s = ±1.  s = -1 is a
    * half-turn about y (M2e.3: the town is built turned, north of the road). */
   function build(group, s, dx, dz) {
@@ -55,8 +72,15 @@ export function makeCtx(scene, root) {
       },
       platform: (p) => {
         const a = wx(p.x0), b = wx(p.x1), c = wz(p.z0), d = wz(p.z1);
-        platforms.push({ ...p, x0: Math.min(a, b), x1: Math.max(a, b), z0: Math.min(c, d), z1: Math.max(c, d) });
+        const ramp = p.ramp ? { ramp: { ...p.ramp, a: (p.ramp.axis === 'x' ? wx : wz)(p.ramp.a), b: (p.ramp.axis === 'x' ? wx : wz)(p.ramp.b) } } : null;
+        platforms.push({ ...p, ...ramp, x0: Math.min(a, b), x1: Math.max(a, b), z0: Math.min(c, d), z1: Math.max(c, d) });
       },
+      /** A drawn surface too slight to be a step for you (asphalt, a lawn): { x0, z0, x1, z1, top }; see surfaceAt. */
+      surface: (p) => {
+        const a = wx(p.x0), b = wx(p.x1), c = wz(p.z0), d = wz(p.z1);
+        fine.push({ x0: Math.min(a, b), x1: Math.max(a, b), z0: Math.min(c, d), z1: Math.max(c, d), top: p.top });
+      },
+      surfaceAt: (x, z) => surfaceAt(wx(x), wz(z)),
       cut: () => {},
       /** Lower the base ground to `y` (< 0) over a rect; town.js leaves the
        * ground plane open there, so the builder must floor and wall it. */

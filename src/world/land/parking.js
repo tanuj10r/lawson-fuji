@@ -64,6 +64,7 @@ export function buildParking(ctx, parts) {
   const lot = new THREE.Mesh(g, asphalt);
   lot.receiveShadow = true;
   ctx.add(lot);
+  ctx.surface?.({ x0, z0, x1, z1, top: AY });      // (2 cm over the ground: Hachi's paws rest on it, ctx.js surfaceAt)
   // the way out, paved over the verge to the bridge road's asphalt
   const laneEdge = TOWN.land.track.x - ROADS.lane.asphalt / 2;
   const mouth = new THREE.Mesh(sheetGeo(x1 - 0.1, laneEdge + 0.05, -2.6, 2.6, AY - 0.004, ASPHALT_TILE), asphalt);

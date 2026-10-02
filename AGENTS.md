@@ -37,7 +37,7 @@ teasers. Full design: SPEC.md; read only the sections the work needs.
 - UI instructions (prompts, toasts, keys, choices) are English only;
   Japanese only in the world and beside product and place names.
 - No runtime requests to other domains (except Tan's DataFast analytics,
-  desktop only). Fuji elevation is baked by scripts/fetch-fuji-dem.mjs.
+  live site only). Fuji elevation is baked by scripts/fetch-fuji-dem.mjs.
 - No bloom by default.
 - Sounds are local: a place's sounds and cues are heard only near that
   place (config.js SOUND), never across town. SPEC section 9.

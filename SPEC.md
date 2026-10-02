@@ -589,7 +589,7 @@ postcard, the selfie postcard, sound labels, Hachi's reactions and his life
 after the tour, the tour's rework (the crossing, his home, the shrine's
 fox), the konbini built only for what is seen, ぺったん堂, Han's real
 drift, the station plaza's bus stop, and share images from the key art.
-**Analytics:** DataFast (datafa.st), on the live desktop site only: page
+**Analytics:** DataFast (datafa.st), on the live site only (desktop and phone): page
 views and named goals (the postcard, the selfie, the chip's links), never a
 photo. It is the one script from another domain (AGENTS.md).
 **In progress:** a mobile version, as its own build; until it ships a phone

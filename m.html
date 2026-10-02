@@ -283,6 +283,16 @@
     if (!gl) d.classList.add('gate-nogl');
     else { var x = gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); }
     if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) d.classList.add('is-ios');
+    /* DataFast analytics (Tan, 2026-10-02: phones are counted now that the phone build is live): the live site
+     * only, as on the desktop page; staging and local testing are never counted. */
+    if (/(^|\.)takemebacktojapan\.com$/.test(location.hostname)) {
+      var a = document.createElement('script');
+      a.defer = true;
+      a.src = 'https://datafa.st/js/script.js';
+      a.setAttribute('data-website-id', 'dfid_qgbgPHxfjf2AS9THqrjNe');
+      a.setAttribute('data-domain', 'takemebacktojapan.com');
+      document.head.appendChild(a);
+    }
   })();
 </script>
 </head>

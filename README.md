@@ -77,7 +77,7 @@ Also on the site: [credits.html](public/credits.html), linked from the start car
 - three.js (MIT); built with Vite (MIT)
 
 ## Analytics
-The live desktop site loads DataFast (datafa.st): page views and a few named
+The live site (desktop and phone) loads DataFast (datafa.st): page views and a few named
 goals (postcard shown, selfie taken, a link clicked). Nothing else leaves the
 page, and a selfie never does. A local build loads no analytics.
 

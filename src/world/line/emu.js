@@ -389,7 +389,7 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
     // (below the window, past the last door's pocket: nothing sits where a leaf slides)
     if (!art) for (const e of [-1, 1]) push('rubber', box(0.014, TOP - FLOOR + 0.15, 0.012), trs(e * (CAR_L / 2 - 0.2), (FLOOR - 0.15 + TOP) / 2, zSeam));
     // (the painted car: at the top of the band, above the end panel's figure)
-    push('carNo', new THREE.PlaneGeometry(0.62, 0.12), trs(cabEnd ? -cabEnd * NUMBER_X : NUMBER_X, art ? 1.95 : 1.58, zOut + sz * 0.004, 0, face(sz), 0));
+    push('carNo', new THREE.PlaneGeometry(0.62, 0.12), trs(cabEnd ? -cabEnd * NUMBER_X : NUMBER_X, art ? 1.95 : 1.58, zOut + sz * 0.008, 0, face(sz), 0));      // (2 mm proud of the band: on the JR car it sat 2 mm behind it, unseen)
     // the side destination LED, over the window by door 2
     dests.push({ geometry: new THREE.PlaneGeometry(0.66, 0.165), matrix: trs(xOff - 4.7, 3.44, zOut + sz * 0.006, 0, face(sz), 0) });
     push('rubber', box(0.74, 0.22, 0.02), trs(-4.7, 3.44, zOut));

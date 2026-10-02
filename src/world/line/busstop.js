@@ -133,8 +133,9 @@ function shelter() {
   // the bench along the back, the route map and a poster over it
   const bench = makeBench({ x: -hx + 0.36, y: 0, z: 0.25, ry: Math.PI / 2, len: 2.7, wood: 0xb08a62 });
   g.add(bench);
-  picture(g, busRouteTex(), 1.2, 0.75, -hx + 0.04, 1.5, -hz / 2 - 0.22, Math.PI / 2);
-  picture(g, posterTex(1), 0.5, 0.7, -hx + 0.04, 1.5, -0.42, Math.PI / 2);
+  // (side by side with a gap: their edges overlapped by 2 cm in one plane and flickered, scripts/_zfight.mjs)
+  picture(g, busRouteTex(), 1.2, 0.75, -hx + 0.04, 1.5, -hz / 2 - 0.32, Math.PI / 2);
+  picture(g, posterTex(1), 0.5, 0.7, -hx + 0.04, 1.5, -0.36, Math.PI / 2);
   // のりば, hung under the front plate (one board, read from the plaza)
   picture(g, busSignTex(), 2.2, 0.275, hx + 0.02, BEAM - 0.17, 0, Math.PI / 2);
   // a lamp under the ridge: an enamel shade, a bulb that lights with the street's
@@ -220,12 +221,12 @@ export function buildBusStop(ctx, g, kit, { P, y, kobanZ, kobanX, pathX }) {
   const tz = y, Z = { x: 0, z: 1 }, X = { x: 1, z: 0 };      // a decal's height is the surface's own (kit/decals.js adds its hair)
   const bx0 = sx + hx + 1.5, bx1 = bx0 + 2.8, bz0 = sz - hz - 2.6, bz1 = bz0 + 8.0;
   const bmx = (bx0 + bx1) / 2, bmz = (bz0 + bz1) / 2;
-  for (const x of [bx0, bx1]) kit.decals.add('yellow', x, bmz, 0.15, bz1 - bz0, Z, tz, LAYER.paint);
+  for (const x of [bx0, bx1]) kit.decals.add('yellow', x, bmz, 0.15, bz1 - bz0 - 0.15, Z, tz, LAYER.paint);     // (between the end lines: no paint lies twice)
   for (const z of [bz0, bz1]) kit.decals.add('yellow', bmx, z, bx1 - bx0 + 0.15, 0.15, Z, tz, LAYER.paint);
   kit.decals.add('bus', bmx, bmz, 1.8, 2.6, Z, tz, LAYER.symbol);
   kit.decals.add('white', bx0 - 0.45, bmz, 0.12, bz1 - bz0, Z, tz, LAYER.paint);
   const tx = bx0 - 0.9, tzN = bz0 - 0.6;
-  for (let x = tx + 0.3; x < pathX - 0.1; x += 0.3) kit.decals.add('tactileLine', x, tzN, 0.3, 0.3, X, tz, LAYER.paint);
-  for (let z = tzN; z < sz - 0.5; z += 0.3) kit.decals.add('tactileLine', tx, z, 0.3, 0.3, Z, tz, LAYER.paint);
+  for (let x = tx + 0.3; x < pathX - 0.3; x += 0.3) kit.decals.add('tactileLine', x, tzN, 0.3, 0.3, X, tz, LAYER.paint);
+  for (let z = tzN; z < sz - 0.66; z += 0.3) kit.decals.add('tactileLine', tx, z, 0.3, 0.3, Z, tz, LAYER.paint);
   for (const dx of [-0.3, 0, 0.3]) for (const dz of [0, 0.3]) kit.decals.add('tactileDot', tx + dx, sz - 0.35 + dz, 0.3, 0.3, Z, tz, LAYER.paint);
 }

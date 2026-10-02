@@ -3,7 +3,7 @@ import { cel, flat } from '../../core/toon.js';
 import { box, cyl, bake, trs } from '../../core/util.js';
 import { hullOutline } from '../../core/outline.js';
 import { TOWN, ROADS, SOUND } from '../../config.js';
-import { steps, railing } from '../ground.js';
+import { steps, railing, meshFence } from '../ground.js';
 import { makeBench, makeBins, makePhoneBooth, makePlanter, makeBikeRack } from '../props.js';
 import { makeVehicle } from '../vehicles.js';
 import { buildBusStop } from './busstop.js';
@@ -366,12 +366,15 @@ export function buildStation(ctx, { kit, service, sets }) {
     ctx.platform({ x0: PL.x0, x1: PL.x1, z0: P.z0, z1: P.z1, top: PH });
     // the edge: a darker coping and a line nobody may stand beyond
     const ez = P.edge - P.face * 0.2;
-    g.add(box(PL.x1 - PL.x0, 0.03, 0.4, m.edge, (PL.x0 + PL.x1) / 2, PH + 0.005, ez));
+    // (laid on the deck, not 1 cm into it: its edge lay in the platform's face and flickered along the whole edge)
+    g.add(box(PL.x1 - PL.x0, 0.02, 0.4, m.edge, (PL.x0 + PL.x1) / 2, PH + 0.01, ez));
     ctx.surface?.({ x0: PL.x0, x1: PL.x1, z0: ez - 0.2, z1: ez + 0.2, top: PH + 0.02 });      // (the coping stands 2 cm proud: Hachi's paws rest on it, ctx.js surfaceAt)
     ctx.collide(PL.x0, P.edge - P.face * 0.05 - 0.05, PL.x1, P.edge - P.face * 0.05 + 0.05, PH + 1.2);
     // yellow tactile line, a metre in from the edge
     for (let x = PL.x0 + 0.3; x < PL.x1 - 0.15; x += 0.3) {
-      kit.decals.add('tactileLine', x, P.edge - P.face * 0.95, 0.3, 0.3, { x: 1, z: 0 }, PH - ROADS.asphaltY, LAYER.paint);
+      // (on the deck: `PH - asphaltY` laid it 14 mm under the deck's top, unseen, and its polygon offset let it
+      //  bleed through in patches at a low angle)
+      kit.decals.add('tactileLine', x, P.edge - P.face * 0.95, 0.3, 0.3, { x: 1, z: 0 }, PH, LAYER.paint);
     }
     // the raised inner line along the tactile blocks (内方線), and the white line at the coping
     edgeLines.push({ geometry: new THREE.BoxGeometry(PL.x1 - PL.x0 - 0.6, 0.012, 0.05), matrix: trs((PL.x0 + PL.x1) / 2, PH + 0.006, P.edge - P.face * 1.16) });
@@ -439,7 +442,14 @@ export function buildStation(ctx, { kit, service, sets }) {
       g.add(box(0.44, 0.03, 0.2, m.light, x, PH + 3.14, bz + P.face * 0.1));
       ctx.collide(x - 0.12, bz - 0.12, x + 0.12, bz + 0.12, PH + 3.2);
     }
-    // (behind both platforms the lineside fences close the station)
+    /* the back: the platform's own fence, standing on the deck 6 cm in from its edge, as tall above it as the
+     * lineside fence was (that one ran from the ground in the plane of the deck's back face, and of the annex's
+     * wall: it flickered through both).  Not behind the building, the annex or the waiting room. */
+    {
+      const at = P.face > 0 ? P.z0 + 0.06 : P.z1 - 0.06;
+      const runs = P.n === 1 ? [[PL.x0, B.x0], [B.x1 + 6.4, PL.x1]] : [[PL.x0, -35], [-29.5, PL.x1]];
+      for (const [a, b] of runs) if (b - a > 0.6) meshFence(ctx, { axis: 'x', from: a, to: b, at, h: 0.42, y: PH, spacing: 2.5, collide: false });
+    }
     // the platform ends: railings, except where the in-station crossing leaves
     railing(ctx, { axis: 'z', from: P.z0, to: P.z1, at: PL.x0 + 0.1, h: 1.1, y: PH });
   }
@@ -591,8 +601,8 @@ export function buildStation(ctx, { kit, service, sets }) {
       const F = { at: (u, v) => ({ x: fx0 + v, z: P.z0 + 5.5 - u }), face: { x: -1, z: 0 }, faceKey: 'x-', ry: -Math.PI / 2 };
       buildShop(ctx, null, kit, lot, F, 'cafe', { maxFloors: 2 });
     }
-    // the guide path in yellow from the shopping street to the steps (the bus stop lays its own branch)
-    const tz = y;     // on the paving (it was y - asphaltY: 2 cm under it, so the path and the rank were never seen)
+    // the guide path in yellow from the shopping street to the steps (the bus stop lays its own branch: busstop.js)
+    const tz = y;      // on the plaza's top (as on the platforms: `y - asphaltY` was under it, unseen, bleeding through)
     for (let z = P.z0 + 0.3; z < B.z0 - 2.3; z += 0.3) kit.decals.add('tactileLine', cxE - 2.5, z, 0.3, 0.3, { x: 0, z: 1 }, tz, LAYER.paint);
     // the taxi rank: a yellow box round the waiting cab
     for (const dx of [-1.3, 1.3]) kit.decals.add('yellow', tx.x + dx, tx.z, 0.15, 5.6, { x: 0, z: 1 }, tz, LAYER.paint);

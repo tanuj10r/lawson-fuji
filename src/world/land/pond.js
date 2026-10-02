@@ -430,7 +430,8 @@ export function buildPond(ctx, parts, scatter, water) {
       const x = cx + Math.cos(a) * d * 1.2, z = cz + Math.sin(a) * d * 0.9;
       if (!inside(shore, x, z)) continue;
       const s = r.range(0.28, 0.62) * (1 - d / 24);
-      scatter.put('pad', x, PD.water + 0.012 + (i % 3) * 0.002, z, s, 1, s, r.range(0, 6.3), r.pick([0x6f9a5a, 0x7caa62, 0x5f8a52, 0x88b06a]));
+      // (each at its own height, 1.2 mm apart over eleven steps: at three heights, overlapping pads often shared one and fought)
+      scatter.put('pad', x, PD.water + 0.012 + (i % 11) * 0.0012, z, s, 1, s, r.range(0, 6.3), r.pick([0x6f9a5a, 0x7caa62, 0x5f8a52, 0x88b06a]));
       if (i % 5 === 0) {
         // a lotus leaf held up out of the water, and now and then a bud
         const h = r.range(0.25, 0.6);

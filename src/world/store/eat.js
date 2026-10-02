@@ -115,6 +115,7 @@ const bakeAll = (geos) => { const g = bake(geos.map((geometry) => ({ geometry, m
 
 /* ---------------------------- the food, eaten ---------------------------- */
 const BREAD = { face: 0xfbf5e6, rim: 0xe0b476, inner: 0xfff8ea };
+const WEDGE_TURN = -0.75;   // a sando half is built flat and turned in its geometry
 /* Each recipe: its bite stages (circles cut from the outline, cumulative). */
 const RECIPE = {
   /* a sando (Tan's photos): a wedge, a square cut corner to corner.
@@ -143,7 +144,7 @@ const RECIPE = {
         if (inPoly(pts, new V2(cx - nx * 0.006, cy - ny * 0.006))) g.push(piece(new THREE.SphereGeometry(0.0115, 10, 8), col, new THREE.Matrix4().makeScale(0.85, 1.15, 0.75).setPosition(cx, cy, 0)));
       });
       const b = bakeAll(g);
-      b.rotateY(-0.75);                     // the cut face toward you
+      b.rotateY(WEDGE_TURN);                // the cut face toward you
       return b;
     });
   },
@@ -277,6 +278,9 @@ export function makeEating(hands, material, sfx) {
           food.rotation.set(r[0], r[1], r[2]);
           const at = cur.stages.seat ?? AT;
           food.position.set(at[0], at[1], at[2]);     // up out of the fingers, the bite end free
+          // the hand closes on it as it is now, out of its pack (store/hands.js; a sando's faces are turned in its geometry)
+          const sando = cur.id.includes('sando');
+          hands.setHold(cur.stages.hold ?? (sando ? 'eat:sando' : cur.id.includes('onigiri') ? 'eat:onigiri' : 'eat:wafer'), { rot: [r[0], r[1] + (sando ? WEDGE_TURN : 0), r[2]], at });
           cur.mesh.parent.add(food);
         }
       });

@@ -529,6 +529,7 @@ export function buildMochi(ctx, net, kit, lot) {
       S.phase = 'pay'; S.pt = 0;
       card ??= makeCard();
       card.position.set(...CARD.pos); card.rotation.set(...CARD.rot);
+      hands.setHold('card', { rot: CARD.rot, at: CARD.pos });
       hands.anchor.add(card);
       card.visible = true;
       hands.raise(true);
@@ -638,7 +639,7 @@ export function buildMochi(ctx, net, kit, lot) {
     }
     /* your hand: up, to the plate, the mochi in it, and eat */
     const TAKE = SERVE_SET + 1.15, EAT = TAKE + 0.5;
-    if (sa >= SERVE_SET + 0.2) once('hand', () => { hands.raise(true); R.turn.set(0, 0, 0); R.off.set(0, 0, 0); });
+    if (sa >= SERVE_SET + 0.2) once('hand', () => { const st = eatStages(MOCHI.id); hands.setHold(st.hold, { rot: st.turn, at: st.seat }); hands.raise(true); R.turn.set(0, 0, 0); R.off.set(0, 0, 0); });
     if (order.eatT < 0) {
       const reach = Math.min(ease((sa - (TAKE - 0.5)) / 0.5), 1 - ease((sa - TAKE - 0.05) / 0.4));
       worldOf(shop.plate[0], shop.plate[1] + 0.035, shop.plate[2], _goal);
@@ -819,6 +820,7 @@ export function buildMochi(ctx, net, kit, lot) {
         eating ??= makeEating(hands, heldMat, mine);
         held ??= Object.assign(new THREE.Mesh(st[0], heldMat), { frustumCulled: false, renderOrder: 11 });
         held.position.set(...st.seat); held.rotation.set(...st.turn); held.visible = true;
+        hands.setHold(st.hold, { rot: st.turn, at: st.seat });
         hands.anchor.add(held); hands.snap(true);
         eating.start({ id: MOCHI.id, mesh: held, onEaten: () => {} });
         S.demo = true;

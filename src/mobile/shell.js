@@ -378,7 +378,8 @@ function phonePostcard(el, selfie) {
     const file = save && selfie()?.file;
     if (file && SHARES_FILES && navigator.canShare({ files: [file] })) {
       e.stopPropagation(); e.preventDefault();
-      navigator.share({ files: [file], title: document.title }).catch(() => {});
+      // (Tan, 2026-10-02) the picture goes with a line about the game and its link, as the postcard's own Share does
+      navigator.share({ files: [file], title: document.title, text: `${STRINGS.postcard.shareText} ${MAKER.share}` }).catch(() => {});
     }
   }, true);
 }

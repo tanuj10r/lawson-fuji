@@ -325,7 +325,8 @@ export function buildRyokan(ctx, parts, o) {
     along(parts, 'railWood', S[k], -0.1, L + 0.1, GF + 0.56, GF + 0.64, 0.3, 0.08);
     along(parts, 'railWood', S[k], -0.1, L + 0.1, GF + 0.22, GF + 0.27, 0.3, 0.06);
     const nb = Math.round(L / 0.45);
-    for (let j = 0; j <= nb; j++) along(parts, 'lattice', S[k], (L * j) / nb - 0.02, (L * j) / nb + 0.02, GF + 0.08, GF + 0.56, 0.32, 0.04);
+    // (the balusters pass through the lower rail, 5 mm inside its outer face: flush, the two were one plane at every baluster)
+    for (let j = 0; j <= nb; j++) along(parts, 'lattice', S[k], (L * j) / nb - 0.02, (L * j) / nb + 0.02, GF + 0.08, GF + 0.56, 0.32, 0.035);
   }
   // AC units, meters and downpipes at the back and the east side
   const AC = ctx.addStatic ?? ctx.add;

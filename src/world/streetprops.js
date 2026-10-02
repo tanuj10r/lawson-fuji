@@ -635,14 +635,16 @@ export function droppedKerb({
   }
   // walkable: each strip's lowered stretch, and each ramp in two steps, at
   // the strip's mean height
-  const plat = (a, b, za, zb, top) => platforms.push(swap ? { x0: za, x1: zb, z0: a, z1: b, top } : { x0: a, x1: b, z0: za, z1: zb, top });
+  // (`ramp`: the slope as it is drawn, for what must rest on it to the centimetre: ctx.js surfaceAt, Hachi's paws)
+  const plat = (a, b, za, zb, top, ramp = null) => platforms.push({ ...(swap ? { x0: za, x1: zb, z0: a, z1: b } : { x0: a, x1: b, z0: za, z1: zb }), top, ...(ramp ? { ramp: { axis: swap ? 'z' : 'x', ...ramp } } : null) });
   const mid = (k + drop) / 2;
   for (const [za, zb] of strips) {
     const f = across((za + zb) / 2);
     const at = (h) => k - (k - h) * f;
     plat(x0, x1, za, zb, at(drop));
-    if (rampLo) { plat(x0 - ramp, x0 - ramp / 2, za, zb, at((k + mid) / 2)); plat(x0 - ramp / 2, x0, za, zb, at((mid + drop) / 2)); }
-    if (rampHi) { plat(x1, x1 + ramp / 2, za, zb, at((mid + drop) / 2)); plat(x1 + ramp / 2, x1 + ramp, za, zb, at((k + mid) / 2)); }
+    const lo = { a: x0 - ramp, b: x0, ya: k, yb: at(drop) }, hi = { a: x1, b: x1 + ramp, ya: at(drop), yb: k };
+    if (rampLo) { plat(x0 - ramp, x0 - ramp / 2, za, zb, at((k + mid) / 2), lo); plat(x0 - ramp / 2, x0, za, zb, at((mid + drop) / 2), lo); }
+    if (rampHi) { plat(x1, x1 + ramp / 2, za, zb, at((mid + drop) / 2), hi); plat(x1 + ramp / 2, x1 + ramp, za, zb, at((k + mid) / 2), hi); }
   }
   return { meshes, platforms };
 }

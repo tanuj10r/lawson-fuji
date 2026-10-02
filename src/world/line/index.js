@@ -23,12 +23,18 @@ import { trainVoice, sfxListen } from './sfx.js';
 
 export function buildLine(ctx, { kit }) {
   const R = TOWN.rail;
-  const B = TOWN.station.building;
+  const B = TOWN.station.building, PLt = TOWN.station.platforms;
   const crossHalf = 3.8;
   const track = buildTrack(ctx, {
     gaps: [
       { x0: R.crossX - crossHalf, x1: R.crossX + crossHalf },       // the level crossing
       { x0: B.x0, x1: B.x1, side: -1 },                              // the station building is the boundary
+      /* the platforms' backs stand in the fences' line (and the annex's wall): the fence ran in their faces, mesh
+       * flickering through concrete (QA: z-fighting).  The lineside fence stops at each platform's end; the
+       * platforms carry their own along the back (station.js). */
+      { x0: PLt.x0, x1: B.x0, side: -1, wall: true },
+      { x0: B.x1, x1: PLt.x1, side: -1, wall: true },
+      { x0: PLt.x0, x1: PLt.x1, side: 1, wall: true },
     ],
     // boards over the tracks: the level crossing's deck, the station's own crossing (station.js): no sleepers under them
     decks: [

@@ -385,7 +385,9 @@ function stair(ctx, parts, s, P) {
     parts.box('granite', x0, x1, W - 0.05, y, lo, hi);
     // the nosing: a worn dark lip along each tread's edge, deep enough to read
     // from the top of the flight (cel-flat treads merged into one slab; quality pass)
-    parts.box('nosing', x0, x1, y - 0.04, y + 0.006, dir < 0 ? lo : hi - 0.11, dir < 0 ? lo + 0.11 : hi);
+    // (it stands 6 mm proud of the riser, as it does of the tread: its face lay in the riser's, and the whole
+    // flight's edges flickered; Tan, "it pixelates and acts up")
+    parts.box('nosing', x0, x1, y - 0.04, y + 0.006, dir < 0 ? lo - 0.006 : hi - 0.11, dir < 0 ? lo + 0.11 : hi + 0.006);
     ctx.platform({ x0, x1, z0: lo, z1: hi, top: y });
     // the side walls, a parapet stepping down beside the treads
     for (const [a, b] of [[x0 - 0.3, x0], [x1, x1 + 0.3]]) {
@@ -395,7 +397,8 @@ function stair(ctx, parts, s, P) {
   }
   // the foot: walls end in a post either side
   const zf = z0 + dir * tread * n;
-  for (const x of [x0 - 0.15, x1 + 0.15]) parts.box('graniteDark', x - 0.2, x + 0.2, W - 0.05, W + 0.95, Math.min(zf, zf - dir * 0.4), Math.max(zf, zf - dir * 0.4));
+  // (2 cm past the walls' ends: its face lay in theirs)
+  for (const x of [x0 - 0.15, x1 + 0.15]) parts.box('graniteDark', x - 0.2, x + 0.2, W - 0.05, W + 0.95, Math.min(zf + dir * 0.02, zf - dir * 0.4), Math.max(zf + dir * 0.02, zf - dir * 0.4));
   // a handrail down the middle of the wide ones
   if (s.w > 3) {
     const len = Math.hypot(tread * n, -W);

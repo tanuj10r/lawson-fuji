@@ -226,7 +226,7 @@ export function makeAtticHouse(o = {}) {
     // 玄関: a recessed door with a hood and two treads
     const ex = w / 2 - 1.15;
     push('door', new THREE.BoxGeometry(1.0, 2.0, 0.09), trs(ex, 0.46 + 1.0, zf - 0.02));
-    push('boardDark', new THREE.BoxGeometry(1.28, 2.2, 0.14), trs(ex, 0.46 + 1.05, zf - 0.07));
+    push('boardDark', new THREE.BoxGeometry(1.28, 2.2, 0.14), trs(ex, 0.46 + 1.05, zf - 0.06));   // (a centimetre proud of the wall: its face lay in the wall's)
     push('metal', new THREE.BoxGeometry(0.05, 0.9, 0.05), trs(ex + 0.36, 0.46 + 1.0, zf + 0.04));
     push('boardDark', new THREE.BoxGeometry(1.9, 0.12, 0.95), trs(ex, 0.46 + 2.32, zf + 0.4));
     push('roof', new THREE.BoxGeometry(2.0, 0.09, 1.05), trs(ex, 0.46 + 2.4, zf + 0.42));
@@ -398,7 +398,8 @@ export function makeWalkup(o = {}) {
       const y = k * FH;
       push('steel', new THREE.BoxGeometry(1.6, 0.12, GAL + 0.4), trs(sx + 0.8, y + 0.1, gz - GAL / 2 + 0.2));
       // the stringers the treads hang between (painted steel, 鉄骨階段)
-      for (const sxx of [0.1, 1.5]) {
+      // (the inner one 2 cm clear of the floor bands' ends, which stand 13 cm out of the wall: its face lay in theirs)
+      for (const sxx of [0.1, 1.48]) {
         const rise = FH, run = 9 * 0.26;
         const len = Math.hypot(rise, run);
         push('steel', new THREE.BoxGeometry(0.06, 0.22, len), trs(sx + sxx, y + rise / 2 + 0.2, gz - GAL / 2 + 0.4 - run / 2 + 0.13, Math.atan2(rise, run), 0, 0));

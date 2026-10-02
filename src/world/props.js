@@ -225,7 +225,7 @@ export function makeKeiTruck(o = {}) {
   g.add(cab);
   if (hero) hullOutline(cab, { thickness: 0.0036 });
   // windscreen and side glass
-  g.add(box(0.06, 0.62, W - 0.16, glass, L / 2 - 0.06, 1.62, 0));
+  g.add(box(0.06, 0.54, W - 0.16, glass, L / 2 - 0.06, 1.58, 0));   // (up to the roof lip, not 8 cm into it: their fronts were one plane)
   for (const s of [-1, 1]) {
     g.add(box(1.0, 0.56, 0.06, glass, L / 2 - 0.7, 1.6, s * (W / 2 - 0.02)));
   }
@@ -679,10 +679,11 @@ export function makeGuardrail(o = {}) {
   const beam = new THREE.Mesh(bake(parts), m.metalDark);
   beam.castShadow = true;
   g.add(beam);
-  const rail = box(len, 0.26, 0.07, m.white, 0, 0.72, 0.02);
+  // (the rail stands a centimetre proud of the posts: its face lay in theirs at every post)
+  const rail = box(len, 0.26, 0.08, m.white, 0, 0.72, 0.025);
   rail.castShadow = true;
   g.add(rail);
-  g.add(box(len, 0.05, 0.1, m.metal, 0, 0.72, 0.01));
+  g.add(box(len, 0.05, 0.1, m.metal, 0, 0.72, 0.02));
   g.position.set(o.x, o.y ?? 0, o.z);
   g.rotation.y = o.ry ?? 0;
   return g;
@@ -1025,7 +1026,8 @@ export function makeAircon(o = {}) {
   for (let i = 0; i < 5; i++) {
     g.add(box(w * 0.5, 0.02, 0.02, m.metalDark, w * 0.06, hh * 0.52 - 0.12 + i * 0.06, d / 2 + 0.03));
   }
-  g.add(box(w, 0.05, d + 0.04, cel({ color: 0xcac7cf, bands: 3, tint: 0x6a6288 }), 0, hh + 0.02, 0));
+  // (the lid sits on the case and overhangs it all round: 5 mm into it and its own width, its sides lay in the case's)
+  g.add(box(w + 0.02, 0.05, d + 0.04, cel({ color: 0xcac7cf, bands: 3, tint: 0x6a6288 }), 0, hh + 0.025, 0));
   if (o.feet !== false) {
     for (const s of [-1, 1]) {
       g.add(box(0.1, 0.14, d, m.metalDark, (s * (w - 0.2)) / 2, -0.07, 0));

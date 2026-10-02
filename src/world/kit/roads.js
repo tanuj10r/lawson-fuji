@@ -68,11 +68,13 @@ export function buildRoads(ctx, net, decals) {
   const group = new THREE.Group();
   group.name = 'roads';
   ctx.add(group);
+  // the asphalt and the gutters lie a little over the ground plane: no step for you, but a pup's paws rest on them (ctx.js surfaceAt)
+  const fine = (x0, z0, x1, z1, top) => ctx.surface?.({ x0, z0, x1, z1, top });
 
   /* ---- junction squares ---- */
   for (const n of Object.values(net.nodes)) {
     if (!n.ax || !n.az || n.external) continue;
-    group.add(slab(n.x - n.ax, n.z - n.az, n.x + n.ax, n.z + n.az, AY, 0.06, m.asphalt, ASPHALT_TILE, 'junction'));
+    group.add(slab(n.x - n.ax, n.z - n.az, n.x + n.ax, n.z + n.az, AY, 0.06, m.asphalt, ASPHALT_TILE, 'junction')); fine(n.x - n.ax, n.z - n.az, n.x + n.ax, n.z + n.az, AY);
   }
 
   for (const e of net.edges) {
@@ -82,8 +84,11 @@ export function buildRoads(ctx, net, decals) {
     const spec = e.spec;
 
     /* ---- asphalt ---- */
+    /* One surface owns each strip (QA: z-fighting): on a lane the asphalt lies between the gutters, not under
+     * them (their outer faces were one plane with its edge, and flickered wherever the lane's side shows). */
     if (e.len > 0.01) {
-      group.add(slab(...edgeRect(e, e.a0, e.a1, -e.a, e.a), AY, 0.06, m.asphalt, ASPHALT_TILE, 'asphalt'));
+      const half = e.a - (spec.gutter > 0 && e.len > 0.5 ? spec.gutter : 0);
+      group.add(slab(...edgeRect(e, e.a0, e.a1, -half, half), AY, 0.06, m.asphalt, ASPHALT_TILE, 'asphalt')); fine(...edgeRect(e, e.a0, e.a1, -half, half), AY);
     }
 
     /* ---- pavements and kerbs ---- */
@@ -102,7 +107,8 @@ export function buildRoads(ctx, net, decals) {
           const to = at === null ? s1 : at - HALF - R;
           if (to - from > 0.05) {
             const rect = edgeRect(e, from, to, o0, o1);
-            group.add(slab(...rect, WY, 0.2, m.walk, PAVER_TILE, 'pavement'));
+            // (the paving starts behind the kerb stones: it ran under them, its edge in the kerb's face)
+            group.add(slab(...edgeRect(e, from, to, o0 + side * 0.18, o1), WY, 0.2, m.walk, PAVER_TILE, 'pavement'));
             ctx.platform({ x0: rect[0], z0: rect[1], x1: rect[2], z1: rect[3], top: WY });
             // kerb stones along the road edge
             group.add(slab(...edgeRect(e, from, to, o0, o0 + side * 0.18), WY + 0.006, 0.2, m.kerb, 1, 'kerb'));
@@ -125,7 +131,7 @@ export function buildRoads(ctx, net, decals) {
       const gw = spec.gutter;
       for (const side of [-1, 1]) {
         const o0 = side * (e.a - gw), o1 = side * e.a;
-        group.add(slab(...edgeRect(e, e.a0, e.a1, o0, o1), AY + 0.012, 0.08, m.gutter, 1, 'gutter'));
+        group.add(slab(...edgeRect(e, e.a0, e.a1, o0, o1), AY + 0.012, 0.08, m.gutter, 1, 'gutter')); fine(...edgeRect(e, e.a0, e.a1, o0, o1), AY + 0.012);
         const L = MARKINGS.gutterLid;
         const count = Math.floor(e.len / L);
         const off = side * (e.a - gw / 2);

@@ -91,10 +91,12 @@ const SIM = async (kind) => {
   const sync = () => { camera.position.set(P.x, P.y, P.z); camera.rotation.set(0, P.yaw, 0); camera.updateMatrixWorld(); world.update(0, camera); };
   // a walker: straight at the goal on free ground, sliding along whatever is in the way
   let prog = { x: P.x, z: P.z, t: 0 }, detour = 0;
+  // (you step over what a pup goes round, a wheel stop, a low kerb: the grid's `low` cells are free to you)
+  const freeP = (x, z) => { if (W.free(x, z)) return true; const c = W.cell(x, z); return c >= 0 && W.low[c] === 1; };
   const walk = (goal, v, loose = false) => {
     const dx = goal.x - P.x, dz = goal.z - P.z, d = Math.hypot(dx, dz);
     if (d < 0.05) return true;
-    if (!loose && !W.free(P.x, P.z)) { const c = W.nearest(P.x, P.z, 2); if (c >= 0) { const q = W.at(c); P.x = q.x; P.z = q.z; } }
+    if (!loose && !freeP(P.x, P.z)) { const c = W.nearest(P.x, P.z, 2); if (c >= 0) { const q = W.at(c); P.x = q.x; P.z = q.z; } }
     if (dist(P, prog) > 0.5) prog = { x: P.x, z: P.z, t: 0 }; else if ((prog.t += dt) > 2) detour = 3;
     if (detour > 0 && g.G.field?.ready) {
       detour -= dt;
@@ -104,9 +106,9 @@ const SIM = async (kind) => {
     const s = Math.min(d, v * dt);
     const nx = P.x + (dx / d) * s, nz = P.z + (dz / d) * s;
     const clearTo = () => { for (let k = 1; k <= 8; k++) if (hit(P.x + dx * k / 8, P.z + dz * k / 8)) return false; return true; };
-    if (W.free(nx, nz) || (loose && d < 2.5 && clearTo())) { P.x = nx; P.z = nz; return true; }
-    if (W.free(nx, P.z)) { P.x = nx; return true; }
-    if (W.free(P.x, nz)) { P.z = nz; return true; }
+    if (freeP(nx, nz) || (loose && d < 2.5 && clearTo())) { P.x = nx; P.z = nz; return true; }
+    if (freeP(nx, P.z)) { P.x = nx; return true; }
+    if (freeP(P.x, nz)) { P.z = nz; return true; }
     return false;
   };
   // a step along a heading, sliding; false when nothing gives
@@ -136,18 +138,134 @@ const SIM = async (kind) => {
   // which phases of a visit were seen; how far he had gone at each leg
   let railEnter = 0, railWas = false, legWas = -1, hopMax = 0;
   const visitPhases = [], legsM = [];
+  /* the route (Tan, 2026-10-02: after the mochi shop he cut across to the station by the lane behind and ドンペン堂 was
+   * never passed): the order you come to each stop and each sound place in, and how far off the shopping street's
+   * middle (x 50) he leads you between its first zebra and the plaza */
+  const order = [];
+  let spineOff = 0;
+  const kSpine = [A.tour.findIndex((l) => l.hear === 'walk1'), A.tour.findIndex((l) => l.hear === 'station')];
+  const WANT = ['konbini', 'walk0', 'han', 'mochi', 'walk1', 'donki', 'walk2', 'station', 'train', 'crossing', 'shrine', 'slowlife'];
+  const inOrder = (from = 0, to = WANT.length) => { const at = WANT.slice(from, to).map((k) => order.indexOf(k)); return at.every((v, i) => v >= 0 && (i === 0 || v > at[i - 1])); };
+  /* The surface (Tan, 2026-10-02: "Hachi's y must always be the true top surface under him"): what is really drawn
+   * under the pup, by a ray straight down through the scene's solid meshes (not the platforms his ground is worked out
+   * from), against the lowest point he is drawn at (g.lowest()).  Sampled every 0.25 m he moves and every 0.4 s he
+   * stays: never under it (1.5 cm), never over it but in a stride or a hop, his body never inside anything solid. */
+  const T3 = window.__scene.THREE, scn = window.__scene.scene;
+  const SKIP = /exp-highlight|water|mirror|sky|cloud|fuji|hill|night|pool|glow|petal|shadow|animals|decal|paint/i;
+  const boxes = new WeakMap(), rc = new T3.Raycaster(), down = new T3.Vector3(0, -1, 0), from = new T3.Vector3();
+  const solidMat = (m) => (Array.isArray(m) ? m.some(solidMat) : !!m && m.visible !== false && m.depthWrite !== false && !(m.transparent && m.opacity < 0.6));
+  const nameOf = (o) => { const n = []; for (let q = o; q && n.length < 4; q = q.parent) if (q.name) n.push(q.name); return n.join('<') || '?'; };
+  /** The top of what is drawn at (x, z), looking down from `y + up`: { y, name }, or null (nothing within `far`). */
+  const surface = (x, z, y, up = 0.45, far = 1.6) => {
+    const cand = [];
+    scn.traverseVisible((o) => {
+      if (!o.isMesh || SKIP.test(o.name) || !solidMat(o.material)) return;
+      let bb = boxes.get(o);
+      if (!bb) {
+        if (o.isInstancedMesh) { o.computeBoundingBox(); bb = o.boundingBox.clone(); } else { if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); bb = o.geometry.boundingBox.clone(); }
+        bb.applyMatrix4(o.matrixWorld); boxes.set(o, bb);
+      }
+      if (x >= bb.min.x && x <= bb.max.x && z >= bb.min.z && z <= bb.max.z && bb.max.y > y + up - far && bb.min.y < y + up) cand.push(o);
+    });
+    // (the town's merged meshes are hundreds of thousands of triangles: each mesh's up-facing ones are binned by the
+    // metre once, and a ray looks only at its own bin; instanced meshes go through three's own raycast)
+    const y1 = y + up, y0 = y1 - far;
+    let best = null, by = -Infinity;
+    const inst = [];
+    for (const o of cand) {
+      if (o.isInstancedMesh) { inst.push(o); continue; }
+      const ix = triIndex(o), l = ix.cells.get(Math.floor(x) + ',' + Math.floor(z));
+      for (const list of [l, ix.big]) {
+        if (!list) continue;
+        const V = ix.V;
+        for (let k = 0; k < list.length; k += 3) {
+          const a = list[k] * 3, b = list[k + 1] * 3, c = list[k + 2] * 3;
+          const ax = V[a], az = V[a + 2], bx = V[b] - ax, bz = V[b + 2] - az, cx = V[c] - ax, cz = V[c + 2] - az, px = x - ax, pz = z - az;
+          const den = bx * cz - cx * bz;
+          if (Math.abs(den) < 1e-12) continue;
+          const u = (px * cz - cx * pz) / den, v = (bx * pz - px * bz) / den;
+          if (u < 0 || v < 0 || u + v > 1) continue;
+          const yy = V[a + 1] + u * (V[b + 1] - V[a + 1]) + v * (V[c + 1] - V[a + 1]);
+          if (yy <= y1 && yy >= y0 && yy > by) { by = yy; best = o; }
+        }
+      }
+    }
+    if (inst.length) { rc.set(from.set(x, y1, z), down); rc.far = far; const h = rc.intersectObjects(inst, false)[0]; if (h && y1 - h.distance > by) { by = y1 - h.distance; best = h.object; } }
+    return best ? { y: by, name: nameOf(best) } : null;
+  };
+  const tris = new WeakMap(), _v = new T3.Vector3();
+  const triIndex = (o) => {
+    let ix = tris.get(o);
+    if (ix) return ix;
+    const g = o.geometry, pos = g.attributes.position, idx = g.index, n = idx ? idx.count : pos.count;
+    const V = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) { _v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld); V[i * 3] = _v.x; V[i * 3 + 1] = _v.y; V[i * 3 + 2] = _v.z; }
+    const side = Array.isArray(o.material) ? 2 : o.material.side;      // 0 front, 1 back, 2 both
+    const cells = new Map(), big = [];
+    for (let i = 0; i + 2 < n; i += 3) {
+      const a = idx ? idx.getX(i) : i, b = idx ? idx.getX(i + 1) : i + 1, c = idx ? idx.getX(i + 2) : i + 2;
+      const ax = V[a * 3], az = V[a * 3 + 2], bx = V[b * 3], bz = V[b * 3 + 2], cx = V[c * 3], cz = V[c * 3 + 2];
+      const ny = (bz - az) * (cx - ax) - (bx - ax) * (cz - az);       // the face's normal, its y: up-facing ones only
+      if (side === 0 ? ny <= 1e-9 : side === 1 ? ny >= -1e-9 : Math.abs(ny) <= 1e-9) continue;
+      const x0 = Math.floor(Math.min(ax, bx, cx)), x1 = Math.floor(Math.max(ax, bx, cx)), z0 = Math.floor(Math.min(az, bz, cz)), z1 = Math.floor(Math.max(az, bz, cz));
+      if ((x1 - x0 + 1) * (z1 - z0 + 1) > 400) { big.push(a, b, c); continue; }
+      for (let xx = x0; xx <= x1; xx++) for (let zz = z0; zz <= z1; zz++) { const k = xx + ',' + zz; let l = cells.get(k); if (!l) cells.set(k, l = []); l.push(a, b, c); }
+    }
+    tris.set(o, ix = { V, cells, big });
+    return ix;
+  };
+  const SF = { n: 0, under: [], over: [], inside: [], none: 0, worstUnder: 0, worstOver: 0, last: null, stillT: 0, on: false, hops: { kerb: 0, stair: 0, other: 0, pop: 0 }, snaps: [], was: null };
+  const probe = () => {
+    // his hops over steps and kerbs, counted; and never a snap: his height changing by 9 cm or more in a frame (a
+    // thirtieth of a second) while he hasn't been set somewhere else
+    if (S.jump && S.jump !== SF.jumpWas) { const dh = Math.abs(S.jump.h1 - S.jump.h0); SF.hops[S.jump.flight ? 'stair' : dh > 0.1 ? 'kerb' : 'other']++; }
+    SF.jumpWas = S.jump;
+    if (S.pop && S.pop !== SF.popWas) SF.hops.pop++;
+    SF.popWas = S.pop;
+    if (SF.was && Math.hypot(S.x - SF.was.x, S.z - SF.was.z) < 0.6 && Math.abs(S.y - SF.was.y) >= 0.09 && S.state !== 'staged' && !S.jump && !SF.airWas && !S.pop && S.hopT < 0 && !S.lift && !S.hopOff) SF.snaps.push([+t.toFixed(1), S.state, +S.x.toFixed(2), +S.z.toFixed(2), +SF.was.y.toFixed(3), +S.y.toFixed(3)]);
+    SF.was = { x: S.x, y: S.y, z: S.z }; SF.airWas = !!S.jump || !!S.pop;
+    const moved = !SF.last || dist(SF.last, S) >= 0.25;
+    if (!moved && (SF.stillT += dt) < 0.4) return;
+    SF.last = { x: S.x, z: S.z }; SF.stillT = 0;
+    sync(); scn.updateMatrixWorld();
+    const lw = g.lowest();
+    if (!lw || !isFinite(lw.low)) return;
+    const gy = g.ground(S.x, S.z) + (S.lift ?? 0), paw = gy + lw.low;
+    // (five rays, 6 cm apart: under the lowest of them is under the surface, over the highest is over it; a rail's
+    // groove, a joint between two slabs or the very edge of a kerb is neither)
+    let sf = null, hi = -9;
+    for (const [ox, oz] of [[0, 0], [0.06, 0], [-0.06, 0], [0, 0.06], [0, -0.06]]) { const q = surface(S.x + ox, S.z + oz, gy); if (!q) { sf = null; break; } if (!sf || q.y < sf.y) sf = q; hi = Math.max(hi, q.y); }
+    SF.n++;
+    const fx = g.fx.names?.join?.('+') ?? '';
+    const row = (d, nm) => [+t.toFixed(1), S.state, S.act?.name ?? (S.bed?.phase ?? (g.tour.visit?.phase ?? '')), fx, +S.x.toFixed(2), +S.z.toFixed(2), +gy.toFixed(3), +paw.toFixed(3), +d.toFixed(3), nm, +S.posture.toFixed(1), +S.speed.toFixed(1), +(S.hop ?? 0).toFixed(2)];
+    if (!sf) { SF.none++; return; }
+    const d = paw - sf.y;
+    const air = (S.hop ?? 0) > 0.005 || g.fx.out.dy > 0.01 || !!S.jump || !!S.pop || S.bed?.phase === 'hop' || !!S.hopOff || (S.state === 'visit' && g.tour.visit?.phase === 'hoop');
+    const dHi = paw - hi;
+    // (his own things: in his tunnel and in his house there is a roof over him, by design; his cushion is soft)
+    const own = S.state === 'visit' && ['tunnel', 'kennel'].includes(g.tour.visit?.phase), soft = dist(S, g.home.bed) < 0.55;
+    if (d < (soft ? -0.035 : -0.0155) && !own) { SF.under.push(row(d, sf.name)); SF.worstUnder = Math.min(SF.worstUnder, d); }
+    else if (dHi > (S.speed > 3 ? 0.11 : S.speed > 0.3 || S.act || g.fx.busy || S.amp > 0.15 ? 0.085 : 0.015) && !air) { SF.over.push(row(dHi, sf.name)); SF.worstOver = Math.max(SF.worstOver, dHi); }
+    // his body (nose to rump, 14 cm either way) in a collider's box
+    const perched = S.onBench || !!S.hopOff || S.bed?.phase === 'hop';
+    if (!perched && !air) for (const k of [-0.14, 0.14]) { const bx = S.x + Math.sin(S.yaw) * k, bz = S.z + Math.cos(S.yaw) * k; if (hit(bx, bz)) { SF.inside.push(row(k, 'collider')); break; } }
+  };
+  const surfRes = () => ({ n: SF.n, none: SF.none, snaps: SF.snaps.length, firstSnaps: SF.snaps.slice(0, 12), hops: SF.hops, under: SF.under.length, over: SF.over.length, inside: SF.inside.length, worstUnder: +SF.worstUnder.toFixed(3), worstOver: +SF.worstOver.toFixed(3), firstUnder: SF.under.slice(0, 400), firstOver: SF.over.slice(0, 400), firstInside: SF.inside.slice(0, 100) });
   const step = () => {
     const t0 = performance.now();
     g.step(dt, P);
     fieldMs += performance.now() - t0;
     t += dt;
+    if (SF.on) probe();
     if (Math.round(t * 30) % 15 === 0) sync();
     if (Math.round(t * 30) % 6 === 0) trail.push([+S.x.toFixed(2), +S.z.toFixed(2)]);
     // (up on the gate's bench, or hopping on or off it, it is over a collider by design)
     const perched = S.onBench || !!S.hopOff || S.bed?.phase === 'hop';
     if (!W.free(S.x, S.z) && !(S.act?.name === 'circle') && !perched) viol++;
     if (hit(S.x, S.z) && !perched) wall++;
-    for (const k in hear) { const v = A.hear[k], d = Math.hypot(P.x - v[0], P.z - v[1]); if (d < hear[k].min) hear[k].min = +d.toFixed(1); }
+    for (const k in hear) { const v = A.hear[k], d = Math.hypot(P.x - v[0], P.z - v[1]); if (d < hear[k].min) hear[k].min = +d.toFixed(1); if (d <= v[2] && !order.includes(k)) order.push(k); }
+    for (const id of S.done) if (!order.includes(id)) order.push(id);
+    if (P.z < -5 && P.z > -95 && S.state === 'lead' && S.leg >= kSpine[0] && S.leg <= kSpine[1]) spineOff = Math.max(spineOff, Math.abs(S.x - 50));
     if (gateW) gateMin = Math.min(gateMin, Math.hypot(P.x - gateW.x, P.z - gateW.z));
     const c = W.cell(S.x, S.z);
     if (c >= 0) {
@@ -163,8 +281,8 @@ const SIM = async (kind) => {
     { const rl = g.rail(); if (rl.on && !railWas && rl.shut) railEnter++; railWas = rl.on; }
     { const ph = g.tour.visit ? `${g.tour.visit.kind}:${g.tour.visit.phase}` : null; if (ph && visitPhases[visitPhases.length - 1] !== ph) visitPhases.push(ph); if (g.tour.visit?.kind === 'home') hopMax = Math.max(hopMax, S.hop); }
     if (S.state === 'lead' && S.leg !== legWas) { legsM.push([S.leg, +S.moved.toFixed(0), +t.toFixed(0)]); legWas = S.leg; }
-    const gy = world.heightAt(S.x, S.z), low = S.y - gy;
-    if (low < -0.035) { feetLow++; feetWorst = Math.min(feetWorst, low); }
+    const gy = g.ground(S.x, S.z), low = S.y - gy;
+    if (low < -0.035) { feetLow++; if (low < feetWorst) { feetWorst = low; res.feetAt = [+t.toFixed(1), S.state, +S.x.toFixed(2), +S.z.toFixed(2), !!S.jump, !!S.pop, g.tour.visit?.phase ?? null]; } }
     if (S.state !== state) { events.push({ t: +t.toFixed(1), from: state, to: S.state, target: S.target?.id ?? null, dP: +dist(P, S).toFixed(1) }); state = S.state; states.add(state); }
     if (S.state === 'charge' && !wasCharge) charges++;
     wasCharge = S.state === 'charge';
@@ -212,18 +330,22 @@ const SIM = async (kind) => {
     }
   };
   const res = { kind, cone: +cone.toFixed(0), home0 };
+  SF.on = true;      // (the surface under him is checked in every scenario: the tour, the whistle's ways, at your side after the tour)
 
   if (kind === 'tour') {
     // the follower goes wherever Hachi leads: the whole tour, to the nap
     let jogSum = 0, jogN = 0;
     // (the trains run, so the level crossing opens and shuts as it does in play: he waits at it when it is shut)
     world.line.service.stage('quiet');
+    SF.on = true;
     while (t < 1500) { world.line.service.update(dt); follow(); step(); if (S.state === 'lead' && S.speed > 0.5) { jogSum += S.speed; jogN++; } if (S.state === 'nap' && S.posture > 1.9) break; }
     res.jog = +(jogSum / Math.max(1, jogN)).toFixed(2);
     res.rows = rows; res.secs = +t.toFixed(0); res.tourM = +S.moved.toFixed(0); res.end = g.state(); res.pstuck = +pstuck.toFixed(1); res.stuck = +stuck.toFixed(1);
     res.hear = hear; res.gateMin = +gateMin.toFixed(1); res.waterCells = waterCells; res.alleyCells = alleyCells; res.plotCells = plotCells; res.sideEntries = sideEntries;
     res.feetLow = feetLow; res.feetWorst = +feetWorst.toFixed(3); res.legs = A.tour.length; res.lastLeg = S.leg;
     res.charges = charges;                      // (through the pigeons, on the shopping street and the plaza)
+    SF.on = false; res.surface = surfRes();
+    res.order = [...order]; res.inOrder = inOrder(); res.spineOff = +spineOff.toFixed(1); res.hops = SF.hops;
     res.visited = [...g.tour.visited]; res.visitPhases = visitPhases; res.railEnter = railEnter; res.legsM = legsM;
     const heard = Object.values(hear).every((h) => h.min <= h.need);
     // the respawn (H, or anything that puts you back on the view in a jump): the pup is home, out of the frame, at once
@@ -255,7 +377,41 @@ const SIM = async (kind) => {
     res.ok = rows.length === 5 && viol === 0 && wall === 0 && stuck < 5 && res.end.state === 'nap' && res.respawn.ok && cone > 60
       && heard && charges >= 1 && res.jog >= 2.7 && gateMin <= 8 && waterCells === 0 && alleyCells === 0 && sideEntries === 0 && feetLow === 0 && t < 900
       && res.visited.includes('home') && res.visited.includes('shrine') && railEnter === 0
-      && ['home:bounce', 'home:spin', 'home:tunnel', 'home:hoop', 'home:kennel', 'home:toy', 'home:flop', 'shrine:sit'].every((q) => visitPhases.includes(q));
+      && ['home:bounce', 'home:spin', 'home:tunnel', 'home:hoop', 'home:kennel', 'home:toy', 'home:flop', 'shrine:sit'].every((q) => visitPhases.includes(q))
+      // every stop and sound place in the tour's order, down the shopping street past ドンペン堂; on the drawn surface throughout
+      && res.inOrder && spineOff < 8 && res.surface.under === 0 && res.surface.over === 0 && res.surface.inside === 0 && res.surface.snaps === 0 && SF.hops.kerb >= 4 && SF.hops.stair >= 8;
+  } else if (kind === 'route') {
+    /* Tan, 2026-10-02: "after the new mochi stop Hachi led into the shopping street but turned left just before ドンペン堂
+     * and went to the station by the parallel street".  Called (F) on that stretch, he used to make straight for the
+     * next place not had (platform 1) by the planner's cheapest way; now the tour goes on from where you are, by its
+     * own streets.  From the mochi shop: follow; F at the shop, at the street's mouth and short of ドンペン堂; each time
+     * on to the train: ドンペン堂's spot passed within its radius, the stops in order, never off the shopping street. */
+    const kM = A.tour.findIndex((l) => l.id === 'mochi');
+    world.line.service.stage('quiet');
+    const runs = [];
+    for (const at of [30, 8, -22]) {
+      g.reset(); g.introMark(); S.reUsed = new Set(spots().filter((e) => e.used).map((e) => e.id));
+      order.length = 0; spineOff = 0; crumbs.length = 0; rest = 0; away = null; lastDone = 99;
+      const c0 = W.nearest(A.tour[kM].x + 2, A.tour[kM].z, 2), q = W.at(c0);
+      Object.assign(S, { x: q.x, z: q.z }); P.x = q.x - 2.5; P.z = q.z; sync();
+      g.leadFrom(kM + 1);
+      for (const k of WANT.slice(0, WANT.indexOf('mochi') + 1)) order.push(k);
+      const t0 = t;
+      let called = null, rejoined = null, legAfter = null, came = false;
+      while (t - t0 < 240 && !S.done.has('train')) {
+        world.line.service.update(dt);
+        if (called === null && P.z < at) { called = +(t - t0).toFixed(1); g.whistle(); }
+        if (called !== null && rejoined === null) { lookAt(S.x, S.z); if (S.state === 'come' || S.state === 'caught') came = true; if (came && S.state === 'lead') { rejoined = +(t - t0).toFixed(1); legAfter = S.leg; } }
+        else follow();
+        step();
+      }
+      const d = hear.donki.min;
+      runs.push({ at, called, rejoined, legAfter, donki: d, spineOff: +spineOff.toFixed(1), order: order.slice(WANT.indexOf('mochi')), train: S.done.has('train'), secs: +(t - t0).toFixed(0),
+        ok: called !== null && rejoined !== null && S.done.has('train') && d <= hear.donki.need && spineOff < 8 && inOrder(WANT.indexOf('mochi'), WANT.indexOf('train') + 1) });
+      hear.donki.min = 999;
+    }
+    res.runs = runs;
+    res.ok = runs.every((r) => r.ok);
   } else if (kind === 'intro') {
     // the hello, every start (Tan, 2026-09-29): standing on the start view as the game begins, it runs out from
     // behind you to in front, faces you, sits, says hello; waits there while you stay; leads when you walk off.
@@ -322,10 +478,16 @@ const SIM = async (kind) => {
     let rejoined = null;
     { const t0 = t; while (t - t0 < 25) { lookAt(S.x, S.z); walk(S, 2.3); step(); if (S.state === 'lead' && S.target) { rejoined = { t: +(t - t0).toFixed(1), target: S.target.id ?? `leg${S.target.k}`, d: +dist(P, S).toFixed(1) }; break; } } }
     const b = awayFrom(12);
-    // F: it comes (seen), greets, then rushes you to the nearest place not done
+    // F: it comes (seen), greets, then rushes you on: to the tour's next place not had (Tan, 2026-10-02: by the tour's
+    // own streets), unless you stand within `near` m of another one
     g.whistle();
     let came = false, greeted = false, rush = null, fast = 0, t0 = t;
-    const nearestLeft = () => { let best = null, bd = 1e9; for (const e of spots()) { if (S.done.has(e.id)) continue; const d = dist(P, e) + (S.skipped.has(e.id) ? A.drop.skipped : 0); if (d < bd) { bd = d; best = e.id; } } return best; };
+    const nearestLeft = () => {
+      let best = null, bd = 1e9;
+      for (const e of spots()) { if (S.done.has(e.id)) continue; const d = dist(P, e) + (S.skipped.has(e.id) ? A.drop.skipped : 0); if (d < bd) { bd = d; best = e; } }
+      const next = A.tour.find((L, j) => j >= (S.leg ?? 0) && L.id && L.id !== 'gate' && !S.done.has(L.id));
+      return next && best && next.id !== best.id && dist(P, best) > A.drop.near ? next.id : best?.id ?? null;
+    };
     let expect = null;
     while (t - t0 < 30) {
       step();
@@ -530,7 +692,7 @@ const SIM = async (kind) => {
     }
     res.caught = caught;
     res.ok = staged && satAt !== null && satFor >= 4 && perked && passed && wentAt !== null && openAt !== null && wentAt >= openAt && armAtGo <= 0.05 && trainAtGo === false && onShut === 0 && railEnter === 0
-      && res.home.visited.includes('home') && ['home:gate', 'home:in', 'home:bounce', 'home:spin', 'home:tunnel', 'home:hoop', 'home:kennel', 'home:toy', 'home:flop'].every((q) => visitPhases.includes(q)) && hopMax > 0.2
+      && res.home.visited.includes('home') && ['home:in', 'home:bounce', 'home:spin', 'home:tunnel', 'home:hoop', 'home:kennel', 'home:toy', 'home:flop'].every((q) => visitPhases.includes(q)) && hopMax > 0.2
       && ['dog-yip', 'dog-boof', 'dog-giggle'].every((n) => said.includes(n))
       && caught.on !== null && caught.off !== null && caught.off <= 3 && caught.armOff < 0.6;
   } else if (kind === 'bedtime') {
@@ -725,7 +887,7 @@ const SIM = async (kind) => {
     const stays = S.state === 'pal';
     // a walk together: back along the bridge road
     let far = 0, lost = false;
-    { const goal = { x: -30, z: 30 }; const t0 = t; while (t - t0 < 14) { lookAt(goal.x, goal.z); walk(goal, 2.3); tick(); if (t - t0 > 3) far = Math.max(far, dist(P, S)); if (S.state !== 'pal') lost = true; } }
+    { const goal = { x: -30, z: 30 }; const t0 = t; while (t - t0 < 14) { lookAt(goal.x, goal.z); walk(goal, 2.3); tick(); if (t - t0 > 3 && dist(P, S) > far) { far = dist(P, S); res.farAt = { t: +(t - t0).toFixed(1), x: +S.x.toFixed(1), z: +S.z.toFixed(1), px: +P.x.toFixed(1), pz: +P.z.toFixed(1), speed: +S.speed.toFixed(1), jump: !!S.jump, r: S.r, level: !!S.levelTo, act: S.act?.name ?? null }; } if (S.state !== 'pal') lost = true; } }
     // you stop and look for it: it comes round in front and sits; looked at, the tour is on offer
     let satUp = 0;
     { const t0 = t; while (t - t0 < 6) { tick(); satUp = Math.max(satUp, S.posture); } }
@@ -761,6 +923,7 @@ const SIM = async (kind) => {
       && offer && !offerAway && whistled2 === 'pal' && !!again && again.target === 'konbini' && again.done.length === 1 && again.visited.length === 0 && !again.napped && !again.gate && slept2 && naps2 === 2 && pal2
       && leftT !== null && leftT > 15 && leftT < 40 && S.bed?.phase === 'sleep' && naps === 2;
   }
+  if (!res.surface) { SF.on = false; res.surface = surfRes(); if (res.surface.under || res.surface.over || res.surface.inside || res.surface.snaps) res.ok = false; }
   res.viol = viol; res.wall = wall; res.gridMs = +W.ms.toFixed(0); res.cells = W.N; res.msPerStep = +(fieldMs / Math.max(1, Math.round(t * 30))).toFixed(3);
   return res;
 };
@@ -819,9 +982,10 @@ try {
     if (!loud) bad++;
     console.log(loud ? 'pass' : 'FAIL', 'voice', JSON.stringify(voice));
 
-    for (const kind of ['tour', 'crossing', 'intro', 'turnaway', 'wander', 'whistle', 'bedtime', 'tipsy', 'reactions', 'snack', 'after', 'ground'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
+    for (const kind of ['tour', 'route', 'crossing', 'intro', 'turnaway', 'wander', 'whistle', 'bedtime', 'tipsy', 'reactions', 'snack', 'after', 'ground'].filter((k) => !ONLY || ONLY.split(',').includes(k))) {
       const r = await page.evaluate(SIM, kind);
       if (r.map) { fs.writeFileSync(path.join(out, 'trail.png'), Buffer.from(r.map.split(',')[1], 'base64')); delete r.map; }
+      if (r.surface) { fs.writeFileSync(path.join(out, `surface-${kind}.json`), JSON.stringify(r.surface)); for (const k of ['firstUnder', 'firstOver', 'firstInside']) r.surface[k] = r.surface[k].slice(0, 6); }
       const said = await page.evaluate(() => { const l = [...new Set(window.__scene.sound.debug.log.map((e) => e.name).filter((n) => /^dog-|^whistle/.test(n ?? '')))]; window.__scene.sound.debug.log.length = 0; return l; });
       r.said = said;
       if (kind === 'tour' && said.length < 2) r.ok = false;

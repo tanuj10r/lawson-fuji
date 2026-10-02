@@ -354,6 +354,9 @@ export function buildFallen(ctx, trees, { decals, river } = {}) {
     color: 0xffffff, map: petalTex(), bands: 2, tint: 0x8a78a8, transparent: true, opacity: 0.95,
     depthWrite: false, alphaTest: 0.32, side: THREE.DoubleSide, cache: false,
   });
+  // true decals on the ground (they write no depth): pulled toward the eye, so a petal a fraction of a
+  // millimetre over a slab never fights it
+  mat.polygonOffset = true; mat.polygonOffsetFactor = -2; mat.polygonOffsetUnits = -4;
   const inst = new THREE.InstancedMesh(geo, mat, mats.length);
   const col = new THREE.Color();
   mats.forEach(([m, tone], i) => { inst.setMatrixAt(i, m); inst.setColorAt(i, col.set(FALLEN_TONES[tone])); });

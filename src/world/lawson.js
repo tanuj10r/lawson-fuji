@@ -318,6 +318,11 @@ export function buildLawson(parent) {
   ground.add(patch(-hw - 0.6, wingX1 + 0.2, 0, S.apron, 0.008, apron));
   ground.add(worldUV(patch(S.roadX0, S.roadX1, S.forecourtZ, S.roadZ, 0.004, road), ASPHALT_TILE));
   ground.add(worldUV(patch(S.lotX0, S.lotX1, S.sidewalkZ, S.lotZ, 0.004, lot), ASPHALT_TILE));
+  // (drawn a few mm over the ground plane: no step for you, but Hachi's paws rest on them: ctx.js surfaceAt)
+  const surfaces = [
+    { x0: S.x0, x1: S.x1, z0: 0, z1: S.forecourtZ, top: 0.004 }, { x0: -hw - 0.6, x1: wingX1 + 0.2, z0: 0, z1: S.apron, top: 0.008 },
+    { x0: S.roadX0, x1: S.roadX1, z0: S.forecourtZ, z1: S.roadZ, top: 0.004 }, { x0: S.lotX0, x1: S.lotX1, z0: S.sidewalkZ, z1: S.lotZ, top: 0.004 },
+  ];
   // the far sidewalk, raised on its kerb, with the tactile strip along it;
   // it breaks for the side road to the level crossing, whose asphalt runs on
   const platforms = [];
@@ -431,6 +436,7 @@ export function buildLawson(parent) {
       // the stop at -10.15 would edge into the famous view's bottom-left corner
       if (cx > -11 && cx < -9) continue;
       ground.add(slab(cx - 0.8, cx + 0.8, 0, 0.13, S.stopZ - 0.08, S.stopZ + 0.08, stopMat));
+      colliders.push({ x0: cx - 0.8, x1: cx + 0.8, z0: S.stopZ - 0.08, z1: S.stopZ + 0.08, top: 0.13 });   // (you step over it; Hachi, 24 cm tall, goes round it: animals/guide.js)
     }
   }
 
@@ -482,6 +488,7 @@ export function buildLawson(parent) {
     colliders,
     /** Raised walkable surfaces: the far sidewalk stands on its kerb. */
     platforms,
+    surfaces,
     /** The door, each frame: `p` the player's position. */
     update(dt, p) { root.userData.door.update(dt, p); root.userData.spot.update(dt, p); pages(p); },
     /** The konbini inside (Tan's experience): the hand, the featured things, the self-checkout. */

@@ -57,7 +57,7 @@ export const MAKER = {
   ref: 'takemebacktojapan',
   handle: 'tanuj10r',                     // the X share's "via"
   share: 'https://takemebacktojapan.com', // what the postcard shares (the canonical address, never a local one)
-  postcardAfter: 3.5,                     // s Hachi has been lying down at the gate before the postcard comes
+  postcardAfter: 1.0,                     // s after Hachi has hopped up onto his bench at the gate (his happy bit begun) before the postcard comes
 };
 export const DEFAULT_VOLUME = 50;                      // 30% of full scale: the level Tan liked
 
@@ -906,7 +906,7 @@ export const ANIMALS = {
      * left off; F calls
      * it to you, and it rushes you to the nearest place you haven't been (one you walked away from counts `skipped` m
      * further off). */
-    drop: { angle: 100, angleT: 1.7, grow: 6, away: 16, rejoin: 4, skipped: 30 },
+    drop: { angle: 100, angleT: 1.7, grow: 6, away: 16, rejoin: 4, skipped: 30, near: 25 },   // (`near`: whistled with the tour under way, it is the tour's next stop unless you stand within this of another place not had)
     zoom: { r: 1.5, speed: 4.6 },             // zoomies: the circle's radius and speed
     tripEvery: 45,                            // trips over its own paws about once in this many seconds at a trot
     fields: 6,                                // distance fields kept grown at once (2.6 MB each)
@@ -943,7 +943,15 @@ export const ANIMALS = {
      * ground, by the roll's angle every `step` radians from 0 to pi, standing and lying (measured: scripts/_hachi.mjs
      * --only profile; Tan: it sank under the road) */
     rollUp: { step: 0.3, stand: [0, 0.019, 0.03, 0.023, 0.015, 0.019, 0.046, 0.116, 0.171, 0.206, 0.21, 0.21], lie: [0, 0.027, 0.042, 0.042, 0.04, 0.033, 0.023, 0.029, 0.046, 0.07, 0.081, 0.085] },
-    bowLift: 0.03,                            // m up in a full play bow (the elbows rest on the ground, not in it)
+    /* m up by posture, every `step` from `from` (-1 a full play bow: the elbows rest on the ground, not in it; 0
+     * standing; 1 sat: the rump; 2 lying), so the lowest part of the pup rests ON the ground (measured:
+     * scripts/_hachi.mjs --only posture; Tan, 2026-10-02: sat, he was 1.5 cm into the platform) */
+    postureUp: {
+      from: -1, step: 0.0625,
+      up: [0.038, 0.042, 0.042, 0.038, 0.038, 0.038, 0.038, 0.034, 0.031, 0.031, 0.027, 0.027, 0.023, 0.017, 0.012, 0.007,       // the bow (4 mm more: its rump wiggles)
+        0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.007,            // standing, sitting down
+        0.015, 0.011, 0.011, 0.011, 0.011, 0.011, 0.011, 0.011, 0.007, 0.007, 0.007, 0.007, 0.007, 0.003, 0.003, 0.003, 0.003],    // sat, lying down
+    },
     tipLift: 0.11,                            // m up per radian it is tipped nose-up or nose-down (the low end stays on the ground)
     /* after the tour, whistled: it stays with you, `ahead` m ahead and `aside` m to a side as you walk, sat `sit[0]` m in
      * front of you when you stop (it comes round when you are past `sit[1]` m or it is out of your view).  Within
@@ -953,6 +961,14 @@ export const ANIMALS = {
     engage: { konbini: 1.2, view: 1.0, han: 0.85, train: 1.1, slowlife: 1.1, mochi: 1.2 },   // the engagements' ring radii (and which ids count until the list says `kind`)
     cell: 0.4, radius: 0.25,                  // its map of the town: cell size, and clearance from anything solid (its own half-width and a little)
     step: 0.45,                               // the biggest step between neighbouring cells it will take: kerbs yes, the channel no
+    /* steps and kerbs (Tan, 2026-10-02: "he must JUMP ... never sliding up a riser or dropping instantly").  A change
+     * of the ground's height of `min` m or more within `look` m ahead (+ `lookV` s of its speed): a `crouch` s dip,
+     * then `air` [min, max] s off the ground over the edge, landing `land` m past it (+ `landV` s of its speed; on a
+     * flight the middle of the next tread, of the one after at over `two` m/s; a strip narrower than `run` m, a kerb
+     * stone, is cleared whole), `arc` m over the higher side, nose up then down by `pitch` rad, and a `squash` s dip
+     * as it lands.  Anything else that takes it over an edge (zoomies, its garden's bits): `pop` s of a small hop
+     * `popArc` m high instead of a snap. */
+    jump: { min: 0.06, look: 0.3, lookV: 0.07, land: 0.2, landV: 0.035, run: 0.3, crouch: 0.08, air: [0.22, 0.32], arc: 0.09, pitch: 0.3, squash: 0.14, two: 4.2, pop: 0.2, popArc: 0.07 },
     /* a metre of each, relative: it keeps to pavements, plazas and lanes, crosses kerbed roads on the zebras (main-road
      * asphalt is dear), keeps off paddy plots, and never takes an alley or a gap between houses (`alley`: every cell
      * that is not a street, a plaza, the land's paths or a lot; forty pavements a metre, so only where nothing else leads) */
@@ -1021,7 +1037,8 @@ export const ANIMALS = {
     hear: { walk0: [-35, 13.8, 14], walk1: [50, -5, 14], walk2: [50, -75, 14], walk3: [-30, 1.5, 14], donki: [55.9, -41.4, 12], station: [51, -125.5, 14], crossing: [80, -134.3, 10], shrine: [-13, -64.4, 14] },   // each sound place and how near the tour must pass (m)
     nap: [28.45, -37.75],                     // town frame: in front of the gate's bench (TOWN.land.gateBench), the tour's last stop: it hops up from here and sleeps on it once everything is done
     /* the bedtime on the bench (s from landing on it): a play bow at you, a happy spin, a roll belly-up, a sit and a
-     * head tilt, two slow circles, and down, curled up; `onNap` (the postcard) fires once it is settled */
+     * head tilt, two slow circles, and down, curled up; `onTourEnd` (the postcard) fires as it lands on the seat,
+     * `onNap` once it is settled */
     bedtime: { hop: 0.5, bow: [0.35, 1.6], spin: [1.6, 2.5], roll: [2.5, 4.6], sit: [4.6, 5.6], circle: [5.6, 7.3], settle: 8.0 },
   },
   butterflies: { size: 1.15, beatHz: 9, speed: 0.9, near: 45, shy: 1.0 },

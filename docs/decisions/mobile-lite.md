@@ -581,3 +581,72 @@ multi-touch through CDP on an emulated iPhone 15, 844x390 and 390x844 at 3x; scr
   app, the context is suspended and resumed once more (iOS can return one that reads running and is silent).
 - **Not done / to check on Tan's iPhone:** the feel numbers were tuned by measurement, not by a thumb; the selfie's
   camera and the share sheet were checked only as far as headless Chrome goes (no camera, no share sheet).
+
+## Mobile v3: the mini town (world, 2026-10-02)
+Tan rated the pocket diorama 2/100 (placeholder houses, a flat lake, a train out of thin air): "Based on the
+latest desktop version, recreate a very small town, but the experience should be nice."  So the phone's town
+is the desktop's own generator, kit and builders on a smaller plan; nothing is hand-built.
+
+- **The plan** (src/mobile/plan.js, config.js MOBILE.plan): the desktop's plan with the block row south of
+  lane 112 taken out.  Everything south of it stands 32 m further north: the plaza (z 94), the station, the
+  line (z 130), the level crossing, Hachi's home, and lane 144 as lane 112; 鏡池 and the slow-life bench
+  move up whole, and the paddies between the pond and the main road's shops are 29 m instead of 61 (three
+  rows of plots, not five).  The pocket park's row is gone.  North of lane 80 nothing moves: the main road,
+  the konbini, the famous view, the car park and Han's route, ぺったん堂, the river and the Deer Park gate,
+  ドンペン堂, the shrine.  244 x 184 m (the desktop: 244 x 216), 63 lots (33 shops, 30 houses).
+- **How one generator builds two towns.**  plan.js sets config.js before any world module is evaluated
+  (boot.js imports it first).  Positions written into the shared builders as numbers (the pond's pines and
+  houses, the animals' places, the specials) carry a mark in a comment: `144/*@dz*/` (a southern z) or
+  `/*@mini A @*/B/*@@*/` (the mini town's value instead of B).  `vite build --mode mobile` rewrites them
+  (vite.config.js miniPlan); the desktop build never does, and comments are gone from its bundle, so it is
+  byte for byte main's (cmp: every asset the same, main-wTXaBEVN.js; index.html differs by the off route).
+  Streets the two towns share take the desktop's seeds (TOWN.grid.desktop), so the same houses and shops
+  stand on them.  src/mobile/town.js is world/town.js with the phone's hooks: keep it in step.
+- **Not taken: a smaller town still.**  Taking the row between lanes 80 and 112 as well would put the shrine
+  in the cone behind the konbini that the famous view sees; cutting x would cut the plaza or the car park.
+- **Kept as on the desktop, where v1/v2 cut:** the water's mirrors (pond, river, paddies: small targets,
+  drawn only by their water), real houses on every lot, the looks' own fog colours.
+- **Fog and draw distance:** fog 55-145 m (desktop 60-300), nothing drawn past 150 m.  The far tree lines
+  and the houses beyond the line are hazier than on the desktop: the one visible difference in the sheets.
+- **Draw calls** (mobile/town.js mergeMini, lite.js): plain colours and the town's shared tiles batch in
+  256 m cells (they cannot stream; a style is a draw or two a view); pictures of one place in a region atlas
+  each (nine regions, a quarter-size page from afar); small pictures used all over in one shared atlas; big
+  pages of their own in 64 m cells.  The crossing's, station's and shrine's loose siblings merged per parent;
+  the konbini's 59 painted quads on one page (a quarter-size copy from the street).  Famous view 893 -> 548.
+  Tried and dropped: copying shared pictures into every region (35 MB a region near you); a 100 k texel
+  atlas limit (38 MB always resident).
+- **Memory:** the frame's targets R11G11B10 instead of half-float RGBA (-24 MB at 3 Mpx; checked by drawing,
+  else left); the konbini's label pages one mipmap smaller than the desktop holds them, and their small
+  copies made one page at a time before the first frame (load peak 385 -> 333 MB); the standing stock packed
+  and streamed; instanced kinds culled by where their instances stand (they were all measured at the origin:
+  sleepers, shrubs and pigeons vanished 42 m from it).
+- **Walking:** past the core's side fences the main road's verge is closed (the open strip there shows the
+  railway cutting end on); spots for the shell come from world.interactables.
+- **Integration:** the UI branch's main.js is kept as the shell's harness; the lines marked WORLD are the
+  mini town's.  main (bus stop, z-fighting sweep, fonts) merged last.
+
+### Measured (emulated iPhone 15, Chrome, 2556 x 1179 at 3x, the page's own GPU count; a busy shared laptop)
+| place | full: GPU MB | draws (frame alone) | light: GPU MB |
+|---|---|---|---|
+| famous view | 290 | 517-548 | 220 |
+| zebra and signals | 277-299 | 690 | 228 |
+| konbini door | 331 | 633 | 270 |
+| in a visit | 244-254 | - | - |
+| shopping street | 313 | 430-460 | 228 |
+| ドンペン堂 | 312 | 340-400 | - |
+| plaza / station | 299-333 | 290-490 | 225 |
+| crossing | 260-305 | 130-380 | 203 |
+| shrine | 282-294 | 300-540 | 212 |
+| bench / pond | 264-277 | 260-500 | 188 |
+| river, edges | 255-266 | 95-165 | - |
+| load peak | 333 | | |
+Over the budget, said plainly: GPU 255-333 MB against ~250 (light 188-270 against ~180); draws 95-690
+against ~300; the town builds in 3.1-3.6 s on this laptop when it is idle (first frame ~5 s) against ~3 s.
+60 fps at 3x at the famous view and the streets when the laptop is free; the scale stepped down (to 1.5-2.25)
+in Han's show and in portrait while other agents' browsers ran.  What would close the gap: the sign atlas and
+ドンペン堂's page (24 + 16 MB) by region LOD of their own, the decal page (16 MB) cropped per cell, building
+the south after the first frame.
+- Flow (scripts/_mini-flow.mjs, by touch): start, stick, look, a konbini visit, the mochi, the train's
+  wait, Han's show, the whistle, time, pause: all pass, landscape and portrait, no console errors.
+- The gate: scripts/_mini.mjs draws the phone page and the desktop game at 69 spots (places, edges, the
+  train followed out of sight both ways, night, morning) and a walk grid (175 reachable points x 8 ways).

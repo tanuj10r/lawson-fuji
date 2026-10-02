@@ -93,10 +93,13 @@ WORLD.bounds.z0 = 2 * TOWN.grid.main - TOWN.bounds.z1;
 ANIMALS.guide.tour = [
   { id: 'view', x: 0, z: 16.5 },
   { id: 'konbini', x: -2.3, z: 2.3 },
-  { x: -35, z: 8.5, hear: 'walk0' },          // the main road's zebra (kakko), south end
-  { x: -35, z: 19 },                          // its north end
+  /* (Tan, 2026-10-02: "after the Nippon Mart, Hachi takes me to the zebra crossing before... Han... we can cut off
+   * that") straight back over the road by the store's own crossing, then west along the far pavement to the car park */
+  { x: -1, z: 9 },
+  { x: -1, z: 18.6 },
+  { x: -18.3, z: 20.5 },                       // west along the far pavement to the gap in the car park's kerb
   { id: 'han', x: -21.7, z: 23.5 },           // the car park: Han and the RX-7
-  { x: -28.5, z: 20.6 },
+  { x: -18.3, z: 20.5 },                       // out by the same gap
   { x: -12, z: 19.3 },                        // east along the far pavement, behind the famous view
   { x: 20, z: 19.3 },
   { id: 'mochi', x: 39.2, z: 19.4 },          // ぺったん堂

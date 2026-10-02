@@ -144,7 +144,7 @@ const SIM = async (kind) => {
   const order = [];
   let spineOff = 0;
   const kSpine = [A.tour.findIndex((l) => l.hear === 'walk1'), A.tour.findIndex((l) => l.hear === 'station')];
-  const WANT = ['konbini', 'walk0', 'han', 'mochi', 'walk1', 'donki', 'walk2', 'station', 'train', 'crossing', 'shrine', 'slowlife'];
+  const WANT = ['konbini', 'han', 'mochi', 'walk1', 'donki', 'walk2', 'station', 'train', 'crossing', 'shrine', 'slowlife'];
   const inOrder = (from = 0, to = WANT.length) => { const at = WANT.slice(from, to).map((k) => order.indexOf(k)); return at.every((v, i) => v >= 0 && (i === 0 || v > at[i - 1])); };
   /* The surface (Tan, 2026-10-02: "Hachi's y must always be the true top surface under him"): what is really drawn
    * under the pup, by a ray straight down through the scene's solid meshes (not the platforms his ground is worked out
@@ -243,12 +243,12 @@ const SIM = async (kind) => {
     const air = (S.hop ?? 0) > 0.005 || g.fx.out.dy > 0.01 || !!S.jump || !!S.pop || S.bed?.phase === 'hop' || !!S.hopOff || (S.state === 'visit' && g.tour.visit?.phase === 'hoop');
     const dHi = paw - hi;
     // (his own things: in his tunnel and in his house there is a roof over him, by design; his cushion is soft)
-    const own = S.state === 'visit' && ['tunnel', 'kennel'].includes(g.tour.visit?.phase), soft = dist(S, g.home.bed) < 0.55;
+    const own = S.state === 'visit' && ['tunnel', 'hoop', 'kennel'].includes(g.tour.visit?.phase), soft = dist(S, g.home.bed) < 0.55;
     if (d < (soft ? -0.035 : -0.0155) && !own) { SF.under.push(row(d, sf.name)); SF.worstUnder = Math.min(SF.worstUnder, d); }
-    else if (dHi > (S.speed > 3 ? 0.11 : S.speed > 0.3 || S.act || g.fx.busy || S.amp > 0.15 ? 0.085 : 0.015) && !air) { SF.over.push(row(dHi, sf.name)); SF.worstOver = Math.max(SF.worstOver, dHi); }
+    else if (dHi - (S.paws ?? 0) > (S.speed > 3 ? 0.11 : S.speed > 0.3 || S.act || g.fx.busy || S.amp > 0.15 ? 0.085 : 0.015) && !air) { SF.over.push(row(dHi, sf.name)); SF.worstOver = Math.max(SF.worstOver, dHi); }
     // his body (nose to rump, 14 cm either way) in a collider's box
     const perched = S.onBench || !!S.hopOff || S.bed?.phase === 'hop';
-    if (!perched && !air) for (const k of [-0.14, 0.14]) { const bx = S.x + Math.sin(S.yaw) * k, bz = S.z + Math.cos(S.yaw) * k; if (hit(bx, bz)) { SF.inside.push(row(k, 'collider')); break; } }
+    if (!perched && !air && !own) for (const k of [-0.14, 0.14]) { const bx = S.x + Math.sin(S.yaw) * k, bz = S.z + Math.cos(S.yaw) * k; if (hit(bx, bz)) { SF.inside.push(row(k, 'collider')); break; } }
   };
   const surfRes = () => ({ n: SF.n, none: SF.none, snaps: SF.snaps.length, firstSnaps: SF.snaps.slice(0, 12), hops: SF.hops, under: SF.under.length, over: SF.over.length, inside: SF.inside.length, worstUnder: +SF.worstUnder.toFixed(3), worstOver: +SF.worstOver.toFixed(3), firstUnder: SF.under.slice(0, 400), firstOver: SF.over.slice(0, 400), firstInside: SF.inside.slice(0, 100) });
   const step = () => {
@@ -259,10 +259,13 @@ const SIM = async (kind) => {
     if (SF.on) probe();
     if (Math.round(t * 30) % 15 === 0) sync();
     if (Math.round(t * 30) % 6 === 0) trail.push([+S.x.toFixed(2), +S.z.toFixed(2)]);
+    if (Math.round(t * 30) % 60 === 0 && t < 200) (window.__trace ??= []).push([Math.round(t), S.state, S.leg, +S.x.toFixed(1), +S.z.toFixed(1), +P.x.toFixed(1), +P.z.toFixed(1)]);
     // (up on the gate's bench, or hopping on or off it, it is over a collider by design)
     const perched = S.onBench || !!S.hopOff || S.bed?.phase === 'hop';
-    if (!W.free(S.x, S.z) && !(S.act?.name === 'circle') && !perched) viol++;
-    if (hit(S.x, S.z) && !perched) wall++;
+    // (through his own tunnel and hoop on purpose: walls to his walk since 2026-10-02, home.js)
+    const through = S.state === 'visit' && ['tunnel', 'hoop'].includes(g.tour.visit?.phase);
+    if (!W.free(S.x, S.z) && !(S.act?.name === 'circle') && !perched && !through) viol++;
+    if (hit(S.x, S.z) && !perched && !through) wall++;
     for (const k in hear) { const v = A.hear[k], d = Math.hypot(P.x - v[0], P.z - v[1]); if (d < hear[k].min) hear[k].min = +d.toFixed(1); if (d <= v[2] && !order.includes(k)) order.push(k); }
     for (const id of S.done) if (!order.includes(id)) order.push(id);
     if (P.z < -5 && P.z > -95 && S.state === 'lead' && S.leg >= kSpine[0] && S.leg <= kSpine[1]) spineOff = Math.max(spineOff, Math.abs(S.x - 50));
@@ -329,6 +332,7 @@ const SIM = async (kind) => {
       cur = null;
     }
   };
+  window.__trace = [];
   const res = { kind, cone: +cone.toFixed(0), home0 };
   SF.on = true;      // (the surface under him is checked in every scenario: the tour, the whistle's ways, at your side after the tour)
 
@@ -340,7 +344,7 @@ const SIM = async (kind) => {
     SF.on = true;
     while (t < 1500) { world.line.service.update(dt); follow(); step(); if (S.state === 'lead' && S.speed > 0.5) { jogSum += S.speed; jogN++; } if (S.state === 'nap' && S.posture > 1.9) break; }
     res.jog = +(jogSum / Math.max(1, jogN)).toFixed(2);
-    res.rows = rows; res.secs = +t.toFixed(0); res.tourM = +S.moved.toFixed(0); res.end = g.state(); res.pstuck = +pstuck.toFixed(1); res.stuck = +stuck.toFixed(1);
+    res.rows = rows; res.secs = +t.toFixed(0); res.tourM = +S.moved.toFixed(0); res.end = g.state(); res.trace = window.__trace.slice(0, 90); res.pstuck = +pstuck.toFixed(1); res.stuck = +stuck.toFixed(1);
     res.hear = hear; res.gateMin = +gateMin.toFixed(1); res.waterCells = waterCells; res.alleyCells = alleyCells; res.plotCells = plotCells; res.sideEntries = sideEntries;
     res.feetLow = feetLow; res.feetWorst = +feetWorst.toFixed(3); res.legs = A.tour.length; res.lastLeg = S.leg;
     res.charges = charges;                      // (through the pigeons, on the shopping street and the plaza)

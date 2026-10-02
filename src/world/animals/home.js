@@ -172,6 +172,7 @@ export function buildHachiHome(town) {
     if (alongX) { run(x0, z0, x1, z0); run(x0, z1, x1, z1); } else { run(x0, z0, x0, z1); run(x1, z0, x1, z1); }
     const n = Math.round((alongX ? x1 - x0 : z1 - z0) / 0.3);
     for (let i = 0; i < n; i++) flower(r.range(x0 + 0.12, x1 - 0.12), 0.08, r.range(z0 + 0.12, z1 - 0.12), r.range(0.16, 0.34));
+    ctx.collide(x0 - 0.05, z0 - 0.05, x1 + 0.05, z1 + 0.05, 0.45);      // (Tan, 2026-10-02: he waded through his things) neither of you through the flowers
   };
   bed(H.x0 + 0.18, zF + 0.9, H.x0 + 0.72, H.z1 - 2.1);                  // the west fence, as far as the sandpit
   bed(H.x0 + 2.2, H.z1 - 0.72, H.x1 - 3.0, H.z1 - 0.18);               // the back, from the sandpit to the cherry
@@ -276,8 +277,8 @@ export function buildHachiHome(town) {
     }
     // inside: a dark floor mat, his cushion, plump and red
     kbox(KW - 0.3, 0.012, KD - 0.3, 0, FLOOR + 0.006, 0, 0x8a6a50);
-    K(blob(0.4, 0.09, 0.34, 14, 8), 0, FLOOR + 0.09, -0.12, 0xd9534a);
-    K(blob(0.3, 0.05, 0.25, 12, 6), 0, FLOOR + 0.15, -0.12, 0xe8736a);
+    K(blob(0.4, 0.05, 0.34, 14, 8), 0, FLOOR + 0.05, -0.12, 0xd9534a);
+    K(blob(0.3, 0.03, 0.25, 12, 6), 0, FLOOR + 0.08, -0.12, 0xe8736a);
     // the gables, and his name on the front one
     for (const sz of [-1, 1]) {
       const s = new THREE.Shape();
@@ -310,6 +311,8 @@ export function buildHachiHome(town) {
     // the ground he stands on in and before it, the walls he can't go through, and you kept out of it altogether
     ctx.platform({ x0: kx - KW / 2 - 0.06, x1: kx + KW / 2 + 0.06, z0: kz - KD / 2 - PORCH, z1: kz + KD / 2, top: y0 + LY + FLOOR });
     ctx.platform({ x0: kx - 0.43, x1: kx + 0.43, z0: kz - KD / 2 - PORCH - 0.26, z1: kz - KD / 2 - PORCH, top: y0 + LY + 0.07 });
+    // (Tan, 2026-10-02: "submerged beneath all the items there") his cushion's top: he stands and turns ON it
+    ctx.platform({ x0: kx - 0.32, x1: kx + 0.32, z0: kz + 0.12 - 0.26, z1: kz + 0.12 + 0.26, top: y0 + LY + FLOOR + 0.1 });
     ctx.collide(kx - KW / 2, kz + KD / 2 - 0.1, kx + KW / 2, kz + KD / 2, y0 + 1.6);
     for (const sx of [-1, 1]) ctx.collide(kx + sx * (KW / 2 - 0.05) - 0.05, kz - KD / 2, kx + sx * (KW / 2 - 0.05) + 0.05, kz + KD / 2, y0 + 1.6);
     petOnly(kx - KW / 2, kz - KD / 2, kx + KW / 2, kz + KD / 2, 1.6);
@@ -328,9 +331,10 @@ export function buildHachiHome(town) {
     }
     // the bed: a round base, a plump bolster round it, a soft middle
     b.add(new THREE.CylinderGeometry(0.47, 0.5, 0.08, 20), { matrix: at(bx, y0 + LY + 0.064, bz), color: 0x4f73a8 });
-    b.add(new THREE.TorusGeometry(0.39, 0.115, 8, 22), { matrix: at(bx, y0 + LY + 0.15, bz, Math.PI / 2), color: (p, n) => (n.y > 0.5 ? 0x7ea0d0 : 0x6388bd) });
-    b.add(blob(0.33, 0.05, 0.33, 14, 6), { matrix: at(bx, y0 + LY + 0.115, bz), color: 0xf6ecd8 });
-    ctx.platform({ x0: bx - 0.3, x1: bx + 0.3, z0: bz - 0.3, z1: bz + 0.3, top: y0 + LY + 0.14 });
+    // (Tan, 2026-10-02: only his head showed over a bolster 12 cm above where he lay) a low bolster, a full middle: he lies ON it
+    b.add(new THREE.TorusGeometry(0.4, 0.07, 8, 22), { matrix: at(bx, y0 + LY + 0.13, bz, Math.PI / 2), color: (p, n) => (n.y > 0.5 ? 0x7ea0d0 : 0x6388bd) });
+    b.add(blob(0.35, 0.06, 0.35, 14, 6), { matrix: at(bx, y0 + LY + 0.13, bz), color: 0xf6ecd8 });
+    ctx.platform({ x0: bx - 0.3, x1: bx + 0.3, z0: bz - 0.3, z1: bz + 0.3, top: y0 + LY + 0.185 });
     // the chew bone, left on the blanket
     const m = at(bx - 0.55, y0 + LY + 0.055, bz - 0.36, 0, 0.7, 0);
     b.add(limb([-0.085, 0, 0], [0.085, 0, 0], 0.022, 0.022, 7), { matrix: m, color: 0xfaf4e6 });
@@ -395,7 +399,7 @@ export function buildHachiHome(town) {
       b.add(shell.clone().scale(-0.96, 1, 0.96), { matrix: at(T.x, y0 + LY, z, -Math.PI / 2), color: i % 2 ? 0xc9a22e : 0x3b6da6 });      // its inside
     }
     for (const z of [T.z0, T.z1]) b.add(new THREE.TorusGeometry(R, 0.03, 6, 14, Math.PI), { matrix: at(T.x, y0 + LY, z), color: 0xf4f1ea });
-    petOnly(T.x - R - 0.02, T.z0, T.x + R + 0.02, T.z1, 0.8);
+    ctx.collide(T.x - R - 0.02, T.z0, T.x + R + 0.02, T.z1, 0.8);      // (he runs THROUGH it end to end, guide.js glide; never across its cloth, nor you)
   }
 
   /* ---- the hoop: a striped ring on two posts; he leaps through it ---- */
@@ -406,7 +410,7 @@ export function buildHachiHome(town) {
       box(0.34, 0.035, 0.1, P.x, LY + 0.0175, P.z + s * (RR + 0.07), 0x4a86c8);
     }
     b.add(new THREE.TorusGeometry(RR, 0.035, 7, 28), { matrix: at(P.x, y0 + LY + RY, P.z, 0, Math.PI / 2, 0), color: (p, n, l) => (Math.floor((Math.atan2(l.y, l.x) + Math.PI) / (Math.PI / 7)) % 2 ? RED : WHITE) });
-    petOnly(P.x - 0.17, P.z - RR - 0.12, P.x + 0.17, P.z + RR + 0.12, 0.9);
+    ctx.collide(P.x - 0.17, P.z - RR - 0.12, P.x + 0.17, P.z + RR + 0.12, 0.9);      // (his leap goes through it; a walk never does)
   }
 
   /* ---- the sandpit: a timber frame, sand, a hole he has been at, a bone half dug up ---- */
@@ -414,6 +418,12 @@ export function buildHachiHome(town) {
     const [sx, sz] = H.sand, W = 1.35, D = 1.15;
     box(W, 0.07, D, sx, LY + 0.035, sz, 0xe9d9a6);
     for (const s of [-1, 1]) { box(W + 0.16, 0.13, 0.08, sx, LY + 0.065, sz + s * (D / 2 + 0.04), WOOD); box(0.08, 0.13, D, sx + s * (W / 2 + 0.04), LY + 0.065, sz, WOOD); }
+    // (his paws on the sand, a hop over its timbers: ctx.js surfaceAt)
+    ctx.platform({ x0: sx - W / 2, x1: sx + W / 2, z0: sz - D / 2, z1: sz + D / 2, top: y0 + LY + 0.07 });
+    for (const s of [-1, 1]) {
+      ctx.platform({ x0: sx - W / 2 - 0.08, x1: sx + W / 2 + 0.08, z0: sz + s * (D / 2 + 0.04) - 0.04, z1: sz + s * (D / 2 + 0.04) + 0.04, top: y0 + LY + 0.13 });
+      ctx.platform({ x0: sx + s * (W / 2 + 0.04) - 0.04, x1: sx + s * (W / 2 + 0.04) + 0.04, z0: sz - D / 2, z1: sz + D / 2, top: y0 + LY + 0.13 });
+    }
     for (const [dx, dz, s] of [[-0.3, 0.2, 1], [0.38, -0.25, 0.8], [-0.1, -0.3, 0.6], [0.25, 0.3, 0.7]]) b.add(blob(0.2 * s, 0.07 * s, 0.17 * s, 9, 5), { matrix: at(sx + dx, y0 + LY + 0.07, sz + dz), color: 0xf0e2b4 });
     b.add(new THREE.CylinderGeometry(0.13, 0.08, 0.02, 10), { matrix: at(sx + 0.05, y0 + LY + 0.071, sz + 0.02), color: 0xcdb983 });
     const m = at(sx + 0.08, y0 + LY + 0.12, sz + 0.02, 0, 0.6, 0.85);

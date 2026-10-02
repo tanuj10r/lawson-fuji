@@ -581,7 +581,10 @@ export function buildMochi(ctx, net, kit, lot) {
      * pounding you stand `back` m off the order stand, the mortar and Hachi before it both in the picture; you step
      * up to it again as the mallets are laid down (the treat, your mochi) */
     {
-      const want = ph === 'show' || (ph === 'enter' && pt > T_ALL - 1.2) ? 1 : 0;
+      // (Tan, 2026-10-02, again: "after payment, the player standing way too close... Hachi's reactions are never seen")
+      // back from the moment you have paid, through the rabbits' entrance, the pounding and Hachi's treat; up to the
+      // stand again only as the turner brings your mochi round
+      const want = ph === 'enter' || ph === 'show' || (ph === 'after' && pt < (order.serveAt ?? 0) + 0.25) ? 1 : 0;
       order.back = (order.back ?? 0) + (want - (order.back ?? 0)) * (1 - Math.exp(-dt * (want ? 2.4 : 3.2)));
       const w = toWorld(OR.at[0] + (OR.side ?? 0) * order.back, OR.at[1] + (OR.back ?? 0) * order.back);   // (and `side` m to the right: the order stand out of the pounders' way)
       player.pos.x = w.x; player.pos.z = w.z;
@@ -592,10 +595,10 @@ export function buildMochi(ctx, net, kit, lot) {
       for (let i = 0; i < 3; i++) if (pt > START[i] - 0.3) { mx += P[i].x; mz += P[i].z; n++; }
       if (n) order.aim.set(mx / n, Y0 + 0.98, mz / n); else order.aim.set(gap + 1.1, Y0 + 1.15, zr);
       const late = ease((pt - T_ALL + 0.6) / 0.8);
-      gaze(player, mix(order.aim.x, ux + 0.24, late), mix(order.aim.y, Y0 + 0.62, late), mix(order.aim.z, uz + 0.2, late), dt, 2.6);
+      gaze(player, mix(order.aim.x, ux + 0.24, late), mix(order.aim.y, Y0 + 0.5, late), mix(order.aim.z, uz + 0.2, late), dt, 2.6);
       return;
     }
-    if (ph === 'show') { gaze(player, ux + 0.24, Y0 + 0.62, uz + 0.2, dt, 2.2); return; }
+    if (ph === 'show') { gaze(player, ux + 0.24, Y0 + 0.5, uz + 0.2, dt, 2.2); return; }
     if (ph !== 'after') return;
 
     /* ---- after the finale ---- */
@@ -626,7 +629,7 @@ export function buildMochi(ctx, net, kit, lot) {
     const feeding = feed && a > T_DOWN - 0.25 && a < order.serveAt + 0.15;
     if (feeding) gaze(player, mix(feed.at[0], P[1].x, 0.42), Y0 + 0.5, mix(feed.at[1], P[1].z, 0.42), dt, 2.6);
     else if (sa < SERVE_SET - 0.9) gaze(player, mix(ux, P[2].x, ease(sa / 0.5)), Y0 + 1.0, mix(uz, P[2].z, ease(sa / 0.5)), dt, 2.4);
-    else if (order.eatT < 0) gaze(player, shop.plate[0] - 0.02, shop.orderTop + 0.24, shop.plate[2] - 0.2, dt, 3.0);
+    else if (order.eatT < 0) gaze(player, shop.plate[0] - 0.04, shop.orderTop + 0.3, shop.plate[2] - 0.3, dt, 3.0);      // (the rabbit's face over the plate: it serves from its step, level with you)
     else gaze(player, STOOL[0] + 0.25, Y0 + 1.2, STOOL[2], dt, 1.8);
 
     /* the mochi: out of a puff onto the turner's paw, round to the stand, onto the plate, yours */

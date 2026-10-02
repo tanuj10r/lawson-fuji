@@ -210,12 +210,11 @@ export function createSelfie({ post }) {
     const photo = { src: shot, w: shot.width, h: shot.height, mirror: false };
     const a = await arts();
     compose(canvas, { ...a, photo });
-    const full = document.createElement('canvas');   // the one that is saved: with the title and the address
-    compose(full, { ...a, photo, brand: true });
-    const blob = await new Promise((ok) => full.toBlob(ok, 'image/jpeg', 0.9));
-    full.width = shot.width = 0;
+    // the one that is saved and shared: the whole postcard with your polaroid in its picture (ui/postcardImage.js)
+    const made = await (await import('./postcardImage.js')).postcardImage({ photo });
+    shot.width = 0;
     forget();
-    file = new File([blob], S.file, { type: 'image/jpeg' });
+    file = made;
     url = URL.createObjectURL(file);
     save.href = url;
     set('done');

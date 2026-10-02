@@ -137,7 +137,7 @@ try {
   s = await st();
   check('Space on the shutter takes the photo and does not walk on; the camera stops at once', s.state === 'done' && !s.live && s.file && s.open && s.tries === 0, s);
   let r = await saveResult('result-1');
-  check('Save image: a 1600x1000 JPEG download', r.w === 1600 && r.h === 1000 && r.type === 'image/jpeg' && /\.jpg$/.test(r.download), r);
+  check('Save image: the whole postcard, a 1600x1240 JPEG download', r.w === 1600 && r.h === 1240 && r.type === 'image/jpeg' && /\.jpg$/.test(r.download), r);
   l = await layout();
   check('taken: the same, Save image first', layoutOk(l) && await page.evaluate(() => document.activeElement?.dataset.sf === 'save'), l);
   await shots('3-taken');
@@ -152,7 +152,7 @@ try {
   await page.click('.sf-panel [data-sf=shot]');
   await until('done');
   r = await saveResult('result-2');
-  check('a second photo', r.w === 1600 && r.h === 1000, r);
+  check('a second photo', r.w === 1600 && r.h === 1240, r);
   await page.click('.sf-panel [data-sf=retake]');
   await until('live');
   await page.keyboard.press('Escape');

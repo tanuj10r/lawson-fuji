@@ -1800,7 +1800,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
   // lands, the foot of his porch, inside his house, his cushion
   const HP = {
     mid: tw(HH.mid[0], HH.mid[1]), bed: tw(HH.bed[0], HH.bed[1]),
-    tunIn: tw(HH.tunnel.x, HH.tunnel.z0 - 0.45), tunOut: tw(HH.tunnel.x, HH.tunnel.z1 + 0.45),
+    tunIn: tw(HH.tunnel.x, HH.tunnel.z0 - 0.8), tunOut: tw(HH.tunnel.x, HH.tunnel.z1 + 0.8),      // (clear of its ends: the tunnel is a wall to his walk now, home.js)
     hoopA: tw(HH.hoop.x - 0.95, HH.hoop.z), hoopB: tw(HH.hoop.x + 0.95, HH.hoop.z),
     porch: tw(HH.kennel[0], HH.kennel[1] - 1.75), door: tw(HH.kennel[0], HH.kennel[1] - 0.95), inside: tw(HH.kennel[0], HH.kennel[1] + 0.1),
   };
@@ -1871,6 +1871,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
         // to his tunnel's mouth at a run, and through it, ears back, low
         if (!v.at) {
           if (dist(G, HP.tunIn) > 0.3 && v.t < 3) { r = move(dt, HP.tunIn, A.run); pose.bound = 0.6; look = 'way'; break; }
+          if (dist(G, HP.tunIn) > 0.7) { next('hoop'); break; }      // (never through its cloth: not at its mouth, no tunnel this time)
           v.at = { x: G.x, z: G.z }; v.t = 0;
         }
         const T = dist(v.at, HP.tunOut) / 4.2;
@@ -2330,6 +2331,17 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
      * once and over, or held up and let down) */
     const gNow = ground(G.x, G.z);
     let base = gNow;
+    /* (Tan, 2026-10-02: "still submerged in the kerb area, between the pavement and the road") the ground was taken
+     * under his middle only: beside a kerb half of him stood inside it.  He stands on the highest thing under his
+     * paws (fore and hind, left and right; a step's height at most: a wall beside him is not under him), eased so
+     * walking along a kerb never snaps. */
+    {
+      const fx = Math.sin(G.yaw) * 0.15, fz = Math.cos(G.yaw) * 0.15, sx = fz * 0.5, sz = -fx * 0.5;
+      let top = gNow;
+      for (const [dx, dz] of [[fx, fz], [-fx, -fz], [sx, sz], [-sx, -sz]]) { const h = ground(G.x + dx, G.z + dz); if (h > top && h - gNow <= 0.3) top = h; }
+      const want = G.jump || G.lift || G.onBench || G.hopOff ? 0 : top - gNow;
+      G.paws = (G.paws ?? 0) + (want - (G.paws ?? 0)) * Math.min(1, dt * 14);
+    }
     if (G.jump) { base = G.jump.y; G.pop = null; }
     else if (!G.lift && !G.onBench && !G.hopOff && G.state !== 'staged') {
       if (G.gy != null && Math.abs(gNow - G.gy) >= JP.min && Math.hypot(G.x - G.lx, G.z - G.lz) < 1.2) G.pop = { t: 0, from: G.base ?? G.gy };
@@ -2343,7 +2355,7 @@ export function buildGuide(ctx, { spots, shadows, core, facing }) {
     // landed: a small squash on his legs
     if (G.landT >= 0) { G.landT += dt; const u = G.landT / JP.squash; if (u >= 1) G.landT = -1; else NOW.crouch = Math.max(NOW.crouch, (G.landK ?? 0.7) * Math.sin(Math.PI * Math.min(1, u * 1.4))); }
     // (`lift`: up on the bench)
-    G.y = base + (G.lift ?? 0) + (G.bob = G.amp * 0.036 * (0.5 + 0.5 * Math.sin(2 * G.ph + 1))) + G.boundA * 0.055 * Math.abs(Math.sin(G.ph)) + G.hop + G.dip;
+    G.y = base + (G.jump ? 0 : (G.paws ?? 0)) + (G.lift ?? 0) + (G.bob = G.amp * 0.036 * (0.5 + 0.5 * Math.sin(2 * G.ph + 1))) + G.boundA * 0.055 * Math.abs(Math.sin(G.ph)) + G.hop + G.dip;
     tickCard(dt);
     // its face and its reactions over the pose (a reaction may be paddling its legs: the stride's phase runs on)
     const X = express(dt, mood(pose, dP), toYou, nodYou, G.state === 'nap' && G.bed?.phase === 'sleep' && dP >= 3);

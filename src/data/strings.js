@@ -140,6 +140,13 @@ export const STRINGS = {
     post: 'Post',
     postAria: 'Post it on X',
     shareText: 'I just walked a little town under Mt. Fuji, in my browser.',
+    save: 'Save postcard',
+    /* the postcard as a picture (ui/postcardImage.js): what Share and Save send */
+    image: {
+      msg: 'Wish you were here. It’s a little town under Mt. Fuji that you walk around in your browser: a konbini, a train, mochi-pounding rabbits, and a shiba called Hachi to show you round.',
+      from: 'From: me, and Hachi the shiba',
+      play: 'Walk it yourself:',
+    },
     follow: 'Follow for the next town.',
     back: 'Back',
     backAria: 'Back to the menu',

@@ -184,7 +184,7 @@ try {
     await page.setViewportSize({ width: 1600, height: 900 });
     await shot(page, 'B-postcard-1600x900');
     await page.setViewportSize({ width: 1280, height: 720 });
-    const pl = await linksOk(page, '.mk-post a');
+    const pl = await linksOk(page, '.mk-post a:not([data-pc="save"])');      // (Save postcard is a download of the card's own picture, not a link out)
     check('postcard links: new tab, noopener, goals; Share, Copy have goals; Back is there', pl.length === 5 && pl.every((l) => l.ok)
       && refs(pl) && /url=https%3A%2F%2Ftakemebacktojapan\.com&/.test(pl.find((l) => /intent/.test(l.href))?.href ?? '')
       && await page.evaluate(() => [...document.querySelectorAll('.mk-post [data-pc=share], .mk-post [data-pc=copy]')].every((b) => !!b.dataset.fastGoal)

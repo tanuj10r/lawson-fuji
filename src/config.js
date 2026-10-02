@@ -825,7 +825,7 @@ export const MOCHI = {
    * (`finale` s: the fresh mochi held up, the bow); a pounder takes Hachi his dried sweet potato if he is watching
    * (`feed` s, your eyes eased to them); the turner brings yours to the plate (`serve` s; `take`: your hand has it;
    * `eat`: store/eat.js eats it); they wave, bow and hop back in (`bye` s before the first leaves). */
-  order: { at: [-0.12, 0.9], back: 1.15, side: 0.55, walk: 1.5, card: 0.6, tap: 1.55, away: 2.15, enter: 2.3, stagger: 0.8, hop: 0.29, finale: 2.4, feed: 3.0, serve: 2.2, take: 2.9, eat: 3.35, bye: 1.9 },
+  order: { at: [-0.12, 0.9], back: 1.75, side: 0.5, walk: 1.5, card: 0.6, tap: 1.55, away: 2.15, enter: 2.3, stagger: 0.8, hop: 0.29, finale: 2.4, feed: 3.0, serve: 2.2, take: 2.9, eat: 3.35, bye: 1.9 },
 };
 
 /* Local sounds (SPEC section 9): anything that belongs to a place is heard
@@ -986,10 +986,13 @@ export const ANIMALS = {
     tour: [
       { id: 'view', x: 0, z: 16.5 },
       { id: 'konbini', x: -2.3, z: 2.3 },
-      { x: -35, z: 8.5, hear: 'walk0' },          // the main road's zebra (kakko), south end (the lane's piyo zebra is heard from here too)
-      { x: -35, z: 19 },                          // its north end
+      /* (Tan, 2026-10-02: "after the Nippon Mart, Hachi takes me to the zebra crossing before... Han... we can cut off
+       * that") straight back over the road by the store's own crossing, then west along the far pavement to the car park */
+      { x: -1, z: 9 },
+      { x: -1, z: 18.6 },
+      { x: -18.3, z: 20.5 },                       // west along the far pavement to the gap in the car park's kerb
       { id: 'han', x: -21.7, z: 23.5 },           // the car park: Han and the RX-7
-      { x: -28.5, z: 20.6 },                      // out of the car park by its west end, the way he came in (a kerb runs along the pavement)
+      { x: -18.3, z: 20.5 },                       // out by the same gap
       { x: -12, z: 19.3 },                        // east along the far pavement, behind the famous view
       { x: 20, z: 19.3 },
       { id: 'mochi', x: 39.2, z: 19.4 },          // ぺったん堂: the rabbits' mochi pounding (world/mochi/)

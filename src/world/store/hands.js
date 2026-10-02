@@ -300,6 +300,27 @@ export const GRIP = {
       A: v(x - (c * edge[0] + s * edge[1]), reach - (-s * edge[0] + c * edge[1]), ZB + back),
     };
   },
+  /* (Tan, 2026-10-02: "during Suica card payments, palms are facing the wrong direction") a card held to tap: the
+   * hand on its thumb side, the back of the hand to the right, the fingers curled in; the card flat between the
+   * thumb's pad (on its face) and the side of the first finger (under it), sticking out ahead of the hand.  You see
+   * the thumb and the knuckles, never the palm. */
+  key({ swing = 0.9, at = [0.024, -0.01] }) {
+    const X = 0.0395;                                        // the card's plane: on the first finger's side
+    const pad = [0.04, 0.022];                               // the thumb's pad (the hand's y, z)
+    // the fingers run up and to the left of the card (`swing` rad from its long side), so the forearm comes in from
+    // the lower right, yours; the pad presses the card `at` (from its centre: toward its near right corner)
+    const c = Math.cos(swing), sn = Math.sin(swing);
+    return {
+      geometry: cached('key', () => rightHandGeometry({
+        curls: CASCADE.map((k) => [1.15 + k, 1.45, 1.0]),
+        thumb: [[0.03, -0.04, 0.01], [0.046, -0.012, 0.014], [0.0505, 0.016, 0.019], [0.0495, pad[0], pad[1] + 0.001]],
+        hold: [X, pad[0], pad[1]], wrist: { dev: 0.05, flex: 0.1 },
+      })),
+      // the card's face is the hand's thumb side; the palm faces away down its length
+      q: basis([0, 0, 1], [-c, sn, 0], [-sn, -c, 0]),
+      A: v(X, pad[0] - (-c * at[0] + sn * at[1]), pad[1] - (-sn * at[0] - c * at[1])),
+    };
+  },
   under({ bottom = -0.03, yaw = 0.2, x = 0 }) {
     const c = Math.cos(yaw), s = Math.sin(yaw);
     return {
@@ -319,7 +340,7 @@ export const HOLDS = {
   onigiri: ['clasp', { t: 0.036, edge: [-0.025, 0], roll: 1.07, x: 0.026 }],             // over its left slope
   wafer: ['clasp', { t: 0.028, edge: [0.022, 0.034], roll: 0.12 }],            // over its top edge, toward its right end
   sando: ['clasp', { t: 0.014, edge: [0.012, 0.06], roll: 0.2, x: 0.024, face: 0.03, back: 0.0375 }],   // a wedge: over its ridge from behind, the thumb on its slope
-  card: ['pinch', { t: 0.0016, hold: [0.024, -0.01], roll: 0.65 }],
+  card: ['key', {}],
   'eat:onigiri': ['clasp', { t: 0.039, edge: [-0.027, -0.012], roll: 1.07, x: 0.026 }],     // as it was carried, a little lower: the top is yours to bite
   'eat:sando': ['clasp', { t: 0.03, edge: [-0.03, -0.02], roll: 1.25, x: 0.02 }],
   'eat:wafer': ['clasp', { t: 0.034, edge: [-0.03, 0.036], roll: 0.12 }],                   // by its wrapper, the bitten end free

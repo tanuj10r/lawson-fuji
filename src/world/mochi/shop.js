@@ -40,7 +40,7 @@ export const Y0 = ROADS.asphaltY + ROADS.kerbH;
 export const USU = { rim: 0.5, bowl: 0.215, dough: 0.47, step: 0.16 };
 /** The display table's top above the stage; the order stand's; the step behind that (a rabbit is a metre tall). */
 export const STAND_H = 0.64;
-export const ORDER = { top: 0.96, w: 0.5, d: 0.32, step: 0.24 };
+export const ORDER = { top: 0.96, w: 0.5, d: 0.32, step: 0.58 };      // (Tan, 2026-10-02: "the rabbit serves the mochi... from under the table": a step high enough that its paws are over the top)
 /** The room behind the counter: its floor above the stage, and how far in the line the rabbits wait on is. */
 export const ROOM = { floor: 0.1, back: 0.76 };
 const W = 9.4, D = 9.2, REC = 1.5, WALL = 2.7, RISE = 1.75, EAVE = 1.0;

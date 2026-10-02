@@ -69,6 +69,7 @@ const POSTCARD_CSS = `
   .mk-post .share > :focus-visible { outline: 3px solid #e59bb0; outline-offset: 2px; }
   .mk-post .share svg { width: 1.2em; height: 1.2em; flex: none; }
   .mk-post .share .no-share { display: none; }
+  .mk-post.sf-on .share [data-pc='save'] { display: none; }      /* (the selfie has its own Save) */
   .mk-post .maker { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 1.2cqw; row-gap: .5cqw;
     margin-top: 1.6cqw; padding-top: 1.5cqw; border-top: 1px dashed #e3d6da; font-size: max(11px, 1.3cqw); }
   .mk-post .maker .mk-face { grid-row: span 2; width: max(36px, 5cqw); height: max(36px, 5cqw); }
@@ -124,12 +125,19 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
     selfieLoad ??= import('./postcardSelfie.js').then(({ createSelfie }) => { selfie = createSelfie({ post: el.querySelector('.mk-post') }); });
     selfieLoad.then(() => { if (api.open) selfie.open(); }).catch(() => { selfieLoad = null; });
   };
-  /* Share: with the selfie postcard's picture where the share sheet takes files, else the link */
+  /* The postcard as a picture (ui/postcardImage.js; Tan, 2026-10-02: what is sent is the whole postcard, not the
+   * site's banner): made when the postcard shows, so it is in hand at the click.  Share sends it (the selfie's own
+   * postcard when one was taken) where the share sheet takes files, else the link; Save downloads it. */
+  let cardFile = null, cardUrl = null, cardLoad = null;
+  const makeCard = () => (cardLoad ??= import('./postcardImage.js').then(({ postcardImage }) => postcardImage()).then((f) => {
+    cardFile = f; cardUrl = URL.createObjectURL(f);
+    el?.querySelector('[data-pc="save"]')?.setAttribute('href', cardUrl);
+  }).catch(() => { cardLoad = null; }));
   const share = () => {
-    const f = selfie?.file;
+    const f = selfie?.file ?? cardFile;
     const withFile = f && navigator.canShare?.({ files: [f] });
     navigator.share?.(withFile ? { files: [f], title: document.title, text: `${P.shareText} ${link}` } : { title: document.title, text: P.shareText, url: link })
-      .then(() => { if (withFile) goal('selfie_shared'); }).catch(() => {});
+      .then(() => { if (withFile && selfie?.file) goal('selfie_shared'); }).catch(() => {});
   };
   const link = MAKER.share;
   const intent = `https://x.com/intent/tweet?text=${encodeURIComponent(P.shareText)}&url=${encodeURIComponent(link)}&via=${MAKER.handle}`;
@@ -152,6 +160,7 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
         <button class="pc-add" type="button" data-pc="selfie">${ICON.camera}<span>${esc(P.selfie.add)}</span></button>
         <div class="share">
           <button class="${navigator.share ? '' : 'no-share'}" type="button" data-pc="share" data-fast-goal="postcard_share">${ICON.share}<span>${esc(P.share)}</span></button>
+          <a class="${navigator.share ? 'no-share' : ''}" data-pc="save" download="${esc(P.selfie.file)}" data-fast-goal="postcard_save">${ICON.share}<span>${esc(P.save)}</span></a>
           <button type="button" data-pc="copy" data-fast-goal="postcard_copy">${ICON.link}<span>${esc(P.copy)}</span></button>
           <a href="${esc(intent)}" target="_blank" rel="noopener" data-fast-goal="postcard_post" aria-label="${esc(P.postAria)}">${ICON.x}<span>${esc(P.post)}</span></a>
         </div>
@@ -207,6 +216,7 @@ export function createPostcard({ touch = false, onMenu = () => {} } = {}) {
       requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
       window.addEventListener('keydown', onKey, true);
       if (!again) try { window.datafast?.('postcard_shown'); } catch { /* analytics never in the way */ }
+      makeCard();
       requestAnimationFrame(() => el.querySelector('.mk-post:not(.sf-on) .pc-add, .share > :not(.no-share)')?.focus({ preventScroll: true }));
     },
     hide() {

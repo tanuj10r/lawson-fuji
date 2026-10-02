@@ -94,11 +94,12 @@ export const STRINGS = {
       mochi: { en: 'Mochi pounding', jp: 'もちつき' },
     },
   },
-  /* ぺったん堂, the mochi-pounding shop (world/mochi/): the E prompt on its ring, and the toast once you've eaten */
+  /* ぺったん堂, the mochi-pounding shop (world/mochi/): the E prompt on its ring, the toast as your card taps, and the one once you've eaten */
   mochi: {
     name: 'Mochi pounding',
     jp: 'もちつき',
-    buy: (yen) => `Buy a mochi  ¥${yen}`,
+    buy: (yen) => `Order a mochi  ¥${yen}`,
+    paid: (yen) => `Paid  ¥${yen}`,
     ate: 'Still warm. Step back onto the highlight for another',
   },
   /* The konbini (Tan's experience): English only; product names come from

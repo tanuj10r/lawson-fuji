@@ -35,9 +35,9 @@ const O = { frames: +opt('frames', 12), step: +opt('step', 0.0002), thr: +opt('t
 const MAX = +opt('max', 12);
 /* What is still left (2026-10-02, DECISIONS.md): each pose's allowance, a little over what it measures now, so the
  * check passes on today's tree and fails on anything new.  Mostly things 50-140 m off (a shopfront from the pond,
- * a pole, a signpost), ぺったん堂's walls (another builder's), a house's eaves. */
+ * a pole, a signpost), a house's eaves (ぺったん堂's corner posts no longer lie in its walls' planes: the car park's pose is clean, the main road's is left with two far roofs). */
 const KNOWN = {
-  'pond-rail': 110, 'town-main-west': 100, 'town-spine-north': 80, 'carpark-paint': 50, 'tour-crossing': 45, 'town-lane-junction': 40,
+  'pond-rail': 110, 'town-main-west': 30, 'town-spine-north': 80, 'tour-crossing': 45, 'town-lane-junction': 40,
   'main-shops-west': 35, 'train-poke-front': 25, 'tour-walk2': 25, 'donki-street': 22, 'tour-konbini': 20,
   'bus-stop': 20,      // (the barber's gable behind the shelter, 14 m off: 16; the bus stop itself is clean)
 };

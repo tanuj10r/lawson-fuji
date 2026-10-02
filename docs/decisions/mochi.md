@@ -115,3 +115,78 @@ paint). Before/after frames: the report.
 - Checks: _mochi all pass; _guide 13; _hachi 12 (one run: "after the tour ... on offer" failed while he was mid-zoomie,
   passed on the rerun); _konbini 9; _play 20; _audio all; _maker 37; _selfie 23; hero guard 0.336 / 0.130 / 0.094 %;
   build; size 5.06 MB (budget 5.25), 1.65 MB before the first click.
+
+## The rework after Tan's play-test (2026-10-02)
+Tan: the new hand looked diseased, walking up started the rabbits and the music by itself, the purchase was a mess,
+"the mochi looks like shit; eating it looks worse", and Hachi's treat was hidden.  What above this line says about the
+show playing while you are near, the serving stand's reader and plate, the thrown treat, the phase-2 hand and the
+`onTopClamped` fix is superseded by this section.
+
+- **The hand is the old one again**, byte for byte (`store/hands.js` = d64e1aa^'s; the API was already the same).  No
+  new procedural hand: Tan is choosing a model separately.  `store/figure.js` `onTopClamped` is back as it was at
+  f119d6f (its replace never matched, so what you carry is not clamped on top and the fingers lie over it): with the
+  fix the can hid the fingers, and the brief was that the konbini's frames match those before the mochi merge.  They
+  do (pair sheets, five items, carried / paying / eating).
+- **Quiet until you order.**  Nothing plays or sounds on approach.  The rabbits wait behind the shop's counter, ducked
+  so only their ears show; within `MOCHI.near` one at a time peeks at you.  The two mallets rest in the mortar (one
+  instanced mesh, each lying exactly where its pounder's own would at the blow, so taking it up is one hand-over: the
+  rig's role became a pose number).  The sound label shows when the recording starts (the one-shot is only ever
+  started by an order), never on approach; the check asserts both.
+- **The order** (E on the ring, "Order a mochi  ¥200"; `MOCHI.order`): pay, enter, show, after, bye.  You are walked
+  the step to the order stand (at most 1.4 s, eased) and held for the order as the konbini holds you (about 35 s; your
+  eyes are eased from one thing to the next, never cut).  You are free again as they wave; the ring returns
+  `MOCHI.rest` s after the last one is back in.
+- **The order stand** is new: a slim cabinet at the stage's edge by the ring, with the reader (tipped to you) and the
+  plate, and a step behind it for the turner (a rabbit is a metre tall).  The old low table is now only the display
+  (tray, price card, the dogs' jar) and moved left out of the rabbits' way.  A hand cannot reach a low table 2 m off,
+  which is what made the old purchase a glide and a lunge.
+- **The card** is our own plane and material in the mochi module (320 x 200, the konbini's Fujica drawn larger), held
+  above the fingertips where it is read, clamped on top like the hand so the two sort.  Up, held still 0.6 s, onto the
+  reader (the konbini's ka-ching, the reader's ring green, "Paid ¥200"), away.
+- **The entrance**: out by the counter's end one by one (the right pounder, the left, the turner), a hop a leg, a bow
+  each to you; then the pounders take up the mallets and the recording starts.  The show itself (the cue table, the
+  audio clock) is unchanged.
+- **Hachi's treat in view.**  He sits before the mortar on your right (`MOCHI.hachi`), and after the finale the right
+  pounder lays its mallet down, hops to his far side with the dried sweet potato in its paw and holds it out; your
+  eyes are eased down to the two of them for that beat (2 s) and on to the stand as the turner arrives.  Nothing is
+  thrown.  The slice is twice the size it was, to read.  Only the existing hooks: `watchShow` (its `at` is the rabbit
+  while he is fed, so he turns to it), `showCue('treat' / 'catch')`, `where`.
+- **The serving**: the turner's fresh white lump becomes yours in a puff (a dressed mochi in its paper cup), it hops
+  round the left pounder to the step behind the stand, sets it on the plate, bows, and watches you eat.
+- **The mochi** (food.js, remade): form in geometry (7,400 triangles: a soft superellipsoid with an uneven outline and
+  a sag over its paper cup, a lofted strawberry pressed in tip-down and leaning to you, seven calyx leaves and the
+  stem, a ruff of cream, the pleated cup), fine things in its own fragment shader so they are crisp at any size (the
+  dusting's speckle, the seeds in their dimples, the highlight and sheen, the leaves' veins, the cup's line, what a
+  bite shows).  The highlight is painted, not measured: the strawberry leans to you, so a true one hides under its
+  leaves; its light is brought down and toward you.
+- **Bites are clean cuts**: every surface is clipped against the bite's balls (two or three a bite, for a scalloped
+  edge) and the balls' own surface inside the food is the cut face, coloured from how deep it is in what: the mochi's
+  pale skin, white bean paste, cream, the strawberry's rind, flesh and heart.  The first bite draws a ribbon of mochi
+  from the bite's rim down toward your mouth (off the bottom of the frame): it thins, sags, snaps, and the food's end
+  springs back.  A few flecks of the dusting fall at each bite.
+- **store/eat.js** gained only what the mochi's recipe asks: `seat`, `turn`, `bites`, `win`, `per`, `wrapped`, `fx`
+  (the food's own extras: `frame`, `puff`, `end`); the konbini's four foods pass none and eat as before.
+- **The paper cup** is not bitten (you eat down to it; it goes with the last of it, as the wafer's wrapper does).
+- Still plain: the turner's finale lump is the rig's white ball, small in the frame; Hachi does not turn his body to
+  the rabbit until it arrives; the stage is in the eave's shade by day, so the white rabbits read lavender there.
+
+### Numbers after the rework (dev build, 1280x720, at the order stand)
+- the show: 5 draw calls, 9,756 triangles (three rabbits 8,448; dough, steam, shadows, the two mallets); quiet, the
+  same meshes are drawn (the rabbits are behind the counter), so the main pass is 151 calls either way (153 before)
+- the mochi 7,388 triangles while it is on the plate or in your hand; the three on the tray 5,196 in one mesh (the
+  old two were 1,120: the seeds and speckle are shader now, the form is what costs); the house and stage 2,544, static
+- textures: one more canvas (your card, 320 x 200, made at the first order) and the order sign (128 x 128, in the
+  town's atlas; its pages are unchanged, 4096x4096 + 4096x1520); renderer textures 168
+- heap 303-318 MB after a full order in the dev build; frame 4.3-6.2 ms quiet or with the show on (headless, the
+  machine shared with other runs: 8-11 ms when it was busy)
+- building the three eating stages (the clipping) happens once, at the first order's key press
+- download: 5.08 MB in all after merging main (budget 5.25), 1.67 MB before the first click (5.07 on this branch before the merge; 5.06 / 1.65 before the rework)
+- checks, after merging main (Han's drift, Hachi's hops, the z-fighting sweep): _mochi all pass (quiet on the ring;
+  one order start to end with the card in view, the show once and only after paying, Hachi sat, fed in view and
+  sneezing, three bites, the ring back; cues against the file; pause; local); _konbini 9; _play 20; _guide 14;
+  _audio 22, all passed; build
+- **Z-fighting** (the sweep's two poses of this house): the corner posts' outer faces lay in the flank walls' planes
+  and the back posts' in the back wall's; they stand 2.5 cm and 2 cm proud now.  `carpark-paint` 40 -> 0 solid
+  flickering pixels (its allowance removed), `town-main-west` 87 -> 18 (what is left there is two far houses' roofs,
+  not this building; allowance 100 -> 30).
+

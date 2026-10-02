@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Body, loft, blob, at, smooth } from '../animals/shapes.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /* ------------------------------------------------------------------ *
  * The moon rabbits of ぺったん堂 (月の兎; Tan: "three adorable white moon
@@ -17,7 +18,10 @@ import { Body, loft, blob, at, smooth } from '../animals/shapes.js';
  * Authored facing +z, 0.81 m to the top of the head (the instance scales
  * it), feet on y 0.  All three share the geometry: the pounders hold the
  * mallet (杵) in both paws; the turner's is folded away (scaled to nothing)
- * and its arms move free.
+ * and its arms move free.  The role is a pose number, so a pounder can let go
+ * of its mallet (it hops out with free paws and takes the mallet up at the
+ * mortar: `malletGeometry` is the same mallet as a thing of its own, for
+ * while nobody holds it, and `malletMatrix` puts it where a rabbit's would be).
  *
  * Parts: 0 body and feet  1 head and headband  2/3 ears (l/r)  4/5 arms (l/r)
  *        6 the mallet  7 tail  8 the headband's tails  9 the mochi the turner holds up
@@ -173,6 +177,30 @@ export function rabbitGeometry() {
   // every instance moves well outside the geometry's own box (the mallet over its head, a jump)
   g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0.6, 0.1), 1.2);
   return g;
+}
+
+/** The mallet alone, in a rabbit's own frame exactly where its rig holds it (level in front), vertex-coloured. */
+export function malletGeometry() {
+  const col = new THREE.Color();
+  const paint = (g, f) => {
+    const P = g.attributes.position, N = g.attributes.normal, c = new Float32Array(P.count * 3);
+    for (let i = 0; i < P.count; i++) { col.set(f(N.getY(i))); c[i * 3] = col.r; c[i * 3 + 1] = col.g; c[i * 3 + 2] = col.b; }
+    g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+    return g;
+  };
+  const handle = paint(new THREE.CylinderGeometry(0.015, 0.015, 0.62, 6).rotateX(Math.PI / 2).translate(0, SH[1] - 0.004, SH[2] + 0.43), () => WOOD_D);
+  const head = paint(new THREE.CylinderGeometry(KR, KR * 0.94, KHALF * 2, 10), (ny) => (Math.abs(ny) > 0.5 ? 0xe2c79a : WOOD)).translate(KH[0], KH[1], KH[2]);
+  const g = mergeGeometries([handle, head], false);
+  g.computeBoundingSphere();
+  return g;
+}
+/** Where the rig puts the mallet of a rabbit standing at (x, y, z), turned `yaw`, `scale` big, for a swing and a lean. */
+const _T = new THREE.Matrix4(), _R = new THREE.Matrix4();
+export function malletMatrix(out, x, y, z, yaw, scale, swing, lean) {
+  out.makeTranslation(x, y, z).multiply(_R.makeRotationY(yaw)).multiply(_T.makeScale(scale, scale, scale));
+  out.multiply(_T.makeTranslation(HP[0], HP[1], HP[2])).multiply(_R.makeRotationX(lean)).multiply(_T.makeTranslation(-HP[0], -HP[1], -HP[2]));
+  out.multiply(_T.makeTranslation(SH[0], SH[1], SH[2])).multiply(_R.makeRotationX(swing)).multiply(_T.makeTranslation(-SH[0], -SH[1], -SH[2]));
+  return out;
 }
 
 /* The rig.  Order: the arms and the mallet about the shoulders; the ears and

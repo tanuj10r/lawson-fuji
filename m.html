@@ -187,9 +187,9 @@
   /* the corner map (ui/minimap.js): small, top left; hud.js lays its button over it (tap: the whole map) */
   .minimap { left: var(--edge-l) !important; top: var(--edge-t) !important; right: auto !important; bottom: auto !important;
     width: var(--map) !important; height: var(--map) !important; z-index: 5 !important; }
-  /* the whole map: drawn larger than the screen (shell.js drawMap) and panned with a finger */
+  /* the whole map: the whole sheet inside the screen (shell.js drawMap), a tap closes it */
   .fullmap { background: rgba(24,20,38,.72) !important; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-    align-items: flex-start !important; justify-content: flex-start !important; overflow: auto; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    align-items: center !important; justify-content: center !important; overflow: hidden; touch-action: none;
     padding: max(8px, var(--safe-t)) max(8px, var(--safe-r)) max(8px, var(--safe-b)) max(8px, var(--safe-l)); }
   .fullmap.hidden { visibility: hidden; }
   .fullmap canvas { flex: none; margin: auto; max-width: none !important; max-height: none !important; }

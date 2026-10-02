@@ -149,16 +149,20 @@ export function createMinimap(world) {
   }
 
   /* ---- the full map, drawn in CSS px (u device px each, a touch larger on a big screen) ---- */
-  function drawFull(pos, yaw) {
+  /* `simple` (the phone, Tan 2026-10-02: "a simpler map with less text"): the whole sheet inside `fit` (CSS px), no
+   * cartouche, rose or scale bar; one short English line a place, the things to do first, and a label that has no
+   * clear place is left out rather than laid over another */
+  function drawFull(pos, yaw, { simple = false, fit = null } = {}) {
     const src = art.canvas;
-    const scale = Math.min((window.innerWidth * 0.92) / src.width, (window.innerHeight * 0.92) / src.height) * dpr;
+    const fw0 = fit?.w ?? window.innerWidth * 0.92, fh0 = fit?.h ?? window.innerHeight * 0.92;
+    const scale = Math.min(fw0 / src.width, fh0 / src.height) * dpr;
     const DW = Math.round(src.width * scale), DH = Math.round(src.height * scale);
     full.width = DW; full.height = DH;
     full.style.width = DW / dpr + 'px'; full.style.height = DH / dpr + 'px';
     const c = full.getContext('2d');
     c.imageSmoothingQuality = 'high';
     c.drawImage(src, 0, 0, DW, DH);
-    const u = dpr * Math.max(0.8, Math.min(1.15, DH / dpr / 900));
+    const u = simple ? dpr : dpr * Math.max(0.8, Math.min(1.15, DH / dpr / 900));
     c.setTransform(u, 0, 0, u, 0, 0);
     const W = DW / u, H = DH / u, k = scale / u;
     const P = (x, z) => art.toPx(x, z).map((v) => v * k);
@@ -169,7 +173,7 @@ export function createMinimap(world) {
     c.strokeStyle = 'rgba(70,62,86,0.55)'; c.lineWidth = 1.6; c.strokeRect(9, 9, W - 18, H - 18);
     c.strokeStyle = 'rgba(70,62,86,0.35)'; c.lineWidth = 0.7; c.strokeRect(13, 13, W - 26, H - 26);
 
-    const r = 12, gr = 8;
+    const r = simple ? 10 : 12, gr = simple ? 6.5 : 8;
     const [ux, uy] = P(pos.x, pos.z);
     // the furniture first, so labels keep clear of it: the title cartouche, the rose, the foot
     const M = STRINGS.map;
@@ -180,16 +184,18 @@ export function createMinimap(world) {
     const kw = 72 + c.measureText(M.todo).width + c.measureText(M.hear).width;
     font(11); const cw = c.measureText(M.close).width + 16;
     const kx = W - 24 - cw - 10 - kw, ky = H - 49;
-    const taken = [[24, 24, 24 + tw, 86], [W - 104, 12, W - 20, 112], [24, H - 58, 24 + fw, H - 24], [kx, ky, W - 20, H - 20], [ux - 34, uy - 44, ux + 34, uy + 16]];
+    const taken = simple ? [[kx, ky, W - 20, H - 20], [ux - 34, uy - 44, ux + 34, uy + 16]]
+      : [[24, 24, 24 + tw, 86], [W - 104, 12, W - 20, 112], [24, H - 58, 24 + fw, H - 24], [kx, ky, W - 20, H - 20], [ux - 34, uy - 44, ux + 34, uy + 16]];
     // (a label never runs off the sheet: Hachi's home sits by its top edge)
     const hits = (b) => b[0] < 16 || b[1] < 16 || b[2] > W - 16 || b[3] > H - 16 || taken.some((t) => b[0] < t[2] && b[2] > t[0] && b[1] < t[3] && b[3] > t[1]);
     const icons = art.places.map((p) => { const [x, y] = P(p.w.x, p.w.z); taken.push([x - r, y - r, x + r, y + r]); return { p, x, y, r, exp: p.exp }; });
     // the marks: placed first so no label covers them, drawn last, on top
     const gems = placeGems(spots(), P, icons, gr);
     for (const [x, y] of gems) taken.push([x - gr, y - gr, x + gr, y + gr]);
-    for (const { p, x, y } of icons) {
-      font(13, 'bold '); const w1 = c.measureText(p.en).width;
-      font(10.5); const bw = Math.max(w1, c.measureText(p.jp).width) + 14, bh = 33, g = 5;
+    for (const { p, x, y } of simple ? [...icons].sort((a, b) => !!b.exp - !!a.exp) : icons) {
+      const en = simple ? (p.short ?? p.en) : p.en;
+      font(simple ? 11 : 13, 'bold '); const w1 = c.measureText(en).width;
+      font(10.5); const bw = (simple ? w1 : Math.max(w1, c.measureText(p.jp).width)) + (simple ? 10 : 14), bh = simple ? 18 : 33, g = simple ? 3 : 5;
       const tries = [
         [x + r + g, y - bh / 2], [x - r - g - bw, y - bh / 2],
         [x - bw / 2, y + r + g], [x - bw / 2, y - r - g - bh],
@@ -199,9 +205,12 @@ export function createMinimap(world) {
       // (what it covers, and four times whatever of it would run off the sheet)
       const off = (a, b) => bw * bh - Math.max(0, Math.min(a + bw, W - 16) - Math.max(a, 16)) * Math.max(0, Math.min(b + bh, H - 16) - Math.max(b, 16));
       const over = ([a, b]) => 4 * off(a, b) + taken.reduce((sum, t) => sum + Math.max(0, Math.min(a + bw, t[2]) - Math.max(a, t[0])) * Math.max(0, Math.min(b + bh, t[3]) - Math.max(b, t[1])), 0);
-      const [bx, by] = tries.find(([a, b]) => !hits([a, b, a + bw, b + bh])) ?? tries.reduce((best, t) => (over(t) < over(best) ? t : best));
+      const clear = tries.find(([a, b]) => !hits([a, b, a + bw, b + bh]));
+      if (simple && !clear) continue;
+      const [bx, by] = clear ?? tries.reduce((best, t) => (over(t) < over(best) ? t : best));
       taken.push([bx, by, bx + bw, by + bh]);
       chip(c, bx, by, bw, bh);
+      if (simple) { font(11, 'bold '); text(en, bx + 5, by + 9.5, INK); continue; }
       font(13, 'bold '); text(p.en, bx + 7, by + 11.5, INK);
       font(10.5); text(p.jp, bx + 7, by + 24, INK_SOFT);
     }
@@ -218,6 +227,7 @@ export function createMinimap(world) {
     c.fillStyle = '#e8453f'; c.beginPath(); c.roundRect(ux - hw, uy - 40, hw * 2, 19, 9.5); c.fill();
     text(M.here, ux, uy - 30, '#ffffff', 'center');
 
+    if (!simple) {
     // the title cartouche: a plate with a double rule
     chip(c, 24, 24, tw, 62);
     c.strokeStyle = LINE; c.beginPath(); c.roundRect(28, 28, tw - 8, 54, 4); c.stroke();
@@ -247,8 +257,10 @@ export function createMinimap(world) {
     font(10.5);
     text('0', 36, fy + 20, INK_SOFT, 'center', 'top'); text('25', 36 + seg, fy + 20, INK_SOFT, 'center', 'top');
     text(M.scale(50), 30 + seg * 2, fy + 20, INK_SOFT, 'left', 'top');
+    }
 
     // the key to the marks: a diamond to do, a speaker to hear
+    font(10.5);
     chip(c, kx, ky, kw, 28);
     drawGem(c, kx + 16, ky + 14, 7);
     text(M.todo, kx + 28, ky + 14.5, INK);
@@ -290,9 +302,9 @@ export function createMinimap(world) {
       last = { x: NaN, z: NaN, yaw: NaN };
     },
     get fullOpen() { return fullOpen; },
-    setFull(open, pos, yaw) {
+    setFull(open, pos, yaw, opts) {
       fullOpen = open;
-      if (open) drawFull(pos, yaw);
+      if (open) drawFull(pos, yaw, opts);
       corner.style.visibility = open ? 'hidden' : '';
       fullWrap.classList.toggle('hidden', !open);
     },

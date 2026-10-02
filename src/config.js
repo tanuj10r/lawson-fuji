@@ -57,7 +57,7 @@ export const MAKER = {
   ref: 'takemebacktojapan',
   handle: 'tanuj10r',                     // the X share's "via"
   share: 'https://takemebacktojapan.com', // what the postcard shares (the canonical address, never a local one)
-  postcardAfter: 1.0,                     // s after Hachi has hopped up onto his bench at the gate (his happy bit begun) before the postcard comes
+  postcardAfter: 0.6,                     // s after Hachi's happy bit on his bench at the gate is over and he has settled, before the postcard comes
 };
 export const DEFAULT_VOLUME = 50;                      // 30% of full scale: the level Tan liked
 
@@ -1043,8 +1043,7 @@ export const ANIMALS = {
     hear: { walk0: [-35, 13.8, 14], walk1: [50, -5, 14], walk2: [50, -75, 14], walk3: [-30, 1.5, 14], donki: [55.9, -41.4, 12], station: [51, -125.5, 14], crossing: [80, -134.3, 10], shrine: [-13, -64.4, 14] },   // each sound place and how near the tour must pass (m)
     nap: [28.45, -37.75],                     // town frame: in front of the gate's bench (TOWN.land.gateBench), the tour's last stop: it hops up from here and sleeps on it once everything is done
     /* the bedtime on the bench (s from landing on it): a play bow at you, a happy spin, a roll belly-up, a sit and a
-     * head tilt, two slow circles, and down, curled up; `onTourEnd` (the postcard) fires as it lands on the seat,
-     * `onNap` once it is settled */
+     * head tilt, two slow circles, and down, curled up; `onNap` and `onTourEnd` (the postcard) fire once it is settled */
     bedtime: { hop: 0.5, bow: [0.35, 1.6], spin: [1.6, 2.5], roll: [2.5, 4.6], sit: [4.6, 5.6], circle: [5.6, 7.3], settle: 8.0 },
   },
   butterflies: { size: 1.15, beatHz: 9, speed: 0.9, near: 45, shy: 1.0 },

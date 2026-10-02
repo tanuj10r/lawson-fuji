@@ -80,9 +80,11 @@ try {
   const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });
   page.on('pageerror', (e) => console.log('  [page error]', e.message));
   await page.setContent('<!doctype html><html><body></body></html>');
-  const out = await page.evaluate(async ([share, artUrl, svgUrl, fontUrl, MAX, title, titleJp, place, url]) => {
+  const out = await page.evaluate(async ([share, artUrl, svgUrl, fontUrl, MAX, title, titleJp, place, url, titleFontUrl]) => {
     const font = new FontFace('NF Round', `url(${fontUrl})`);
     document.fonts.add(await font.load());
+    // the title's own face (M PLUS Rounded Bold, public/title.woff2), as on the cards
+    document.fonts.add(await new FontFace('TMBJ Title', `url(${titleFontUrl})`, { weight: '700' }).load());
     const load = async (src) => { const i = new Image(); i.src = src; await i.decode(); return i; };
     const svg = await load(svgUrl);
     const canvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; };
@@ -101,11 +103,10 @@ try {
     for (const n of [16, 32, 48, 192, 512]) res[`icon${n}`] = icon(n);
     res.apple = icon(180, '#fbf6f0', 0.86);
 
-    /* share images: the key art, the title as on the start card (serif, the
+    /* share images: the key art, the title as on the start card (its round face, the
      * place line, the Japanese line with its sakura rule), the emblem, the URL */
     const art = await load(artUrl);
     const paper = '#fbf6f0', ink = '#2a2140';
-    const serif = `'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif`;
     const round = `'NF Round', 'Hiragino Maru Gothic ProN', sans-serif`;
     for (const s of share) {
       const [c, x] = canvas(s.w, s.h);
@@ -148,7 +149,7 @@ try {
       spaced(place.toUpperCase(), tx + (square ? 0.16 * U : 0), y, 0.32 * U);
       y += (square ? 7.2 : 5.6) * U;
       x.fillStyle = ink;
-      x.font = `600 ${(square ? 7.2 : 5.0) * U}px ${serif}`;
+      x.font = `700 ${(square ? 6.9 : 4.8) * U}px 'TMBJ Title', ${round}`;
       x.shadowColor = 'rgba(255,240,236,0.7)'; x.shadowBlur = 0.5 * U; x.shadowOffsetY = 1;
       x.fillText(title, tx, y);
       x.shadowColor = 'transparent'; x.shadowBlur = 0;
@@ -180,7 +181,8 @@ try {
     return res;
   }, [SHARE, dataUrl(MASTER, 'image/png'), dataUrl(path.join(PUB, 'favicon.svg'), 'image/svg+xml'),
     dataUrl(path.join(ROOT, 'src/assets/fonts/round.woff2'), 'font/woff2'), MAX,
-    'Take Me Back to Japan', '日本へ、もう一度', 'Fujikawaguchikko · 富士川口湖町', 'takemebacktojapan.com']);
+    'Take Me Back to Japan', '日本へ、もう一度', 'Fujikawaguchikko · 富士川口湖町', 'takemebacktojapan.com',
+    dataUrl(path.join(PUB, 'title.woff2'), 'font/woff2')]);
 
   const sizes = {};
   const put = (name, data) => { sizes[name] = write(path.join(PUB, name), data).length; };

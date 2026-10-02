@@ -125,7 +125,7 @@ function compose(canvas, { bg, dog, photo, brand = false }) {
   x.fillText(STRINGS.postcard.title.toUpperCase(), W - 58, 100);
   if ('letterSpacing' in x) x.letterSpacing = '0px';
   x.fillStyle = INK;
-  x.font = "600 70px 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif";
+  x.font = "700 66px 'TMBJ Title', 'Hiragino Maru Gothic ProN', 'Arial Rounded MT Bold', system-ui, sans-serif";   // (the cards' title face)
   x.fillText(STRINGS.title, W - 56, 176);
   const url = MAKER.share.replace(/^https?:\/\//, '');
   x.font = "700 28px -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif";
@@ -141,6 +141,7 @@ function compose(canvas, { bg, dog, photo, brand = false }) {
  * postcard calls it when it is put away); `file`: the picture once taken, for the share sheet.
  */
 export function createSelfie({ post }) {
+  document.fonts?.load?.("700 66px 'TMBJ Title'");          // the saved picture's title face, ready before the shot
   const style = document.createElement('style');
   style.textContent = CSS;
   document.head.appendChild(style);

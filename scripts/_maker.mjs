@@ -166,10 +166,15 @@ try {
     await page.click('.mk-post .pc-back');
     s = await pc();
     check('before the tour: Back returns to the pause card, the little postcard still there', !s.open && s.card && s.mini, s);
+    // seen from the pause card already: Hachi settling brings no second card, and the tour may be offered again at once
     await lockAs(true);
+    check('postcard: seen from the pause card, the tour\'s end brings no second card and the tour is on offer', await page.evaluate(async () => { window.__postcard.nap(); await new Promise((r) => setTimeout(r, 300)); return window.__postcard.pending() === -1 && !window.__postcard.card.open && window.__postcard.gate(); }));
+    // not seen yet (a fresh page load's state): no tour again before the card, nor while it is due
+    await page.evaluate(() => window.__postcard.forget());
+    check('tour again: not on offer before the postcard has been up', await page.evaluate(() => !window.__postcard.gate()));
     await page.evaluate(() => window.__postcard.nap());
     await page.waitForFunction(() => window.__postcard.pending() > 0 || window.__postcard.card?.open, null, { timeout: 10000 }).catch(() => {});
-    check("postcard: Hachi's nap loads it and sets it due", await page.evaluate(() => !!window.__postcard.card));
+    check("postcard: Hachi settled after his bit loads it and sets it due (0.6 s); the tour is not on offer meanwhile", await page.evaluate(() => !!window.__postcard.card && !window.__postcard.gate()));
     await page.waitForFunction(() => window.__postcard.card?.open, null, { timeout: 15000 }).catch(() => {});
     await lockAs(false);                 // what document.exitPointerLock brings
     await page.waitForTimeout(700);
@@ -203,6 +208,7 @@ try {
     s = await pc();
     check('postcard: a click outside goes back to the pause card, not the walk', !s.open && s.card && !s.hold && await tries() === t2, s);
     check('pause card: the little postcard is there, glowing', s.mini && s.glow, s);
+    check('tour again: on offer once the postcard has been up and put away', await page.evaluate(() => window.__postcard.gate()));
     // the little postcard opens it again; Back returns to the pause card
     await openMini();
     s = await pc();

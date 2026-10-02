@@ -58,7 +58,7 @@ Never edit src/ while a shots run is going (the dev server reloads).
 Never leave a Chrome or dev server running.
 
 ## Rules
-- No people. No Sakura Crossing names. No real brands.
+- No people. Every name is our own (npm run check:names). No real brands.
 - Japanese in the world only; UI text in src/data/strings.js.
 - Tunables in src/config.js blocks made for you (ask for new ones).
 - Log judgement calls in docs/decisions/<area>.md (short entries).

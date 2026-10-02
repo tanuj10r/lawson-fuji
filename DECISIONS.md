@@ -34,7 +34,7 @@ Judgement calls, newest milestone last.
   the train, the corner shop, and the houses, poles, wires, sakura, props and
   cat around the crossing.
 - **Deferred to M2:** the shop fascia (青空商店) and the station and poster
-  signs (ひばり台) still show Sakura Crossing names. M2's acceptance list
+  signs (ひばり台) still show names that are not ours. M2's acceptance list
   covers renaming them.
 - **Title card:** renamed to the game's own title (then a working title; since
   Take Me Back to Japan) with minimal text, and the Chinese
@@ -46,17 +46,17 @@ Judgement calls, newest milestone last.
   of `MeshToonMaterial` (from `toon.js`, inherited), and a 404 for
   `/favicon.ico`, which the page does not declare.
 
-## M0 correction (Tan): nothing of Sakura Crossing's world may show
+## M0 correction (Tan): the world starts empty
 
 - **Empty world.** `main.js` now builds the world from our own `src/world/town.js`,
-  which places only a flat ground plane (±1200 m) under the sky. Nothing from
-  Sakura Crossing is placed: no crossing, train, street, houses, poles, trees,
+  which places only a flat ground plane (±1200 m) under the sky. Nothing else
+  is placed: no crossing, train, street, houses, poles, trees,
   petals or props. SPEC M0's acceptance list and AGENTS.md were updated to
   match.
-- **Parts library.** Sakura Crossing's remaining modules in `src/world` (street,
+- **Base modules.** The remaining base modules in `src/world` (street,
   railway, train, shop, buildings, trees, petals, props, vending, vehicles,
   streetprops, housing, shotengai, shops, details, ground, showa) stay in the
-  tree unimported. `index.js`, their world assembly, is kept for reference,
+  tree unimported. `index.js`, the base world assembly, is kept for reference,
   marked "not imported". The district modules already deleted in M0 stay
   deleted; they are in git history (de01898).
 - **Spawn at the hero spot.** `src/config.js` sets the storefront centred on
@@ -193,13 +193,13 @@ Judgement calls, newest milestone last.
     fence, and roads end at visible barricades and guardrails.
 - **Parts reused, re-signed.** Houses, shopfronts, poles, wires, sakura,
   groves, shrubs, vending, cars, props, the railway, crossing, station and
-  train come from the parts library. Every sign name lives in
-  `src/data/town.js`. The shared textures that carried Sakura Crossing names
+  train come from the base modules. Every sign name lives in
+  `src/data/town.js`. The shared textures that carried other names
   (shop fascia table, station board, train destination, lanterns, a poster
   strapline) now read from it. The bundle contains none of ひばり, 青空商店,
-  さかえ, 桜坂 or any other Sakura Crossing shop or place name.
-- **Railway placed whole.** Sakura Crossing's line is authored round its
-  crossing, so it is placed as one part at (30, 60) through an offset context
+  さかえ, 桜坂 or any other name that is not ours.
+- **Railway placed whole.** The base railway module is authored round its
+  own crossing, so it is placed as one part at (30, 60) through an offset context
   (`world/ctx.js`). The train is two cars, green and cream (a `livery` option
   on the part), and waits off-scene between passes: one every 180 s. Gates
   and lamps still follow the train's distance. The line leaves town between
@@ -225,14 +225,14 @@ Judgement calls, newest milestone last.
     0.61–0.73M triangles in every first-person view. The dev overview shots
     from 95 m up reach 322.
 - **Petals follow the player:** 150 in a 48 m box (SPEC: 150 on High),
-  instead of Sakura Crossing's 980 along its street.
+  instead of the base module's 980 along one street.
 - **Measured (dev `?m2check`, headless Chrome, Apple M2).**
   - Straight end-to-end routes: 91–96 s at walking pace. A loop through
     every zone: 322 s. Nothing got stuck.
   - Fuji's peak is in line of sight from 87% of walkable sample points.
   - Frame time at 2560×1440: 6.7–7.1 ms.
 - **Open question for Tan: walking time.** SPEC asks for a town of about
-  250 × 200 m that takes about 3 minutes to cross. At Sakura Crossing's walk
+  250 × 200 m that takes about 3 minutes to cross. At the controller's walk
   speed (2.55 m/s), 250 m takes about 100 s, so the two numbers don't agree.
   The town follows the size; crossing it takes about 1.5 minutes.
 - **Deferred.** Crossing bells and all other sound (M4). The kei van, sign
@@ -390,10 +390,10 @@ Judgement calls, newest milestone last.
     overview. Triangles are 1.5–2.0M per frame, shadow pass included.
     **Over SPEC 11's budgets (< 300 calls, < 1M triangles)**: M2d's
     performance pass, with distance-based detail for far buildings.
-- **Bug fixed in the parts library:** `makeWall` made NaN geometry for any
+- **Bug fixed in a base module:** `makeWall` made NaN geometry for any
   run under 0.9 m (n = 0). This was behind the console's NaN warnings,
   including M2's.
-- **Sakura Crossing names.** The walk-up's block plates carried ひばり台
+- **Names.** The walk-up's block plates carried ひばり台
   and さくら坂 names; they are ours now. `npm run check:names` builds and
   searches the bundle for 15 names: none.
 - **Measured (`?m2check`).**
@@ -415,10 +415,10 @@ Judgement calls, newest milestone last.
   - The public level crossing is on lane x −80, 6 m west of the platform
     ends.
   - Lane z 146 moved to 144, so the lots south of it stay 7 m deep.
-- **Our own line, not Sakura Crossing's.** Its railway is single-track and
+- **Our own line.** The base railway module is single-track and
   built round its own street constants; `line/track.js` and
-  `line/crossing.js` are new. `railway.js` and `train.js` stay in the parts
-  library, and `town-rail.js` (M2's placement of them) is gone.
+  `line/crossing.js` are new. `railway.js` and `train.js` stay as base
+  modules, and `town-rail.js` (M2's placement of them) is gone.
 - **Our own train (`line/emu.js`).** It keeps the library EMU's
   proportions, but every car is a shell:
   - side walls are built between the door and window openings, with a
@@ -428,8 +428,8 @@ Judgement calls, newest milestone last.
   - door leaves slide into the wall pocket;
   - at night the interior glows (`setNight`, driven by the look).
   - **Passengers:** a few dark silhouettes, seated and standing. SPEC asks
-    for them. The library train's "no people" note was Sakura Crossing's
-    own rule.
+    for them. The library train's "no people" note does not apply
+    here.
 - **Two sets, one per track.** One set can't manage the SPEC headway: it
   needs about 30 s to run out and 30 s to run back in, so the next arrival
   60 s after a departure has to be the other set. Each set runs out into
@@ -481,7 +481,7 @@ Judgement calls, newest milestone last.
 - **Names.** Station 「さくら富士」 (M2); the line 富士見線; the stations in
   between (ふじみ台, こもれび野, 富士山麓) are ours, and the termini (大月,
   河口湖) are real towns. Also ours: ふじみ売店, 富士見交通 and the
-  community bus plate. The parts library's bus-stop plate said ひばり台;
+  community bus plate. The base module's bus-stop plate said ひばり台;
   it doesn't now.
 - **Measured.**
   - Heroes unchanged (1 and 3: 0.000%; 2: 0.356%, as M2b).
@@ -574,7 +574,7 @@ Judgement calls, newest milestone last.
   - Closing the gap needs far-building LOD proxies and a shared toon
     material. Neither is polish; both are proposed for a later milestone.
 - **Heroes:** 0.000 / 0.356 / 0.000%. Density 27 of 27 and bare stretches
-  pass; traincheck passes; no Sakura Crossing names.
+  pass; traincheck passes; check:names passes.
 
 ## M2e.3: the town moves between the Lawson and Fuji (Tan)
 
@@ -796,7 +796,7 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
 - **SPEC 11 budgets.** Not met: 300–780 calls, 1.9–3.5M triangles (all
   passes).
 - **Other checks.** Heroes 0.10–0.12%; density 27 of 27; bare stretches
-  pass; traincheck passes; no Sakura Crossing names.
+  pass; traincheck passes; check:names passes.
 
 ## M2e round 2: closing the gaps the review found
 
@@ -827,7 +827,7 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
   check skips its building count there, since the room is the one
   building in view. Every other count still applies.
 - **Checks.** Density 27 of 27; bare stretches; traincheck; heroes
-  0.10–0.12%; no Sakura Crossing names. Measured near idle (the kit street
+  0.10–0.12%; check:names passes. Measured near idle (the kit street
   read 6.15 ms against its usual 5.9): 5–13 ms at every town spot, so
   60 fps at 1440p passes.
 - **Still open.** SPEC 11's draw budgets (300–780 calls, 1.9–3.5M
@@ -1102,7 +1102,7 @@ normally 5.9 ms, read 10.8 ms, so figures are about 1.8× high)
 - **`scan-beep.mp3` isn't used.** It is 107 s of continuous low-level sound,
   not a single beep. M5 uses the procedural beep until a single-beep file
   is chosen.
-- **One engine, `core/sound.js`**, replacing Sakura Crossing's playlist
+- **One engine, `core/sound.js`**, replacing the old playlist
   (audio.js) and the M2c sfx.js:
   - the buses of SPEC 9: sfx with a reverb made in code, outdoor through a
     lowpass, indoor, music, then a compressor;
@@ -1419,7 +1419,7 @@ is closed. Measured rather than guessed:
   (z -46 to -62, 16 m), a far bank, paddies to the tree line, a farm track
   from the main road's zebra (town x 35 = world x -35) over a bridge to the
   Deer Park gate at the north fence. Named 桜川 (Sakuragawa: a common river
-  name, not Sakura Crossing's). Phase 0 builds it as flat placeholders with
+  name). Phase 0 builds it as flat placeholders with
   final colliders; the river & paddies builder replaces the look.
 - **The gate's board** carries an English line ("Deer Park · coming soon")
   under 鹿公園 近日公開. An exception to Japanese-only world text: it is a
@@ -1806,7 +1806,7 @@ Tan: "whenever or wherever I whistle from, the pup magically appears next to me 
 ## Leaner before launch: what nothing uses, out (2026-09-30, Tan: "find what we are not using and remove it")
 - **Audio (QA-033):** door-chime (only a fallback behind lawson-chime), ui-tap and stamp were fetched or shipped and never played: gone from audio-cuts.json, the preload list and core/sound.js (the ui-tap *recipe* stays, the engine's default procedural sound). `npm run audio` deletes the stale .m4a; the sources in assets/audio/ (door-chime, ui-tap, stamp, and the unused scan-beep, till-beep, coins, register-drawer, microwave-ding, v-*.aiff) can go from Tan's disk. gen-sfx no longer makes till-beep.
 - **The konbini:** the free-roam shop was replaced by the scene (choose at the door, keys 1-5; the self-checkout; eat outside) on 2026-09-28, but its parts stayed: the carry limit and the wallet check (QA-028: they flashed strings that no longer existed), the hidden left hand, the ¥1,000 note, the change in coins, the basket you carried, the aim boxes, the register display, the subtitles. All out; the store and the scene look and play the same (every store shot pixel-identical, `_konbini` the same timings).
-- **The parts library:** Sakura Crossing's world modules that nothing imported (world/index.js, shop.js, shotengai.js, showa.js, train.js, details.js) are deleted, and every top-level declaration nothing refers to (172, mostly sign textures). They were never in the build; git history keeps them if a milestone wants one back. AGENTS.md's "parts library" line now means what src/ still holds.
+- **Unused base modules:** the world modules that nothing imported (world/index.js, shop.js, shotengai.js, showa.js, train.js, details.js) are deleted, and every top-level declaration nothing refers to (172, mostly sign textures). They were never in the build; git history keeps them if a milestone wants one back. AGENTS.md's base-modules line now means what src/ still holds.
 - **Kept on purpose:** the product catalogue in full (every product stands on a shelf), the catalogue's `zone` field (read by nothing, but it is the first argument of every family row), shop.wallet (the konbini check prints it), window.__scene in production (tools read it from a build), and the dev tools the checks use.
 
 
@@ -2014,3 +2014,19 @@ Tan's four notes on the experiment above, and what was done:
 - **A shop's upstairs windows** (shops.js): the pane, its mullion and the curtain were inside the frame's box, so every such window was a blank metal slab. The pane now stands 1 cm proud of the frame's face, the mullion over it, the curtain on the pane. A look change on every two-storey kit shop (dark or lit glass, some with a curtain): Tan to confirm.
 - **The smoothie sign** (store/interior.js): 1 cm off the wall's face (X1 - 0.03); it was behind it. `seen-data.js` measured again, since a sign that was never seen is now seen: never seen 3 units, 43 quads (was 44: the sign), 3 solid parts; labels as before (417 / 31 / 3 / 0 / 5 at the store).
 - **Checks on this tree:** `_zfight` for the station, platforms, plaza, bus stop and the JR train: all pass (with the allowance above); `_konbini` 9 pass, `_play` 20/20, `_guide` 14 pass, `_audio` all passed; hero guard 0.372 / 0.166 / 0.131 % (0.337 / 0.130 / 0.095 before the sweep and the windows; limit 0.5); build OK; `npm run size` 5.05 MB, 1.65 MB before the first click.
+
+## Docs wording: the base project is named only for credit and licence (2026-10-02, Tan)
+- The base project is now named only where credit and licence need it: LICENSE and public/LICENSE.txt, the credits page, the start card's credit line (strings.js), README's credits, package.json's description, one line each in AGENTS.md and SPEC.md (what src/core is built on), main.js's header, and the two log entries that record the credit line and the credits page. Everywhere else the docs and comments say "src/core" or "the base modules"; the names rule reads "all place and shop names are our own" (`npm run check:names`, unchanged in what it checks). One reference note was removed from the repo. No code behaviour changed.
+
+## The tour's ending, in order: his bit, the postcard, then the tour again (2026-10-02, Tan's play-test)
+- **Was:** `GUIDE.onTourEnd` fired as Hachi landed on the bench and the postcard came 1 s later; the game stands still behind a card, so his happy bit (8 s: bow, spin, roll, tilt, circles, down) was cut.
+- **Now** (guide.js `endTour`, main.js): `onTourEnd` fires once he has settled, with `onNap` (measured in `_guide` bedtime: landed 5.3 s, settled and ended 13.9 s); the postcard comes `MAKER.postcardAfter` 0.6 s of play after that. "E · Take the tour again" needs the postcard to have been up this page load and put away (`postcardSeen`), and is never on offer while the card is due.
+- **Whistled off the bench before he has settled** (or whistled to you before he got to it): the bit is cut at your call, so that counts as the ending: the card comes then (else it would never come, and the tour would never be offered).
+- **Seen from the pause card already** (my reading of Tan's note; say if the ending's card should come regardless): no second card at the tour's end; the tour is on offer as soon as he has settled. Offline (the card's chunk can't load): no card, the tour on offer.
+- **Checks:** `_guide` bedtime asserts onTourEnd at the settle and more than 7 s after the landing; `_maker` has four new lines (seen from the pause card: nothing due and the gate open; not before the card; not while due; open once put away; `__postcard.gate/forget`, dev only).
+
+## Han in the RX-7: his legs out of the floor (2026-10-02, Tan: "after the car leaves, Han's leg is visible under the car")
+- **Cause:** not the sprung body (he is its child and rolls with it). His seat pose was a chair's: thighs level, shins straight down, on a seat 0.28 m up in a car whose floor is at 0.13 m. Measured (`_han-seat.mjs`): shins, hems and shoes down to -0.28 m in the body's frame, under the floor within the footprint on 849 of 1,091 frames (t 1.98 to 16.12 s).
+- **Fix** (han.js `POSES.seat`, han/index.js): legs out ahead in the footwell (hip -1.72, knee 0.5), seat 0.24 (was 0.2), a little more recline so his head keeps 6 cm under the roof. Lowest point seated 0.169 m (floor 0.165).
+- **Getting in and out, rebuilt** (`seatMove`): the old straight blend took him through the sill. Now he steps into the open door with his back to the seat, sits back onto its edge with his feet still on the ground (two-bone IK, so they neither sink nor float), ducks under the roof, then swings his legs in over the sill, knees up, hands from his thighs to the wheel; out is the same backwards. He stands clear of the door's swing (STAND 0.3 m further back).
+- **Check:** `node scripts/_han-seat.mjs` runs in node with no browser (60 Hz through the whole show: nothing under the floor within the footprint, nothing outside the body seated, the roof or glass over all of him, feet not in the ground); `--sheets` adds contact sheets from the watching spot and low at both sides. **The sheets were not made:** the browser lock was held by another session's hung process for the whole session, so the new get-in and get-out have been measured but not looked at.

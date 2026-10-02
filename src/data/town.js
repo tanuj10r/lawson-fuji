@@ -1,7 +1,6 @@
 /* Every name painted on a sign in the town (SPEC sections 1 and 3).
  *
- * Our own, fictional names: nothing here may be a Sakura Crossing place or
- * shop name.  Shop entries are read by the shared sign textures in
+ * Our own, fictional names (scripts/check-names.mjs).  Shop entries are read by the shared sign textures in
  * core/textures.js (fascia, blade), keyed by `kind`. */
 
 /* The town is 富士川口湖町, Fujikawaguchikko (Tan, 2026-09-28: the real

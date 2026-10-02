@@ -92,7 +92,7 @@ function shelter() {
     const cx = s * run / 2, cy = ridge + 0.03 - (run / 2) * Math.tan(PITCH);
     put('roof', slope + 0.04, 0.05, LR, cx, cy, 0, 0, 0, -s * PITCH);
     for (let z = -LR / 2 + 0.25; z < LR / 2; z += 0.44) put('roof', slope, 0.035, 0.035, cx, cy + 0.04, z, 0, 0, -s * PITCH);
-    for (const sz of [-1, 1]) put('timber', slope + 0.02, 0.13, 0.04, cx, cy - 0.06, sz * (LR / 2 - 0.02), 0, 0, -s * PITCH);
+    for (const sz of [-1, 1]) put('timber', slope + 0.02, 0.13, 0.04, cx, cy - 0.06, sz * (LR / 2 - 0.02/*@mini + 0.004 @*//*@@*/), 0, 0, -s * PITCH);
     const ex = s * (run + 0.03), ey = ridge - run * Math.tan(PITCH) - 0.03;
     put('steel', 0.1, 0.07, LR + 0.06, ex, ey, 0);
   }

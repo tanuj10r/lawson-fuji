@@ -42,7 +42,7 @@ export function liteConfig() {
  */
 export function liteScene(scene, renderer, world) {
   const T = (n) => globalThis.__sys?.(n);
-  const siblings = mergeSiblings(scene), folded = foldPlain(scene);
+  const siblings = MOBILE.noSiblings ? 0 : mergeSiblings(scene), folded = MOBILE.noFold ? 0 : foldPlain(scene);
   T('lite-siblings');
   const storeQuads = packStoreQuads(scene);
   T('lite-quads');
@@ -268,10 +268,10 @@ export function packBatches(scene) {
     pack(g, 'color', Uint16Array);
     pack(g, 'aTint', Uint16Array);
     // POCKET: and the position in 16 bits a side over the batch's own box (the mesh carries the box)
-    const b0 = g.attributes.position?.array.byteLength ?? 0, b1 = quantizePositions(o);
+    const b0 = g.attributes.position?.array.byteLength ?? 0, b1 = MOBILE.quant === false ? 0 : quantizePositions(o);
     if (b1) { before += b0; after += b1; }
     // BUDGET: ... and each corner once (indexLocal, below)
-    const saved = indexLocal(g);
+    const saved = MOBILE.noIndex ? 0 : indexLocal(g);
     after -= saved; indexed += saved;
   });
   return { beforeMB: +(before / 1048576).toFixed(1), afterMB: +(after / 1048576).toFixed(1), indexedMB: +(indexed / 1048576).toFixed(1) };
@@ -355,6 +355,11 @@ export function quantizePositions(o, pad = 0) {
   for (let i = 0; i < n; i += 3) for (let k = 0; k < 3; k++) { const v = src[i + k]; if (v < lo[k]) lo[k] = v; if (v > hi[k]) hi[k] = v; }
   const c = [0, 0, 0], h = [1, 1, 1];
   for (let k = 0; k < 3; k++) { c[k] = (lo[k] + hi[k]) / 2; h[k] = Math.max(1e-3, (hi[k] - lo[k]) / 2 + pad); }
+  /* BUDGET: only where 16 bits are fine enough.  Over a batch `quantSpan` m across (40: 1.2 mm a step) a panel
+   * standing 3 mm proud of its wall lands in the wall's plane and the two flicker (scripts/_zfight.mjs --phone
+   * found 16 such places with the town's plain colours in 256 m cells, 4 mm a step): such a batch keeps its
+   * floats (6 bytes a vertex more). */
+  if (Math.max(h[0], h[1], h[2]) > (MOBILE.quantSpan ?? 40)) return 0;
   const q = new Int16Array(n);
   for (let i = 0; i < n; i += 3) for (let k = 0; k < 3; k++) q[i + k] = Math.round(Math.max(-1, Math.min(1, (src[i + k] - c[k]) / h[k])) * 32767);
   const attr = new THREE.BufferAttribute(q, 3, true);

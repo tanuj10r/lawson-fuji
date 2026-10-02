@@ -12,8 +12,9 @@ import { labelAtlas, TAG_TPM } from '../world/store/labels.js';
  * You no longer roam the store: you stand outside, or one of the five
  * visits walks you through it.  So every pose a player can have is known:
  *   visits    the five scenes, stepped at 60 and at 30 frames a second
- *   looking   after you have paid the view is yours again while the walk
- *             carries you out: along that leg, every way you could turn
+ *   looking   the view is the walk's until you are outside (Tan, 2026-10-02);
+ *             from where it is yours again (the pavement, as you eat),
+ *             every way you could turn
  *   outside   a grid over the forecourt, the car park, the street and
  *             beyond, up to the glass, turned every way toward the store
  *   famous    the three famous views' own lenses
@@ -180,7 +181,7 @@ export async function runSeen({ log = () => {} } = {}) {
   const rec = [];
   let recOn = null;
   const update = S.update;
-  S.update = (dt, c, bob) => { update(dt, c, bob); if (recOn && dt > 0) { c.updateMatrixWorld(); rec.push({ mw: c.matrixWorld.clone(), leg: S.debug.visit().marks.at(-1)?.[0] ?? '', kind: recOn, paid: S.phase === 'paid' || S.phase === 'eat' }); } };
+  S.update = (dt, c, bob) => { update(dt, c, bob); if (recOn && dt > 0) { c.updateMatrixWorld(); rec.push({ mw: c.matrixWorld.clone(), leg: S.debug.visit().marks.at(-1)?.[0] ?? '', kind: recOn, free: !player.suspended }); } };
   const stand = async (z) => window.__shot('k', 640, 360, { png: true, look: 'day', frame: 'world', pos: [-2.3, 0, z], yaw: 0, pitch: 0, shop: 0.2 });
   for (const dt of [1 / 60, 1 / 30]) {
     for (const id of S.menu) {
@@ -210,10 +211,10 @@ export async function runSeen({ log = () => {} } = {}) {
   let k = 0;
   for (const r of visitPoses) { sample(r.mw, null); if (++k % 1000 === 0) { log(`  ${k}`); await new Promise((r2) => setTimeout(r2, 0)); } }
 
-  /* ---------------- 2. looking round on the way out (the view is yours once you have paid) ---------------- */
+  /* ---------------- 2. looking round where the view is yours again (outside, once the visit hands it back) ---------------- */
   const free = [];
   for (const r of rec) {
-    if (!r.paid) continue;
+    if (!r.free) continue;
     const e = r.mw.elements;
     if (e[14] > 3.4) continue;
     if (free.some((p) => Math.hypot(p[0] - e[12], p[2] - e[14]) < 0.22)) continue;

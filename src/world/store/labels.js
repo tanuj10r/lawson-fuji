@@ -388,11 +388,20 @@ function paintCell(c, p) {
  * street do not keep every label large.  How the pages are laid out never changes what is drawn; the
  * levels themselves are only used on the store they were measured on (store/planogram.js).
  */
-function inPages(levels, per) {
+function inPages(levels, per, nears = null) {
   const ok = !storeWhole && SEEN && SEEN.catalog === CATALOG.length && levels?.length === CATALOG.length;
-  const groups = ok ? [0, 1, 2].map((L) => ({ level: L, list: CATALOG.filter((p, i) => Math.min(2, +levels[i]) === L) })) : [{ level: 0, list: CATALOG }];
+  /* `nears` (the labels: seen-data labelNear): the level a product's page can be at the store itself, now that
+   * the view is the visit's until you are outside (Tan, 2026-10-02) and most labels are never come close to.
+   * Grouped by both, the near level first: a page is { near, level (from afar, never sharper than near) }. */
+  const both = ok && nears?.length === CATALOG.length;
+  const key = (i) => { const n = both ? Math.min(2, +nears[i]) : 0; return [n, Math.max(n, Math.min(2, +levels[i]))]; };
+  const groups = [];
+  if (ok) for (const n of both ? [0, 1, 2] : [0]) for (const L of [0, 1, 2]) {
+    if (L < n) continue;
+    groups.push({ level: L, near: n, list: CATALOG.filter((p, i) => { const k = key(i); return k[0] === n && k[1] === L; }) });
+  } else groups.push({ level: 0, near: 0, list: CATALOG });
   const out = [];
-  for (const g of groups) for (let i = 0; i < g.list.length; i += per) out.push({ level: g.level, list: g.list.slice(i, i + per) });
+  for (const g of groups) for (let i = 0; i < g.list.length; i += per) out.push({ level: g.level, near: g.near, list: g.list.slice(i, i + per) });
   return out;
 }
 const INDEX = Object.fromEntries(CATALOG.map((p, i) => [p.id, i]));
@@ -401,7 +410,7 @@ let atlas = null;
 /**
  * The product atlas: pages 16 cells across, a white cell after the last product of each, only as tall
  * as its rows (store/pages.js holds each at the size it is seen at; `page.want` is the level it can be
- * from afar).  `cellOf[id]` is { page, cell }, `rect(id)` its cell and `white(id)` the white cell of
+ * from afar, `page.wantNear` at the store).  `cellOf[id]` is { page, cell }, `rect(id)` its cell and `white(id)` the white cell of
  * its page, as [u0, v0, u1, v1].
  */
 export function labelAtlas() {
@@ -410,7 +419,7 @@ export function labelAtlas() {
   const k = PX / CELL;
   // a page is at most 11 rows (3072 x 2112: its upload is one frame's hitch as you walk up, so it is kept
   // short); with no measurement, 255 products a page as it always was
-  inPages(SEEN?.labelLevel, SEEN?.labelLevel ? 11 * N - 1 : N * N - 1).forEach(({ list, level }, pg) => {
+  inPages(SEEN?.labelLevel, SEEN?.labelLevel ? 11 * N - 1 : N * N - 1, SEEN?.labelNear).forEach(({ list, level, near }, pg) => {
     list.forEach((p, i) => { cellOf[p.id] = { page: pg, cell: i }; });
     const page = makePage({
       name: 'labels-' + pg, w: SIZE, h: Math.ceil((list.length + 1) / N) * PX, steps: list.length + 1,
@@ -429,6 +438,7 @@ export function labelAtlas() {
     });
     page.white = list.length;
     page.want = level;
+    page.wantNear = near;
     pages.push(page);
   });
   /** [u0, v0, u1, v1] of a cell (v up), inset so filtering never bleeds. */

@@ -326,7 +326,10 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     T(pay + K.payDone + 0.55, () => {
       phase = 'paid';
       wallet = STORE.wallet - sum;
-      if (api.player) api.player.suspended = false;
+      /* The view stays the walk's until you are outside (Tan, 2026-10-02): free from here, you could turn to any shelf
+       * on the way out, so nearly all the stock and its labels had to stay (store/seen.js).  The visit hands it back
+       * on the pavement, as you turn to the street to eat. */
+      if (api.player && !visit.active) api.player.suspended = false;
     });
     checkout = { ev, t: 0, sum };
   }
@@ -553,7 +556,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
       act(() => api.onSnack?.('hold', id)),
       L('out', walkTo(P2(SPOT.x, SPOT.z + 0.1))),
       L('eat', face(street, 0.6)),
-      act(() => { visit.eat = true; }),
+      act(() => { visit.eat = true; p.suspended = false; }),     // outside, facing the street: the view is yours again
       until(() => phase === 'out' || phase === 'shop'),
       pause(0.3),
     ];

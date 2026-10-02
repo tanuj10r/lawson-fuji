@@ -290,7 +290,7 @@ export function stockStore(p, slots, group, lit) {
   const S = seenFor(counts);
   const units = stock.build(group, lit, S, { ids: storeWhole });
   if (S) {
-    for (const pg of labelAtlas().pages) pg.levels(pg.want);
+    for (const pg of labelAtlas().pages) pg.levels(pg.want, pg.wantNear ?? 0);
     for (const pg of tags.pages) pg.levels(pg.wantFar, pg.want);
   }
   group.userData.seen = S;

@@ -40,7 +40,7 @@ const rec = (name) => (report.shots[name] ??= {});
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
 try {
   /* ------------------------------ the phone page ------------------------------ */
-  if (only.has('mobile') || only.has('walk')) {
+  if (only.has('mobile') || only.has('walk') || only.has('probe')) {
     const portrait = !!flags.portrait;
     const vp = portrait ? { width: 393, height: 852 } : { width: 852, height: 393 };
     const ctx = await browser.newContext({ viewport: vp, deviceScaleFactor: Number(flags.dpr ?? 3), isMobile: true, hasTouch: true, userAgent: IPHONE });
@@ -57,7 +57,7 @@ try {
       const sfx = portrait ? '.p' : '.m';
       for (const s of job.shots) {
         if (s.desktopOnly) continue;
-        const go = { x: s.x, z: s.z, yaw: s.yaw ?? 0, pitch: s.pitch ?? 0, look: s.look ?? 'golden', lift: s.lift, train: s.train };
+        const go = { x: s.x, z: s.z, yaw: s.yaw ?? 0, pitch: s.pitch ?? 0, look: s.look ?? 'golden', lift: s.lift, train: s.train, trainX: s.trainX };
         const first = await page.evaluate((g) => window.__m.goto(g), go);
         // (what streamed in uploads as it is drawn: a second draw a moment later shows it, and is the steady state)
         await page.waitForTimeout(150);
@@ -66,6 +66,7 @@ try {
         Object.assign(rec(s.name), { [portrait ? 'portrait' : 'mobile']: info, gpuFirst: first.gpu });
       }
     }
+    if (flags.eval) report.eval = await page.evaluate(fs.readFileSync(flags.eval, 'utf8'));
     if (only.has('walk')) {
       const looks = String(flags.looks ?? 'golden').split(',');
       for (const look of looks) {
@@ -88,6 +89,7 @@ try {
         const o = { pos: [s.dx ?? s.x, 0, (s.dz ?? s.z) - (s.south ? DZ : 0)], yaw: s.yaw ?? 0, pitch: s.pitch ?? 0, look: s.look ?? 'golden', png: false, quality: 0.9, returnData: true, scale: 1 };
         if (s.train) o.train = s.train;
         if (s.lift) o.lift = s.lift;
+        if (s.trainX) await page.evaluate(([set, x]) => { const S = window.__scene.world.line.local.service; S.stage(set ? 'crossing' : 'approach'); S.runs[set].x = x; S.update(1e-4); }, s.trainX);
         const r = await page.evaluate(([n, o, W, H]) => window.__shot(n, W, H, o), [s.name, o, W, H]);
         fs.writeFileSync(`${out}/${s.name}.d.jpg`, Buffer.from(r.data.split(',')[1], 'base64'));
         rec(s.name).desktop = await page.evaluate(() => window.__frameInfo);

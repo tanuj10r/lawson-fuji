@@ -67,7 +67,7 @@ function gridEdges(G) {
 export function planNetwork() {
   const G = TOWN.grid;
   const { nodes, edges, slot } = gridEdges(G);
-  const old = gridEdges(LEGACY(G)).slot;
+  const old = gridEdges(LEGACY(/*@mini G.desktop @*/G/*@@*/)).slot;
   for (const [k, i] of slot) {
     const j = old.get(k);
     if (j !== undefined && edges[i][3].seed === undefined) edges[i][3].seed = 1000 + j * 17;

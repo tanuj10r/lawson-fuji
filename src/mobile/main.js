@@ -15,6 +15,7 @@ import { hanShow } from '../world/han/index.js';
 import { GUIDE } from '../world/animals/guide.js';
 import { PETTAN } from '../world/mochi/index.js';
 import { storePages } from '../world/store/pages.js';
+import { tagReflections } from '../world/land/mirror.js';
 import {
   PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain, HAN_WATCH, ANIMALS, MOBILE,
 } from '../config.js';
@@ -86,7 +87,7 @@ try { lostBefore = localStorage.getItem('takemebacktojapan-lost') === '1'; } cat
 const tier = params.get('tier') ?? (lostBefore || inApp || (ios ? !bigIphone : (navigator.deviceMemory ?? 8) <= 4) ? 'light' : 'full');
 if (MOBILE.tiers[tier]) Object.assign(MOBILE, MOBILE.tiers[tier]);
 // dev: ?set=key:json,key:json overrides MOBILE tunables (measuring)
-if (import.meta.env?.DEV && params.get('set')) for (const kv of params.get('set').split(';')) { const i = kv.indexOf(':'); MOBILE[kv.slice(0, i)] = JSON.parse(kv.slice(i + 1)); }
+if ((import.meta.env?.DEV || params.has('stats')) && params.get('set')) for (const kv of params.get('set').split(';')) { const i = kv.indexOf(':'); MOBILE[kv.slice(0, i)] = JSON.parse(kv.slice(i + 1)); }
 diag.stage(`tier ${tier}`);
 
 /* Our own context, so every GPU allocation is counted (diag.js). */
@@ -108,7 +109,7 @@ renderer.shadowMap.enabled = !!MOBILE.shadow;           // the light tier draws 
 renderer.shadowMap.type = THREE.PCFShadowMap;        // LITE: plain PCF (desktop: soft)
 renderer.shadowMap.autoUpdate = false;
 renderer.setClearColor(new THREE.Color(PAL.fog), 1);
-diag.source({ renderer, meter, canvas, extra: () => `tier ${tier}  scale ${renderScale?.toFixed?.(2)}  ${world ? `streamed out ${culler?.out ?? 0}` : ''}` });
+diag.source({ renderer, meter, canvas, extra: () => `tier ${tier}  scale ${renderScale?.toFixed?.(2)}  rt ${leanTargets ? '32' : '64'}  ${world ? `streamed out ${culler?.out ?? 0}` : ''}` });
 /* A lost context (how a phone takes GPU memory back): stop drawing, hush,
  * and show the card.  If the phone gives the context back, and the tier
  * kept its CPU copies (MOBILE.keepCpu), three uploads everything again and
@@ -177,7 +178,7 @@ liteConfig();
 const sky = buildSky(scene, 2900, { avoidYaw: FUJI.bearing });
 let culler = null, renderScale = 1, viewW = 0, viewH = 0;
 const world = buildTown(scene, {
-  cell: MOBILE.cell, detailCell: MOBILE.detailCell, stage: (n) => diag.stage(n),
+  cell: MOBILE.cell, bulkCell: MOBILE.bulkCell, detailCell: MOBILE.detailCell, stage: (n) => diag.stage(n),
   shrink: (root, store) => shrinkCanvases(root, { store, real: renderer.capabilities.maxTextureSize }),
 });
 mark('built');
@@ -267,6 +268,33 @@ player.onInteract = (target) => { if (target) target.action?.({ player, hud }); 
  * pixel budget; the scale steps down when frames run long (adapt, below). */
 const pipeline = new Pipeline(renderer, scene, camera, { pixelBudget: MOBILE.render.pixels });
 pipeline.enabled.fxaa = false;
+/* The frame's own targets in 32 bits a pixel instead of 64 (core/post.js makes them half-float RGBA: at a
+ * phone's 3 Mpx that is 24 MB each, the scene's and the ink pass's).  R11F_G11F_B10F holds the same linear
+ * light (no alpha: nothing in the passes reads it) in half the memory.  Only where the GPU can draw into it
+ * (EXT_color_buffer_float), checked by drawing: else the half-float targets stay.  ?rt=half keeps them. */
+let leanTargets = false;
+if (params.get('rt') !== 'half' && renderer.getContext().getExtension('EXT_color_buffer_float')) {
+  const gl = renderer.getContext();
+  const opts = { type: THREE.UnsignedInt101111Type, format: THREE.RGBFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, stencilBuffer: false, colorSpace: THREE.NoColorSpace };
+  const rtScene = new THREE.WebGLRenderTarget(2, 2, { ...opts, depthBuffer: true });
+  rtScene.depthTexture = new THREE.DepthTexture(2, 2);
+  rtScene.depthTexture.format = THREE.DepthFormat;
+  rtScene.depthTexture.type = THREE.UnsignedIntType;
+  rtScene.depthTexture.minFilter = rtScene.depthTexture.magFilter = THREE.NearestFilter;
+  const rtA = new THREE.WebGLRenderTarget(2, 2, { ...opts, depthBuffer: false });
+  let ok = true;
+  for (const rt of [rtScene, rtA]) {
+    renderer.setRenderTarget(rt);
+    ok &&= gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+  }
+  renderer.setRenderTarget(null);
+  if (ok) {
+    pipeline.rtScene.depthTexture.dispose(); pipeline.rtScene.dispose(); pipeline.rtA.dispose();
+    pipeline.rtScene = rtScene; pipeline.rtA = rtA;
+    pipeline.ink.mat.uniforms.tDepth.value = rtScene.depthTexture;
+    leanTargets = true;
+  } else { rtScene.depthTexture.dispose(); rtScene.dispose(); rtA.dispose(); }
+}
 /* The phone's own pixels (its DPR, up to render.maxDpr): the frame is drawn 1:1 onto the screen, and steps
  * down only while frames run under render.fpsLow (adapt, below). */
 const dpr = Math.min(window.devicePixelRatio || 1, MOBILE.render.maxDpr);
@@ -744,6 +772,11 @@ function frame(now = 0) {
 /* ------------------------------ first frame ------------------------------ */
 diag.stage('lite');
 const lite = liteScene(scene, renderer, world);
+// the water's mirrors (land/mirror.js) show what stands by them, as on the desktop
+if (world.reflectRect) {
+  tagReflections(scene, world.root, world.reflectRect);
+  world.fuji?.ready?.then(() => tagReflections(scene, world.root, world.reflectRect));
+}
 culler = makeCuller(scene, world);
 world.fuji.ready?.then((m) => { lite.fuji = liteFuji(m); });
 enterHero(SPAWN.view);
@@ -795,6 +828,8 @@ if (import.meta.env?.DEV || new URLSearchParams(location.search).has('stats')) {
     goto(o = {}) {
       if (o.look && o.look !== lookName) applyLook(o.look);
       if (o.train) (world.line.local ?? world.line).service.stage(o.train);
+      // a train anywhere on the line: [set (0 eastbound, 1 westbound), x in the town's frame]
+      if (o.trainX) { const S = (world.line.local ?? world.line).service; S.stage(o.trainX[0] ? 'crossing' : 'approach'); S.runs[o.trainX[0]].x = o.trainX[1]; S.update(1e-4); }
       if (o.x !== undefined) player.pos.set(o.x, world.heightAt(o.x, o.z), o.z);
       if (o.yaw !== undefined) player.yaw = o.yaw;
       if (o.pitch !== undefined) player.pitch = o.pitch;
@@ -806,9 +841,14 @@ if (import.meta.env?.DEV || new URLSearchParams(location.search).has('stats')) {
       culler.update(camera.position, 1, null, true);
       shadowAt = null; seatLights();
       sky.dome.position.copy(camera.position); sky.clouds.position.copy(camera.position);
+      // drawn twice: with the shadow map, then the frame alone (what most frames are: the map is redrawn on a new square)
       renderer.info.autoReset = false; renderer.info.reset();
       pipeline.render();
-      const r = { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, gpu: meter ? Math.round(meter.total / 1048576) : 0, peak: meter ? Math.round(meter.peak / 1048576) : 0 };
+      const withShadow = renderer.info.render.calls;
+      renderer.info.reset();
+      pipeline.render();
+      const MBs = (n) => Math.round(n / 1048576);
+      const r = { calls: renderer.info.render.calls, withShadow, tris: renderer.info.render.triangles, gpu: meter ? MBs(meter.total) : 0, tex: meter ? MBs(meter.textures) : 0, buf: meter ? MBs(meter.buffers) : 0, rb: meter ? MBs(meter.renderbuffers) : 0, peak: meter ? MBs(meter.peak) : 0 };
       renderer.info.autoReset = true;
       return r;
     },

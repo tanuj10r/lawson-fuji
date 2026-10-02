@@ -34,6 +34,9 @@ const W = (z) => z + dz;                    // ... and in the world (the town is
 TOWN.bounds.z1 = S(TOWN.bounds.z1);         // 142
 TOWN.core.z1 = S(TOWN.core.z1);             // 136
 TOWN.rail.z = S(TOWN.rail.z);               // 130
+/* (the desktop's own lines, kept: every street the two towns share takes the seed it has there, town-plan.js, so
+ * the same houses and shops stand along it) */
+TOWN.grid.desktop = { ...TOWN.grid };
 TOWN.grid.ns = [
   { x: -80, cls: 'lane', z1: S(172) },      // crosses the railway
   { x: -50, cls: 'shopping', z1: S(126) },  // the short shopping street, to the plaza

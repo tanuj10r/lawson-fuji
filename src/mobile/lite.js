@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { MOBILE, TOWN, ANIMALS } from '../config.js';
 import { decalAtlas } from '../world/kit/tex.js';
+import { storePages } from '../world/store/pages.js';
 
 /* ------------------------------------------------------------------ *
  * What makes the town light enough for a phone (docs/decisions/
@@ -36,18 +37,12 @@ export function liteConfig() {
  * Returns what it did, for the report.
  */
 export function liteScene(scene, renderer, world) {
-  const out = { packed: packBatches(scene), decals: cropDecals(scene), atlasPages: cropAtlasPages(scene), mirrors: 0, freedTextures: 0, freedTextureMB: 0, freedGeometry: 0, freedGeometryMB: 0 };
+  const siblings = mergeSiblings(scene), storeQuads = packStoreQuads(scene);
+  const out = { siblings, storeQuads, packed: packBatches(scene), decals: cropDecals(scene), atlasPages: cropAtlasPages(scene), mirrors: 0, freedTextures: 0, freedTextureMB: 0, freedGeometry: 0, freedGeometryMB: 0 };
 
-  /* The mirrors (land/mirror.js: the pond, the river, the paddies) each draw
-   * the scene again.  Their own updaters show them near their water: here
-   * they are never shown, so the painted water under them always is. */
-  scene.traverse((o) => {
-    if (!/mirror$/.test(o.name) || !o.isMesh || !o.camera) return;
-    out.mirrors++;
-    o.getRenderTarget?.()?.dispose();
-    o.onBeforeRender = () => {};
-    Object.defineProperty(o, 'visible', { get: () => false, set: () => {}, configurable: true });
-  });
+  /* The mirrors (land/mirror.js: the pond, the river, the paddies) stay, as on the desktop (v3): each is a
+   * small target drawn only while you stand by its water, and without them the water is a flat sheet (Tan:
+   * "a green mat"). */
 
   /* The inverted-hull outlines (core/outline.js: a second, heavier contour
    * round the hero props) go: the ink pass still draws every line, and at a
@@ -297,6 +292,144 @@ export function quantizePositions(o, pad = 0) {
 }
 
 /**
+ * The parts world/merge.js leaves alone because their place moves or is driven as a whole (the level crossing,
+ * the station, the shrine: `userData.dynamic`) are still mostly still: an arm's 24 stripes are 24 draws.  Within
+ * one parent, the unnamed meshes that share a material (and shadow flags) become one mesh in that parent's own
+ * frame, so whatever turns or hides the parent still does.  Named meshes and `keep` ones (what code holds on
+ * to) are left.  Returns how many draws went.
+ */
+const SIBLING_OWNERS = /^(level-crossing|station|shrine|pole|megastore|lawson-props|lawson-dress)$/;
+export function mergeSiblings(scene) {
+  const parents = new Set();
+  scene.traverse((o) => {
+    if (!o.isMesh || !o.parent) return;
+    for (let a = o.parent; a; a = a.parent) if (SIBLING_OWNERS.test(a.name)) { parents.add(o.parent); return; }
+  });
+  const plain = THREE.Object3D.prototype.onBeforeRender;
+  let saved = 0;
+  for (const p of parents) {
+    const groups = new Map();
+    for (const c of p.children) {
+      if (!c.isMesh || c.isInstancedMesh || c.isSkinnedMesh || c.children.length || c.userData.keep || c.name || !c.visible) continue;
+      if (Array.isArray(c.material) || c.onBeforeRender !== plain || c.geometry.morphAttributes.position) continue;
+      const key = `${c.material.uuid}|${+c.castShadow}${+c.receiveShadow}|${c.renderOrder}|${c.layers.mask}|${Object.keys(c.geometry.attributes).sort().join(',')}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(c);
+    }
+    for (const list of groups.values()) {
+      if (list.length < 2) continue;
+      const geos = list.map((c) => {
+        c.updateMatrix();
+        const g = c.geometry.index ? c.geometry.toNonIndexed() : c.geometry.clone();
+        g.applyMatrix4(c.matrix);
+        return g;
+      });
+      const geo = mergeGeometries(geos, false);
+      geos.forEach((g) => g.dispose());
+      if (!geo) continue;
+      const a = list[0], mesh = new THREE.Mesh(geo, a.material);
+      mesh.castShadow = a.castShadow; mesh.receiveShadow = a.receiveShadow; mesh.renderOrder = a.renderOrder;
+      mesh.layers.mask = a.layers.mask;
+      mesh.userData = { ...a.userData };
+      mesh.matrixAutoUpdate = false;
+      p.add(mesh);
+      for (const c of list) p.remove(c);
+      saved += list.length - 1;
+    }
+  }
+  return saved;
+}
+
+/**
+ * The konbini's painted quads (store/painter.js: signs, posters, POP cards, one mesh a picture: ~60 draws
+ * through the glass from the famous view) and the posters on its glass, packed onto one page and drawn as one
+ * mesh per kind (opaque, see-through).  Their brightness still follows the look: each merged material shares
+ * its originals' colour object, which lawson.js setLook sets in place.  The label and price-tag pages
+ * (store/pages.js: they change size with where you stand) are not touched.
+ */
+export function packStoreQuads(scene, { page = 2048 } = {}) {
+  const store = scene.getObjectByName('lawson'), inside = scene.getObjectByName('lawson-interior');
+  if (!store || !inside) return 0;
+  store.updateMatrixWorld(true);
+  const paged = new Set();
+  for (const p of storePages) for (const m of p.mats) paged.add(m);
+  const list = [];
+  store.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || o.userData.keep || !o.visible) return;
+    if (!(o.name === 'store-quads' || (!o.name && o.parent === store))) return;
+    const m = o.material;
+    if (Array.isArray(m) || !m.isMeshBasicMaterial || paged.has(m) || m.alphaMap || m.vertexColors) return;
+    const t = m.map, img = t?.image;
+    if (!img || !(img.width > 0) || !(img instanceof HTMLCanvasElement) || t.userData.size || img.width > 1300) return;
+    const uv = o.geometry.attributes.uv;
+    if (!uv) return;
+    for (let i = 0; i < uv.count; i++) { const u = uv.getX(i), v = uv.getY(i); if (u < -0.001 || u > 1.001 || v < -0.001 || v > 1.001) return; }
+    if (t.wrapS !== THREE.ClampToEdgeWrapping || t.wrapT !== THREE.ClampToEdgeWrapping || !t.flipY || t.repeat.x !== 1 || t.repeat.y !== 1 || t.offset.x || t.offset.y) return;
+    list.push(o);
+  });
+  if (list.length < 2) return 0;
+  // each picture once at its own size: shelf packing, tallest first, `page` wide and as tall as it takes
+  const texs = [...new Set(list.map((o) => o.material.map))];
+  const PAD = 4, slots = new Map();
+  let x = 0, y = 0, shelf = 0;
+  for (const t of [...texs].sort((a, b) => b.image.height - a.image.height)) {
+    const w = t.image.width, h = t.image.height;
+    if (x + w + PAD * 2 > page) { x = 0; y += shelf; shelf = 0; }
+    slots.set(t, { x: x + PAD, y: y + PAD, w, h });
+    x += w + PAD * 2; shelf = Math.max(shelf, h + PAD * 2);
+  }
+  const pageH = y + shelf;
+  const cv = document.createElement('canvas');
+  cv.width = page; cv.height = pageH;
+  const c = cv.getContext('2d');
+  for (const [t, s] of slots) {
+    c.drawImage(t.image, s.x - PAD, s.y - PAD, s.w + PAD * 2, s.h + PAD * 2);   // its own edge bled into the padding
+    c.clearRect(s.x, s.y, s.w, s.h);
+    c.drawImage(t.image, s.x, s.y, s.w, s.h);
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = list[0].material.map.colorSpace;
+  tex.anisotropy = 8;
+  tex.name = 'store-quads';
+  const inv = store.matrixWorld.clone().invert(), rel = new THREE.Matrix4();
+  const groups = new Map();
+  for (const o of list) {
+    const m = o.material, key = `${m.transparent}|${m.opacity}|${m.alphaTest}|${m.side}|${m.depthWrite}|${m.color.getHexString()}|${m.fog}|${o.renderOrder}|${m.toneMapped}`;
+    if (!groups.has(key)) groups.set(key, { src: m, order: o.renderOrder, geos: [], meshes: [] });
+    const s = slots.get(m.map);
+    const g = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone());
+    for (const name of Object.keys(g.attributes)) if (name !== 'position' && name !== 'uv') g.deleteAttribute(name);
+    const uv = g.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, (s.x + uv.getX(i) * s.w) / page, 1 - (s.y + (1 - uv.getY(i)) * s.h) / pageH);
+    g.applyMatrix4(rel.multiplyMatrices(inv, o.matrixWorld));
+    const G = groups.get(key);
+    G.geos.push(g); G.meshes.push(o);
+  }
+  let removed = 0;
+  for (const { src, order, geos, meshes } of groups.values()) {
+    const geo = mergeGeometries(geos, false);
+    if (!geo) continue;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: src.transparent, opacity: src.opacity, alphaTest: src.alphaTest, side: src.side, depthWrite: src.depthWrite, fog: src.fog, toneMapped: src.toneMapped });
+    mat.color = src.color;               // the same Color object: setLook brightens it in place
+    mat.userData = src.userData;
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.name = 'store-quads-lite';
+    mesh.userData.noOutline = true;
+    mesh.castShadow = mesh.receiveShadow = false;
+    mesh.renderOrder = order;
+    mesh.matrixAutoUpdate = false;
+    store.add(mesh);
+    for (const o of meshes) { o.parent.remove(o); removed++; }
+    removed--;
+  }
+  // the pictures now on the page, where nothing else draws with them: their canvases go
+  const still = new Set();
+  scene.traverse((o) => { for (const m of [o.material].flat()) if (m?.map) still.add(m.map); });
+  for (const t of texs) if (!still.has(t)) { t.dispose(); t.image.width = 1; t.image.height = 1; }
+  return removed;
+}
+
+/**
  * The town's decal atlas (kit/tex.js: every road marking, lid, crack and
  * petal drift, 8 x 8 cells of 256 px on a 2048 page) has its bottom two rows
  * empty: the page is cropped to the six that are painted, and every decal's
@@ -432,9 +565,21 @@ export function makeCuller(scene) {
     const own = Object.getOwnPropertyDescriptor(o, 'visible');
     if (own && (own.get || !own.writable)) return;                  // (the mirrors: always off)
     const g = o.geometry;
-    if (!g.boundingSphere) g.computeBoundingSphere();
-    if (!g.boundingSphere || !Number.isFinite(g.boundingSphere.radius)) return;
-    sphere.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
+    if (/mirror$/.test(o.name)) return;                             // (the water's mirrors show and hide themselves)
+    /* a kind's instances are measured together (three's own bounds for an InstancedMesh): by its one shape's
+     * bounds every kind sat at the origin, and the sleepers, shrubs, seedlings and pigeons were cut wherever you
+     * stood more than `detail` from it */
+    let bs = null;
+    if (o.isInstancedMesh) {
+      if (o.instanceMatrix.usage === THREE.DynamicDrawUsage) return;   // (its instances move: three and the game cull it)
+      if (!o.boundingSphere) o.computeBoundingSphere();
+      bs = o.boundingSphere;
+    } else {
+      if (!g.boundingSphere) g.computeBoundingSphere();
+      bs = g.boundingSphere;
+    }
+    if (!bs || !Number.isFinite(bs.radius)) return;
+    sphere.copy(bs).applyMatrix4(o.matrixWorld);
     // spread town-wide (a kind's instances, a moving thing's long reach): always drawn; what never moves is measured by its box instead
     if (sphere.radius > MOBILE.far * 0.6 && (o.matrixAutoUpdate || o.isInstancedMesh)) return;
     /* The game shows and hides things itself (the trees' near and far
@@ -442,7 +587,7 @@ export function makeCuller(scene) {
      * becomes what the game says AND near enough, so neither undoes the other. */
     let mine = o.visible;
     // (a kind's far set, and the far tree lines, are what is seen from afar: never cut at the detail distance)
-    const e = { o, near: true, detail: o.name === 'merged-detail' || (o.isInstancedMesh && sphere.radius < 40 && !/Far\d?$/.test(o.name)), moves: o.matrixAutoUpdate, x: sphere.center.x, z: sphere.center.z, r: sphere.radius, box: null, reach: stock ? MOBILE.store.goods : 0 };
+    const e = { o, near: true, detail: o.name === 'merged-detail' || (o.isInstancedMesh && sphere.radius < 40 && !/Far\d?$/.test(o.name)), moves: o.matrixAutoUpdate, inst: o.isInstancedMesh ? o.instanceMatrix.version : -1, x: sphere.center.x, z: sphere.center.z, r: sphere.radius, box: null, reach: stock ? MOBILE.store.goods : 0 };
     // what never moves is measured by its box (a batch's cell is square: its sphere reaches far past its corners)
     if (!e.moves && !o.isInstancedMesh) {
       if (!g.boundingBox) g.computeBoundingBox();
@@ -538,8 +683,11 @@ export function makeCuller(scene) {
       const px = cam.x, pz = cam.z;
       const streamNow = stream && (++clock % 10 === 0 || turned);       // (about three times a second)
       for (const e of list) {
+        // a kind whose instances are placed again as the game runs (view-sorted crowns): never cut by where they were
+        if (e.inst >= 0 && e.o.instanceMatrix.version !== e.inst) { e.live = true; e.streams = false; }
+        if (e.live) { e.near = true; e.d = 0; continue; }
         if (e.moves) {
-          const bs = e.o.geometry.boundingSphere;
+          const bs = (e.o.isInstancedMesh && e.o.boundingSphere) || e.o.geometry.boundingSphere;
           sphere.copy(bs).applyMatrix4(e.o.matrixWorld);
           e.x = sphere.center.x; e.z = sphere.center.z;
         }
@@ -553,6 +701,10 @@ export function makeCuller(scene) {
         // small props (the detail cells) stream just past where they stop being drawn
         const far = hidden ? -1e9 : e.reach || (e.detail ? MOBILE.detail + 16 : MOBILE.far + MOBILE.stream);
         if (!e.gone && d > far) {
+          /* (a geometry that let its CPU arrays go once uploaded, as the konbini's stock does (store/products.js),
+           * cannot be uploaded again: it stays) */
+          const g = e.o.geometry;
+          if ([...Object.values(g.attributes), g.index].some((a) => a && !(a.array?.length > 0) && !a.isInterleavedBufferAttribute)) { e.streams = false; continue; }
           e.gone = true; out++;
           e.o.geometry.dispose();
           for (const t of e.tex) if (--t.__in <= 0) t.dispose();

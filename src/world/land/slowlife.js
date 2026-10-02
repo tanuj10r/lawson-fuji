@@ -185,7 +185,7 @@ export function buildSlowLife(ctx, scatter) {
   const Ln = { x: S.lantern[0], z: S.lantern[1], ry: S.lantern[2] };
   lantern(parts, Ln);
   // the tree: one old sakura over the bench (the town's sakura batch; its petals fall with the town's)
-  ctx.sakura.push({ x: S.tree[0], z: S.tree[1], y: 0, scale: S.tree[2], seed: 9311 });
+  ctx.sakura.push({ x: S.tree[0], z: S.tree[1], y: 0, scale: S.tree[2], seed: 9311/*@mini , layered: true @*//*@@*/ });
   // wildflowers round the tree's foot, the jizo and the paddies' edge: dandelions, violets, clover
   for (let i = 0; i < 70; i++) {
     const a = r.range(0, Math.PI * 2), d = r.range(0.6, 3.4);

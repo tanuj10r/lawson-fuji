@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+<head>
+<meta charset="utf-8" />
+<!-- the whole screen, no pinch or double-tap zoom (iOS ignores user-scalable, so src/mobile/touch.js also stops the gestures) -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="google" content="notranslate" />
+<title>Take Me Back to Japan</title>
+<meta name="description" content="A first-person stroll through Fujikawaguchikko, a small Japanese town under Mt. Fuji: a konbini at golden hour, cherry blossom, a shrine, a local train. The pocket edition, for phones." />
+<link rel="canonical" href="https://takemebacktojapan.com/" />
+<meta name="theme-color" content="#2c2346" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Japan" />
+<meta name="format-detection" content="telephone=no" />
+<link rel="icon" href="favicon.ico" sizes="48x48" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<!-- the key art (scripts/keyart.mjs): the banner on its side, the portrait crop upright -->
+<link rel="preload" as="image" href="keyart-1280.webp" imagesrcset="keyart-1280.webp 1280w, keyart-1920.webp 1920w" imagesizes="100vw" type="image/webp" media="(orientation: landscape)" fetchpriority="high" />
+<link rel="preload" as="font" href="title.woff2" type="font/woff2" crossorigin />
+<link rel="preload" as="image" href="keyart-portrait.webp" type="image/webp" media="(orientation: portrait)" fetchpriority="high" />
+<style>
+  /* The phone build (src/mobile/; docs/decisions/mobile-lite.md, "Mobile v3: UI"):
+   * the desktop cards' look (paper, ink, the sakura rule, the key art), laid
+   * out for thumbs.  The cards are here; the play screen's parts are in
+   * src/mobile/hud.js and touch.js. */
+  *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --ink: #2b2542; --ink-soft: #6c6482; --paper: #fbf6f0; --sakura: #e59bb0; --action: #3b3263;
+    --safe-t: env(safe-area-inset-top, 0px); --safe-r: env(safe-area-inset-right, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px); --safe-l: env(safe-area-inset-left, 0px);
+    /* the screen's edge for the play screen's corners: a little in from the glass, past the notch */
+    --edge-t: max(10px, calc(var(--safe-t) + 4px)); --edge-r: max(12px, calc(var(--safe-r) + 2px));
+    --edge-b: max(12px, calc(var(--safe-b) + 4px)); --edge-l: max(12px, calc(var(--safe-l) + 2px));
+    --map: 96px;          /* the corner map (the desktop's is 196) */
+    --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+    --title: 'TMBJ Title', 'Hiragino Maru Gothic ProN', 'Arial Rounded MT Bold', system-ui, sans-serif;
+  }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+    background: #2c2346; color: var(--ink); font-family: var(--ui);
+    /* no scroll, no pull-to-refresh, no selection or callouts over the game */
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+  }
+  #view { position: fixed; inset: 0; display: block; width: 100vw; height: 100vh; height: 100dvh; touch-action: none; }
+  [lang='ja'] { font-family: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+  button { font: inherit; color: inherit; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+
+  /* ---------- the cards' shared parts ---------- */
+  .scrim {
+    position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
+    padding: max(12px, var(--safe-t)) max(12px, var(--safe-r)) max(12px, var(--safe-b)) max(12px, var(--safe-l));
+    background: radial-gradient(ellipse at 50% 40%, #6e5b8f, #2c2346);
+    transition: opacity .45s ease, visibility .45s ease;
+  }
+  .scrim.see-through { background: radial-gradient(ellipse at 50% 40%, rgba(40,30,62,.42), rgba(18,14,32,.8)); -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px); }
+  .scrim.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .card {
+    position: relative; width: min(100%, 540px); max-height: 100%; overflow: hidden auto;
+    border-radius: 20px; background: var(--paper);
+    box-shadow: 0 30px 80px -24px rgba(8,4,24,.8), 0 0 0 1px rgba(255,255,255,.08);
+    display: flex; flex-direction: column;
+  }
+  .place { margin: 0 0 4px; font-size: 10px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: rgba(43,37,66,.74); }
+  .place [lang='ja'] { letter-spacing: .1em; }
+  .btn {
+    display: block; width: 100%; min-height: 50px; margin: 12px 0 0; padding: 12px 16px;
+    border: 0; border-radius: 13px; background: var(--action); color: #fff;
+    font-size: 17px; font-weight: 700; letter-spacing: .06em; cursor: pointer;
+    box-shadow: 0 10px 22px -10px rgba(40,24,80,.75), inset 0 -2px 0 rgba(0,0,0,.18);
+    transition: transform .08s ease, background .12s ease;
+  }
+  .btn:active, .btn.down { transform: translateY(1px) scale(.985); background: #4b3f7c; }
+  .btn.soft { background: transparent; color: var(--action); border: 1.5px solid rgba(59,50,99,.4); box-shadow: none; min-height: 42px; padding: 8px 14px; font-size: 14.5px; letter-spacing: .02em; }
+  .btn.soft.down, .btn.soft:active { background: #ece6f4; }
+  .url { margin: 10px 0 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--ink-soft); }
+  .url a { color: inherit; text-underline-offset: 2px; }
+  .url i { font-style: normal; margin: 0 .5em; opacity: .6; }
+
+  /* ---------- Made by Tan: the row on the start and pause cards (src/ui/maker.js) ---------- */
+%MAKER:css%
+  .mk-row { margin: 12px 0 0; padding: 11px 0 0; }
+  .mk-row .mk-row-top { gap: 10px; }
+  .mk-row .mk-face { width: 40px; height: 40px; }
+  .mk-row .mk-who { font-size: 13.5px; }
+  .mk-row .mk-who small { margin-top: 2px; font-size: 11.5px; line-height: 1.3; }
+  .mk-row .mk-links { gap: 7px; margin: 9px 0 0; }
+  .mk-row .mk-i { width: 40px; height: 40px; padding: 10.5px; }
+  .mk-row .mk-coffee { min-height: 40px; padding: 8px 10px; font-size: 14px; }
+  .mk-row a:active { transform: scale(.96); }
+
+  /* ---------- the start card: the key art over the whole screen, the name in its sky, a paper sheet ---------- */
+  .start { padding: 0; z-index: 30; background: #b98ab4; align-items: stretch; justify-content: stretch; }
+  .start .bg { position: absolute; inset: 0; margin: 0; overflow: hidden; }
+  .start .bg img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 86%; }
+  /* a paper wash behind the name, top right, so the Japanese line reads over ドンペン堂's signs; a soft foot under the sheet */
+  .start .bg::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 50% 70% at 92% 6%, rgba(251,246,240,.88), rgba(251,246,240,.55) 55%, rgba(251,246,240,0) 82%),
+      linear-gradient(0deg, rgba(30,20,52,.34), rgba(30,20,52,0) 34%); }
+  .name { position: absolute; z-index: 1; right: max(20px, calc(var(--safe-r) + 8px)); top: max(16px, calc(var(--safe-t) + 8px)); margin: 0; text-align: right; }
+  /* the title's face on every card, as on the desktop: M PLUS Rounded Bold (Tan's pick; a 2 KB subset, public/title.woff2) */
+  @font-face { font-family: 'TMBJ Title'; src: url('title.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+  .name h1 { margin: 0; font-family: var(--title); font-size: clamp(23px, 3.9vw, 34px); line-height: 1.05; font-weight: 700; letter-spacing: -.01em; color: #2a2140; white-space: nowrap;
+    text-shadow: 0 1px 0 rgba(255,236,230,.4); }
+  .jp { margin: 6px 0 0; font-size: 12.5px; font-weight: 700; letter-spacing: .3em; color: rgba(43,37,66,.82); }
+  .jp::before { content: ''; display: inline-block; width: 24px; height: 2px; margin: 0 8px 3px 0; vertical-align: middle; background: linear-gradient(90deg, transparent, var(--sakura)); }
+  .sheet {
+    position: absolute; z-index: 1; left: max(14px, calc(var(--safe-l) + 2px)); bottom: max(14px, calc(var(--safe-b) + 2px));
+    width: clamp(264px, 37vw, 312px); padding: 14px 16px 12px; border-radius: 20px;
+    background: rgba(251,246,240,.95); border-top: 3px solid var(--sakura);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2); backdrop-filter: blur(12px) saturate(1.2);
+    box-shadow: 0 24px 60px -22px rgba(8,4,24,.85), 0 0 0 1px rgba(255,255,255,.18);
+  }
+  .tagline { margin: 0; font-size: 15.5px; line-height: 1.32; font-weight: 700; color: var(--ink); text-wrap: balance; }
+  .bar { position: relative; height: 6px; margin: 14px 0 6px; overflow: hidden; border-radius: 999px; background: #efe5e8; }
+  .bar > span { position: absolute; inset: 0 auto 0 0; width: var(--p, 12%); border-radius: inherit; background: var(--action); transition: width .5s ease; }
+  .bar::after { content: ''; position: absolute; inset: 0; width: 30%; background: linear-gradient(90deg, transparent, rgba(229,155,176,.95), transparent); animation: glint 1.4s linear infinite; }
+  @keyframes glint { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+  .line { margin: 0; min-height: 30px; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+  #boot .start-only, #boot.ready .load-only { display: none; }
+  #boot.ready .start-only { display: block; }
+  #start { margin-top: 12px; }
+  /* the Start button breathes once it is ready: the one thing to press */
+  #boot.ready #start { animation: start-in .5s ease both, start-glow 2.6s ease-in-out .6s infinite; }
+  @keyframes start-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes start-glow { 0%, 100% { box-shadow: 0 10px 22px -10px rgba(40,24,80,.75), inset 0 -2px 0 rgba(0,0,0,.18), 0 0 0 0 rgba(229,155,176,0); }
+    50% { box-shadow: 0 10px 22px -10px rgba(40,24,80,.75), inset 0 -2px 0 rgba(0,0,0,.18), 0 0 0 6px rgba(229,155,176,.42); } }
+
+  /* a phone held upright: the portrait crop over the screen's top, Hachi sitting just above the sheet */
+  @media (orientation: portrait) {
+    :root { --map: 86px; }
+    .start { flex-direction: column; }
+    .start .bg { position: relative; inset: auto; flex: 1 1 0; min-height: 0; }
+    /* Fuji's peak and Hachi's paws both in the picture: the art is 9:16 and a phone 9:19.5, so the sheet is kept
+     * low (one line of words, the maker's row on one line) and the crop shared between the top and the foot */
+    .start .bg img { object-position: 50% 56%; }
+    .start .bg::after { background: radial-gradient(ellipse 74% 34% at 86% 4%, rgba(251,246,240,.84), rgba(251,246,240,.46) 55%, rgba(251,246,240,0) 82%); }
+    .name { right: max(18px, calc(var(--safe-r) + 8px)); top: max(18px, calc(var(--safe-t) + 10px)); }
+    .name h1 { font-size: clamp(25px, 7.4vw, 34px); }
+    .sheet { position: relative; left: auto; bottom: auto; flex: none; width: 100%; margin: -14px 0 0; padding: 15px 20px max(14px, calc(var(--safe-b) + 8px));
+      border-radius: 22px 22px 0 0; background: var(--paper); box-shadow: 0 -18px 40px -22px rgba(8,4,24,.7); }
+    .tagline { font-size: clamp(13.5px, 4.05vw, 16px); white-space: nowrap; text-wrap: nowrap; }
+    .btn { min-height: 52px; }
+    .sheet .mk-row { display: flex; align-items: center; gap: 8px; margin-top: 11px; padding-top: 10px; }
+    .sheet .mk-row .mk-row-top { flex: none; }
+    .sheet .mk-row .mk-who { display: none; }
+    .sheet .mk-row .mk-links { flex: 1; margin: 0; gap: 6px; }
+    .sheet .mk-row .mk-coffee { flex: 1; justify-content: center; white-space: nowrap; }
+    .sheet .url { margin-top: 9px; }
+  }
+  /* a short phone upright (an SE): there is not room for both, and Hachi is the one to keep */
+  @media (orientation: portrait) and (max-height: 740px) {
+    .start .bg img { object-position: 50% 97%; }
+  }
+  /* a short screen on its side (Safari's bars showing): the sheet a size down */
+  @media (orientation: landscape) { .sheet .mk-who small { display: none; } }
+  /* on its side the sheet is narrow (272 px in Chrome on an iPhone 15): "Buy Tan a coffee" whole on its button, never
+   * under the icons (Tan, 2026-10-02): the button as wide as its words, the icons a size down, a wider sheet */
+  @media (orientation: landscape) {
+    .sheet { width: clamp(312px, 43vw, 340px); }
+    .sheet .mk-row .mk-links { gap: 6px; }
+    .sheet .mk-row .mk-i { width: 38px; height: 38px; padding: 9.5px; }
+    .sheet .mk-row .mk-coffee { flex: 1 0 auto; min-width: max-content; min-height: 38px; padding: 7px 9px 7px 8px; font-size: 13px; gap: .4em; }
+  }
+  @media (orientation: landscape) and (max-height: 350px) {
+    .sheet { padding: 11px 14px 9px; }
+    .tagline { font-size: 14.5px; }
+    .sheet .mk-row { margin-top: 9px; padding-top: 8px; }
+    .sheet .mk-who small { display: none; }
+    .sheet .url { margin-top: 7px; }
+    #start { margin-top: 9px; min-height: 46px; padding: 9px 16px; }
+  }
+
+  /* ---------- the play screen's parts that the shared code makes (their own inline looks, set for a phone here) ---------- */
+  /* paused, the game's own captions (Hachi's hello) wait under the card, as on desktop */
+  body.game-paused #hachi-card, body.map-open #hachi-card { visibility: hidden; }
+  /* Hachi's hello (animals/guide.js sizes it for a desktop): between the thumbs on a phone */
+  #hachi-card { max-width: min(430px, calc(100vw - 2 * var(--edge-l) - 300px)) !important; bottom: 34% !important; padding: 9px 16px 10px !important;
+    border-radius: 16px !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  #hachi-card div { font-size: 13.5px !important; line-height: 1.38 !important; }
+  #hachi-card div:first-child { font-size: 15.5px !important; }
+  /* the corner map (ui/minimap.js): small, top left; hud.js lays its button over it (tap: the whole map) */
+  .minimap { left: var(--edge-l) !important; top: var(--edge-t) !important; right: auto !important; bottom: auto !important;
+    width: var(--map) !important; height: var(--map) !important; z-index: 5 !important; }
+  /* the whole map: drawn larger than the screen (shell.js drawMap) and panned with a finger */
+  .fullmap { background: rgba(24,20,38,.72) !important; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    align-items: flex-start !important; justify-content: flex-start !important; overflow: auto; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    padding: max(8px, var(--safe-t)) max(8px, var(--safe-r)) max(8px, var(--safe-b)) max(8px, var(--safe-l)); }
+  .fullmap.hidden { visibility: hidden; }
+  .fullmap canvas { flex: none; margin: auto; max-width: none !important; max-height: none !important; }
+  /* the sounds' names (ui/soundLabels.js; the desktop's pill): beside the map */
+  .snd { position: absolute; left: calc(var(--edge-l) + var(--map) + 10px); top: var(--edge-t); z-index: 2; display: flex; flex-direction: row; align-items: flex-start; gap: 6px; }
+  body.game-paused .snd, body.map-open .snd { visibility: hidden; }
+  .snd-pill {
+    display: flex; align-items: center; gap: 8px; max-width: min(250px, 30vw);
+    padding: 5px 13px 6px 6px; border-radius: 999px;
+    background: rgba(251,246,240,.92); color: #2b2542; border: 1.5px solid rgba(58,51,80,.2);
+    box-shadow: 0 6px 18px -8px rgba(20,10,40,.45);
+    font: 600 12.5px/1.25 var(--ui); white-space: nowrap;
+    animation: snd-in var(--snd-ms, 5600ms) ease both;
+  }
+  .snd-pill svg { flex: none; width: 13px; height: 13px; padding: 4.5px; border-radius: 50%; background: #f3d9e0;
+    fill: none; stroke: #3b3263; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; box-sizing: content-box; }
+  .snd-pill p { margin: 0; overflow: hidden; text-overflow: ellipsis; }
+  .snd-pill b { font-weight: 700; font-family: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+  .snd-pill i { font-style: normal; margin: 0 .4em; color: #6c6482; }
+  .snd-pill em { font-style: normal; }
+  @keyframes snd-in { 0% { opacity: 0; transform: translateX(-8px); } 7%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+  @keyframes snd-still { 0%, 99% { opacity: 1; } 100% { opacity: 0; } }
+  @media (orientation: portrait) {
+    #hachi-card { max-width: min(430px, 86vw) !important; bottom: 38% !important; }
+    .snd { flex-direction: column; left: var(--edge-l); top: calc(var(--edge-t) + var(--map) + 22px); }
+    .snd-pill { max-width: 76vw; }
+  }
+  /* the postcard (ui/postcard.js) over the pause card's place */
+  .mk-post-scrim { z-index: 24 !important; padding: max(12px, var(--safe-t)) max(12px, var(--safe-r)) max(12px, var(--safe-b)) max(12px, var(--safe-l)) !important;
+    -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px); overflow: hidden auto; }
+  .mk-post button, .mk-post a { touch-action: manipulation; }
+  /* the town's name in the picture's sky, clear of Hachi on the zebra */
+  .mk-post .pic figcaption { left: auto !important; bottom: auto !important; right: 9px; top: 9px; padding: 4px 9px !important; font-size: 8.5px !important; letter-spacing: .1em !important; }
+  .mk-post .m-note { margin: 8px 0 0; padding: 8px 10px; border-radius: 9px; background: #fff3d6; color: #5a4420; font-size: 12.5px; line-height: 1.4; font-weight: 600; }
+  @media (orientation: landscape) and (max-height: 540px) {
+    .mk-post { width: min(calc(100vw - var(--safe-l) - var(--safe-r) - 24px), calc((100dvh - 24px) * 1.62)) !important; }
+    .mk-post .pc-back { font-size: 13px !important; padding: 6px 13px 6px 10px !important; }
+    /* (Tan, 2026-10-02: "Add your selfie with Hachi" ran to its button's edge) its words inside it, with room each side */
+    .mk-post .pc-add { font-size: clamp(11.5px, 1.75vw, 14px) !important; padding: 8px 10px !important; gap: 6px !important; white-space: nowrap; min-width: 0; }
+    .mk-post .pc-add svg { width: 1.15em !important; height: 1.15em !important; }
+    .mk-post .maker .mk-links { gap: 5px !important; }
+    .mk-post .maker .mk-who small { display: none; }
+    .mk-post .share { gap: 6px !important; }
+    /* (three equal thirds left "Copy link" touching its frame at 390 px: each as wide as its words want) */
+    .mk-post .share > *, .sf-acts > * { min-height: 34px; flex: 1 1 auto !important; padding: 5px 8px !important; font-size: 12px !important; gap: 4px !important; white-space: nowrap; }
+    .mk-post .share svg { width: 1.05em !important; height: 1.05em !important; }
+    .mk-post h2 { font-size: max(16px, 3.1cqw) !important; }
+    .mk-post .msg { font-size: 11.5px !important; line-height: 1.36 !important; }
+    /* the card whole on a short screen (337 px in Chrome): the ruled address lines go, the foot closes up */
+    .mk-post .to { display: none !important; }
+    .mk-post .back { padding: 2.4cqw 2.8cqw 2cqw 3cqw !important; }
+    .mk-post .maker { margin-top: 1.1cqw !important; padding-top: 1.1cqw !important; }
+    .mk-post .maker .mk-face { width: 32px !important; height: 32px !important; }
+    /* the town's name beside Back, not under it */
+    .mk-post .pic figcaption { max-width: calc(100% - 92px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 7.5px !important; letter-spacing: .05em !important; }
+    .mk-post .maker .mk-i { width: 30px !important; height: 30px !important; padding: 7.5px !important; }
+    .mk-post .maker .mk-coffee { min-height: 32px; }
+    /* the town's name in the picture's sky, clear of Hachi on the zebra */
+  .mk-post .pic figcaption { left: auto !important; bottom: auto !important; right: 9px; top: 9px; padding: 4px 9px !important; font-size: 8.5px !important; letter-spacing: .1em !important; }
+  .mk-post .m-note { font-size: 11.5px; padding: 6px 9px; }
+  }
+  @media (max-width: 700px) and (orientation: portrait) {
+    .mk-post-scrim { place-items: start center !important; }
+    .mk-post { margin: auto 0; }
+    .mk-post .share > *, .sf-acts > * { min-height: 44px; }
+    .mk-post .maker .mk-i { width: 40px !important; height: 40px !important; padding: 10.5px !important; }
+    .mk-post .maker .mk-coffee { min-height: 40px !important; }
+  }
+
+  .gate { display: none; }
+  .gate-nogl #gate, .gate-lost #gate { display: flex; z-index: 40; }
+  .gate-nogl #boot { display: none; }
+  .gate .body { padding: 18px 20px 18px; border-top: 3px solid var(--sakura); }
+  .gate .msg { display: none; }
+  .gate-nogl .for-nogl, .gate-lost .for-lost { display: block; }
+  .gate h2 { margin: 0 0 6px; font-size: 16px; font-weight: 700; }
+  .gate p.t { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bar::after, #boot.ready #start { animation: none; }
+    .scrim { transition: none; }
+    .snd-pill { animation-name: snd-still; animation-timing-function: step-end; }
+  }
+</style>
+<script>
+  /* Before anything loads: can this phone draw the town?  WebGL 2 or the
+   * card (the game's code is never downloaded). */
+  (function () {
+    var d = document.documentElement, gl = null;
+    try { gl = document.createElement('canvas').getContext('webgl2'); } catch (e) { gl = null; }
+    if (!gl) d.classList.add('gate-nogl');
+    else { var x = gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); }
+    if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) d.classList.add('is-ios');
+  })();
+</script>
+</head>
+<body class="notranslate">
+  <canvas id="view"></canvas>
+
+  <!-- the loading card, which becomes the start card.  Only its Start button starts the town; a tap anywhere else
+       wakes the sound (the title song), as on desktop (src/mobile/shell.js) -->
+  <div id="boot" class="scrim start" role="dialog" aria-modal="true" aria-labelledby="boot-title">
+    <picture class="bg">
+      <source media="(orientation: portrait)" srcset="keyart-portrait.webp" width="900" height="1600" />
+      <img src="keyart-1280.webp" srcset="keyart-1280.webp 1280w, keyart-1920.webp 1920w" sizes="100vw" width="1280" height="720" alt="%S:artAlt%" fetchpriority="high" />
+    </picture>
+    <header class="name">
+      <p class="place">%S:town.en% · <span lang="ja">%S:town.jp%</span></p>
+      <h1 id="boot-title">%S:title%</h1>
+      <p class="jp" lang="ja">%S:titleJp%</p>
+    </header>
+    <section class="sheet">
+      <p class="tagline">%S:m.tagline%</p>
+      <div class="load-only" role="status" aria-live="polite">
+        <div class="bar" aria-hidden="true"><span></span></div>
+        <p class="line">%S:m.loading%</p>
+      </div>
+      <div class="start-only">
+        <button class="btn" type="button" id="start">%S:m.start%</button>
+      </div>
+      %MAKER:row:start_card%
+      <p class="url">%S:m.desktop%<i>·</i><a href="credits.html" target="_blank" rel="noopener">%S:credits%</a></p>
+    </section>
+  </div>
+
+  <!-- no WebGL 2, or the phone took the GPU back (src/mobile/main.js) -->
+  <div id="gate" class="scrim gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+    <section class="card">
+      <div class="body">
+        <p class="place">%S:town.en% · <span lang="ja">%S:town.jp%</span></p>
+        <h1 id="gate-title" style="margin:0 0 12px;font-family:var(--title);font-size:25px;font-weight:700">%S:title%</h1>
+        <div class="msg for-nogl"><h2>%S:m.gate.noglTitle%</h2><p class="t">%S:m.gate.nogl%</p></div>
+        <div class="msg for-lost"><h2>%S:m.gate.lostTitle%</h2><p class="t">%S:m.gate.lost%</p>
+          <button class="btn" type="button" onclick="location.reload()">%S:m.gate.reload%</button></div>
+        <p class="url">%S:url%</p>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    if (!/\bgate-/.test(document.documentElement.className)) import('./src/mobile/boot.js');
+  </script>
+</body>
+</html>

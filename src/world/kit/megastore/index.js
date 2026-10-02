@@ -128,7 +128,7 @@ export function buildMegastore(ctx, net, kit, s, F) {
   block(-W2 - 0.06, H + 0.06, ZF + 0.225, W2 + 0.06, H + 0.12, ZF + 0.235, m.gold, { shadow: false });
   // the entrance's two end walls (silver faced, red edged) and two slim columns
   for (const sx of [-1, 1]) {
-    block(sx * (W2 - 0.6), 0, ZIN, sx * W2, H1, ZF + 0.12, m.silver, { outline: 0.003 });
+    block(sx * (W2 - 0.6), 0, ZIN/*@mini + 0.004 @*//*@@*/, sx * W2, H1/*@mini - 0.004 @*//*@@*/, ZF + 0.12, m.silver, { outline: 0.003 });
     block(sx * (W2 - 0.08), 0, ZF + 0.12, sx * (W2 + 0.02), H1, ZF + 0.2, m.red, { shadow: false });
     block(sx * 4.3 - 0.22, FLOOR, -0.62, sx * 4.3 + 0.22, H1, -0.18, m.silver, { outline: 0.003 });
     block(sx * 4.3 - 0.24, FLOOR, -0.64, sx * 4.3 + 0.24, 0.5, -0.16, m.red, { shadow: false });
@@ -144,7 +144,7 @@ export function buildMegastore(ctx, net, kit, s, F) {
       rect: [Math.min(a.x, b.x), Math.min(a.z, b.z), Math.max(a.x, b.x), Math.max(a.z, b.z)] });
   }
   // the entrance floor, flush with the walk
-  block(-ex, 0, ZIN, ex, FLOOR, 0.12, m.floor, { shadow: false });
+  block(-ex/*@mini + 0.004 @*//*@@*/, 0, ZIN, ex/*@mini - 0.004 @*//*@@*/, FLOOR, 0.12, m.floor, { shadow: false });
   {
     const a = T(-ex, ZIN), b = T(ex, 0.12);
     ctx.platform({ x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), z0: Math.min(a.z, b.z), z1: Math.max(a.z, b.z), top: FLOOR });

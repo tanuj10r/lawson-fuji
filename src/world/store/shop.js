@@ -5,7 +5,7 @@ import { STRINGS } from '../../data/strings.js';
 import { soundBus } from '../../core/soundBus.js';
 import { productGeometry, placeUnit, unitMatrix } from './products.js';
 import { onTopClamped, ease, easeOut, clamp01 } from './figure.js';
-import { makeHands } from './hands.js';
+import { makeHands, holdFor } from './hands.js';
 import { makeEating } from './eat.js';
 
 /* ------------------------------------------------------------------ *
@@ -151,8 +151,11 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
   const card = new THREE.Mesh(new THREE.PlaneGeometry(0.086, 0.054), cardMat);
   card.frustumCulled = false; card.renderOrder = 11; card.visible = false;
   card.geometry.computeBoundingBox();
-  card.rotation.set(-0.5, 0, 0.12);
+  const CARD_ROT = [-0.5, 0, 0.12];
+  card.rotation.set(...CARD_ROT);
   hands.anchor.add(card);
+  /** Close the hand as it holds product `id` in its pack (store/hands.js). */
+  const holdItem = (id) => hands.setHold(holdFor(PRODUCT[id].mesh.shape));
 
   /* what you carry: the product's own page material, drawn on top */
   const pageMat = new Map();
@@ -252,6 +255,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     if (u.door && u.door.open < 0.6 && !doorOpen) { doors.open(u.door); pendingTakes.push({ u, t: 0.32 }); return; }
     const from = unitMatrix(u, new THREE.Matrix4()).premultiply(inside.matrixWorld);
     u.count--;
+    holdItem(u.id);
     const mesh = itemMesh(u);
     const h = { id: u.id, u, mesh, hand: 0, paid: false, where: 'flying' };
     held.push(h);
@@ -310,7 +314,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     T(beep + 0.45, () => { gaze = TILL.look; screen.show('pay', h.id, sum); fly(h.mesh, counterMatrix(TILL.scan), () => counterMatrix(TILL.bag), { dur: 0.4, arc: 0.06 }); });
     // the card: up in the right hand (0.55 s), onto the reader on the card beep
     const tp = beep + 0.9, cardAt = tp + 0.9, pay = cardAt - K.payCard;
-    T(tp, () => { screen.show('tap', h.id, sum); card.visible = true; hands.raise(true); gaze = TILL.reader; });
+    T(tp, () => { screen.show('tap', h.id, sum); hands.setHold('card', { rot: CARD_ROT }); card.visible = true; hands.raise(true); gaze = TILL.reader; });
     T(pay, () => tillSound('kiosk-pay', 'ui-tap', STORE.checkoutGain));
     T(cardAt - 0.45, () => { reachFor(TILL.reader); reachR = 0; });
     T(cardAt + 0.05, () => tillSound('ka-ching', 'can', STORE.checkoutGain));      // paid: the ka-ching as the card taps (Tan)
@@ -319,6 +323,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     // the card away, your thing back from the bagging shelf
     T(pay + K.payDone + 0.1, () => {
       card.visible = false;
+      holdItem(h.id);
       gaze = null;
       h.paid = true;
       fly(h.mesh, counterMatrix(TILL.bag), anchorMatrix(h.mesh), { dur: 0.4, done: () => { h.where = 'hand'; holdIn(h.mesh, hands.anchor); } });
@@ -542,7 +547,7 @@ export function makeShop(inside, { doors, lit, colliders = [], entrance = null }
     const L = (label, step) => Object.assign(step, { label });
     visit.queue = [
       L('in', walkTo(standFor(u))),
-      L('take', act(() => hands.raise(true))),
+      L('take', act(() => { holdItem(u.id); hands.raise(true); })),
       face(u.centre.clone(), 0.6),
       act(() => { reachTo.set(-0.03, 0.09, -0.22); reachR = 0; }),
       pause(0.2),

@@ -296,7 +296,7 @@ export function buildHachiHome(town) {
       for (let k = 0; k < 8; k++) {
         K(new THREE.CylinderGeometry(0.03, 0.03, L + 0.04, 6), sx * HALF / 2, EAVE + RISE / 2 + 0.065, -RL / 2 + 0.08 + (k * (RL - 0.16)) / 7, TILE_DARK, 0, 0, sx * (Math.PI / 2 - A));
       }
-      kbox(0.05, 0.05, RL, sx * (HALF - 0.01), EAVE + 0.035, 0, TILE_DARK);       // the eaves' edge
+      kbox(0.05, 0.05, RL/*@mini - 0.006 @*//*@@*/, sx * (HALF - 0.01), EAVE + 0.035, 0, TILE_DARK);       // the eaves' edge
     }
     K(new THREE.CylinderGeometry(0.075, 0.075, RL + 0.06, 10), 0, EAVE + RISE + 0.075, 0, TILE_DARK, Math.PI / 2);
     for (const sz of [-1, 1]) K(blob(0.07, 0.085, 0.035, 8, 6), 0, EAVE + RISE + 0.085, sz * (RL / 2 + 0.03), 0x39445a);

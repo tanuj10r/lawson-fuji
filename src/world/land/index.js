@@ -78,7 +78,7 @@ export function buildLand(ctx) {
   const plan = planPaddies();
   buildPaddies(lctx, parts, scatter, water, plan);
   buildPumpShed(lctx, parts, plan.apron);
-  buildNotice(lctx, parts, TOWN.land.paddies.box[0] - 0.9, 77.4);   // by the lane z 80's end, facing it
+  buildNotice(lctx, parts, TOWN.land.paddies.box[0] - 0.9, /*@mini 42.4 @*/77.4/*@@*/);   // by the lane z 80's end, facing it
   {
     const p = plan.plots.find((q) => q.kind === 'renge') ?? plan.plots[0];
     const x = (p.sw + p.se) / 2;

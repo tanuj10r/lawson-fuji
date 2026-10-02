@@ -13,6 +13,7 @@
 //   --max 12          a pose fails over this many solid flickering pixels (in a 2 x 2 block: an area, not a line)
 //   --masks all       save every pose's still and mask (default: only poses that changed)
 //   --compare a.json  print this run beside an earlier report.json (before / after)
+//   --phone [outdir] [--url ...]   the same check on the phone page (m.html, the mini town): see scripts/_zfight-phone.mjs
 //
 // Out: <outdir>/report.json, <pose>.jpg (the still), <pose>-mask.png (the frame
 // dimmed; amber = changed once, magenta = flickered).  Starts its own dev
@@ -23,6 +24,9 @@ import os from 'node:os';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { SHOT_SPOTS, ANIMALS } from '../src/config.js';
+
+// --phone: the phone page's own check (its town is batched its own way): scripts/_zfight-phone.mjs, which ends the run
+if (process.argv.includes('--phone')) await import('./_zfight-phone.mjs');
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const args = process.argv.slice(2);

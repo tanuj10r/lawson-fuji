@@ -291,7 +291,7 @@ export function buildFallen(ctx, trees, { decals, river } = {}) {
     const R = t.r * 1.15;
     const objs = solid
       .filter((q) => q.x1 > t.x - R && q.x0 < t.x + R && q.z1 > t.z - R && q.z0 < t.z + R && q.y1 < t.top)
-      .map((q) => q.o);
+      /*@mini @*/.map((q) => q.o)/*@@*/;
     const n = Math.round(Math.min(420, 15 * R * R));
     for (let i = 0; i < n; i++) {
       // thickest under the crown's middle, thinning past its edge
@@ -302,7 +302,7 @@ export function buildFallen(ctx, trees, { decals, river } = {}) {
         o.set(x, t.top, z).applyMatrix4(root.matrixWorld);
         ray.set(o, down);
         ray.far = t.top + 2;
-        const hit = ray.intersectObjects(objs, false)[0];
+        const hit = /*@mini ray.intersectObjects(objs.filter((q) => x > q.x0 - 1e-3 && x < q.x1 + 1e-3 && z > q.z0 - 1e-3 && z < q.z1 + 1e-3).map((q) => q.o), false)[0] @*/ray.intersectObjects(objs, false)[0]/*@@*/;
         if (hit) {
           const hy = hp.copy(hit.point).applyMatrix4(inv).y;
           // only what lies flat holds a petal; a roof's pitch or a wall's face lets it slide

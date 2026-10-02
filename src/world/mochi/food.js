@@ -291,6 +291,7 @@ export function mochiStages() {
   const st = [[], b1, b2].map((bites) => mochiGeometry({ bites }).translate(0, -HOLD_Y, 0));
   st.turn = [0.36, -0.3, 0];
   st.seat = [0, 0.018, 0.02];                  // where it sits on your fingers (the anchor's frame)
+  st.hold = 'mochi';                          // cupped from below (store/hands.js)
   st.wrapped = false;                         // nothing to unwrap: it is handed to you in its paper cup
   st.bites = [0.8, 2.25, 3.05];               // when each bite starts (s); the first is long: the mochi draws out
   st.win = [1.3, 0.62, 0.62];                 // how long each takes, in and away again

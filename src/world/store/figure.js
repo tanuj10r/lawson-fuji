@@ -71,11 +71,14 @@ export function figureMaterial({ onTop = false, light = new THREE.Vector3(-0.35,
   return m;
 }
 
-/** Make a basic (textured) material draw on top, near-clamped, as the figures do. */
+/** Make a basic (textured) material draw on top, near-clamped, as the figures do: what you carry is then in the same
+ * sliver of depth as your hand, and the depth test puts it where it is, behind the thumb and in front of the fingers
+ * (the hand's grips, store/hands.js, are laid out for that).  (The pattern had no angle brackets once, so nothing
+ * was clamped and the hand always drew over what it held.) */
 export function onTopClamped(mat) {
   mat.onBeforeCompile = (sh) => {
-    sh.vertexShader = sh.vertexShader.replace('#include project_vertex',
-      '#include project_vertex\n  gl_Position.z = -gl_Position.w + 0.02 * max( gl_Position.z + gl_Position.w, 0.0001 * gl_Position.w );');
+    sh.vertexShader = sh.vertexShader.replace('#include <project_vertex>',
+      '#include <project_vertex>\n  gl_Position.z = -gl_Position.w + 0.02 * max( gl_Position.z + gl_Position.w, 0.0001 * gl_Position.w );');
   };
   mat.customProgramCacheKey = () => 'onTopClamped';
   return mat;

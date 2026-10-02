@@ -33,6 +33,7 @@ import { ROADS } from '../config.js';
 export function buildCore(ctx) {
   const def = planNetwork();
   const kit = buildKit(ctx, def);
+  /*@mini globalThis.__sys?.('kit'); @*//*@@*/
   const net = kit.net;
   const C = TOWN.core;
   /* on a carriageway (or within `pad` m of one), in this frame: the trees that slide clear of buildings must not
@@ -50,7 +51,7 @@ export function buildCore(ctx) {
   const reserved = [
     ...SPECIALS.map((s) => [s.x0, s.z0, s.x1, s.z1]),
     [-300, -300, 300, TOWN.frontRow.z0],     // beyond the main road's far-side row (the old town)
-    [-300, 154, 300, 300],                   // the railway corridor and beyond
+    [-300, 154/*@dz*/, 300, 300],                   // the railway corridor and beyond
     ...TOWN.lawsonReserve,                   // the Lawson's forecourt and store (the town is built turned)
     TOWN.photoLot,                           // the photographers' lot, where the famous views are taken
     // the bridge road's way through the far-side row, from the master junction to the river
@@ -79,15 +80,21 @@ export function buildCore(ctx) {
     lot.kind = 'house';
     return buildMochi(ctx, net, kit, lot);
   });
+  /*@mini globalThis.__sys?.('lots'); @*//*@@*/
   for (const s of SPECIALS) buildSpecial(ctx, net, kit, s);
+  /*@mini globalThis.__sys?.('specials'); @*//*@@*/
   streetTrees(ctx, kit);          // before the dressing, so the walks' clutter keeps off the pits
   dressStreets(ctx, net, kit, lots, SPECIALS);
   // (the pits' marks were for the dressing only: each tree registers itself when built)
   if (Array.isArray(ctx.registry)) for (let i = ctx.registry.length - 1; i >= 0; i--) if (ctx.registry[i].kind === 'tree') ctx.registry.splice(i, 1);
+  /*@mini globalThis.__sys?.('dress'); @*//*@@*/
   const line = buildLine(ctx, { kit });
+  /*@mini globalThis.__sys?.('line'); @*//*@@*/
   const sakura = buildTownSakura(ctx, ctx.sakura, { decals: kit.decals });
+  /*@mini globalThis.__sys?.('sakura'); @*//*@@*/
   const green = buildGreen(ctx, { decals: kit.decals });
   buildWeeds(ctx, weedSpots(ctx, net));
+  /*@mini globalThis.__sys?.('green'); @*//*@@*/
   for (const l of kit.lamps) ctx.night.pool(l.x, l.z, 5.0, { strength: 1.2 });
   ctx.night.finish();
   // birds on the wires, sparrows pecking in the open places, the cats
@@ -95,12 +102,15 @@ export function buildCore(ctx) {
   const mid = (s, y = 0, n = 5) => ({ x: (s.x0 + s.x1) / 2, z: (s.z0 + s.z1) / 2 + 2, y, n });
   const life = buildLife(ctx, {
     wireRuns: kit.wireRuns, cats: ctx.cats,
-    flocks: [mid(at('park'), 0.04), { ...mid(at('plaza'), 0.17, 6), x: at('plaza').x0 + 12 }, mid(at('shrine'), 0.04, 4), mid(at('vacant'), 0.03, 3)],
+    flocks: [/*@mini @*/mid(at('park'), 0.04),/*@@*/ { ...mid(at('plaza'), 0.17, 6), x: at('plaza').x0 + 12 }, mid(at('shrine'), 0.04, 4), mid(at('vacant'), 0.03, 3)],
   });
   // anyone else with marks for the town's decal mesh (the Lawson's lot, M2e)
+  /*@mini globalThis.__sys?.('life'); @*//*@@*/
   ctx.onDecals?.(kit.decals);
   kit.finish();
+  /*@mini globalThis.__sys?.('kit-finish'); @*//*@@*/
   buildCoreEdge(ctx);
+  /*@mini globalThis.__sys?.('edge'); @*//*@@*/
 
   return { kit, net, lots, built, specials: SPECIALS, line, sakura, green, night: ctx.night, life };
 }

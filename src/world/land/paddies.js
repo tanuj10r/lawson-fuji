@@ -137,7 +137,7 @@ export function planPaddies() {
    * plot; the pump shed stands in the corner by the coin parking. */
   const [bx0, bz0, bx1, bz1] = TOWN.land.paddies.box;
   const ch = { x0: bx0 + 0.3, x1: bx0 + 1.0 };                  // the channel, along the west (lane) edge
-  const block = field('east', [ch.x1 + RIDGE.w / 2 + 0.3, bz0 + 0.6, bx1 - 0.6, bz1 - 0.6], { seed: 4421, rows: 5, amp: 1.8, col: [12, 17], skew: 3 });
+  const block = field('east', [ch.x1 + RIDGE.w / 2 + 0.3, bz0 + 0.6, bx1 - 0.6, bz1 - 0.6], { seed: 4421, rows: /*@mini 3 @*/5/*@@*/, amp: /*@mini 1.4 @*/1.8/*@@*/, col: [12, 17], skew: 3 });
   const { plots, lines } = block;
   const kr = rngKit(4441);
   for (const p of plots) {

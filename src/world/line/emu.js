@@ -6,6 +6,7 @@ import { RAIL_TOP } from '../railway.js';
 import { mergeStatic } from '../merge.js';
 import { CONTACT_Y } from './track.js';
 import { RIDE } from '../../data/town.js';
+/*@mini import { TOWN } from '../../config.js'; @*//*@@*/
 import { destTex, runNoTex, carNumberTex, doorLcdTex, carAdsTex, CAR_AD_CELLS, prioritySticker, weakSticker, pokeArtTex, POKE_ART } from './tex.js';
 
 /* ------------------------------------------------------------------ *
@@ -937,7 +938,7 @@ export function makeFleet(ctx, { slots = 2, cars = 2 } = {}) {
         if (cur?.type === type) return cur;
         let want = type;
         const other = claimed.get(type);
-        if (other !== undefined && other !== i) {
+        if (other !== undefined && other !== i/*@mini && !slotList[other].lend() @*//*@@*/) {
           // the other slot still holds this type (a one-type rotation): a second set of it
           want = `${type}#${i}`;
           if (!built.has(want)) built.set(want, buildEmu(ctx, { cars, type, seed: 2300 + i }));
@@ -950,6 +951,11 @@ export function makeFleet(ctx, { slots = 2, cars = 2 } = {}) {
         cur.setDoors(0);
         return cur;
       },
+      /*@mini lend() {
+        if (!cur || (cur.group.visible && Math.abs(cur.group.position.x - TOWN.station.stopX) < 300)) return false;
+        cur.group.visible = false; claimed.delete(key); cur = null; key = null;
+        return true;
+      }, @*//*@@*/
       setDoors(t) { cur?.setDoors(t); },
       get doors() { return cur?.doors ?? 0; },
       setDest(dir) { cur?.setDest(dir); },

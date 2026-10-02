@@ -529,6 +529,7 @@ export function buildMochi(ctx, net, kit, lot) {
       S.phase = 'pay'; S.pt = 0;
       card ??= makeCard();
       card.position.set(...CARD.pos); card.rotation.set(...CARD.rot);
+      hands.setHold('card', { rot: CARD.rot, at: CARD.pos });
       hands.anchor.add(card);
       card.visible = true;
       hands.raise(true);
@@ -576,16 +577,25 @@ export function buildMochi(ctx, net, kit, lot) {
       return;
     }
     if (card.visible && hands.up < 0.05) card.visible = false;
+    /* (Tan, 2026-10-02: "the view is too zoomed in, which does not show Hachi and his reactions at all") for the
+     * pounding you stand `back` m off the order stand, the mortar and Hachi before it both in the picture; you step
+     * up to it again as the mallets are laid down (the treat, your mochi) */
+    {
+      const want = ph === 'show' || (ph === 'enter' && pt > T_ALL - 1.2) ? 1 : 0;
+      order.back = (order.back ?? 0) + (want - (order.back ?? 0)) * (1 - Math.exp(-dt * (want ? 2.4 : 3.2)));
+      const w = toWorld(OR.at[0] + (OR.side ?? 0) * order.back, OR.at[1] + (OR.back ?? 0) * order.back);   // (and `side` m to the right: the order stand out of the pounders' way)
+      player.pos.x = w.x; player.pos.z = w.z;
+    }
     if (ph === 'enter') {
       // your eyes follow them out and over to the mortar
       let n = 0, mx = 0, mz = 0;
       for (let i = 0; i < 3; i++) if (pt > START[i] - 0.3) { mx += P[i].x; mz += P[i].z; n++; }
       if (n) order.aim.set(mx / n, Y0 + 0.98, mz / n); else order.aim.set(gap + 1.1, Y0 + 1.15, zr);
       const late = ease((pt - T_ALL + 0.6) / 0.8);
-      gaze(player, mix(order.aim.x, ux + 0.1, late), mix(order.aim.y, Y0 + 0.94, late), mix(order.aim.z, uz, late), dt, 2.6);
+      gaze(player, mix(order.aim.x, ux + 0.24, late), mix(order.aim.y, Y0 + 0.62, late), mix(order.aim.z, uz + 0.2, late), dt, 2.6);
       return;
     }
-    if (ph === 'show') { gaze(player, ux + 0.1, Y0 + 0.94, uz, dt, 2.2); return; }
+    if (ph === 'show') { gaze(player, ux + 0.24, Y0 + 0.62, uz + 0.2, dt, 2.2); return; }
     if (ph !== 'after') return;
 
     /* ---- after the finale ---- */
@@ -629,7 +639,7 @@ export function buildMochi(ctx, net, kit, lot) {
     }
     /* your hand: up, to the plate, the mochi in it, and eat */
     const TAKE = SERVE_SET + 1.15, EAT = TAKE + 0.5;
-    if (sa >= SERVE_SET + 0.2) once('hand', () => { hands.raise(true); R.turn.set(0, 0, 0); R.off.set(0, 0, 0); });
+    if (sa >= SERVE_SET + 0.2) once('hand', () => { const st = eatStages(MOCHI.id); hands.setHold(st.hold, { rot: st.turn, at: st.seat }); hands.raise(true); R.turn.set(0, 0, 0); R.off.set(0, 0, 0); });
     if (order.eatT < 0) {
       const reach = Math.min(ease((sa - (TAKE - 0.5)) / 0.5), 1 - ease((sa - TAKE - 0.05) / 0.4));
       worldOf(shop.plate[0], shop.plate[1] + 0.035, shop.plate[2], _goal);
@@ -810,6 +820,7 @@ export function buildMochi(ctx, net, kit, lot) {
         eating ??= makeEating(hands, heldMat, mine);
         held ??= Object.assign(new THREE.Mesh(st[0], heldMat), { frustumCulled: false, renderOrder: 11 });
         held.position.set(...st.seat); held.rotation.set(...st.turn); held.visible = true;
+        hands.setHold(st.hold, { rot: st.turn, at: st.seat });
         hands.anchor.add(held); hands.snap(true);
         eating.start({ id: MOCHI.id, mesh: held, onEaten: () => {} });
         S.demo = true;

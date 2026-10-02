@@ -381,19 +381,29 @@ function atlasTextures(root) {
   /* Pack first, then make the pages.  The last page is only as tall as what
    * landed on it: a square 4096 page that is a third full still costs 89 MB
    * of texture memory, all of it for empty space (M4, Tan's slowdown). */
+  /*@mini const PAGE = (() => {
+    let best = 4096, area = Infinity;
+    for (let W = Math.max(256, ...order.map(([, s]) => s.w + PAD * 2)); W <= 4096; W += 16) {
+      let x = 0, y = 0, shelf = 0;
+      for (const [, s] of order) { if (x + s.w + PAD * 2 > W) { x = 0; y += shelf; shelf = 0; } x += s.w + PAD * 2; shelf = Math.max(shelf, s.h + PAD * 2); }
+      const H = Math.ceil((y + shelf) / 16) * 16;
+      if (H <= 4096 && W * H < area) { area = W * H; best = W; }
+    }
+    return best;
+  })(); @*//*@@*/
   const pageH = [];
   let page = -1, x = PAGE, y = 0, shelf = 0;
   for (const [, s] of order) {
     if (x + s.w + PAD * 2 > PAGE) { x = 0; y += shelf; shelf = 0; }
-    if (page < 0 || y + s.h + PAD * 2 > PAGE) {
-      if (page >= 0) pageH[page] = PAGE;
+    if (page < 0 || y + s.h + PAD * 2 > /*@mini 4096 @*/PAGE/*@@*/) {
+      if (page >= 0) pageH[page] = /*@mini 4096 @*/PAGE/*@@*/;
       page++; x = 0; y = 0; shelf = 0;
     }
     s.page = page; s.x = x + PAD; s.y = y + PAD;
     x += s.w + PAD * 2;
     shelf = Math.max(shelf, s.h + PAD * 2);
   }
-  if (page >= 0) pageH[page] = Math.min(PAGE, Math.ceil((y + shelf) / 16) * 16);
+  if (page >= 0) pageH[page] = Math.min(/*@mini 4096 @*/PAGE/*@@*/, Math.ceil((y + shelf) / 16) * 16);
   const pages = pageH.map((h) => {
     const cv = document.createElement('canvas');
     cv.width = PAGE; cv.height = h;

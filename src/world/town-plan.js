@@ -67,7 +67,7 @@ function gridEdges(G) {
 export function planNetwork() {
   const G = TOWN.grid;
   const { nodes, edges, slot } = gridEdges(G);
-  const old = gridEdges(LEGACY(G)).slot;
+  const old = gridEdges(LEGACY(/*@mini G.desktop @*/G/*@@*/)).slot;
   for (const [k, i] of slot) {
     const j = old.get(k);
     if (j !== undefined && edges[i][3].seed === undefined) edges[i][3].seed = 1000 + j * 17;
@@ -94,7 +94,7 @@ export function planNetwork() {
     edgeAt,
     crossings: [
       { edge: edgeAt('z', -50, 30), at: 30 },       // the spine, near the main road
-      { edge: edgeAt('z', -50, 100), at: 100 },     // and halfway down
+      { edge: edgeAt('z', -50, /*@mini 88 @*/100/*@@*/), at: /*@mini 88 @*/100/*@@*/ },     // and halfway down
       // the master junction (Tan): the main road's zebra (kakko, signals.js) and
       // this one across lane x 30 (piyo), side by side, so both tunes are
       // heard at one corner.  Its walk light alternates with the main road's
@@ -123,11 +123,11 @@ export const SPECIALS = [
   { kind: 'shrine', x0: 6, z0: 80 + lane + 0.4, x1: 20, z1: 101.5, face: 'z-' },   // deepened for the torii tunnel and two halls (experience 3)
   { kind: 'apartment', x0: 30 + lane + 0.5, z0: 86, x1: 30 + lane + 12.5, z1: 102, face: 'x-' },
   { kind: 'vacant', x0: 40, z0: 98, x1: 51, z1: 112 - lane - 0.3, face: 'z+' },
-  { kind: 'park', x0: 5, z0: 112 + lane + 0.4, x1: 24, z1: 132, face: 'z-' },
+  /*@mini @*/{ kind: 'park', x0: 5, z0: 112 + lane + 0.4, x1: 24, z1: 132, face: 'z-' },/*@@*/
   // ドンペン堂, the discount megastore (experiences): two of the spine's lots
   // on its west side, halfway from the main road to the station
   { kind: 'megastore', x0: -69.3, z0: 58.2, x1: -55.3, z1: 76.0, face: 'x+' },
   { kind: 'plaza', x0: TOWN.plaza.x0, z0: TOWN.plaza.z0, x1: TOWN.plaza.x1, z1: TOWN.plaza.z1, face: 'z-' },
   // the station building's strip between the plaza and the tracks (world/line/station.js builds it)
-  { kind: 'station', x0: TOWN.plaza.x0, z0: TOWN.plaza.z1, x1: TOWN.plaza.x1, z1: 154, face: 'z-' },
+  { kind: 'station', x0: TOWN.plaza.x0, z0: TOWN.plaza.z1, x1: TOWN.plaza.x1, z1: 154/*@dz*/, face: 'z-' },
 ];

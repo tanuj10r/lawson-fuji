@@ -261,12 +261,10 @@ try {
     const errs = [];
     page.on('pageerror', (e) => errs.push(String(e)));
     await page.goto(base);
-    await page.waitForFunction(() => document.documentElement.classList.contains('gate-phone'));
-    const ls = await linksOk(page, '.gate .mk-row a');
-    const fits = await page.evaluate(() => { const r = document.querySelector('.gate-card').getBoundingClientRect(); return r.bottom <= innerHeight + 1 && r.right <= innerWidth
-      && [...document.querySelectorAll('.gate .mk-row a')].every((a) => a.getBoundingClientRect().right <= r.right - 12); });
-    check('phone card: the row, 4 links (with the ref), coffee button, new tab, goals; no scroll', ls.length === 4 && ls.every((l) => l.ok) && ls.every((l) => l.href.endsWith('?ref=takemebacktojapan')) && fits, ls.map((l) => l.href));
-    check('phone card: no page errors, no game code', errs.length === 0 && !(await page.evaluate(() => !!window.__scene)), errs);
+    // (Tan, 2026-10-02: the phone build is live, config.js MOBILE.route) a phone is sent on to m.html; the desktop game never loads
+    await page.waitForURL(/\/m\.html/, { timeout: 30000 });
+    await page.waitForSelector('#boot .sheet', { timeout: 30000 });
+    check('a phone on the desktop site: sent to the phone page, no desktop game code', /\/m\.html/.test(page.url()) && !(await page.evaluate(() => !!window.__scene)), page.url());
     await shot(page, 'A-phone-card-390x844');
     await ctx.close();
   }

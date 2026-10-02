@@ -219,3 +219,46 @@ export const STRINGS = {
     reload: 'Reload',
   },
 };
+
+/* The phone build's words (src/mobile/, m.html: `%S:m.key%`), English as
+ * the desktop's.  The desktop game never imports this. */
+export const MOBILE_STRINGS = {
+  start: 'Start',
+  loading: 'Loading the town…',
+  building: 'Building the town…',
+  ready: 'Almost there…',
+  /* the start card: one line, and a small second one */
+  tagline: 'A pocket-sized Japan. Best with sound on 🎧',
+  desktop: 'Full town on desktop',
+  rotate: 'Turn your phone sideways for a wider view',
+  soundBack: 'Tap to bring the sound back',
+  paused: 'Paused',
+  resume: 'Resume',
+  restart: 'Back to the start',
+  volume: 'Volume',
+  /* the buttons' labels, under their icons (and what a screen reader says) */
+  buttons: { hachi: 'Hachi', time: 'Time', pause: 'Pause', map: 'Map' },
+  aria: { hachi: 'Whistle for Hachi', time: 'Change the time of day', pause: 'Pause', map: 'Open the map', act: 'Interact' },
+  /* until each has been done once */
+  hints: { walk: 'Walk', look: 'Drag to look' },
+  closeMap: 'Tap to close',
+  times: { morning: 'Morning', golden: 'Golden hour', night: 'Night' },
+  timeShort: { morning: 'Morning', golden: 'Golden', night: 'Night' },
+  /* Hachi's hello, in touch words (animals/guide.js reads STRINGS.hachi) */
+  hachiLine: "Follow me, I'll show you around town. Wander off whenever you like: tap the paw 🐾 and I'll come running.",
+  menuHint: 'Tap one',
+  /* the postcard on a phone (ui/postcard.js, ui/postcardSelfie.js read STRINGS.postcard) */
+  selfie: {
+    insecure: 'The camera only works on a secure (https) page. Open takemebacktojapan.com to add your selfie.',
+    blocked: 'The camera is blocked for this site. Allow it in your browser’s settings for this page, then try again.',
+    none: 'No camera was found on this phone.',
+    save: 'Save or share',
+  },
+  gate: {
+    noglTitle: 'Your phone can’t draw the town',
+    nogl: 'This game needs WebGL 2. Try the latest Safari or Chrome, or open the link on a computer.',
+    lostTitle: 'The town was put away',
+    lost: 'Your phone needed its memory back. Reload to walk on.',
+    reload: 'Reload',
+  },
+};

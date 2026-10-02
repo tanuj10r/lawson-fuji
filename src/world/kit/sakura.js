@@ -81,11 +81,13 @@ export const SAKURA = {
  */
 export function buildTownSakura(ctx, spots, { decals, classic = !decals } = {}) {
   if (classic || !spots.length) return buildCanopyTrees(ctx, spots, SAKURA_CLASSIC, { decals });
-  const seen = seenFromFamousViews(ctx, spots);
+  const seen = /*@mini (globalThis.__sakuraSeen ? globalThis.__sakuraSeen(spots, ctx.root, () => seenFromFamousViews(ctx, spots)) : seenFromFamousViews(ctx, spots)).map((s, i) => s && !spots[i].layered) @*/seenFromFamousViews(ctx, spots)/*@@*/;
+  /*@mini globalThis.__sys?.('sakura-seen'); @*//*@@*/
   const keep = spots.filter((_, i) => seen[i]);
   const grow = spots.filter((_, i) => !seen[i]);
   const kept = keep.length ? buildCanopyTrees(ctx, keep, SAKURA_CLASSIC, { decals, name: 'townSakuraKept' }) : null;
   const trees = grow.length ? buildCanopyTrees(ctx, grow, SAKURA, { decals }) : null;
+/*@mini globalThis.__sys?.('sakura-trees'); @*//*@@*/
   // emitters in the spots' own order: the town's petal fall draws from them
   // by index, and the famous views' petals must fall as they did
   const emitters = [];
@@ -97,6 +99,7 @@ export function buildTownSakura(ctx, spots, { decals, classic = !decals } = {}) 
     const R = TOWN.land?.river;
     const river = R && { z0: R.z0, z1: R.z1, y: (R.water ?? R.surface ?? 0.03) + 0.01 };   // just on the water (config TOWN.land.river.water)
     buildFallen(ctx, trees.fallen, { decals, river });
+    /*@mini globalThis.__sys?.('sakura-fallen'); @*//*@@*/
     shower = buildShower(ctx, trees.emitters);
   }
   return {

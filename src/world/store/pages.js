@@ -69,6 +69,7 @@ export function pagesRenderer(r) { renderer = r; }
  * materials in `mats` read; it changes with the level.  `levels(far, near)` says what to keep it at.
  */
 export function makePage({ name, w, h, steps = 1, paint }) {
+  /*@mini if (globalThis.__litePage) return globalThis.__litePage({ name, w, h, steps, paint }, all); @*//*@@*/
   let far = 0, near = 0;
   const newCanvas = () => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
   const wrap = (cv) => {

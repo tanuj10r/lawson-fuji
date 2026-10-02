@@ -1971,3 +1971,10 @@ Tan's four notes on the experiment above, and what was done:
 - **Sizes:** round.woff2 180,532 -> 155,980 B (982 characters: 25 in, 155 out that nothing in src/ draws any more, from before the launch's clean-out); brush.woff2 385,748 -> 388,348 B (608 characters: 7 in). Together 566.3 -> 544.3 KB. `npm run size` 5.07 -> 5.05 MB in all, 1.66 -> 1.65 MB before the first click.
 - **Not in either font file** (so still a system face): ✉ (the postcard's button, UI) and 框 (a comment). 〜 is not in Yuji Syuku.
 - Checked on the page: the shop's 兎 seal before (gothic) and after (brush), the nobori, the noren, Hachi's gate: scratchpad desk5/fonts/.
+
+## Share images from the banner's key art (2026-10-02)
+- og.jpg (1200x630) and og-square.jpg (1200x1200) are now the diorama with Hachi on the crossing (assets/keyart/keyart-3840.png), not the old konbini render. scripts/share-art.mjs no longer starts the game or a server: a blank page in headless Chrome composes the master with Canvas2D (`--og`: only the two share images).
+- **og.jpg:** the whole width; the 45 px that must go come two thirds off the top, so Hachi's paws stay in and the peak keeps 17 px. The key art has no empty sky on the left (blossom) and the peak is left of centre, so the title is set right, over the sky beside the mountain's shoulder, on a soft paper wash; the emblem moved to the bottom left corner, the address stays bottom right.
+- **og-square.jpg:** a 16:9 picture cannot fill a square without losing Hachi or Fuji, so the top 30 % is the cards' paper with the emblem, the place line, the title and the Japanese line, melting into the sky; the art fills the rest (80 % of its width: the RX-7's nose is cut).
+- **Sizes:** each under 150 KB (the JPEG quality steps down until it is): og.jpg 120.9 -> 147.6 KB, og-square.jpg 137.5 -> 147.1 KB (quality 0.74). Page extras, outside the game's budget.
+- index.html: dimensions unchanged (1200x630, 1200x1200); the three alt texts now describe the diorama.

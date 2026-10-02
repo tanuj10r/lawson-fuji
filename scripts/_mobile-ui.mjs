@@ -221,7 +221,8 @@ try {
       await P.shot('09-map');
       check(`${way}: a tap on the corner map opens the whole map (the walk held)`, await page.evaluate(() => window.__m.shell.minimap.fullOpen && window.__m.player.suspended && !document.querySelector('.fullmap').classList.contains('hidden')));
       const m0 = await page.evaluate(() => { const f = document.querySelector('.fullmap'), c = f.querySelector('canvas').getBoundingClientRect(); return { x: f.scrollLeft, y: f.scrollTop, w: Math.round(c.width), h: Math.round(c.height) }; });
-      await P.finger.drag(4, P.size.width / 2, P.size.height / 2, P.size.width / 2 - 60, P.size.height / 2 - 70, 300);
+      // (it opens on "you are here", which at the famous view is the sheet's foot: the finger goes the way there is map left)
+      await P.finger.drag(4, P.size.width / 2, P.size.height / 2, P.size.width / 2 + (m0.x > 40 ? 60 : -60), P.size.height / 2 + (m0.y > 40 ? 70 : -70), 300);
       await page.waitForTimeout(400);
       const m1 = await page.evaluate(() => { const f = document.querySelector('.fullmap'); return { x: f.scrollLeft, y: f.scrollTop, open: window.__m.shell.minimap.fullOpen }; });
       check(`${way}: the whole map is larger than the screen and pans with a finger (still open after the pan)`, m1.open && (m1.x !== m0.x || m1.y !== m0.y), { m0, m1 });

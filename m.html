@@ -136,14 +136,26 @@
     :root { --map: 86px; }
     .start { flex-direction: column; }
     .start .bg { position: relative; inset: auto; flex: 1 1 0; min-height: 0; }
-    .start .bg img { object-position: 50% 97%; }
+    /* Fuji's peak and Hachi's paws both in the picture: the art is 9:16 and a phone 9:19.5, so the sheet is kept
+     * low (one line of words, the maker's row on one line) and the crop shared between the top and the foot */
+    .start .bg img { object-position: 50% 56%; }
     .start .bg::after { background: radial-gradient(ellipse 74% 34% at 86% 4%, rgba(251,246,240,.84), rgba(251,246,240,.46) 55%, rgba(251,246,240,0) 82%); }
     .name { right: max(18px, calc(var(--safe-r) + 8px)); top: max(18px, calc(var(--safe-t) + 10px)); }
     .name h1 { font-size: clamp(25px, 7.4vw, 34px); }
-    .sheet { position: relative; left: auto; bottom: auto; flex: none; width: 100%; margin: -20px 0 0; padding: 18px 20px max(16px, calc(var(--safe-b) + 10px));
+    .sheet { position: relative; left: auto; bottom: auto; flex: none; width: 100%; margin: -14px 0 0; padding: 15px 20px max(14px, calc(var(--safe-b) + 8px));
       border-radius: 22px 22px 0 0; background: var(--paper); box-shadow: 0 -18px 40px -22px rgba(8,4,24,.7); }
-    .tagline { font-size: 17px; }
-    .btn { min-height: 54px; }
+    .tagline { font-size: clamp(13.5px, 4.05vw, 16px); white-space: nowrap; text-wrap: nowrap; }
+    .btn { min-height: 52px; }
+    .sheet .mk-row { display: flex; align-items: center; gap: 8px; margin-top: 11px; padding-top: 10px; }
+    .sheet .mk-row .mk-row-top { flex: none; }
+    .sheet .mk-row .mk-who { display: none; }
+    .sheet .mk-row .mk-links { flex: 1; margin: 0; gap: 6px; }
+    .sheet .mk-row .mk-coffee { flex: 1; justify-content: center; white-space: nowrap; }
+    .sheet .url { margin-top: 9px; }
+  }
+  /* a short phone upright (an SE): there is not room for both, and Hachi is the one to keep */
+  @media (orientation: portrait) and (max-height: 740px) {
+    .start .bg img { object-position: 50% 97%; }
   }
   /* a short screen on its side (Safari's bars showing): the sheet a size down */
   @media (orientation: landscape) { .sheet .mk-who small { display: none; } }
@@ -208,7 +220,12 @@
     .mk-post { width: min(calc(100vw - var(--safe-l) - var(--safe-r) - 24px), calc((100dvh - 24px) * 1.62)) !important; }
     .mk-post .pc-back { font-size: 13px !important; padding: 6px 13px 6px 10px !important; }
     .mk-post .pc-add { font-size: 14.5px !important; padding: 9px 8px !important; }
-    .mk-post .share > *, .sf-acts > * { min-height: 34px; }
+    .mk-post .share { gap: 6px !important; }
+    /* (three equal thirds left "Copy link" touching its frame at 390 px: each as wide as its words want) */
+    .mk-post .share > *, .sf-acts > * { min-height: 34px; flex: 1 1 auto !important; padding: 5px 8px !important; font-size: 12px !important; gap: 4px !important; white-space: nowrap; }
+    .mk-post .share svg { width: 1.05em !important; height: 1.05em !important; }
+    .mk-post h2 { font-size: max(17px, 3.3cqw) !important; }
+    .mk-post .msg { font-size: 12px !important; line-height: 1.42 !important; }
     .mk-post .maker .mk-i { width: 32px !important; height: 32px !important; padding: 8px !important; }
     .mk-post .maker .mk-coffee { min-height: 32px; }
     /* the town's name in the picture's sky, clear of Hachi on the zebra */

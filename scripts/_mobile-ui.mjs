@@ -52,7 +52,8 @@ async function phone(base, way, { query = '' } = {}) {
   const finger = {
     async down(id, x, y) { down.set(id, { x, y }); await send('touchStart'); },
     async move(id, x, y) { down.set(id, { x, y }); await send('touchMove'); },
-    async up(id) { down.delete(id); await send(down.size ? 'touchMove' : 'touchEnd'); },   // (CDP: touchEnd lifts every finger; a move without one lifts that one)
+    // (CDP: touchEnd names the fingers that lift; the others stay down)
+    async up(id) { const p = down.get(id); down.delete(id); await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: p ? [{ id, x: p.x, y: p.y }] : [] }); },
     /** a drag over `ms`, in steps of ~8 ms (a 120 Hz finger) */
     async drag(id, x0, y0, x1, y1, ms = 300, keep = false) {
       await finger.down(id, x0, y0);
@@ -67,6 +68,12 @@ async function phone(base, way, { query = '' } = {}) {
     async tap(x, y, id = 9) { await finger.down(id, x, y); await page.waitForTimeout(40); await finger.up(id); },
   };
   await page.goto(base + 'm.html' + query);
+  /* A finger on a button while others are down on the view: CDP's emulation hands every finger of a sequence to the
+   * first finger's element, which a real phone does not; so this one is sent to the button as pointer events. */
+  const pressOn = (sel) => page.evaluate((s) => {
+    const b = document.querySelector(s), r = b.getBoundingClientRect(), o = { bubbles: true, cancelable: true, pointerId: 77, pointerType: 'touch', isPrimary: false, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+    b.dispatchEvent(new PointerEvent('pointerdown', o)); b.dispatchEvent(new PointerEvent('pointerup', o));
+  }, sel);
   const tapOn = async (sel) => {
     const r = await page.evaluate((s) => { const b = document.querySelector(s)?.getBoundingClientRect(); return b ? [b.left + b.width / 2, b.top + b.height / 2] : null; }, sel);
     if (!r) throw new Error('no ' + sel);
@@ -87,7 +94,7 @@ async function phone(base, way, { query = '' } = {}) {
     player.pos.set(x, world.heightAt(x, z), z); player.vel.set(0, 0, 0);
     player.yaw = Math.atan2(-(tx - x), -(tz - z)); player.pitch = -0.12; player.applyCamera(0);
   }, [x, z, tx, tz]);
-  return { ctx, page, finger, tapOn, shot, ready, start, stand, errors, way, size: SIZES[way] };
+  return { ctx, page, finger, tapOn, pressOn, shot, ready, start, stand, errors, way, size: SIZES[way] };
 }
 
 try {
@@ -304,12 +311,12 @@ try {
       });
       check(`${way}: the labels, the toast, the tiles, the map, the countdown and the sound pill keep clear of each other`, over.length === 0, over);
       await page.evaluate(() => window.__m.hud.askForSound(false));
-      // the postcard comes by itself when Hachi's tour is over (GUIDE.onNap), over a held pause card
-      await page.evaluate(() => window.__m.GUIDE.onNap?.());
+      // the postcard comes by itself when Hachi's tour is over (GUIDE.onTourEnd), over a held pause card
+      await page.evaluate(() => window.__m.GUIDE.onTourEnd?.());
       await page.waitForFunction(() => document.querySelector('.mk-post-scrim.on'), null, { timeout: 20000 }).catch(() => {});
       await page.waitForTimeout(600);
       const came = await page.evaluate(() => ({ post: !!document.querySelector('.mk-post-scrim.on'), locked: window.__m.player.locked, pauseHidden: document.querySelector('.mh-pause').classList.contains('hidden'), msg: document.querySelector('.mk-post .msg')?.textContent }));
-      check(`${way}: Hachi's nap brings the postcard by itself (the game paused behind it, its words the tour's)`, came.post && !came.locked && came.pauseHidden && /seen the whole town/.test(came.msg ?? ''), came);
+      check(`${way}: the tour's end brings the postcard by itself (the game paused behind it, its words the tour's)`, came.post && !came.locked && came.pauseHidden && /seen the whole town/.test(came.msg ?? ''), came);
       await P.shot('16-postcard-after-tour');
       check(`${way}: play: no page errors`, P.errors.length === 0, P.errors.slice(0, 4));
       await P.ctx.close();
@@ -375,13 +382,17 @@ try {
       const slowDeg = Math.abs(b.yaw - a.yaw) * 180 / Math.PI;
       note(`${way}: look, slow ${px} px across`, { deg: +slowDeg.toFixed(1), perPx: +(slowDeg / px).toFixed(3) });
       check(`${way}: a careful drag turns 1:1 (${(0.0046 * 180 / Math.PI).toFixed(3)} deg/px)`, Math.abs(slowDeg / px - 0.0046 * 180 / Math.PI) < 0.03, slowDeg / px);
+      /* a flick: headless Chrome acknowledges each CDP touch a frame late, so a real flick's timing cannot be sent;
+       * the gain's curve and the glide are checked as they are: lookGain by its numbers, the glide by a lift at speed */
+      const curve = await page.evaluate(async () => { const t = await import('/src/mobile/controls/tune.js'); return { slow: t.lookGain(0.2), mid: t.lookGain(1.2), fast: t.lookGain(3), L: t.TUNE.look }; });
+      check(`${way}: the look's gain: 1:1 for a careful drag, rising smoothly to ${curve.L.fast}x for a flick`, curve.slow === 1 && curve.mid > 1.1 && curve.mid < curve.L.fast && Math.abs(curve.fast - curve.L.fast) < 1e-9, curve);
       a = await gait();
-      await finger.drag(2, lx, ly, lx - px, ly, 110);
-      await page.waitForTimeout(500);
-      b = await gait();
-      const fastDeg = Math.abs(b.yaw - a.yaw) * 180 / Math.PI;
-      note(`${way}: look, a flick ${px} px back`, { deg: +fastDeg.toFixed(1), perPx: +(fastDeg / px).toFixed(3), gain: +(fastDeg / slowDeg).toFixed(2) });
-      check(`${way}: a flick turns further for the same distance (the lift and the glide), by less than 2.2x`, fastDeg > slowDeg * 1.15 && fastDeg < slowDeg * 2.2, fastDeg / slowDeg);
+      await page.evaluate(() => window.__m.player.flick(900, 0));        // a lift at 900 px/s across
+      const glide = [];
+      for (let i = 0; i < 6; i++) { await page.waitForTimeout(70); glide.push(+(((await gait()).yaw - a.yaw) * 180 / Math.PI).toFixed(2)); }
+      note(`${way}: the glide after a flick's lift at 900 px/s, degrees over time (70 ms apart)`, glide);
+      const want = 900 * curve.L.yaw * curve.L.glide * 180 / Math.PI;
+      check(`${way}: a flick's lift glides on a little (about ${want.toFixed(0)} degrees) and settles within 0.4 s`, Math.abs(glide[5]) > want * 0.6 && Math.abs(glide[5]) < want * 1.3 && Math.abs(glide[5] - glide[4]) < 0.3, glide);
       a = await gait();
       await finger.drag(2, lx, ly, lx, ly - 80, 600);
       await page.waitForTimeout(300);
@@ -395,11 +406,15 @@ try {
       b = await gait();
       check(`${way}: walking does not re-centre the view (the pitch stays)`, Math.abs(b.pitch - a.pitch) < 0.01, [a.pitch, b.pitch]);
       // two thumbs at once: walking while turning; and a tile tapped with a third finger while both are down
-      const yaw0 = b.yaw;
+      await finger.up(1);
+      await P.stand(0, 14, 0, -40);
+      await finger.down(1, sx, sy); await finger.move(1, sx, sy - 40);
+      await page.waitForTimeout(700);
+      const yaw0 = (await gait()).yaw;
       await finger.drag(2, lx, ly, lx + 120, ly, 500, true);
       const both = await page.evaluate(() => ({ ...window.__m.touch.state, speed: window.__m.player.gait.speed }));
       check(`${way}: two thumbs at once: the stick held and the view dragged`, both.stick && both.looks === 1 && both.speed > 1 && Math.abs((await gait()).yaw - yaw0) > 0.2, both);
-      await P.tapOn('[data-b="time"]');
+      await P.pressOn('[data-b="time"]');
       await page.waitForTimeout(1200);
       const third = await page.evaluate(() => ({ ...window.__m.touch.state, tile: document.querySelector('[data-b="time"]').textContent.trim() }));
       check(`${way}: a tile answers a third finger while both thumbs are down (and they stay down)`, third.stick && third.looks === 1 && third.tile !== 'Golden', third);
@@ -412,7 +427,7 @@ try {
       check(`${way}: the camera turns in the frame after the finger moves (mean under 17 ms at 60 fps, here ${lat.mean.toFixed(1)})`, lat.n > 20 && lat.mean < 20, lat);
       // a pause lets go of everything; Space on a keyboard would too
       await finger.down(1, sx, sy); await finger.move(1, sx, sy - 50);
-      await P.tapOn('[data-b="pause"]');
+      await P.pressOn('[data-b="pause"]');
       await page.waitForTimeout(300);
       const let0 = await page.evaluate(() => ({ ...window.__m.touch.state, locked: window.__m.player.locked }));
       check(`${way}: pausing lets go of the stick`, !let0.locked && !let0.stick && let0.push === 0, let0);

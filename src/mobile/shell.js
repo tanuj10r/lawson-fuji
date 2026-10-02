@@ -37,7 +37,7 @@ import { watchMediaElements, unlockAudio, audioState, watchInterruptions, wakeAu
  *   Hachi    his hello's words for touch ("tap the paw"), the whistle
  *            (the paw tile), "Take the tour again" as the context button,
  *            the konbini's snack bits (shop.onSnack), the postcard when
- *            his tour is over (GUIDE.onNap)
+ *            his tour is over (GUIDE.onTourEnd)
  *   the map  the corner map, a tap opens the whole map, a tap closes it
  *   sound    made awake inside every tap, the audio session set to
  *            'playback', resumed after an interruption or asked for with
@@ -160,10 +160,13 @@ export function createShell({ canvas, camera, world, held = () => false, famous 
     }
     return postcard;
   });
-  GUIDE.onNap = () => {
+  /* the tour's ending (desktop's main.js): a moment after Hachi hops up onto his bench (GUIDE.onTourEnd), and the
+   * tour is not on offer again while it is due */
+  GUIDE.onTourEnd = () => {
     toured = true;
     if (postcardCame) return;
-    loadPostcard().then(() => { postcardDue = MAKER.postcardAfter; }).catch(() => {});   // (offline: no postcard, no harm)
+    postcardDue = MAKER.postcardAfter;
+    loadPostcard().catch(() => { postcardDue = -1; });   // (offline: no postcard, no harm)
   };
   function openPostcard() {
     loadPostcard().then(() => {
@@ -324,7 +327,7 @@ export function createShell({ canvas, camera, world, held = () => false, famous 
       const free = player.locked && !shop?.busy && !open && !held();
       if (free && !player.seat && !inStore) hovered = pickAction(player, world.interactables, camera);
       player.hovered = hovered;
-      pupOffer = !hovered && free && !player.seat && !shop?.visiting && !player.suspended && GUIDE.offer();
+      pupOffer = !hovered && free && !player.seat && !shop?.visiting && !player.suspended && postcardDue < 0 && GUIDE.offer();
       const seated = free && player.seat?.dir > 0 && player.seat.k > 0.98;
       hud.setAction(hovered ? actionWords(hovered.label) : pupOffer ? STRINGS.hachi.again : seated ? STRINGS.keys.standUp : null);
       trainWait.update(world.line?.station?.wait, player.locked && !open && !choosing);

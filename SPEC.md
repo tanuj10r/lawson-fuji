@@ -62,10 +62,11 @@ It lives at **takemebacktojapan.com**.
 experience and the famous view, then to the store's surroundings, then to
 the town and its experiences.
 
-**What is ours, and what we borrow.** The game is a fork of Sakura
-Crossing (MIT, by Kenton Wang). We keep its rendering pipeline, first-person
-controller and some parts; the town, store, Fuji, experiences, sound and UI
-are ours. No Sakura Crossing place or shop names appear.
+**Base.** Built on Sakura Crossing (MIT) by Kenton Wang: the rendering
+pipeline and first-person controller in src/core and some base modules in
+src/world come from it; LICENSE and the credits page carry the notice. The
+town, store, Fuji, experiences, sound and UI are ours, and every place and
+shop name is our own.
 
 **Non-goals**
 
@@ -80,7 +81,7 @@ are ours. No Sakura Crossing place or shop names appear.
 
 | Area | Choice |
 | --- | --- |
-| Rendering | three.js r180 (`three@^0.180.0`), Sakura Crossing's toon pipeline |
+| Rendering | three.js r180 (`three@^0.180.0`), the toon pipeline in src/core |
 | Language | JavaScript ES modules (es2022 target) |
 | Build | Vite 6: `npm run dev`, `npm run build` to a static `dist/` |
 | Assets | Geometry and textures in code; signs in Canvas2D; two self-hosted OFL sign fonts, subset (`npm run fonts`) |
@@ -201,7 +202,7 @@ Units are metres, +Y is up. The town is built in its own turned frame
 
 **Mt. Fuji and the sky:** the GSI mesh, toon-shaded with a posterised snow
 line and alpenglow, scaled from the hero cameras (FUJI.gameplaySize keeps it
-right in play); Sakura Crossing's sky retuned per look; painted hill rings
+right in play); src/core's sky tuned per look; painted hill rings
 at the horizon.
 
 **Season:** spring. Sakura with painted canopies and dark limbs, falling
@@ -209,7 +210,7 @@ petals, drifts along kerbs, petals on the water.
 
 ## 4. Art direction
 
-- **Technique (Sakura Crossing's, in src/core):** toon ramps with
+- **Technique (src/core):** toon ramps with
   violet-shifted shadows; ink lines from the depth's second difference;
   inverted-hull outlines on hero props; the two-light anime setup; a
   split-tone grade; FXAA.
@@ -231,7 +232,7 @@ petals, drifts along kerbs, petals on the water.
 
 ## 5. Player, camera and controls
 
-- First person, eye height 1.6 m, Sakura Crossing's controller made flat.
+- First person, eye height 1.6 m, src/core's controller on flat ground.
   No avatar. The only body parts shown are the right hand, when it takes
   something and when it taps the IC card.
 - Collision on everything; stairs walk like stairs.

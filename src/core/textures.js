@@ -427,7 +427,7 @@ export const corkBoard = () =>
 /* --------------------------------- shop fronts --------------------------------- */
 
 /* Take Me Back to Japan: the tenants and their names live in src/data/town.js (our own
- * names; none of Sakura Crossing's). */
+ * names). */
 const SHOPS = SHOP_SIGNS;
 
 /** Horizontal shop fascia. One layout, nine tenants. */
@@ -621,7 +621,7 @@ export const sanpaiNotice = () =>
 export const busStopPlate = (variant = 0) =>
   cached('busStopPlate' + variant, () =>
     make(384, 384, (c, w) => {
-      /* Take Me Back to Japan: our own stops and service (none of Sakura Crossing's). */
+      /* Take Me Back to Japan: our own stops and service. */
       const sets = [
         { t: '富士川口湖駅', foot: '１日 ２０便' },
         { t: '富士川口湖町', foot: '終点  ・  ここで折返し' },
@@ -738,7 +738,7 @@ export const blockPlate = (variant = 0) =>
       /* Appended, never reordered: `plate:` on a walk-up is an index into this
        * array, so inserting a name would rechristen a block that is already
        * standing. */
-      /* Take Me Back to Japan: our own names (none of Sakura Crossing's), same count. */
+      /* Take Me Back to Japan: our own names, same count. */
       const names = [['コーポ ふじみ', 'CORP  FUJIMI'], ['メゾン こもれび', 'MAISON  KOMOREBI'],
         ['ハイツ あおば', 'HEIGHTS  AOBA'], ['コーポ みなみ', 'CORP  MINAMI'],
         ['グリーンハイツ', 'GREEN  HEIGHTS'], ['すずらん荘', 'SUZURAN  SO'],

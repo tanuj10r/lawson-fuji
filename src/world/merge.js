@@ -13,7 +13,7 @@ import { cel } from '../core/toon.js';
  *
  * Plain-coloured toon and basic materials (no texture) are folded further:
  * their colour goes into a vertex colour and they share one material per
- * lighting style, which is what collapses Sakura Crossing's one-material-
+ * lighting style, which is what collapses the base modules' one-material-
  * per-colour parts into a handful of batches.  A material whose colour
  * changes at runtime is tagged `userData.live` and keeps its own batch.
  *

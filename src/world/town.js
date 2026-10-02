@@ -23,7 +23,7 @@ import { makeNight } from './kit/night.js';
  * Places everything in the world: the Lawson and its road (M1), and round
  * them the compact town (M2) -- main road, railway with its level crossing
  * and station, shopping street, residential lane, park, sakura, poles and
- * wires -- then batches the static geometry by material.  Sakura Crossing's
+ * wires -- then batches the static geometry by material.  The base
  * modules are used as parts, placed in our layout with our own signs.
  * ------------------------------------------------------------------ */
 

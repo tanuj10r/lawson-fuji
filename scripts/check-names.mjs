@@ -1,5 +1,5 @@
-/* AGENTS.md: no Sakura Crossing place, shop or line names in the game.
- * Builds, then searches the shipped bundle for every name we know of. */
+/* AGENTS.md: all place, shop and line names are our own.
+ * Builds, then searches the shipped bundle for every name known not to be. */
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -29,5 +29,5 @@ for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.js'))) {
     if (k) { found += k; console.log(`FOUND ${n} x${k} in ${f}`); }
   }
 }
-console.log(found ? `FAIL: ${found} Sakura Crossing name(s) in the bundle` : `pass: none of ${NAMES.length} names in the bundle`);
+console.log(found ? `FAIL: ${found} name(s) that are not ours in the bundle` : `pass: none of ${NAMES.length} names in the bundle`);
 process.exitCode = found ? 1 : 0;

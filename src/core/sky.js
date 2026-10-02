@@ -80,7 +80,7 @@ export function buildSky(scene, radius = 2900, { avoidYaw = 0 } = {}) {
   const matB = flat({ color: PAL.cloudShade, map: tex, transparent: true, opacity: 0.34, depthWrite: false, fog: false, cache: false });
   matA.map.wrapS = matA.map.wrapT = THREE.ClampToEdgeWrapping;
 
-  /* Same seeded draws as Sakura Crossing's ring, pushed out 7.5x (same angular
+  /* The same seeded draws as the near ring, pushed out 7.5x (same angular
    * size) to sit behind Fuji.  A cloud low in Fuji's sector is lifted clear
    * of the peak instead of dropped, so the rest of the ring is unchanged. */
   const far = radius * 0.82 / 350;

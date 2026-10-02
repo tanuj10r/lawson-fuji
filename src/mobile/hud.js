@@ -85,7 +85,7 @@ const CSS = `
   .mh-act.on button::before { content: ''; position: absolute; inset: -2px; border-radius: inherit; border: 2px solid rgba(255,221,87,.9); animation: mh-ring 1.8s ease-out infinite; pointer-events: none; }
   @keyframes mh-ring { 0% { opacity: .9; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(1.13, 1.32); } }
 
-  .mh-toast { position: absolute; left: 50%; top: calc(var(--edge-t) + 72px); transform: translate(-50%, -6px);
+  .mh-toast { position: absolute; left: 50%; top: calc(var(--edge-t) + 64px); transform: translate(-50%, -6px);
     max-width: min(70vw, 480px); padding: 7px 16px 8px; border-radius: 19px; text-align: center;
     background: rgba(251,246,240,.93); border: 1.5px solid rgba(58,51,80,.22); box-shadow: 0 6px 18px -8px rgba(20,10,40,.45);
     font-size: 13.5px; font-weight: 600; line-height: 1.3; color: #3f3860;
@@ -175,7 +175,7 @@ const CSS = `
     .mh-pause .mk-who small { display: none; }
   }
   @media (orientation: portrait) {
-    .mh-toast { top: calc(var(--edge-t) + var(--map) + 98px); max-width: 88vw; }
+    .mh-toast { top: calc(var(--edge-t) + var(--map) + 108px); max-width: 88vw; }
     .mh-act { bottom: clamp(150px, 26vh, 250px); }
     .mh-menu { width: min(94vw, 420px); bottom: max(176px, calc(var(--safe-b) + 170px)); }
     .mh-menu ol { grid-template-columns: repeat(3, 1fr); }

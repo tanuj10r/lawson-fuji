@@ -550,8 +550,15 @@ multi-touch through CDP on an emulated iPhone 15, 844x390 and 390x844 at 3x; scr
   - *The map:* the desktop's corner map, 96 px (86 upright), top left, with a "Map" tag; a tap opens the whole map. The
     whole map is the desktop's too, drawn for a big window, so on a phone it is drawn 1.6x the screen and panned with
     a finger (its labels crowded and overlapped at screen size); a tap closes it.
-  - *Measured* (headless Chrome, which draws this town at 30 fps): the camera has turned 6.6 ms (mean; p95 9 ms) after
-    the finger's event is handled, i.e. in the same frame; nothing is deferred to a later frame.
+  - *Measured* (headless Chrome at 58-60 fps, the desktop town): the camera has turned 4.7 ms (mean; p95 6.6 ms,
+    max 10 ms; 5.0 / 7.9 ms upright) after the finger's event is handled, i.e. in the same frame; nothing waits for
+    a later frame. Speed after a full push: 1.8 m/s at 0.1 s, running from 0.32 s, 5 m/s at 0.9 s; after the lift
+    3.1 m/s at 0.2 s, 0.1 m/s at 0.52 s. (CDP's touch emulation gives every finger the first finger's element and
+    acknowledges each touch a frame late, so a button under a held stick and a flick's timing are checked with
+    pointer events and by the numbers; see the script.)
+  - *Desktop build:* every JS, font and data file of `vite build` is byte-identical to main's (8cc9948); `index.html`
+    and `_headers` differ only by the phone route switch (off) and the `/m/` cache lines carried over from the
+    pocket branch. 102 checks pass.
 - **3. Pause card:** no "Look speed". The volume is a bar (the desktop's five settings: drag it or tap along it, heard
   at once, remembered), Resume, Back to the start, "Your postcard ✉" (a little postcard, glowing on every pause),
   the Made by Tan row, credits. Two columns on its side, one upright; it never scrolls at 844x390 or 390x844.

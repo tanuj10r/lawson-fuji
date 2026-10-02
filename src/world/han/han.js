@@ -59,13 +59,14 @@ export const POSES = {
     lHipX: 0, lHipZ: 0.03, lKnee: 0, lFoot: 0, lFootY: 0.1,
     rHipX: 0, rHipZ: -0.03, rKnee: 0, rFoot: 0, rFootY: -0.1,
   },
-  /* in the driver's seat, hands on the wheel */
+  /* in the driver's seat, hands on the wheel; the legs out ahead in the footwell, as a low car seats you (they were
+   * a chair's: shins straight down, 30 cm through the floor, seen under the car as it drove off) */
   seat: {
-    pelvisY: 0.08, pelvisX: -0.1, pelvisZ: 0, spineX: -0.2, chestX: 0.02, chestZ: 0, neckX: 0.12, headX: 0.1, headZ: 0,
+    pelvisY: 0.08, pelvisX: -0.12, pelvisZ: 0, spineX: -0.27, chestX: 0.02, chestZ: 0, neckX: 0.12, headX: 0.1, headZ: 0,
     lShX: -1.0, lShZ: 0.18, lShY: 0, lElX: -0.55, lElY: -0.3, lHand: 0.2,
     rShX: -1.0, rShZ: -0.18, rShY: 0, rElX: -0.55, rElY: 0.3, rHand: 0.2,
-    lHipX: -1.45, lHipZ: 0.08, lKnee: 1.35, lFoot: -0.2, lFootY: 0,
-    rHipX: -1.45, rHipZ: -0.08, rKnee: 1.35, rFoot: -0.2, rFootY: 0,
+    lHipX: -1.72, lHipZ: 0.08, lKnee: 0.5, lFoot: 0.45, lFootY: 0,
+    rHipX: -1.72, rHipZ: -0.08, rKnee: 0.5, rFoot: 0.45, rFootY: 0,
   },
 };
 

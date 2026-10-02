@@ -87,9 +87,11 @@ export function buildHan(ctx) {
   // where Han stands, car frame (the car's right side, +z, is the driver's)
   const HW = car.halfW(-0.55);
   const LEAN = new THREE.Vector3(-0.6, 0, HW + 0.05);    // his hips against the rear quarter, just ahead of the wheel
-  const STAND = new THREE.Vector3(-0.42, 0, HW + 0.34);
-  const DOOR = new THREE.Vector3(-0.08, 0, HW + 0.32);
-  const SEAT = new THREE.Vector3(-0.38, 0.2, 0.37);
+  const STAND = new THREE.Vector3(-0.72, 0, HW + 0.38);   // clear of the door's swing (its rear edge sweeps 1.18 m round the hinge)
+  const DOOR = new THREE.Vector3(-0.3, 0, HW + 0.34);     // in the open door, his back to the seat
+  const PERCH = new THREE.Vector3(-0.38, 0.24, 0.52);     // sat on the seat's edge, the feet still outside
+  const SEAT = new THREE.Vector3(-0.38, 0.24, 0.37);      // (0.24: the seat of his trousers over the floor pan, his head under the roof; it was 0.2)
+  const YAW_OUT = 0.12;                                    // facing out of the car, his back to the seat
 
   /* colliders: the car's follows it (world AABB round its turned box); Han's while he stands */
   const carCol = { x0: 0, x1: 0, z0: 0, z1: 0, top: 1.15 };
@@ -167,49 +169,88 @@ export function buildHan(ctx) {
   const ease = (u) => u * u * (3 - 2 * u);
   const seg01 = (e, a, b) => THREE.MathUtils.clamp((e - a) / (b - a), 0, 1);
 
+  /* Getting in and out (Tan, 2026-10-02: no part of him under or through the car).  b: 0 stood in the open door, his
+   * back to the seat .. 1 in the seat.  First he sits back onto the seat's edge, ducking under the roof, his feet
+   * still on the ground outside (the legs by two-bone IK from the hip to where the feet stand, so they neither sink
+   * nor float); then he swings his legs in over the sill, knees up, and his hands go to the wheel.  Out: the same,
+   * backwards.  Writes `pos` and `pose`; returns his yaw. */
+  const L1 = 0.44, L2 = 0.43, ANKLE = 0.1, SIT = 0.52;      // thigh, shin, the ankle over the sole (han.js); the share of b that is sitting back
+  const lerp = THREE.MathUtils.lerp, clamp = THREE.MathUtils.clamp;
+  const SEAT_PHI = -(POSES.seat.lHipX + POSES.seat.pelvisX);
+  function legsTo(hipY, d, pelvisX, o) {
+    // the hip `hipY` over the ground, the ankle `d` ahead of it and ANKLE up: the thigh's angle from straight down, the knee's bend
+    const h = hipY - ANKLE, D = clamp(Math.hypot(d, h), 0.3, L1 + L2 - 0.004);
+    o.phi = Math.atan2(d, h) + Math.acos(clamp((L1 * L1 + D * D - L2 * L2) / (2 * L1 * D), -1, 1));
+    o.knee = Math.PI - Math.acos(clamp((L1 * L1 + L2 * L2 - D * D) / (2 * L1 * L2), -1, 1));
+    o.foot = -(pelvisX - o.phi + o.knee);        // the sole level
+    return o;
+  }
+  const lg = {}, lg1 = {};
+  function seatMove(b, pos, pose) {
+    const s = clamp(b / SIT, 0, 1), w = ease(clamp((b - SIT) / (1 - SIT), 0, 1));
+    const down = ease(clamp(s * 1.25, 0, 1)), inn = ease(clamp((s - 0.15) / 0.85, 0, 1));
+    pos.set(lerp(DOOR.x, PERCH.x, inn) + (SEAT.x - PERCH.x) * w, PERCH.y * down, lerp(DOOR.z, PERCH.z, inn) + (SEAT.z - PERCH.z) * w);
+    // the body: down onto the seat, then the arms to the wheel as the legs come in
+    blendPose(POSES.stand, POSES.seat, w, pose);
+    pose.pelvisY = lerp(POSES.stand.pelvisY, POSES.seat.pelvisY, down);
+    pose.pelvisX = lerp(POSES.stand.pelvisX, POSES.seat.pelvisX, down);
+    const duck = Math.sin(Math.PI * s);                                         // the head and shoulders forward, under the roof's edge, as he goes in
+    pose.spineX = lerp(POSES.stand.spineX, POSES.seat.spineX, w) + 0.5 * duck;
+    pose.neckX = lerp(POSES.stand.neckX, POSES.seat.neckX, w) + 0.25 * duck;
+    // (the hands to his thighs as he sits: hanging by his sides they went down through the seat)
+    for (const k of ['lShX', 'rShX']) pose[k] = lerp(lerp(POSES.stand[k], -0.45, down), POSES.seat[k], w);
+    for (const k of ['lElX', 'rElX']) pose[k] = lerp(lerp(POSES.stand[k], -1.0, down), POSES.seat[k], w);
+    // the legs: the feet where they stood while he sits back; then swung in, knees up over the sill
+    const back = Math.hypot(pos.x - DOOR.x, pos.z - DOOR.z);
+    legsTo(pos.y + pose.pelvisY - 0.03, 0.04 + back, pose.pelvisX, lg);
+    if (w > 0) {
+      legsTo(PERCH.y + POSES.seat.pelvisY - 0.03, 0.04 + Math.hypot(PERCH.x - DOOR.x, PERCH.z - DOOR.z), POSES.seat.pelvisX, lg1);
+      const up = Math.sin(Math.PI * w);
+      lg.phi = lerp(lg1.phi, SEAT_PHI, w) + 0.4 * up;
+      lg.knee = lerp(lg1.knee, POSES.seat.lKnee, w) + 0.5 * up;
+      lg.foot = lerp(lg1.foot, POSES.seat.lFoot, w);
+    }
+    pose.lHipX = pose.rHipX = -lg.phi - pose.pelvisX;
+    pose.lKnee = pose.rKnee = lg.knee;
+    pose.lFoot = pose.rFoot = lg.foot;
+    return YAW_OUT + (Math.PI / 2 - YAW_OUT) * w;
+  }
+
   /** Han and the door at experience time e (not running: e < 0). */
   function placeHan(e, dt) {
     const g = han.group;
-    let base = POSES.lean, target = POSES.lean, k = 0, door = 0;
+    let base = POSES.lean, target = POSES.lean, k = 0, door = 0, b = -1;
     const pos = new THREE.Vector3().copy(LEAN);
     let yaw = 0, nod = 0;
     const E = T_IN + T_DRIVE;
     if (e >= 0 && e < T_IN) {
+      // a nod; off the car; the door opens; a step into it, turning his back to the seat; in; the door shuts
       nod = e < 0.6 ? Math.sin((e / 0.6) * Math.PI) : 0;
       const up = ease(seg01(e, 0.5, 1.1));
       base = POSES.lean; target = POSES.stand; k = up;
       pos.lerpVectors(LEAN, STAND, up);
       yaw = 0.7 * up;
-      door = 1.15 * ease(seg01(e, 1.05, 1.45)) * (1 - ease(seg01(e, 2.3, 2.7)));
-      const inn = ease(seg01(e, 1.45, 2.35));
-      if (inn > 0) {
-        const a = Math.min(1, inn * 2), b = Math.max(0, inn * 2 - 1);
-        pos.lerpVectors(STAND, DOOR, a);
-        if (b > 0) pos.lerp(SEAT, b);
-        base = POSES.stand; target = POSES.seat; k = b;
-        yaw = 0.7 + (Math.PI / 2 - 0.7) * inn;
-      }
+      door = 1.15 * ease(seg01(e, 1.05, 1.45)) * (1 - ease(seg01(e, 2.4, 2.74)));
+      const step = ease(seg01(e, 1.42, 1.78));
+      if (step > 0) { pos.lerpVectors(STAND, DOOR, step); yaw = lerp(0.7, YAW_OUT, step); base = target = POSES.stand; }
+      if (e > 1.78) b = seg01(e, 1.78, 2.44);
     } else if (e >= T_IN && e < E) {
-      pos.copy(SEAT); base = target = POSES.seat; yaw = Math.PI / 2;
+      b = 1;
     } else if (e >= E && e < T_END) {
+      // the door opens; out; a step clear of the door; it shuts; he leans on the car again
       const o = e - E;
-      door = 1.15 * ease(seg01(o, 0.0, 0.4)) * (1 - ease(seg01(o, 1.25, 1.65)));
-      const out = ease(seg01(o, 0.35, 1.25));
-      const a = Math.min(1, out * 2), b = Math.max(0, out * 2 - 1);
-      pos.copy(SEAT).lerp(DOOR, a);
-      if (b > 0) pos.lerp(STAND, b);
-      base = POSES.seat; target = POSES.stand; k = a;
-      yaw = Math.PI / 2 + (0.7 - Math.PI / 2) * out;
-      const back = ease(seg01(o, 1.35, 2.2));
-      if (back > 0) {
-        pos.lerpVectors(STAND, LEAN, back);
-        base = POSES.stand; target = POSES.lean; k = back;
-        yaw = 0.7 * (1 - back);
+      door = 1.15 * ease(seg01(o, 0.0, 0.4)) * (1 - ease(seg01(o, 1.3, 1.68)));
+      if (o < 1.0) b = 1 - seg01(o, 0.34, 1.0);
+      else {
+        const step = ease(seg01(o, 1.0, 1.32));
+        pos.lerpVectors(DOOR, STAND, step); yaw = lerp(YAW_OUT, 0.7, step); base = target = POSES.stand;
+        const back = ease(seg01(o, 1.4, 2.2));
+        if (back > 0) { pos.lerpVectors(STAND, LEAN, back); base = POSES.stand; target = POSES.lean; k = back; yaw = 0.7 * (1 - back); }
       }
     }
+    if (b >= 0) yaw = seatMove(b, pos, pose); else blendPose(base, target, k, pose);
     g.position.copy(pos);
     g.rotation.y = yaw;
-    blendPose(base, target, k, pose);
     // breathing, the head following you, the nod
     S.idle += dt;
     const br = Math.sin(S.idle * 1.6);
@@ -408,6 +449,7 @@ export function buildHan(ctx) {
       return { tris: Math.round(tris), draws };
     };
     window.__han = {
+      parts: { han: han.group, body: car.body, car: cg, halfW: car.halfW },   // (scripts/_han-seat.mjs: is any of him under or through the car)
       set, play: () => { S.frozen = false; start(); }, stop: () => { S.run = false; S.frozen = false; smoke.reset(); marks.reset(); voice.stop(); },
       state: () => ({ run: S.run, t: S.t, held: S.held, armed: S.armed, x: cg.position.x, z: cg.position.z, psi: -cg.rotation.y, slide: cp.slide, smoke: smoke.count, marks: marks.quads, voice: voice.on }),
       show: (on) => { cg.visible = on; smoke.mesh.userData.on = marks.mesh.userData.on = on; smoke.mesh.visible = marks.mesh.visible = false; },

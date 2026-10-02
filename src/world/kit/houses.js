@@ -214,7 +214,8 @@ export function buildHouse(ctx, net, kit, lot, F, o = {}) {
       }
       // (town pass) corner boards where the siding meets, as it always does
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        const cb = box(0.12, H - 0.42, 0.12, trimMat(), sx * (W / 2 - 0.02), 0.42 + (H - 0.42) / 2, sz * (D / 2 - 0.02));
+        // (1 cm proud of the storey band, buildings.js makeHouse: their faces were one plane where they cross)
+        const cb = box(0.13, H - 0.42, 0.13, trimMat(), sx * (W / 2 - 0.015), 0.42 + (H - 0.42) / 2, sz * (D / 2 - 0.015));
         cb.castShadow = true;
         g.add(cb);
       }
@@ -477,7 +478,9 @@ export function hangLaundry(ctx, p, ry, r, y = 1.52) {
     const shirt = r.chance(0.5);
     const m = new THREE.Mesh(new THREE.PlaneGeometry(shirt ? 0.5 : 0.36, shirt ? 0.55 : 0.6),
       cel({ color: 0xffffff, map: laundryTex(r.int(0, 5)), bands: 2, side: THREE.DoubleSide, tint: 0x6f6790, alphaTest: 0.5, cache: false }));
-    m.position.set(p.x + Math.sin(ry) * t, y, p.z + Math.cos(ry) * t);
+    // (pegged alternately a centimetre either side of the pole: in one plane, neighbours overlapped and fought)
+    const off = (i % 2 ? 1 : -1) * 0.012;
+    m.position.set(p.x + Math.sin(ry) * t + Math.cos(ry) * off, y, p.z + Math.cos(ry) * t - Math.sin(ry) * off);
     m.rotation.y = ry + Math.PI / 2;
     m.castShadow = true;
     m.userData.noOutline = true;

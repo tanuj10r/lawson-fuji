@@ -129,7 +129,7 @@ export function buildInterior(group, { lit, colliders }) {
     // the toilet door and its sign
     p.box(5.6, 6.5, FLOOR, 2.1, Z0, Z0 + 0.05, 0xd8d4cc);
     p.box(6.33, 6.38, 0.95, 1.05, Z0 + 0.05, Z0 + 0.1, C.steel);
-    p.quad(doorSign('toilet'), 6.05, 2.35, Z0 + 0.03, 0.6, 0.3);
+    p.quad(doorSign('toilet'), 6.05, 2.35, Z0 + 0.04, 0.6, 0.3);                      // (1 cm off the wall: it lay in its face)
     // a convex security mirror high in the back-left corner, and dome cameras
     p.cyl(X0 + 0.4, CEIL - 0.6, Z0 + 0.4, 0.28, 0.06, 0xdce8f0, 16);
     p.cyl(-1.0, CEIL - 0.1, -6.0, 0.08, 0.06, 0x2a2a30, 10);
@@ -145,12 +145,14 @@ export function buildInterior(group, { lit, colliders }) {
     p.box(xb, xf, FLOOR, 0.35, za, zb, C.caseDark);                               // the base grille
     p.box(xb, xb + 0.12, 0.35, 2.1, za, zb, C.caseBody);                            // the back
     p.box(xb, xf + 0.05, 2.0, 2.2, za, zb, C.caseBody);                             // the canopy
-    p.box(xf - 0.05, xf + 0.05, 1.98, 2.02, za, zb, C.caseDark);                    // the air-curtain grille
+    // (QA z-fighting: the grille hangs under the canopy, not through its lip; the shelves stop at their rails;
+    //  shelves, lights and rails end a centimetre inside the case's ends, which the body owns)
+    p.box(xf - 0.05, xf + 0.05, 1.96, 2.0, za, zb, C.caseDark);                     // the air-curtain grille
     for (let k = 0; k < 5; k++) {
       const y = 0.45 + k * 0.33, depth = 0.8 - k * 0.1;
-      p.box(xb + 0.12, xb + depth, y - 0.02, y, za, zb, C.shelf);
-      p.box(xb + 0.12, xb + depth, y + 0.28, y + 0.3, za, zb, C.caseLight);         // the light under the shelf above
-      p.box(xb + depth - 0.02, xb + depth, y - 0.06, y, za, zb, C.rail);
+      p.box(xb + 0.12, xb + depth - 0.02, y - 0.02, y, za + 0.01, zb - 0.01, C.shelf);
+      p.box(xb + 0.12, xb + depth, y + 0.28, y + 0.3, za + 0.01, zb - 0.01, C.caseLight);   // the light under the shelf above
+      p.box(xb + depth - 0.02, xb + depth, y - 0.06, y, za + 0.01, zb - 0.01, C.rail);
       slots.push({ zone: 'chilled', level: k, depth, x: xb + depth - 0.12, y, z0: za + 0.05, z1: zb - 0.05, rail: xb + depth + 0.012, face: { x: 1, z: 0 } });
     }
     for (const sec of CHILLED_SECTIONS) {
@@ -184,7 +186,7 @@ export function buildInterior(group, { lit, colliders }) {
     // the top: a cap on the spine and a rail along each edge, the top shelf open
     // above them as a real gondola's is (a full-width board had the tall
     // bottles on the top shelf standing through it)
-    p.box(cx - 0.12, cx + 0.12, H - 0.03, H, zA - 0.02, zB + 0.02, C.upright);
+    p.box(cx - 0.12, cx + 0.12, H - 0.03, H, zA - 0.02, zB, C.upright);               // (up to the end cap's panel, not over its top)
     for (const e of [x0 - 0.02, x1]) p.box(e, e + 0.02, H - 0.03, H, zA - 0.02, zB + 0.02, C.upright);
     for (const side of [-1, 1]) {
       const xs = side < 0 ? x0 : x1;
@@ -192,14 +194,15 @@ export function buildInterior(group, { lit, colliders }) {
         const y = 0.16 + k * 0.27;
         // the board reaches only as far back as the goods do, with the spine
         // panel behind it: a shelf seen end-on is stock, not a bare plane
-        p.box(xs - side * SHELF_D, xs, y - 0.02, y, zA, zB, C.shelf);
+        // (one surface owns each face, QA z-fighting: the board stops at its price rail, their tops were one plane)
+        p.box(xs - side * SHELF_D, xs - side * 0.01, y - 0.02, y, zA, zB, C.shelf);
         p.box(xs - 0.01, xs + 0.01, y - 0.06, y, zA, zB, C.rail);                     // the price rail
         slots.push({ zone: 'gondola', gi, side, level: k, x: xs, y, z0: zA + 0.05, z1: zB - 0.05, face: { x: side, z: 0 } });
       }
     }
     // the back end is closed by a panel, as a gondola's ends are: from the
     // back of the store you meet a solid end, not a run of half-empty boards
-    p.box(x0, x1, FLOOR, H, zA - 0.04, zA, 0xeef0f4);
+    p.box(x0, x1, 0.12, H - 0.03, zA - 0.04, zA, 0xeef0f4);                          // (between its kick and its top trim, not through them)
     p.box(x0 - 0.02, x1 + 0.02, FLOOR, 0.12, zA - 0.05, zA, C.kick);
     p.box(x0 - 0.02, x1 + 0.02, H - 0.03, H, zA - 0.05, zA, C.upright);
     // what the aisle holds, named on its end, and a poster below
@@ -209,14 +212,17 @@ export function buildInterior(group, { lit, colliders }) {
     });
     p.quad(popCard(['limited', 'new', 'sale', 'rec'][gi]), cx, 0.62, zA - 0.045, 0.52, 0.39, { ry: Math.PI });
     // the end cap toward the front, and its POP card on top
-    p.box(x0, x1, FLOOR, H, zB, zB + 0.04, C.shelf);                                // its back panel
+    /* (QA z-fighting: the end cap's parts were boxes through each other, their faces in one plane in six places.
+     * Now the two uprights own its sides and front corners; the back panel, the kick, the shelves and the rails
+     * sit between them, the shelves behind their rails.) */
+    p.box(x0 + 0.03, x1 - 0.03, 0.12, H, zB, zB + 0.04, C.shelf);                   // its back panel
     p.box(x0, x0 + 0.03, FLOOR, H, zB, zB + 0.36, C.upright);
     p.box(x1 - 0.03, x1, FLOOR, H, zB, zB + 0.36, C.upright);
-    p.box(x0, x1, FLOOR, 0.12, zB, zB + 0.36, C.kick);
+    p.box(x0 + 0.03, x1 - 0.03, FLOOR, 0.12, zB, zB + 0.36, C.kick);
     for (let k = 0; k < 4; k++) {
       const y = 0.2 + k * 0.33;
-      p.box(x0 + 0.03, x1 - 0.03, y - 0.02, y, zB + 0.04, zB + 0.36, C.shelf);
-      p.box(x0, x1, y - 0.05, y, zB + 0.34, zB + 0.36, C.rail);
+      p.box(x0 + 0.03, x1 - 0.03, y - 0.02, y, zB + 0.04, zB + 0.34, C.shelf);
+      p.box(x0 + 0.03, x1 - 0.03, y - 0.05, y, zB + 0.34, zB + 0.36, C.rail);
       slots.push({ zone: 'endcap', gi, level: k, x0: x0 + 0.05, x1: x1 - 0.05, y, z: zB + 0.22, rail: zB + 0.37, face: { x: 0, z: 1 } });
     }
     p.quad(popCard(['new', 'rec', 'limited', 'sale'][gi]), cx, H + 0.2, zB + 0.2, 0.52, 0.39);

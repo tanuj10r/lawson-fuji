@@ -345,6 +345,7 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
   for (const sz of [1, -1]) {
     const zSkin = sz * (CAR_W / 2 - 0.03), zLine = sz * (CAR_W / 2 - 0.1), zOut = sz * (CAR_W / 2 + 0.004);
     const zOn = sz * (CAR_W / 2 + 0.005);      // paint 1 cm thick lying on the skin (not 2 mm into it: its end caps lay in the skin's at the car's ends)
+    const zSeam = sz * (CAR_W / 2 + 0.006);    // a panel seam, 2 mm proud of the paint it crosses (level with the beads, it fought them)
     for (const c of cells) {
       const len = c.b - c.a, cx = (c.a + c.b) / 2;
       const spans = c.kind === 'door' ? [[DOOR_TOP, skinTop]]
@@ -377,7 +378,7 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
         push('rubber', box(0.035, DOOR_TOP - FLOOR, 0.1), trs(d + e * DOOR_W / 2, (FLOOR + DOOR_TOP) / 2, zSkin));
         // the pocket's panel seam, only where it falls on solid skin (next to a window bay it cut through the glass)
         const sxm = d + e * (DOOR_W / 2 + 0.3);
-        if (!art && cells.find((c) => sxm > c.a && sxm < c.b)?.kind === 'solid') push('rubber', box(0.012, TOP - 0.2 - FLOOR + 0.18, 0.01), trs(sxm, (FLOOR - 0.18 + TOP - 0.2) / 2, zOut));
+        if (!art && cells.find((c) => sxm > c.a && sxm < c.b)?.kind === 'solid') push('rubber', box(0.012, TOP - 0.2 - FLOOR + 0.18, 0.012), trs(sxm, (FLOOR - 0.18 + TOP - 0.2) / 2, zSeam));
       }
       push('rubber', box(DOOR_W + 0.07, 0.04, 0.1), trs(d, DOOR_TOP, zSkin));
       push('steelHi', box(DOOR_W, 0.04, 0.21), trs(d, FLOOR + 0.02, sz * (CAR_W / 2 - 0.075)));      // the sill, 1 cm proud of the jambs' rubber (its nose lay in their faces)
@@ -386,7 +387,7 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
     }
     // panel seams at the car's corners, and the car's number on the end panel
     // (below the window, past the last door's pocket: nothing sits where a leaf slides)
-    if (!art) for (const e of [-1, 1]) push('rubber', box(0.014, TOP - FLOOR + 0.15, 0.01), trs(e * (CAR_L / 2 - 0.2), (FLOOR - 0.15 + TOP) / 2, zOut));
+    if (!art) for (const e of [-1, 1]) push('rubber', box(0.014, TOP - FLOOR + 0.15, 0.012), trs(e * (CAR_L / 2 - 0.2), (FLOOR - 0.15 + TOP) / 2, zSeam));
     // (the painted car: at the top of the band, above the end panel's figure)
     push('carNo', new THREE.PlaneGeometry(0.62, 0.12), trs(cabEnd ? -cabEnd * NUMBER_X : NUMBER_X, art ? 1.95 : 1.58, zOut + sz * 0.004, 0, face(sz), 0));
     // the side destination LED, over the window by door 2
@@ -398,7 +399,7 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
   // the crew doors on a cab's sides (outlines, a handhold)
   if (cabEnd) {
     for (const sz of [1, -1]) {
-      const zOut = sz * (CAR_W / 2 + 0.006);
+      const zOut = sz * (CAR_W / 2 + 0.008);      // (3 mm proud of the band the door's outline crosses)
       for (const x of [7.62, 9.42]) push('rubber', box(0.025, 2.3, 0.01), trs(cabEnd * x, FLOOR + 1.12, zOut));
       push('rubber', box(1.8, 0.025, 0.01), trs(cabEnd * 8.52, FLOOR + 2.27, zOut));
       push('steelHi', box(0.03, 0.5, 0.04), trs(cabEnd * 9.55, FLOOR + 0.95, zOut + sz * 0.02));
@@ -682,8 +683,8 @@ function buildCar(T, { cab, tail, index, dests, straps, xOff }) {
     B('lining', xw - 0.03, xw + 0.03, FLOOR, 2.0, 0.35, CAR_W / 2 - 0.1);
     B('lining', xw - 0.03, xw + 0.03, 2.8, TOP - 0.12, 0.35, CAR_W / 2 - 0.1);
     push('glass', new THREE.PlaneGeometry(CAR_W / 2 - 0.45, 0.8), trs(xw, 2.4, (0.35 + CAR_W / 2 - 0.1) / 2, 0, -ry, 0));
-    B('rubber', xw - 0.02, xw + 0.02, 1.99, 2.03, 0.35, CAR_W / 2 - 0.1);
-    B('rubber', xw - 0.02, xw + 0.02, 2.77, 2.81, 0.35, CAR_W / 2 - 0.1);
+    B('rubber', xw - 0.02, xw + 0.02, 1.99, 2.03, 0.35, CAR_W / 2 - 0.11);      // (a centimetre short of the wall's end, seen through the cab's side window)
+    B('rubber', xw - 0.02, xw + 0.02, 2.77, 2.81, 0.35, CAR_W / 2 - 0.11);
     B('panel', xw - 0.025, xw + 0.025, FLOOR, FLOOR + 1.9, -0.35, 0.35);
     B('rubber', xw - s * 0.03, xw - s * 0.02, 2.2, 2.7, -0.2, 0.2);
     B('console', fx - s * 0.75, fx - s * 0.12, FLOOR, FLOOR + 0.95, -1.3, 1.3);

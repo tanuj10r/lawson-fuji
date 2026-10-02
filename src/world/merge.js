@@ -134,10 +134,15 @@ function matKey(m) {
  */
 const DEV = !!import.meta.env?.DEV;
 /** dev: a part's name and its named parents', up to the batch's root. */
-function chainName(m, root) {
+function chainName(m, root, geo) {
   const out = [];
   for (let q = m; q && q !== root && out.length < 4; q = q.parent) if (q.name) out.push(q.name);
-  return out.join('<') || '?';
+  // and its shape: the kind of geometry, its size and where it stands in the batch's frame (to find it in the code)
+  geo.computeBoundingBox();
+  const b = geo.boundingBox, f = (v) => +v.toFixed(2);
+  const dims = [b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z].map(f).join('x');
+  const at = [(b.max.x + b.min.x) / 2, (b.max.y + b.min.y) / 2, (b.max.z + b.min.z) / 2].map(f).join(',');
+  return `${out.join('<') || '?'} ${m.geometry.type.replace('Geometry', '')} ${dims} @${at}`;
 }
 
 export function mergeStatic(root, opts = {}) {
@@ -232,7 +237,7 @@ export function mergeStatic(root, opts = {}) {
       }
     }
     // dev (the z-fighting detector, src/dev/zfight.js): which vertices came from which part, by name
-    const src = DEV ? g.list.flatMap((m, i) => m.userData.src ?? [{ n: geos[i].attributes.position.count, name: chainName(m, root) }]) : null;
+    const src = DEV ? g.list.flatMap((m, i) => m.userData.src ?? [{ n: geos[i].attributes.position.count, name: chainName(m, root, geos[i]) }]) : null;
     const geo = mergeGeometries(geos, false);
     geos.forEach((x) => x.dispose());
     if (!geo) continue;

@@ -10,7 +10,7 @@
 //   node scripts/_zfight.mjs --list              the poses' names
 //   --frames 12 --step 0.0002 --thr 16           the jitter and the threshold (a channel's change, of 255)
 //   --near            nudge the near plane instead of moving (no edge moves at all: for hunting)
-//   --max 40          a pose fails over this many flickering pixels
+//   --max 12          a pose fails over this many solid flickering pixels (in a 2 x 2 block: an area, not a line)
 //   --masks all       save every pose's still and mask (default: only poses that changed)
 //   --compare a.json  print this run beside an earlier report.json (before / after)
 //
@@ -32,7 +32,7 @@ const valued = new Set(['poses', 'frames', 'step', 'thr', 'max', 'masks', 'compa
 const out = path.resolve(args.find((a, i) => !a.startsWith('--') && !valued.has((args[i - 1] ?? '').slice(2))) ?? path.join(ROOT, '.shots', 'zfight'));
 const only = opt('poses', '').split(',').filter(Boolean);
 const O = { frames: +opt('frames', 12), step: +opt('step', 0.0002), thr: +opt('thr', 16), mode: flag('move') ? 'move' : 'near' };
-const MAX = +opt('max', 40);
+const MAX = +opt('max', 12);
 
 /* ---------------------------------------------------------------- the poses */
 const POSES = [];
@@ -139,6 +139,8 @@ for (const n of ['town-main-west', 'town-main-east', 'town-lane-houses', 'town-l
 stand('carpark-paint', [-21.7, 21.5], [-14, 26.5], { pitch: -0.35 });          // the car park's bays
 stand('zebra-main', [-35, 9.2], [-35, 19], { pitch: -0.4 });                   // the main road's zebra underfoot
 stand('zebra-spine', [50, -1.2], [50.6, -8], { pitch: -0.45 });
+stand('main-shops-west', [-56, 15.5], [-58.4, 20.7], { pitch: 0.3 });           // the main road's shopfronts, from the kerb
+stand('spine-signs', [50.5, -19], [46.4, -24.6], { pitch: 0.12 });              // the signposts at the megastore's corner
 
 if (flag('list')) { for (const p of POSES) console.log(p.name); process.exit(0); }
 const poses = POSES.filter((p) => !only.length || only.some((k) => p.name === k || p.name.startsWith(k)));
@@ -192,12 +194,12 @@ try {
     if (mask) save(`${p.name}-mask.png`, mask);
     else for (const f of [`${p.name}-mask.png`]) fs.rmSync(path.join(out, f), { force: true });
     report.poses[p.name] = row;
-    const over = row.flicker > MAX;
+    const over = row.solid > MAX;
     if (over) bad++;
-    console.log(`${over ? 'FAIL' : 'pass'} ${p.name.padEnd(30)} flicker ${String(row.flicker).padStart(6)}  changed ${String(row.changed).padStart(6)}  per frame ${row.perFrame[0]}-${row.perFrame[1]}  regions ${row.regions}`);
+    console.log(`${over ? 'FAIL' : 'pass'} ${p.name.padEnd(30)} solid ${String(row.solid).padStart(6)}  flicker ${String(row.flicker).padStart(6)}  changed ${String(row.changed).padStart(6)}  per frame ${row.perFrame[0]}-${row.perFrame[1]}  regions ${row.regions}`);
     if (flag('verbose') || over) for (const b of row.boxes.slice(0, 3)) {
-      if (!b.flicker && !flag('verbose')) continue;
-      console.log(`       box ${b.box.join(',')}  flicker ${b.flicker} changed ${b.changed}`);
+      if (!b.solid && !flag('verbose')) continue;
+      console.log(`       box ${b.box.join(',')}  solid ${b.solid} flicker ${b.flicker} changed ${b.changed}`);
       for (const h of b.hits ?? []) console.log(`         ${h.d.toFixed(3)} m  ${h.what}  [${h.mat}]  at ${h.at.join(', ')}  n ${h.n?.join(',')}`);
     }
   }
@@ -209,13 +211,13 @@ fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 1))
 const cmp = opt('compare');
 if (cmp) {
   const before = JSON.parse(fs.readFileSync(cmp, 'utf8')).poses;
-  console.log('\n| pose | flicker before | after | changed before | after |\n|---|---:|---:|---:|---:|');
+  console.log('\n| pose | flicker before | after | solid before | after |\n|---|---:|---:|---:|---:|');
   for (const [name, a] of Object.entries(report.poses)) {
     const b = before[name];
     if (!b || a.error || b.error) continue;
-    if (b.changed || a.changed) console.log(`| ${name} | ${b.flicker} | ${a.flicker} | ${b.changed} | ${a.changed} |`);
+    if (b.flicker || a.flicker) console.log(`| ${name} | ${b.flicker} | ${a.flicker} | ${b.solid ?? ''} | ${a.solid} |`);
   }
 }
 const rows = Object.values(report.poses).filter((r) => !r.error);
-console.log(`\n${rows.length} poses: ${rows.reduce((s, r) => s + r.flicker, 0)} flickering pixels, ${rows.reduce((s, r) => s + r.changed, 0)} changed; ${bad} over the limit (${MAX}).  Saved to ${path.relative(ROOT, out) || out}/`);
+console.log(`\n${rows.length} poses: ${rows.reduce((s, r) => s + r.solid, 0)} solid, ${rows.reduce((s, r) => s + r.flicker, 0)} flickering pixels, ${rows.reduce((s, r) => s + r.changed, 0)} changed; ${bad} over the limit (${MAX} solid).  Saved to ${path.relative(ROOT, out) || out}/`);
 process.exit(bad ? 1 : 0);

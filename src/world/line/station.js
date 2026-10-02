@@ -366,7 +366,9 @@ export function buildStation(ctx, { kit, service, sets }) {
     ctx.collide(PL.x0, P.edge - P.face * 0.05 - 0.05, PL.x1, P.edge - P.face * 0.05 + 0.05, PH + 1.2);
     // yellow tactile line, a metre in from the edge
     for (let x = PL.x0 + 0.3; x < PL.x1 - 0.15; x += 0.3) {
-      kit.decals.add('tactileLine', x, P.edge - P.face * 0.95, 0.3, 0.3, { x: 1, z: 0 }, PH - ROADS.asphaltY, LAYER.paint);
+      // (on the deck: `PH - asphaltY` laid it 14 mm under the deck's top, unseen, and its polygon offset let it
+      //  bleed through in patches at a low angle)
+      kit.decals.add('tactileLine', x, P.edge - P.face * 0.95, 0.3, 0.3, { x: 1, z: 0 }, PH, LAYER.paint);
     }
     // the raised inner line along the tactile blocks (内方線), and the white line at the coping
     edgeLines.push({ geometry: new THREE.BoxGeometry(PL.x1 - PL.x0 - 0.6, 0.012, 0.05), matrix: trs((PL.x0 + PL.x1) / 2, PH + 0.006, P.edge - P.face * 1.16) });
@@ -613,7 +615,7 @@ export function buildStation(ctx, { kit, service, sets }) {
       buildShop(ctx, null, kit, lot, F, 'cafe', { maxFloors: 2 });
     }
     // the guide path in yellow from the shopping street to the steps, and to the bus stop
-    const tz = y - ROADS.asphaltY;
+    const tz = y;      // on the plaza's top (as on the platforms: `y - asphaltY` was 14 mm under it, unseen, bleeding through)
     for (let z = P.z0 + 0.3; z < B.z0 - 2.3; z += 0.3) kit.decals.add('tactileLine', cxE - 2.5, z, 0.3, 0.3, { x: 0, z: 1 }, tz, LAYER.paint);
     for (let x = bs.x + 1.0; x < cxE - 2.6; x += 0.3) kit.decals.add('tactileLine', x, bs.z - 0.6, 0.3, 0.3, { x: 1, z: 0 }, tz, LAYER.paint);
     // the taxi rank: a yellow box round the waiting cab

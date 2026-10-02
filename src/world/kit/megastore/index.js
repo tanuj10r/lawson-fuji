@@ -153,7 +153,8 @@ export function buildMegastore(ctx, net, kit, s, F) {
   /* ------------------------------------------------ the front */
   // the canopy over the entrance, its red edge lettered with what's inside
   const CY0 = 4.0, CZ = 1.1;
-  block(-W2, CY0, ZF, W2, H1 + 0.05, CZ, m.red, { outline: 0.003 });
+  // (a centimetre past the entrance's end walls each side: its ends lay in their outer faces)
+  block(-W2 - 0.01, CY0, ZF, W2 + 0.01, H1 + 0.05, CZ, m.red, { outline: 0.003 });
   card(W2 * 2, H1 + 0.05 - CY0, R.front.canopy, 'front', m.signF, 0, (CY0 + H1 + 0.05) / 2, CZ + 0.006);
   // its underside: a lit ceiling
   card(W2 * 2, CZ - ZF, [0, 0, 4, 4], 'front', m.light, 0, CY0 - 0.006, (CZ + ZF) / 2).rotation.set(Math.PI / 2, 0, 0);
@@ -174,8 +175,9 @@ export function buildMegastore(ctx, net, kit, s, F) {
   {
     const bx = W2 - 0.45, z0 = 0.5, z1 = 1.8, y0 = 4.8, y1 = 11.55;
     block(bx - 0.07, y0 - 0.06, z0 - 0.06, bx + 0.07, y1 + 0.06, z1 + 0.06, m.red, { outline: 0.003 });
-    card(z1 - z0, y1 - y0, R.misc.blade, 'misc', m.signM, bx + 0.075, (y0 + y1) / 2, (z0 + z1) / 2, Math.PI / 2);
-    card(z1 - z0, y1 - y0, R.misc.blade, 'misc', m.signM, bx - 0.075, (y0 + y1) / 2, (z0 + z1) / 2, -Math.PI / 2);
+    // (1.5 cm off the blade's faces: at 5 mm they fought it from the station's steps, 100 m off)
+    card(z1 - z0, y1 - y0, R.misc.blade, 'misc', m.signM, bx + 0.085, (y0 + y1) / 2, (z0 + z1) / 2, Math.PI / 2);
+    card(z1 - z0, y1 - y0, R.misc.blade, 'misc', m.signM, bx - 0.085, (y0 + y1) / 2, (z0 + z1) / 2, -Math.PI / 2);
     for (const y of [y0 + 0.6, y1 - 0.6]) block(bx - 0.04, y - 0.04, ZF + 0.45, bx + 0.04, y + 0.04, z0, m.silver, { shadow: false });
   }
 
@@ -296,8 +298,9 @@ export function buildMegastore(ctx, net, kit, s, F) {
   /** Gondola shelving: a black plinth, a printed back, steel shelves with
    * gold price rails, five shelves each lined with one kind of thing. */
   function gondola(F, w, cats, { h = 2.1, d = 0.42, shelves = 5 } = {}) {
-    fblock(F, 0, FLOOR, -d, w, FLOOR + 0.1, 0.02, m.black, { shadow: false });
-    fblock(F, 0, FLOOR, -d, w, FLOOR + h, -d + 0.04, m.wallDark);
+    // (the plinth and the back stand between the two uprights, which own the ends: all three ended in one plane)
+    fblock(F, 0.03, FLOOR, -d, w - 0.03, FLOOR + 0.1, 0.02, m.black, { shadow: false });
+    fblock(F, 0.03, FLOOR, -d, w - 0.03, FLOOR + h, -d + 0.04, m.wallDark);
     const back = F.at(w / 2, -d + 0.046);
     card(w - 0.04, h - 0.16, R.misc.aisle, 'misc', m.signM, back.x, FLOOR + h / 2 + 0.02, back.z, F.yaw);
     for (const lx of [0, w - 0.03]) fblock(F, lx, FLOOR, -d, lx + 0.03, FLOOR + h, 0, m.silver, { shadow: false });
@@ -375,11 +378,14 @@ export function buildMegastore(ctx, net, kit, s, F) {
     for (let i = 0; i < cols; i++) {
       for (let k = 0; k < rows; k++) {
         const x0 = i * (w + 0.02), y = FLOOR + k * h;
-        box(x0, y, -d, x0 + w, y + 0.015, 0);                     // the floor
-        box(x0, y, -d, x0 + w, y + h, -d + 0.015);                // the back
-        box(x0, y, -d, x0 + 0.015, y + h, 0);                     // the sides
-        box(x0 + w - 0.015, y, -d, x0 + w, y + h, 0);
-        box(x0, y, -0.015, x0 + w, y + 0.07, 0);                 // the cut front lip
+        // (the two sides own the corners; the floor, the back and the lip sit between them: five boards through
+        //  each other had their faces in one plane along every edge)
+        const t = 0.015;
+        box(x0 + t, y, -d + t, x0 + w - t, y + t, -t);            // the floor
+        box(x0 + t, y, -d, x0 + w - t, y + h, -d + t);            // the back
+        box(x0, y, -d, x0 + t, y + h, 0);                         // the sides
+        box(x0 + w - t, y, -d, x0 + w, y + h, 0);
+        box(x0 + t, y, -t, x0 + w - t, y + 0.07, 0);              // the cut front lip
         shelf(F, k % 2 ? 'can' : 'drink', x0 + 0.03, y + 0.015, -0.015, w - 0.06, { rows: 2, back: 0.02, pitch: 0.075, gap: 0.006 });
       }
       const p = F.at(i * (w + 0.02) + w * 0.5, 0.01);
@@ -400,8 +406,8 @@ export function buildMegastore(ctx, net, kit, s, F) {
     };
     box(0, FLOOR, -d, w, FLOOR + h, -d + 0.02);
     box(0, FLOOR, -0.02, w, FLOOR + h, 0);
-    box(0, FLOOR, -d, 0.02, FLOOR + h, 0);
-    box(w - 0.02, FLOOR, -d, w, FLOOR + h, 0);
+    box(0, FLOOR, -d + 0.02, 0.02, FLOOR + h, -0.02);            // (the sides, between the front and the back)
+    box(w - 0.02, FLOOR, -d + 0.02, w, FLOOR + h, -0.02);
     fblock(F, 0.02, FLOOR + h - 0.2, -d + 0.02, w - 0.02, FLOOR + h - 0.18, -0.02, m.wallDark, { shadow: false });   // the false bottom
     const p = F.at(0.05, -d + 0.05);
     stock.heap(cats, p.x, FLOOR + h - 0.18, p.z, w - 0.1, d - 0.1, Math.round(w * d * 40), { lay: 0.65, layers: 3 });
@@ -550,7 +556,7 @@ export function buildMegastore(ctx, net, kit, s, F) {
     const x = 3.35, z = 0.3;
     card(0.55, 0.82, R.misc.board, 'misc', m.signM, x, FLOOR + 0.78, z + 0.03, 0, 0);
     block(x - 0.3, FLOOR + 0.34, z - 0.02, x + 0.3, FLOOR + 1.22, z + 0.02, m.red);
-    for (const sx of [-0.25, 0.25]) block(x + sx - 0.02, FLOOR, z - 0.18, x + sx + 0.02, FLOOR + 0.4, z + 0.02, m.wheel, { shadow: false });
+    for (const sx of [-0.25, 0.25]) block(x + sx - 0.02, FLOOR, z - 0.18, x + sx + 0.02, FLOOR + 0.4, z + 0.01, m.wheel, { shadow: false });   // (a centimetre behind the board's face: they were one plane)
     collide(x - 0.32, z - 0.2, x + 0.32, z + 0.05, 1.2);
     reg('prop', x, z);
   }

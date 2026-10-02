@@ -476,7 +476,8 @@ export function makeVehicle(o = {}) {
       }
     }
     if (isFront) {
-      push('dark', new THREE.BoxGeometry(0.04, 0.15, s.W - 0.66), trs(x + 0.02, lampY + 0.01, 0));
+      // (between the lamps, not 3 cm under each: its face and theirs were one plane)
+      push('dark', new THREE.BoxGeometry(0.04, 0.15, s.W - 0.72), trs(x + 0.02, lampY + 0.01, 0));
       push('dark', new THREE.BoxGeometry(0.05, 0.13, s.W - 0.50), trs(x + 0.05, s.sill + 0.16, 0));
     } else {
       /* The tailgate: its shut line across the back panel and the grab strip
@@ -484,13 +485,14 @@ export function makeVehicle(o = {}) {
        * other angle -- it is the view from the pavement it is parked against --
        * and without these two the whole rear is one blank panel between two
        * lamps. */
-      push('dark', new THREE.BoxGeometry(0.03, 0.022, s.W - 0.30), trs(x - 0.025, s.sill + 0.30, 0));
+      // (between the lamps: under them its face lay in theirs)
+      push('dark', new THREE.BoxGeometry(0.03, 0.022, s.W - 0.56), trs(x - 0.025, s.sill + 0.30, 0));
       push('brite', new THREE.BoxGeometry(0.05, 0.045, 0.34), trs(x - 0.03, s.waist - 0.13, s.W * 0.14));
     }
   }
   // exhaust tail pipe, out of the left rear corner
   push('brite', new THREE.CylinderGeometry(0.033, 0.033, 0.14, 8),
-    trs(-s.L / 2 - 0.02, s.sill - 0.05, -(s.W / 2 - 0.32), 0, 0, Math.PI / 2));
+    trs(-s.L / 2 - 0.03, s.sill - 0.05, -(s.W / 2 - 0.32), 0, 0, Math.PI / 2));     // (its tip a centimetre past the bumper: flush, it lay in the bumper's face)
 
   /* --------------------------------- plates ---------------------------------
    * 330 x 165 front and rear, which is the real size, and standing 12 mm off

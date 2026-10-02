@@ -397,7 +397,8 @@ function stair(ctx, parts, s, P) {
   }
   // the foot: walls end in a post either side
   const zf = z0 + dir * tread * n;
-  for (const x of [x0 - 0.15, x1 + 0.15]) parts.box('graniteDark', x - 0.2, x + 0.2, W - 0.05, W + 0.95, Math.min(zf, zf - dir * 0.4), Math.max(zf, zf - dir * 0.4));
+  // (2 cm past the walls' ends: its face lay in theirs)
+  for (const x of [x0 - 0.15, x1 + 0.15]) parts.box('graniteDark', x - 0.2, x + 0.2, W - 0.05, W + 0.95, Math.min(zf + dir * 0.02, zf - dir * 0.4), Math.max(zf + dir * 0.02, zf - dir * 0.4));
   // a handrail down the middle of the wide ones
   if (s.w > 3) {
     const len = Math.hypot(tread * n, -W);

@@ -10,6 +10,8 @@
  *
  *   changed   pixels that differed between any two consecutive frames
  *   flicker   pixels that did so twice or more (the flip-flop: the signal)
+ *   solid     flickering pixels in a 2 x 2 block of them: an area that fights, not the one row of pixels
+ *             that flips where two surfaces meet along a line (the check's pass or fail)
  *   perFrame  [min, max] changed pixels between consecutive frames
  *   boxes     where: connected regions, biggest first, each with what a ray
  *             through its worst pixel hits (two hits a few mm apart = the pair)
@@ -95,6 +97,15 @@ export async function zfight(g, pose, o = {}) {
   camera.updateMatrixWorld(true);
 
   /* ---- count, and gather the changed pixels into regions ---- */
+  // `solid`: flickering pixels in a 2 x 2 block of them.  Where two surfaces meet along a line (a slat standing on
+  // a plinth, a rail on its sleepers) one row of pixels flips, as any edge does; a fight covers an area.
+  const blk = new Uint8Array(n);
+  for (let y = 0; y < H - 1; y++) for (let x = 0; x < W - 1; x++) {
+    const p = y * W + x;
+    if (trans[p] >= 2 && trans[p + 1] >= 2 && trans[p + W] >= 2 && trans[p + W + 1] >= 2) blk[p] = blk[p + 1] = blk[p + W] = blk[p + W + 1] = 1;
+  }
+  let solid = 0;
+  for (let p = 0; p < n; p++) solid += blk[p];
   let changed = 0, flicker = 0;
   const gw = Math.ceil(W / CELL), gh = Math.ceil(H / CELL);
   const cell = new Uint16Array(gw * gh);
@@ -126,20 +137,21 @@ export async function zfight(g, pose, o = {}) {
   }
   for (const b of boxes) {
     b.x0 *= CELL; b.y0 *= CELL; b.x1 = Math.min(W, (b.x1 + 1) * CELL); b.y1 = Math.min(H, (b.y1 + 1) * CELL);
-    b.changed = 0; b.flicker = 0;
+    b.changed = 0; b.flicker = 0; b.solid = 0;
     let best = -1, bp = 0;
     for (let y = b.y0; y < b.y1; y++) for (let x = b.x0; x < b.x1; x++) {
       const p = y * W + x;
       if (!trans[p]) continue;
       b.changed++;
       if (trans[p] >= 2) b.flicker++;
-      const score = trans[p] * 256 + worst[p];
+      b.solid += blk[p];
+      const score = blk[p] * 65536 + trans[p] * 256 + worst[p];
       if (score > best) { best = score; bp = p; }
     }
     b.at = [bp % W, bp / W | 0];
     delete b.cells;
   }
-  boxes.sort((a, b) => b.flicker - a.flicker || b.changed - a.changed);
+  boxes.sort((a, b) => b.solid - a.solid || b.flicker - a.flicker || b.changed - a.changed);
 
   /* ---- what is there: a ray through each region's worst pixel ---- */
   const ray = new THREE.Raycaster();
@@ -197,8 +209,8 @@ export async function zfight(g, pose, o = {}) {
   const still = off.toDataURL('image/jpeg', 0.88);
 
   return {
-    changed, flicker, perFrame: [Math.min(...per), Math.max(...per)],
-    boxes: boxes.slice(0, 8).map((b) => ({ box: [b.x0, b.y0, b.x1, b.y1], changed: b.changed, flicker: b.flicker, at: b.at, hits: b.hits })),
+    changed, flicker, solid, perFrame: [Math.min(...per), Math.max(...per)],
+    boxes: boxes.slice(0, 8).map((b) => ({ box: [b.x0, b.y0, b.x1, b.y1], changed: b.changed, flicker: b.flicker, solid: b.solid, at: b.at, hits: b.hits })),
     regions: boxes.length, calls: info.calls, triangles: info.triangles,
     eye: base.toArray().map((v) => +v.toFixed(2)), mask, still,
   };

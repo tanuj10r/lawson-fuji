@@ -299,8 +299,8 @@ export function makeShop(ctx, o) {
     const edgeY = yA - out * Math.sin(grp.rotation.x);
     // (town pass) the drop carries the shop's name when it has one to show
     const fascia = o.valanceMap
-      ? new THREE.Mesh(new THREE.BoxGeometry(w, 0.3, 0.07), [cA, cA, cA, cA, flat({ color: 0xffffff, map: o.valanceMap, cache: false }), cA])
-      : box(w, 0.3, 0.07, cA, 0, edgeY - 0.13, edgeZ - 0.03);
+      ? new THREE.Mesh(new THREE.BoxGeometry(w - 0.01, 0.3, 0.07), [cA, cA, cA, cA, flat({ color: 0xffffff, map: o.valanceMap, cache: false }), cA])
+      : box(w - 0.01, 0.3, 0.07, cA, 0, edgeY - 0.13, edgeZ - 0.03);      // (5 mm inside the awning's ends, which the stripes own)
     fascia.position.set(0, edgeY - 0.13, edgeZ - 0.03);
     fascia.castShadow = true;
     g.add(fascia);
@@ -561,7 +561,7 @@ export function makeFreezer(o = {}) {
   g.add(box(1.17, 0.2, 0.68, cel({ color: PAL.red, bands: 3, tint: 0x7a4060 }), 0, 0.6, 0));
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.62),
     flat({ color: 0xffffff, map: flagTex(0), cache: false }));
-  sign.position.set(0.34, 0.42, 0.34);
+  sign.position.set(0.34, 0.42, 0.35);      // (1 cm proud of the red band: it lay in the band's face)
   g.add(sign);
   g.position.set(o.x, o.y ?? 0, o.z);
   g.rotation.y = o.ry ?? 0;

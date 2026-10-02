@@ -284,8 +284,9 @@ export function makeHouse(o) {
       return { px, pz, ry };
     }
     push('door', new THREE.BoxGeometry(dx, wh, dz), trs(px + fx * 0.02, y, pz + fz * 0.02));
+    // (a centimetre proud of the ground sill: its face lay in the sill's either side of the door)
     push('trim', new THREE.BoxGeometry(frontIsX ? 0.16 : ww + 0.18, wh + 0.16, frontIsX ? ww + 0.18 : 0.16),
-      trs(px - fx * 0.03, y, pz - fz * 0.03));
+      trs(px - fx * 0.02, y, pz - fz * 0.02));
     return { px, pz, ry };
   }
 
@@ -653,7 +654,8 @@ export function makeBlockFence(o) {
   const grout = cel({ color: 0xa9a3b2, bands: 3, tint: 0x625b7d });
   for (let v = 0.19; v < h - 0.02; v += 0.19) {
     joints.push({
-      geometry: new THREE.BoxGeometry(vertical ? TH + 0.02 : len, 0.025, vertical ? len : TH + 0.02),
+      // (a centimetre short of the wall's ends: flush, their end caps lay in the wall's end faces)
+      geometry: new THREE.BoxGeometry(vertical ? TH + 0.02 : len - 0.02, 0.025, vertical ? len - 0.02 : TH + 0.02),
       matrix: trs(0, v, 0),
     });
   }

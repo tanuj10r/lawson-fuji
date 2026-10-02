@@ -4,94 +4,66 @@ import { PAL } from '../core/palette.js';
 import { Pipeline } from '../core/post.js';
 import { buildSky } from '../core/sky.js';
 import { setOutlineResolution } from '../core/outline.js';
-import { createSound } from '../core/sound.js';
-import { soundBus } from '../core/soundBus.js';
 import { WALK_SIGNALS } from '../world/signals.js';
-import { createMinimap } from '../ui/minimap.js';
-import { trainWaitLabel } from '../ui/trainWait.js';
+import { buildTown } from './town.js';                      // WORLD: the mini town (the desktop's generator on plan.js's plan)
+import { liteConfig, liteScene, liteFuji, makeCuller, census, shrinkCanvases } from './lite.js';
+import { storePages } from '../world/store/pages.js';
+import { tagReflections } from '../world/land/mirror.js';
 import { STRINGS, MOBILE_STRINGS as M } from '../data/strings.js';
 import { PRODUCT } from '../data/catalog.js';
 import { hanShow } from '../world/han/index.js';
 import { GUIDE } from '../world/animals/guide.js';
 import { PETTAN } from '../world/mochi/index.js';
-import { storePages } from '../world/store/pages.js';
-import { tagReflections } from '../world/land/mirror.js';
-import {
-  PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, VOLUME_STEPS, DEFAULT_VOLUME, volumeGain, HAN_WATCH, ANIMALS, MOBILE,
-} from '../config.js';
-import { buildTown } from './town.js';
-import { liteConfig, liteScene, liteFuji, makeCuller, census, shrinkCanvases } from './lite.js';
-import { TouchPlayer } from './player.js';
-import { createTouch } from './touch.js';
-import { createMobileHud } from './hud.js';
-import { watchMediaElements, unlockAudio, audioState } from './audio.js';
+import { PLAYER_VFOV, HERO_VIEWS, LOOKS, SPAWN, FUJI, LAWSON, HAN_WATCH, ANIMALS, MOBILE } from '../config.js';
+import { bootStage, createShell } from './shell.js';
 import { gpuMeter, createDiag } from './diag.js';
-import { attachPocketControls } from './pocket/controls/index.js';
 
 /* ------------------------------------------------------------------ *
  * Take Me Back to Japan, the phone build (docs/decisions/mobile-lite.md).
  *
- * src/main.js's game -- the same town, builders, look, sound engine and
- * experiences -- made light enough for a phone (lite.js), played by touch
- * (touch.js, player.js, hud.js), with iOS's audio rules met (audio.js).
- * What the desktop's main.js does is kept in the same order here, with its
- * dev tools left out; keep the two in step.
+ * Two halves:
+ *   the shell   everything the player touches and reads (shell.js: the
+ *               walker, touch, the HUD and cards, the map, the sound's
+ *               waking and labels, Hachi's buttons, the postcard)
+ *   the world   the town, its look and its loop: this file.  "Mobile v3:
+ *               UI" was built against the desktop's own town; the lines
+ *               marked WORLD are the mini town's (mobile/town.js on
+ *               plan.js's plan, made light by lite.js), the lines marked
+ *               SHELL the shell's.
+ *
+ * What the desktop's main.js does is kept in the same order, with its dev
+ * tools left out; keep the two in step.
  * ------------------------------------------------------------------ */
 
 const canvas = document.getElementById('view');
-const boot = document.getElementById('boot');
-const bootLine = boot?.querySelector('.line');
-function bootStage(text, progress) {
-  if (!boot) return;
-  if (bootLine) bootLine.textContent = text;
-  boot.style.setProperty('--p', progress);
-}
 const nextPaint = () => new Promise((r) => { requestAnimationFrame(() => setTimeout(r, 0)); setTimeout(r, 150); });
 const showGate = (kind) => document.documentElement.classList.add(`gate-${kind}`);
 let contextLost = false;
-let sound = null, touch = null;
 const T0 = performance.now();
 const marks = {};
 const mark = (k) => { marks[k] = Math.round(performance.now() - T0); };
-
 const params = new URLSearchParams(location.search);
 const diag = createDiag({ on: params.has('diag') });
 
-/* The tier (config.js MOBILE.tiers), from what Tan's phones showed
- * (2026-09-30): Safari on an iPhone 15 plays the full tier; Chrome for iOS
- * (WebKit inside another app, a tighter memory budget) lost the context or
- * never loaded.  So the light tier for: any browser on iOS that is not
- * Safari itself (Chrome, Firefox, Edge, and the in-app browsers social links
- * open in: Instagram, Facebook, LinkedIn, LINE, X...), iPhones older or
- * smaller than the 14 Pro/15 (the 4 GB ones), Android in-app browsers and
- * phones that report 4 GB or less, and any device that lost the context
- * here before (remembered).  ?tier=light / ?tier=full picks by hand. */
+/* WORLD: the tier (config.js MOBILE.tiers).  Safari on an iPhone 15 plays the full one; the light one for any
+ * iOS browser that is not Safari itself (Chrome, Firefox, Edge and the in-app browsers social links open in: a
+ * tighter memory budget), iPhones smaller than the 14 Pro / 15 (the 4 GB ones), Android web views and phones that
+ * report 4 GB or less, and any device that lost the GPU context here before (remembered).  ?tier=light|full. */
 const ua = navigator.userAgent;
 const ios = /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const inApp = /CriOS|FxiOS|EdgiOS|OPiOS|GSA\/|Instagram|FBAN|FBAV|FB_IAB|FBIOS|LinkedInApp|\bLine\/|Twitter|MicroMessenger|Snapchat|Pinterest|musical_ly|TikTok|; wv\)/i.test(ua)
-  || (ios && !/Safari\//.test(ua));                  // an iOS web view without Safari's own token
-const bigIphone = Math.max(screen.width, screen.height) >= 852;    // 14 Pro, 15, 16 and up (and every iPad)
-/* Saved settings took the working title's names ('lawson-fuji-*'): each is
- * read once, moved to its takemebacktojapan-* key, and the old one dropped,
- * so nobody's volume or light tier resets. */
-try {
-  for (const k of ['lost', 'volume']) {
-    const old = localStorage.getItem(`lawson-fuji-${k}`);
-    if (old === null) continue;
-    if (localStorage.getItem(`takemebacktojapan-${k}`) === null) localStorage.setItem(`takemebacktojapan-${k}`, old);
-    localStorage.removeItem(`lawson-fuji-${k}`);
-  }
-} catch { /* optional */ }
+  || (ios && !/Safari\//.test(ua));
+const bigIphone = Math.max(screen.width, screen.height) >= 852;
 let lostBefore = false;
 try { lostBefore = localStorage.getItem('takemebacktojapan-lost') === '1'; } catch { /* optional */ }
 const tier = params.get('tier') ?? (lostBefore || inApp || (ios ? !bigIphone : (navigator.deviceMemory ?? 8) <= 4) ? 'light' : 'full');
 if (MOBILE.tiers[tier]) Object.assign(MOBILE, MOBILE.tiers[tier]);
-// dev: ?set=key:json,key:json overrides MOBILE tunables (measuring)
+// measuring: ?set=key:json;key:json overrides MOBILE tunables (a dev server, or any build with ?stats)
 if ((import.meta.env?.DEV || params.has('stats')) && params.get('set')) for (const kv of params.get('set').split(';')) { const i = kv.indexOf(':'); MOBILE[kv.slice(0, i)] = JSON.parse(kv.slice(i + 1)); }
 diag.stage(`tier ${tier}`);
 
 /* Our own context, so every GPU allocation is counted (diag.js). */
-let renderer, meter = null;
+let renderer, meter = null, shell = null;
 try {
   const gl = canvas.getContext('webgl2', { antialias: false, powerPreference: 'high-performance', stencil: false, depth: true, alpha: false, premultipliedAlpha: true, preserveDrawingBuffer: false });
   if (!gl) throw new Error('no webgl2 context');
@@ -105,33 +77,31 @@ try {
 renderer.setPixelRatio(1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;
-renderer.shadowMap.enabled = !!MOBILE.shadow;           // the light tier draws no shadow map at all
-renderer.shadowMap.type = THREE.PCFShadowMap;        // LITE: plain PCF (desktop: soft)
+renderer.shadowMap.enabled = !!MOBILE.shadow;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.shadowMap.autoUpdate = false;
 renderer.setClearColor(new THREE.Color(PAL.fog), 1);
 diag.source({ renderer, meter, canvas, extra: () => `tier ${tier}  scale ${renderScale?.toFixed?.(2)}  rt ${leanTargets ? '32' : '64'}  ${world ? `streamed out ${culler?.out ?? 0}` : ''}` });
-/* A lost context (how a phone takes GPU memory back): stop drawing, hush,
- * and show the card.  If the phone gives the context back, and the tier
- * kept its CPU copies (MOBILE.keepCpu), three uploads everything again and
- * the walk goes on; else the card's Reload. */
 canvas.addEventListener('webglcontextlost', (e) => {
   e.preventDefault();
   contextLost = true;
   diag.stage(`CONTEXT LOST (at ${diag.stageName})`);
   // this device lost it once: from the next load on, the light tier
   try { localStorage.setItem('takemebacktojapan-lost', '1'); } catch { /* optional */ }
-  sound?.setAwake(false);
+  shell?.setLost(true);                                   // SHELL: hush, pause, no waking
   showGate('lost');
 });
+/* WORLD: if the phone gives the context back, three uploads everything again from the CPU copies the streaming
+ * keeps (MOBILE.keepCpu) and the walk goes on; else the card's Reload. */
 canvas.addEventListener('webglcontextrestored', () => {
   meter?.reset();
   diag.stage('context restored');
-  if (!MOBILE.keepCpu || !world) return;                  // the pictures were let go: only a reload brings them back
+  if (!MOBILE.keepCpu || !world) return;
   contextLost = false;
   document.documentElement.classList.remove('gate-lost');
+  shell?.setLost(false);
   shadowAt = null;
   viewW = 0; resize();
-  if (!document.hidden) sound?.setAwake(true);
   frame();
 });
 
@@ -166,30 +136,24 @@ const hemi = new THREE.HemisphereLight(PAL.hemiSky, PAL.hemiGround, 1.12);
 scene.add(hemi);
 
 /* --------------------------------- world --------------------------------- */
-bootStage(M.building, '40%');
+bootStage(M.building, '40%');                              // SHELL: the loading card's line and bar
 await nextPaint();
 mark('building');
 diag.stage('building');
-// Hachi and the konbini speak of taps, not keys
-STRINGS.hachi.line = M.hachiLine;
-STRINGS.store.menuHint = M.menuHint;
-STRINGS.map.close = M.closeMap;
-liteConfig();
 const sky = buildSky(scene, 2900, { avoidYaw: FUJI.bearing });
-let culler = null, renderScale = 1, viewW = 0, viewH = 0;
-const world = buildTown(scene, {
+let renderScale = 1, viewW = 0, viewH = 0, culler = null;
+liteConfig();                                              // WORLD: the shared tunables a phone turns down (petals, Hachi's fields, the trains' types)
+const world = buildTown(scene, {                           // WORLD
   cell: MOBILE.cell, bulkCell: MOBILE.bulkCell, detailCell: MOBILE.detailCell, stage: (n) => diag.stage(n),
   shrink: (root, store) => shrinkCanvases(root, { store, real: renderer.capabilities.maxTextureSize }),
 });
 mark('built');
 diag.stage('built');
-/* the konbini's label and price-tag pages (world/store/pages.js): a mipmap level or so smaller than the desktop
+/* WORLD: the konbini's label and price-tag pages (world/store/pages.js) a mipmap level smaller than the desktop
  * holds them, away and at the store (config.js MOBILE.storePages; set before the first frame, as its levels are) */
 for (const p of storePages) if (p.far > 0) p.levels(p.far + MOBILE.storePages.far, Math.max(p.near, MOBILE.storePages.near));
 bootStage(M.ready, '75%');
 await nextPaint();
-const minimap = createMinimap(world);
-minimap.setVisible(false);            // no corner map on a phone: the map button opens the whole town
 let famousView = { x: SPAWN.pos[0], z: SPAWN.pos[2] };
 
 const shadowOnly = [];
@@ -203,38 +167,29 @@ if (shadowOnly.length) {
   };
 }
 
-const player = new TouchPlayer(camera, canvas, world);
+/* SHELL: the walker, the touch controls, the HUD and cards, the map, the sound (made, labelled and attached to the
+ * soundBus here), Hachi's buttons, the postcard.  main.js tells it what holds the view and answers two buttons. */
+const TIMES = ['golden', 'night', 'morning'];
+shell = createShell({
+  canvas, camera, world,
+  held: () => !!gliding || watch.on,
+  famous: () => !!famousView,
+  onTime: () => { if (!fade) setTime(TIMES[(TIMES.indexOf(lastView) + 1) % TIMES.length]); },
+  onRestart: () => enterHero(lastView),
+});
+const { player, hud, sound } = shell;
+
 const shop = world.lawson?.shop ?? null;
 if (shop) {
   scene.add(shop.view, shop.fx);
   shop.player = player;
-  world.interactables.push(...(world.lawson.interactables ?? []));
   PETTAN.attach({ hands: shop.hands });      // ぺったん堂 borrows your hand for its mochi (world/mochi/)
-}
-
-const VOLUME_STORAGE_KEY = 'takemebacktojapan-volume';
-let volumeStep = DEFAULT_VOLUME;
-try {
-  const saved = localStorage.getItem(VOLUME_STORAGE_KEY);
-  if (saved !== null && VOLUME_STEPS.includes(Number(saved))) volumeStep = Number(saved);
-} catch { /* optional */ }
-const hud = createMobileHud({ volume: volumeStep });
-// "Next train · 0:25" on the station's platform (QA-010; desktop's ui/trainWait.js): bottom middle, over the sound pill
-const trainWait = trainWaitLabel(hud.root, { bottom: 'max(66px, calc(var(--safe-b) + 56px))' });
-if (shop) {
-  shop.flash = (text, error = false) => hud.flash(text, error ? 2800 : 2200, error);
+  world.interactables.push(...(world.lawson.interactables ?? []));
+  // the Strong Nine: ten seconds a little tipsy
   shop.onTipsy = () => { tipsy = 0; hud.flash(STRINGS.store.tipsy, 3200); };
-  // what you bought, in your hand, being eaten, gone: Hachi begs, then does its bit for it along with you (animals/guide.js)
-  shop.onSnack = (phase, id) => GUIDE.snack(phase, id);
 }
 
-/* The sound: the desktop's engine, every file and every place's sound, the same mix. */
-watchMediaElements();
-sound = createSound({ volume: volumeGain(volumeStep) });
-// POCKET (builder 5): the sound labels wrap the engine before the world's queued zones attach; the start card's sound check
-const controls = attachPocketControls({ sound, hud, isPlaying: () => player.locked });
-soundBus.attach(sound);
-const rememberVolume = () => { try { localStorage.setItem(VOLUME_STORAGE_KEY, String(volumeStep)); } catch { /* optional */ } };
+/* The sound's places (the engine is the shell's: every file and every place's sound, the desktop's mix). */
 world.line?.onEvent((name, run) => {
   if (name === 'chime') sound.chime(Math.hypot(camera.position.x - run.x, camera.position.z - run.z));
 });
@@ -255,22 +210,15 @@ if (shop) {
 }
 if (world.lawson?.door) world.lawson.door.onMove = (opening) => sound.autoDoor(DOOR_AT, opening);
 
-hud.onVolumeChange = (step) => {
-  volumeStep = step;
-  sound.setVolume(volumeGain(step));
-  rememberVolume();
-};
-
-player.onInteract = (target) => { if (target) target.action?.({ player, hud }); };
-
 /* ------------------------------- pipeline ------------------------------- *
  * The desktop's ink and grade passes (the look), no FXAA pass, at a phone's
  * pixel budget; the scale steps down when frames run long (adapt, below). */
-const pipeline = new Pipeline(renderer, scene, camera, { pixelBudget: MOBILE.render.pixels });
+const R = MOBILE.render;
+const pipeline = new Pipeline(renderer, scene, camera, { pixelBudget: R.pixels });
 pipeline.enabled.fxaa = false;
-/* The frame's own targets in 32 bits a pixel instead of 64 (core/post.js makes them half-float RGBA: at a
- * phone's 3 Mpx that is 24 MB each, the scene's and the ink pass's).  R11F_G11F_B10F holds the same linear
- * light (no alpha: nothing in the passes reads it) in half the memory.  Only where the GPU can draw into it
+/* WORLD: the frame's own targets in 32 bits a pixel instead of 64 (core/post.js makes them half-float RGBA: at a
+ * phone's 3 Mpx that is 24 MB each, the scene's and the ink pass's).  R11F_G11F_B10F holds the same linear light
+ * (no alpha: nothing in the passes reads it) in half the memory.  Only where the GPU can draw into it
  * (EXT_color_buffer_float), checked by drawing: else the half-float targets stay.  ?rt=half keeps them. */
 let leanTargets = false;
 if (params.get('rt') !== 'half' && renderer.getContext().getExtension('EXT_color_buffer_float')) {
@@ -295,9 +243,9 @@ if (params.get('rt') !== 'half' && renderer.getContext().getExtension('EXT_color
     leanTargets = true;
   } else { rtScene.depthTexture.dispose(); rtScene.dispose(); rtA.dispose(); }
 }
-/* The phone's own pixels (its DPR, up to render.maxDpr): the frame is drawn 1:1 onto the screen, and steps
+/* WORLD: the phone's own pixels (its DPR, up to render.maxDpr): the frame is drawn 1:1 onto the screen, and steps
  * down only while frames run under render.fpsLow (adapt, below). */
-const dpr = Math.min(window.devicePixelRatio || 1, MOBILE.render.maxDpr);
+const dpr = Math.min(window.devicePixelRatio || 1, R.maxDpr);
 renderScale = Math.max(1, dpr);
 pipeline.forceScale = renderScale;
 
@@ -312,7 +260,7 @@ function applyLook(name) {
   sky.setLook(look);
   world.setLook(look);
   scene.fog.color.set(look.fog.color);
-  // LITE: the fog closes in before the draw distance (MOBILE.far), so its edge is never seen
+  // WORLD: the fog closes in before the draw distance (MOBILE.far), so its edge is never seen
   scene.fog.near = Math.min(look.fog.near, MOBILE.fog.near);
   scene.fog.far = Math.min(look.fog.far, MOBILE.fog.far);
   renderer.setClearColor(look.fog.color, 1);
@@ -342,7 +290,6 @@ const FUJI_GAMEPLAY = FUJI.gameplaySize
   / Math.tan(THREE.MathUtils.degToRad(HERO_DAY.vfov / 2));
 if (shop) shop.isFamousView = () => !!famousView;
 let lastView = SPAWN.view;
-const heroAt = { x: 0, z: 0 };
 
 /* The lens: the desktop's vertical field of view in landscape.  In portrait
  * that is a slit (about 20° across), so there the view widens, up to
@@ -356,14 +303,14 @@ function lensVfov(aspect) {
 function updateProjection() {
   camera.fov = lensVfov(camera.aspect);
   camera.updateProjectionMatrix();
-  world.fuji.magnify(FUJI_GAMEPLAY);          // the same angular size as in landscape: the wider portrait lens shows more round it
+  world.fuji.magnify(FUJI_GAMEPLAY);
 }
 
 function enterHero(name) {
   const v = HERO_VIEWS[name];
   lastView = name;
   applyLook(v.look);
-  hud.setTime(name);
+  shell.setTime(name);                                     // SHELL: the time tile's icon and word
   const spot = v.play;
   player.pos.set(spot.pos[0], world.heightAt(spot.pos[0], spot.pos[2]), spot.pos[2]);
   player.vel.set(0, 0, 0);
@@ -371,7 +318,6 @@ function enterHero(name) {
   player.pitch = spot.pitch;
   player.bob = 0;
   player.holdLook = false;
-  Object.assign(heroAt, { x: player.pos.x, z: player.pos.z });
   famousView = { x: player.pos.x, z: player.pos.z };
   player.applyCamera(0);
   updateProjection();
@@ -382,7 +328,6 @@ const fadeEl = document.createElement('div');
 fadeEl.style.cssText = 'position:fixed;inset:0;background:#0c0a14;opacity:0;pointer-events:none;z-index:4';
 document.body.appendChild(fadeEl);
 let fade = null;
-const TIMES = ['golden', 'night', 'morning'];
 function setTime(name) {
   if (fade || name === lastView) return;
   fade = { t: 0, name, done: false };
@@ -395,8 +340,7 @@ function timeFade(dt) {
     fade.done = true;
     lastView = fade.name;
     applyLook(HERO_VIEWS[fade.name].look);
-    hud.setTime(fade.name);
-    hud.flash(M.times[fade.name] ?? fade.name, 1100);
+    shell.setTime(fade.name, true);                        // SHELL: the tile, and a toast naming the time
   }
   fadeEl.style.opacity = String(fade.t < IN ? fade.t / IN : Math.max(0, 1 - (fade.t - IN - HOLD) / OUT));
   if (fade.t > IN + HOLD + OUT) { fade = null; fadeEl.style.opacity = '0'; }
@@ -459,7 +403,8 @@ function watchCar(dt) {
   player.pitch += THREE.MathUtils.clamp((pitch - player.pitch) * k, -W.maxTurn * 0.6 * dt, W.maxTurn * 0.6 * dt);
 }
 
-/* Hachi's hello: the view eases down to the pup and back (desktop's watchPup). */
+/* Hachi's hello: the view eases down to the pup and back (desktop's watchPup).  A drag or a step of your own and
+ * the view is yours at once. */
 const pupLook = { on: false, back: false, pitch0: 0, looked: 0, at: { x: 0, z: 0 } };
 function watchPup(dt) {
   if (dt <= 0) return;
@@ -510,26 +455,18 @@ function resize() {
   updateProjection();
   pipeline.setSize(w, h);
   pipeline.rtB.setSize(1, 1);          // (the FXAA pass is off: its target would hold a whole frame for nothing)
-  /* POCKET: the canvas itself at the inside size (up to 2x), so the last
-   * pass draws 1:1 onto the phone's pixels.  (core/post.js sizes the canvas
-   * at CSS pixels, right for a desktop, where the supersampled frame is
-   * shrunk onto it: on a 3x phone that frame was blown up threefold, which
-   * is what read as pixelated on Tan's iPhone.) */
+  // the canvas itself at the inside size, so the last pass draws 1:1 onto the phone's pixels
   renderer.setPixelRatio(pipeline.scale);
   renderer.setSize(w, h, true);
   setOutlineResolution(pipeline.size.x, pipeline.size.y);
-  touch?.resize();
-  // portrait: a gentle word about turning the phone, now and then
-  if (h > w * 1.1 && player.locked) hud.flash(M.rotate, 3600);
+  shell.resize();                                          // SHELL: the stick's rest, the open map, the portrait hint
 }
 window.addEventListener('resize', resize);
 window.visualViewport?.addEventListener('resize', resize);
 // iOS reports the new size a little after it turns
 window.addEventListener('orientationchange', () => { setTimeout(resize, 120); setTimeout(resize, 600); });
 
-/* --------------------------------- shadows --------------------------------- *
- * The desktop's snapped shadow camera, smaller: redrawn when it lands on a
- * new square, or now and then (MOBILE.shadow.every) for what moves. */
+/* --------------------------------- shadows --------------------------------- */
 const shadowTarget = new THREE.Vector3();
 function seatLight(light, dir, origin) {
   light.target.position.copy(origin);
@@ -557,155 +494,16 @@ function seatLights(dt = 0) {
   seatLight(bounce, BOUNCE_DIR, shadowTarget);
   shadowAge += dt;
   const moved = !shadowAt || shadowAt.x !== shadowTarget.x || shadowAt.z !== shadowTarget.z;
-  if (MOBILE.shadow && (moved || shadowAge > SH.every)) {
+  if (moved || shadowAge > SH.every) {
     shadowAt = { x: shadowTarget.x, z: shadowTarget.z };
     shadowAge = 0;
     renderer.shadowMap.needsUpdate = true;
   }
 }
 
-/* --------------------------------- actions --------------------------------- */
-function whistle() {
-  if (player.locked && !shop?.visiting && !minimap.fullOpen && !player.suspended && !player.seat) GUIDE.whistle();
-}
-function toggleMap(open = !minimap.fullOpen) {
-  if (!player.locked || shop?.busy || player.seat) return;
-  if (open && player.suspended) return;
-  minimap.setFull(open, player.pos, player.yaw);
-  if (open) mapAt = performance.now();
-  player.suspended = open;
-  hud.setMapOpen(open);
-  touch.setPlaying(!open);
-}
-function nextTime() {
-  if (player.seat && fade) return;
-  setTime(TIMES[(TIMES.indexOf(lastView) + 1) % TIMES.length]);
-}
-function restart() {
-  if (shop?.visiting || gliding) return;
-  if (minimap.fullOpen) toggleMap(false);
-  if (player.seat) { player.seat = null; }
-  player.suspended = false;
-  enterHero(lastView);
-  resume();
-}
-function pickMenu(id) {
-  if (shop?.atSpot && shop.menu.includes(id)) { if (shop.play(id)) hud.menu(null); }
-}
-function interact() {
-  if (player.hovered) player.onInteract(player.hovered);
-}
-function pauseGame() {
-  if (!player.locked) return;
-  if (minimap.fullOpen) toggleMap(false);
-  player.unlock();
-}
-function resume() {
-  unlockAudio(sound);
-  player.lock();
-}
-hud.onButton = (b) => {
-  unlockAudio(sound);                       // every tap is a gesture the sound may need
-  if (Array.isArray(b)) { if (b[0] === 'pick') pickMenu(b[1]); return; }
-  if (b === 'pause') pauseGame();
-  else if (b === 'resume') resume();
-  else if (b === 'restart') restart();
-  else if (b === 'map') toggleMap();
-  else if (b === 'time') nextTime();
-  else if (b === 'whistle') whistle();
-  else if (b === 'act') { if (spotNow) useSpot(spotNow); else interact(); }
-  else if (b === 'sound') hud.askForSound(false);
-};
-// the full map closes with a tap anywhere on it
-let mapAt = 0;
-for (const ev of ['pointerup', 'click']) document.querySelector('.fullmap')?.addEventListener(ev, () => {
-  if (!minimap.fullOpen || performance.now() - mapAt < 450) return;     // (not the tap that opened it)
-  unlockAudio(sound); toggleMap(false);
-});
-
-// a keyboard (or a computer, testing): the desktop's keys
-window.addEventListener('keydown', (e) => {
-  if (e.repeat) return;
-  if (e.code === 'Space') { e.preventDefault(); if (player.locked) pauseGame(); else resume(); return; }
-  if (!player.locked) return;
-  unlockAudio(sound);
-  if (shop?.atSpot && /^Digit[1-9]$/.test(e.code)) { const id = shop.menu[Number(e.code.slice(5)) - 1]; if (id) pickMenu(id); return; }
-  if (e.code === 'KeyF') whistle();
-  if (e.code === 'KeyM') toggleMap();
-  if (e.code === 'KeyR') restart();
-  if (e.code === 'KeyN') { const off = sound.toggle(); hud.flash(off ? STRINGS.soundOff : STRINGS.soundOn); }
-  for (const [name, v] of Object.entries(HERO_VIEWS)) if (e.code === v.key) setTime(name);
-});
-
-/* Playing or paused: the card, the controls, the song (the engine's menu). */
-/* POCKET (builder 5): the places' spots (docs/pocket-diorama.md); a tap on the thing itself uses it too */
-/* MINI: every thing to do in the town (world.interactables: the experiences' rings, the konbini's door, the bench)
- * as a spot { id, x, z, r, y, label, enabled, use }: where it stands in the world, its words, and what using it does */
-const spots = world.interactables.filter((it) => it.hitbox && it.action).map((it) => {
-  const p = it.hitbox.getWorldPosition(new THREE.Vector3()), g = it.hitbox.geometry?.parameters;
-  return {
-    id: it.id ?? it.label, x: p.x, z: p.z, y: 1, r: Math.max(1.2, (g?.width ?? 2.4) / 2),
-    get label() { return String(it.label ?? '').replace(/^.*?·\s*/, ''); },
-    get enabled() { return it.hitbox.visible !== false && !!it.hitbox.parent; },
-    use: (ctx) => it.action(ctx),
-  };
-});
-world.spots = spots;
-let spotNow = null;
-function useSpot(s) { unlockAudio(sound); s.use?.({ player, hud, sound, soundBus, camera }); }
-touch = createTouch(player, {
-  surface: canvas, isPlaying: () => player.locked && !minimap.fullOpen,
-  onTap: (x, y) => { const s = controls.tap(x, y, spots, camera); if (s) useSpot(s); },
-});
-player.onLockChange = (locked) => {
-  hud.setPlaying(locked);
-  touch.setPlaying(locked);
-  if (!locked && minimap.fullOpen) { minimap.setFull(false); player.suspended = false; hud.setMapOpen(false); }
-};
-
-/* Aim: what the crosshair is on (3 m, as desktop), else the nearest thing to
- * do in front of you within reach: a thumb is a looser aim than a mouse. */
-const _aim = new THREE.Vector3(), _fwd = new THREE.Vector3();
-function aimAssist(list) {
-  const A = MOBILE.aimAssist;
-  let best = null, bestD = Infinity;
-  camera.getWorldDirection(_fwd);
-  for (const it of list) {
-    if (!it.hitbox?.parent) continue;
-    it.hitbox.getWorldPosition(_aim);
-    const dx = _aim.x - camera.position.x, dz = _aim.z - camera.position.z, d = Math.hypot(dx, dz);
-    if (d > A.reach || d >= bestD) continue;
-    const ang = Math.acos(THREE.MathUtils.clamp((dx * _fwd.x + dz * _fwd.z) / (d * Math.hypot(_fwd.x, _fwd.z) || 1), -1, 1));
-    // standing in its ring counts whichever way you face; else it must be ahead
-    const inRing = d < (it.hitbox.geometry?.parameters?.width ?? 0) / 2;
-    if (!inRing && ang > A.cone) continue;
-    best = it; bestD = d;
-  }
-  return best;
-}
-
-/* The sound after a call, the lock screen or another app: resumed on
- * return, or, if the phone wants a tap for it, asked for. */
-let soundCheck = 0;
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    pauseGame();                               // back to a paused game, not one that ran on unseen
-    sound.setAwake(false);
-  } else if (!contextLost) {
-    sound.setAwake(true);
-    clearTimeout(soundCheck);
-    soundCheck = setTimeout(() => { const s = audioState(sound); if (s !== 'running' && s !== 'none') hud.askForSound(true); }, 700);
-  }
-});
-window.addEventListener('pagehide', () => sound.setAwake(false));
-// any tap wakes the sound (and puts the "tap to bring the sound back" away)
-const wake = () => { if (audioState(sound) === 'none') return; unlockAudio(sound); if (audioState(sound) === 'running') hud.askForSound(false); };
-document.addEventListener('touchend', wake, { passive: true });
-document.addEventListener('click', wake);
-
 /* --------------------------------- loop --------------------------------- */
 const clock = new THREE.Clock();
-let lastDraw = 0, menuShown = null;
+let lastDraw = 0;
 // adaptive resolution: the frame rate over the last couple of seconds sets the scale
 const perf = { n: 0, t: 0, fps: 60 };
 function adapt(rawDt) {
@@ -713,7 +511,7 @@ function adapt(rawDt) {
   if (perf.t < 2) return;
   perf.fps = perf.n / perf.t;
   perf.n = 0; perf.t = 0;
-  const R = MOBILE.render, full = Math.max(1, dpr), least = Math.min(full, R.minScale);
+  const full = Math.max(1, dpr), least = Math.min(full, R.minScale);
   let s = renderScale;
   if (perf.fps < R.fpsLow && s > least) s = Math.max(least, s - R.step);
   else if (perf.fps > R.fpsHigh && s < full) s = Math.min(full, s + R.step);
@@ -728,12 +526,12 @@ function frame(now = 0) {
   if (contextLost) return;
   requestAnimationFrame(frame);
   if (document.hidden) return;
+  // paused (a card up), the game stands still and draws ten frames a second
   const menu = !player.locked;
-  if (menu !== menuShown) { menuShown = menu; sound.setMenu(menu); document.body.classList.toggle('game-paused', menu); }
   if (menu && now - lastDraw < 100) return;
   lastDraw = now;
   const raw = clock.getDelta();
-  const tick = Math.min(raw, MOBILE.dt);
+  const tick = Math.min(raw, MOBILE.dt ?? 1 / 20);
   const dt = menu ? 0 : tick;
   if (!menu) adapt(raw);
 
@@ -755,23 +553,13 @@ function frame(now = 0) {
   sky.clouds.position.copy(camera.position);
   if (famousView && Math.hypot(player.pos.x - famousView.x, player.pos.z - famousView.z) >= 1.5) famousView = null;
 
-  let hovered = null;
   if (shop) shop.update(dt, camera, player.bob);
-  const choosing = !!(shop?.atSpot && player.locked && !minimap.fullOpen);
-  hud.menu(choosing ? shop.menu : null);
-  if (player.locked && !shop?.busy && !player.seat && !gliding && !minimap.fullOpen && !watch.on) {
-    // (in the store there is nothing to aim at: the choice is made at the door)
-    hovered = shop?.inside(camera) ? null : (player.pick(world.interactables) ?? aimAssist(world.interactables));
-  }
-  player.hovered = hovered;
-  spotNow = controls.action(spots, player);
-  hud.setAction(spotNow?.label ?? (hovered ? hovered.label.replace(/^.*?·\s*/, '') : null));
-  trainWait.update(world.line?.station?.wait, player.locked && !minimap.fullOpen && !choosing);
-  hud.setCrosshair(!choosing && !famousView);
   const inStore = !!shop?.inside(camera);
-  culler.update(camera.position, 3, inStore ? MOBILE.store.behind : null);   // in the store, what is behind its walls goes
-  // the konbini's quad page (lite.js packStoreQuads): whole within reach of its glass, a small copy from the street
+  /* WORLD: what is near enough to draw, to keep on the GPU and to show whole (lite.js); in the store, what is
+   * behind its walls goes; the konbini's quad page whole within reach of its glass, a small copy from the street */
+  culler.update(camera.position, 3, inStore ? MOBILE.store.behind : null);
   lite.storeQuads?.level(inStore || !!shop?.visiting || Math.hypot(camera.position.x - LAWSON.x, camera.position.z - LAWSON.frontZ + LAWSON.depth / 2) < (lite.storeQuads.near ? MOBILE.store.quadsFar : MOBILE.store.quadsNear));
+  shell.update(dt, { inStore });                           // SHELL: the cards' song, the map, the context button, the chips, the countdown, the postcard
   sound.update(dt, { camera, inside: inStore, look: lookName, cooler: shop?.coolerAt });
   walkAt.forEach(({ w }, i) => { walkList[i].on = w.walk(); });
   sound.walkSignals(walkList);
@@ -783,19 +571,19 @@ function frame(now = 0) {
 }
 
 /* ------------------------------ first frame ------------------------------ */
+// WORLD: the town made light (lite.js): merged, packed, its far parts ready to leave the GPU and come back
 diag.stage('lite');
 const lite = liteScene(scene, renderer, world);
-// the water's mirrors (land/mirror.js) show what stands by them, as on the desktop
+culler = makeCuller(scene, world);
+world.fuji.ready?.then((m) => { lite.fuji = liteFuji(m); });
 if (world.reflectRect) {
   tagReflections(scene, world.root, world.reflectRect);
   world.fuji?.ready?.then(() => tagReflections(scene, world.root, world.reflectRect));
 }
-culler = makeCuller(scene, world);
-world.fuji.ready?.then((m) => { lite.fuji = liteFuji(m); });
 enterHero(SPAWN.view);
 resize();
 world.update(0, camera);
-culler.update(camera.position, 1, null, true);   // (and streamed at once: what is far never uploads at load, the far pages start small)
+culler.update(camera.position, 1, null, true);   // WORLD: streamed at once: what is far never uploads at load, the far pages start small
 seatLights();
 sky.dome.position.copy(camera.position);
 sky.clouds.position.copy(camera.position);
@@ -807,37 +595,20 @@ diag.stage('first frame');
 pipeline.render();
 mark('firstFrame');
 diag.stage('ready');
-bootStage(M.ready, '100%');
 await nextPaint();
 
-// ready: the loading card becomes the start card; one tap starts the town and its sound
-let started = false;
-function start(e) {
-  if (started) return;           // (a lift and its click: once)
-  started = true;
-  e?.preventDefault?.();
-  unlockAudio(sound);                         // inside the tap: the context, the audio session, the streams
-  boot.classList.add('hidden');
-  setTimeout(() => boot.remove(), 600);
-  player.lock();
-  if (viewH > viewW * 1.1) hud.flash(M.rotate, 4200);
-  clock.getDelta();
-  mark('started');
-  diag.stage('playing');
-}
-boot.classList.add('ready');
-// the finger's lift starts it (a tap's click can be late or dropped on iOS), a click for a mouse
-boot.addEventListener('pointerup', (e) => { if (e.pointerType !== 'mouse') start(e); });
-boot.addEventListener('click', start);
+// SHELL: the loading card becomes the start card; only its Start button starts the town
+shell.onStart = () => { clock.getDelta(); mark('started'); diag.stage('playing'); };
+shell.ready();
 mark('ready');
 frame();
 
-if (import.meta.env?.DEV || new URLSearchParams(location.search).has('stats')) {
+if (import.meta.env?.DEV || params.has('stats')) {
   window.__m = {
-    scene, camera, renderer, pipeline, world, player, sound, hud, THREE, marks, lite, perf, culler, applyLook, enterHero,
-    census: () => census(scene, renderer), hanShow, diag, meter, tier,
-    get scale() { return renderScale; }, touch, controls, spots, minimap,
-    /** dev (scripts/_mini.mjs): stand at a spot and draw it: { x, z, yaw, pitch, look, lift, steps } */
+    scene, camera, renderer, pipeline, world, player, sound, hud, shell, THREE, marks, perf, applyLook, enterHero, setTime,
+    hanShow, GUIDE, diag, meter, get scale() { return renderScale; }, touch: shell.touch,
+    lite, culler, tier, census: () => census(scene, renderer),
+    /** dev (scripts/_mini.mjs): stand at a spot and draw it: { x, z, yaw, pitch, look, lift, train, trainX } */
     goto(o = {}) {
       if (o.look && o.look !== lookName) applyLook(o.look);
       if (o.train) (world.line.local ?? world.line).service.stage(o.train);
@@ -852,6 +623,7 @@ if (import.meta.env?.DEV || new URLSearchParams(location.search).has('stats')) {
       if (o.lift) camera.position.y += o.lift;
       for (let i = 0; i < (o.steps ?? 1); i++) world.update(o.dt ?? 0, camera);
       culler.update(camera.position, 1, null, true);
+      lite.storeQuads?.level(Math.hypot(camera.position.x - LAWSON.x, camera.position.z - LAWSON.frontZ + LAWSON.depth / 2) < MOBILE.store.quadsNear);
       shadowAt = null; seatLights();
       sky.dome.position.copy(camera.position); sky.clouds.position.copy(camera.position);
       // drawn twice: with the shadow map, then the frame alone (what most frames are: the map is redrawn on a new square)
@@ -868,11 +640,11 @@ if (import.meta.env?.DEV || new URLSearchParams(location.search).has('stats')) {
     /** dev (scripts/_mini.mjs --only=walk): everywhere the player can reach, on a grid `step` m apart, eight ways
      * round at each, as montages (data URLs) of `tile` px wide frames: a row a spot. */
     async walkSheet({ look = 'golden', step = 14, tile = 284, rows = 14 } = {}) {
-      const B = world.bounds, cols = world.colliders, R = 0.35;
+      const B = world.bounds, cols = world.colliders, RAD = 0.35;
       const nx = Math.ceil(B.x1 - B.x0), nz = Math.ceil(B.z1 - B.z0);
       const free = (x, z, y) => {
         if (x < B.x0 + 0.3 || x > B.x1 - 0.3 || z < B.z0 + 0.3 || z > B.z1 - 0.3) return false;
-        for (const c of cols) if (x > c.x0 - R && x < c.x1 + R && z > c.z0 - R && z < c.z1 + R && c.top > y + 0.5 && (c.bottom === undefined || c.bottom < y + 1.7)) return false;
+        for (const c of cols) if (x > c.x0 - RAD && x < c.x1 + RAD && z > c.z0 - RAD && z < c.z1 + RAD && c.top > y + 0.5 && (c.bottom === undefined || c.bottom < y + 1.7)) return false;
         return true;
       };
       const seen = new Uint8Array(nx * nz), hs = new Float32Array(nx * nz);
@@ -887,7 +659,8 @@ if (import.meta.env?.DEV || new URLSearchParams(location.search).has('stats')) {
           const a = i + di, b = j + dj;
           if (a < 0 || b < 0 || a >= nx || b >= nz || seen[id(a, b)]) continue;
           const x = B.x0 + a, z = B.z0 + b, h = world.heightAt(x, z, y);
-          if (Math.abs(h - y) > 0.55 || !free(x, z, h)) continue;
+          // (half-way too: a fence 0.4 m thick must not be stepped across)
+          if (Math.abs(h - y) > 0.55 || !free(x, z, h) || !free(B.x0 + i + di / 2, B.z0 + j + dj / 2, h)) continue;
           seen[id(a, b)] = 1; hs[id(a, b)] = h; q.push([a, b]);
         }
       }

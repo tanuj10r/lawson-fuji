@@ -1,30 +1,32 @@
 import { Player } from '../core/player.js';
 import { clamp } from '../core/util.js';
-import { TUNE, stickPace, smoothstep } from './pocket/controls/tune.js';
+import { TUNE, stickPace, smoothstep } from './controls/tune.js';
 
 const RADIUS = 0.34, STEP = 0.38;      // core/player.js's body and step
 
 /* ------------------------------------------------------------------ *
- * The walker on a phone (docs/decisions/mobile-lite.md): core/player.js's
- * walker, its collisions, seat and camera, with touch in place of the
- * pointer lock.
+ * The walker on a phone (docs/decisions/mobile-lite.md, "Mobile v3: UI"):
+ * core/player.js's walker, its seat and camera, with touch in place of
+ * the pointer lock.
  *
  *   locked   means "playing" here (no pointer lock on phones): lock() and
  *            unlock() set it, and onLockChange fires as on desktop, so the
  *            world's code that asks `player.locked` works unchanged
- *   stick    the left thumb's joystick, { x, y } in -1..1 (touch.js): a
- *            small push strolls, a full one walks (tune.js stickPace), and
- *            held at the edge for TUNE.stick.runAfter s it breaks into a
- *            run, eased in (pocket diorama, builder 5)
- *   look()   a drag's movement, CSS px already through the look's curve
- *            (touch.js); walking with no look for a moment, the pitch
- *            settles softly back toward level
+ *   stick    the left thumb's joystick, { x, y } in -1..1 (touch.js).  The
+ *            thumb's jitter is eased out of it, a small push strolls, a
+ *            full one walks (tune.js stickPace), and a full push held a
+ *            moment breaks into a run, eased in.  The walk eases to its
+ *            pace and to a stop (no twitch).
+ *   look()   a drag's movement in CSS px, already through the look's gain
+ *            (touch.js): the yaw and, a little slower, the pitch.  The
+ *            view never re-centres by itself.
+ *   flick()  the lift of a quick drag: the view glides on a moment and
+ *            settles (a short, light inertia); any new look stops it
  *   walls    the body is a circle against the colliders' boxes, so it
- *            glides along a wall or round a corner instead of stopping;
- *            pushing at a wall at a slant keeps most of the pace
+ *            glides along a wall or round a corner instead of stopping
  *
  * The arrow keys, WASD, Shift and E still work (a keyboard, or testing on
- * a computer), and a drag with the mouse looks.
+ * a computer).
  * ------------------------------------------------------------------ */
 
 const MOVE = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD']);
@@ -32,12 +34,12 @@ const MOVE = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW',
 export class TouchPlayer extends Player {
   constructor(camera, domElement, world, opts) {
     super(camera, domElement, world, opts);
-    this.sensitivity = TUNE.look.base;
     this.running = false;
     this.onRun = null;              // (running) => {} when it changes (touch.js lights the stick's ring)
-    this._edgeT = 0;                // s the stick has been held at the edge
+    this._edgeT = 0;                // s the stick has been held at a full push
     this._runK = 0;                 // 0 walk .. 1 run, eased
-    this._lookAt = 0;               // performance.now() of the last look
+    this._push = { x: 0, y: 0 };    // the stick, eased
+    this._glide = { yaw: 0, pitch: 0 };   // rad/s left over from a flick
     this._normal = { x: 0, z: 0, hit: false };
   }
 
@@ -67,31 +69,48 @@ export class TouchPlayer extends Player {
     this.locked = false;
     this.keys.clear();
     this.stick.x = this.stick.y = 0;
+    this._push.x = this._push.y = 0;
+    this._glide.yaw = this._glide.pitch = 0;
     this.onLockChange?.(false);
   }
 
-  /** A drag: dx, dy in CSS px (as the mouse's movementX/Y on desktop). */
+  /** A drag: dx, dy in CSS px times the look's gain (touch.js). */
   look(dx, dy) {
     if (!this.locked || this.suspended) return;
-    this.looked += Math.abs(dx) + Math.abs(dy);
-    this._lookAt = performance.now();
-    const s = this.sensitivity;
+    this._glide.yaw = this._glide.pitch = 0;
+    this._turn(dx * TUNE.look.yaw, dy * TUNE.look.pitch, Math.abs(dx) + Math.abs(dy));
+  }
+
+  /** The lift of a quick drag: px/s across and down, through the gain.  The view glides on and settles. */
+  flick(vx, vy) {
+    if (!this.locked || this.suspended || this.seat) return;
+    const L = TUNE.look;
+    let wy = vx * L.yaw, wp = vy * L.pitch;
+    const w = Math.hypot(wy, wp);
+    if (w < L.glideMin) return;
+    if (w > L.glideMax) { wy *= L.glideMax / w; wp *= L.glideMax / w; }
+    this._glide.yaw = wy; this._glide.pitch = wp;
+  }
+
+  /** Turn by radians (to the right, and down): the seat's own look when seated, the held view's slack. */
+  _turn(ry, rp, moved) {
+    this.looked += moved;
     if (this.seat) {
       if (this.seat.dir > 0 && this.seat.k > 0.98) {
-        const L = this.seat.look;
-        L.yaw = clamp(L.yaw - dx * s, -1.9, 1.9);
-        L.pitch = clamp(L.pitch - dy * s, -0.9, 0.8);
+        const S = this.seat.look;
+        S.yaw = clamp(S.yaw - ry, -1.9, 1.9);
+        S.pitch = clamp(S.pitch - rp, -0.9, 0.8);
       }
       return;
     }
     if (this.holdLook) {
-      this._slack += Math.abs(dx) + Math.abs(dy);
+      this._slack += moved;
       if (this._slack < 24) return;
       this.holdLook = false;
       this.onReleaseLook?.();
     }
-    this.yaw -= dx * s;
-    this.pitch = clamp(this.pitch - dy * s, -1.15, 1.05);
+    this.yaw -= ry;
+    this.pitch = clamp(this.pitch - rp, -1.15, 1.05);
   }
 
   /* The body against the colliders: a circle (RADIUS) against each box,
@@ -125,12 +144,23 @@ export class TouchPlayer extends Player {
     }
   }
 
-  /** The stick's push, 0..1 (keys count as a full push). */
+  /** The stick's push, 0..1. */
   get push() {
     return Math.min(1, Math.hypot(this.stick.x, this.stick.y));
   }
 
   update(dt) {
+    // the glide a flick left: on a moment, then still
+    const G = this._glide;
+    if (dt > 0 && (G.yaw || G.pitch)) {
+      if (!this.locked || this.suspended || this.seat) G.yaw = G.pitch = 0;
+      else {
+        this._turn(G.yaw * dt, G.pitch * dt, 0);
+        const k = Math.exp(-dt / TUNE.look.glide);
+        G.yaw *= k; G.pitch *= k;
+        if (Math.hypot(G.yaw, G.pitch) < 0.04) G.yaw = G.pitch = 0;
+      }
+    }
     // seated, a push on the stick stands you up (the walking keys do on desktop)
     if (this.seat) {
       if (this.locked && this.seat.dir > 0 && this.push > 0.5) this.stand();
@@ -138,12 +168,15 @@ export class TouchPlayer extends Player {
       this._setRun(false);
       return;
     }
-    const S = TUNE.stick, k = this.keys;
+    const S = TUNE.stick, k = this.keys, P = this._push;
     let fwd = 0, side = 0, push = 0, keyRun = false, keyed = false;
     if (this.locked && !this.suspended) {
-      // the stick: analog, up is forward
-      fwd = -this.stick.y; side = this.stick.x;
-      push = this.push;
+      // the stick, its jitter eased out (a thumb is never still): analog, up is forward
+      const e = 1 - Math.exp(-S.smooth * dt);
+      P.x += (this.stick.x - P.x) * e; P.y += (this.stick.y - P.y) * e;
+      fwd = -P.y; side = P.x;
+      push = Math.min(1, Math.hypot(P.x, P.y));
+      if (push < 0.01) push = 0;
       // or the keys, a full push (Shift runs)
       let kf = 0, ks = 0;
       if (k.has('KeyW') || k.has('ArrowUp')) kf += 1;
@@ -151,13 +184,13 @@ export class TouchPlayer extends Player {
       if (k.has('KeyD') || k.has('ArrowRight')) ks += 1;
       if (k.has('KeyA') || k.has('ArrowLeft')) ks -= 1;
       if (kf || ks) { fwd = kf; side = ks; push = 1; keyed = true; keyRun = k.has('ShiftLeft') || k.has('ShiftRight'); }
-    }
-    // held at the edge a moment, it breaks into a run; the run lasts while the push stays high
+    } else P.x = P.y = 0;
+    // a full push held a moment breaks into a run; the run lasts while the push stays high
     if (keyed) { this._edgeT = 0; this._setRun(keyRun); }
     else {
-      this._edgeT = push >= S.edge ? this._edgeT + dt : 0;
+      this._edgeT = this.push >= S.edge ? this._edgeT + dt : 0;
       if (!this.running && this._edgeT >= S.runAfter) this._setRun(true);
-      else if (this.running && push < S.runHold) this._setRun(false);
+      else if (this.running && this.push < S.runHold) this._setRun(false);
     }
     this._runK += ((this.running ? 1 : 0) - this._runK) * (1 - Math.exp(-dt / Math.max(0.05, S.runBlend / 3)));
     const walk = this.walkSpeed * stickPace(push);
@@ -189,8 +222,8 @@ export class TouchPlayer extends Player {
       if (vin < 0) { this.vel.x -= nx * vin; this.vel.z -= nz * vin; }
     }
 
-    const accel = this._wish.lengthSq() > 1e-6 ? 11 : 15;
-    const a = 1 - Math.exp(-accel * dt);
+    // eased to the pace and to a stop: quick enough to answer the thumb, never a jolt
+    const a = 1 - Math.exp(-(this._wish.lengthSq() > 1e-6 ? S.accel : S.brake) * dt);
     this.vel.x += (this._wish.x - this.vel.x) * a;
     this.vel.z += (this._wish.z - this.vel.z) * a;
 
@@ -204,8 +237,9 @@ export class TouchPlayer extends Player {
       this.pos.z += stepZ / n;
       this._resolve(colliders, feetY);
     }
-    const b = this.world.bounds;
-    if (b) {
+    const b = this.world.bounds, pk = this.world.pocket;
+    // (a pocket: one walkable rect outside the bounds, fenced by its own colliders: Hachi's garden)
+    if (b && !(pk && this.pos.x > pk.x0 && this.pos.x < pk.x1 && this.pos.z > pk.z0 && this.pos.z < pk.z1)) {
       if (this.pos.x < b.x0 || this.pos.x > b.x1) { N.x += this.pos.x < b.x0 ? 1 : -1; N.hit = true; }
       if (this.pos.z < b.z0 || this.pos.z > b.z1) { N.z += this.pos.z < b.z0 ? 1 : -1; N.hit = true; }
       this.pos.x = clamp(this.pos.x, b.x0, b.x1);
@@ -215,12 +249,6 @@ export class TouchPlayer extends Player {
     this.pos.y += (targetY - this.pos.y) * (1 - Math.exp(-18 * dt));
 
     const moving = Math.hypot(this.vel.x, this.vel.z);
-    /* walking with no look for a moment: the view settles softly back toward level (a phone
-     * held in a hand drifts; standing still, where you looked stays) */
-    const L = TUNE.look;
-    if (moving > 0.6 && !this.holdLook && dt > 0 && performance.now() - this._lookAt > L.settleAfter * 1000) {
-      this.pitch += (L.settleTo - this.pitch) * (1 - Math.exp(-L.settleRate * dt * Math.min(1, moving / this.walkSpeed)));
-    }
     this.bob += dt * moving * (this._runK > 0.5 ? 8.2 : 6.4);
     this.applyCamera(moving);
   }

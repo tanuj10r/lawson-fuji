@@ -219,58 +219,40 @@ export const STRINGS = {
   },
 };
 
-/* The phone build's words (src/mobile/, m/index.html: `%S:m.key%`),
- * English as the desktop's.  The desktop game never imports this. */
+/* The phone build's words (src/mobile/, m.html: `%S:m.key%`), English as
+ * the desktop's.  The desktop game never imports this. */
 export const MOBILE_STRINGS = {
-  tapToStart: 'Tap to start',
+  start: 'Start',
   loading: 'Loading the town…',
   building: 'Building the town…',
   ready: 'Almost there…',
-  tagline: 'A small town under Mt. Fuji. Take your time.',
-  edition: 'Pocket edition: a lighter town, every sound. The full stroll is best on a computer.',
-  headphones: 'Best with headphones 🎧',
-  soundCheck: 'Sound check',
-  soundCheckDone: 'Sound on ✓',
-  lookSpeed: 'Look speed',
-  silent: 'No sound? Check that your phone isn’t on silent.',
-  rotate: 'Turn your phone sideways for the full view',
+  /* the start card: one line, and a small second one */
+  tagline: 'A pocket-sized Japan. Best with sound on 🎧',
+  desktop: 'Full town on desktop',
+  rotate: 'Turn your phone sideways for a wider view',
   soundBack: 'Tap to bring the sound back',
   paused: 'Paused',
   resume: 'Resume',
   restart: 'Back to the start',
   volume: 'Volume',
-  sound: 'Sound',
-  on: 'On',
-  off: 'Off',
-  /* the pause card's list: what does what, in words (no keys on a phone) */
-  help: [
-    ['Left thumb', 'Walk; hold it at the edge to run'],
-    ['Right thumb', 'Drag to look around'],
-    ['Button', 'Appears near things to do (or tap the thing)'],
-    ['Paw', 'Whistle for Hachi'],
-    ['Sun', 'Time of day'],
-  ],
-  /* the sound name labels (pocket diorama): the engine's sound names, [Japanese, English] */
-  soundNames: {
-    'walk-piyo': ['ぴよぴよ', 'crosswalk chick'],
-    'walk-kakko': ['カッコー', 'crosswalk cuckoo'],
-    'railway-bells': ['踏切', 'level crossing'],
-    'train-nextstop': ['次は渋谷', 'next stop, Shibuya'],
-    'rural-flute': ['のんびり', 'slow life'],
-    'donki-theme': ['ドンペン堂', 'megastore theme'],
-    'ka-ching': ['チャリン', 'ka-ching'],
-    'store-chime': ['入店チャイム', 'konbini chime'],
-    'shrine-chimes': ['鈴', 'shrine bells'],
-    wind: ['風', 'wind'],
-  },
-  buttons: {
-    pause: 'Pause', map: 'Map', whistle: 'Whistle for Hachi', time: 'Time of day', act: 'Interact',
-  },
+  /* the buttons' labels, under their icons (and what a screen reader says) */
+  buttons: { hachi: 'Hachi', time: 'Time', pause: 'Pause', map: 'Map' },
+  aria: { hachi: 'Whistle for Hachi', time: 'Change the time of day', pause: 'Pause', map: 'Open the map', act: 'Interact' },
+  /* until each has been done once */
+  hints: { walk: 'Walk', look: 'Drag to look' },
   closeMap: 'Tap to close',
   times: { morning: 'Morning', golden: 'Golden hour', night: 'Night' },
+  timeShort: { morning: 'Morning', golden: 'Golden', night: 'Night' },
   /* Hachi's hello, in touch words (animals/guide.js reads STRINGS.hachi) */
-  hachiLine: "Follow me, I'll show you around town. Wander off whenever you like: tap the paw to whistle and I'll come running.",
+  hachiLine: "Follow me, I'll show you around town. Wander off whenever you like: tap the paw 🐾 and I'll come running.",
   menuHint: 'Tap one',
+  /* the postcard on a phone (ui/postcard.js, ui/postcardSelfie.js read STRINGS.postcard) */
+  selfie: {
+    insecure: 'The camera only works on a secure (https) page. Open takemebacktojapan.com to add your selfie.',
+    blocked: 'The camera is blocked for this site. Allow it in your browser’s settings for this page, then try again.',
+    none: 'No camera was found on this phone.',
+    save: 'Save or share',
+  },
   gate: {
     noglTitle: 'Your phone can’t draw the town',
     nogl: 'This game needs WebGL 2. Try the latest Safari or Chrome, or open the link on a computer.',

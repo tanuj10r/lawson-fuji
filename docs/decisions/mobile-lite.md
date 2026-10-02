@@ -507,3 +507,77 @@ munch / gulp; the spot re-arms after.
 - Known over budget: in a visit ~164 MB GPU (target ~150).  Builder 2's
   offer: the visit's two pages at 0.75 (-~20 MB, slightly softer nearest
   shelves); not taken (Tan's call: crispness vs the number).
+
+## Mobile v3: UI (2026-10-02, Tan rated the last phone build 2/100)
+
+Everything the player touches and reads on a phone, rebuilt; the world (a mini town from the desktop's own generator)
+is the world build's, in parallel. Tan's five points, and what was done. Checked with `scripts/_mobile-ui.mjs` (real
+multi-touch through CDP on an emulated iPhone 15, 844x390 and 390x844 at 3x; screenshots of every card and control).
+
+- **Split:** `src/mobile/shell.js` is the one object `main.js` talks to (`createShell({ canvas, camera, world, held,
+  famous, onTime, onRestart })`, then `shell.ready()`, `shell.update(dt, { inStore })`, `shell.resize()`,
+  `shell.setTime(name)`, `shell.setLost(on)`; it makes the walker, the sound engine, the HUD). `main.js` here runs it
+  against the desktop's own town (`world/town.js`) as a harness: its lines are marked WORLD (to be replaced by the
+  mini town) and SHELL (to be kept). The old pocket world files (`mobile/town.js`, `core.js`, `lite.js`,
+  `konbini.js`, `pocket/`) are not on this branch.
+- **Shared code unchanged:** the guide, the minimap, the sound labels, the train countdown, the postcard and its
+  selfie are the desktop's own modules, imported as they are; what a phone needs differently is done from outside
+  (words swapped in `STRINGS` at import, CSS in `m.html`, a capture listener on the postcard). The desktop bundle is
+  byte-identical to main's.
+- **1. Start card:** the key art over the whole screen (the 1.8x Hachi banner on its side, the portrait crop upright,
+  Hachi sitting just above the sheet), the name in its sky, and a paper sheet: "A pocket-sized Japan. Best with sound
+  on 🎧", Start, the Made by Tan row (`ui/maker.js` `makerRow`: Tan's face, Buy Tan a coffee first, X, GitHub, the
+  site, each with `?ref=takemebacktojapan`), "Full town on desktop · Credits". The loading bar is in the same sheet.
+- **5. Start and Resume only by their buttons**, as desktop: a tap anywhere else on the card only wakes the sound, so
+  the title song plays on the start card. A tap outside the pause card does nothing.
+- **2. Controls** (numbers in `controls/tune.js`, overridable from `config.js MOBILE.controls`):
+  - *Stick:* a base that is always visible, resting bottom left with "Walk" under it until first used. A thumb landing
+    anywhere on the left 46% brings the base to it (floating); past 1.25 radii the base trails the thumb; on the lift
+    it glides home. The push is eased (22/s) so a thumb's jitter never reaches the walk; the walk eases to its pace
+    (7.5/s) and to a stop (10/s). A half push strolls at 1.1 m/s, a full push walks at 2.55 m/s, and held 0.28 s it
+    breaks into the run (5.1 m/s, eased over ~0.5 s; the ring turns gold).
+  - *Look:* 1:1, 0.264 degrees a CSS px across and 0.195 up and down (a half-screen swipe in landscape is about 110
+    degrees), lifted smoothly to 1.7x for a flick; the speed is taken from the fingers' own timestamps and every
+    coalesced sample, so 60 Hz and 120 Hz screens turn the same. A flick's lift glides on (time constant 90 ms, about
+    21 degrees from a 900 px/s lift) and settles; any new touch stops it. No pitch re-centring at all (the old build's
+    settle fought the view of Fuji). "Drag to look" shows bottom right until it has been done.
+  - *Buttons:* three labelled tiles top right (Hachi with the paw, the time of day with its name, Pause), 54 px with a
+    wider touch area; they act on the finger's lift, each finger owning its button, so they answer while both thumbs
+    are down. One context button above the right thumb with the action's own words and a pulsing ring.
+  - *Aim assist, without turning the camera:* the context button takes what the crosshair is on, else the nearest
+    thing to do within 2.8 m and 34 degrees of the view (or whose ring you stand in). Turning the view toward spots or
+    Hachi was considered and left out: free roam is the point, and a view that moves by itself reads as a fault.
+  - *The map:* the desktop's corner map, 96 px (86 upright), top left, with a "Map" tag; a tap opens the whole map. The
+    whole map is the desktop's too, drawn for a big window, so on a phone it is drawn 1.6x the screen and panned with
+    a finger (its labels crowded and overlapped at screen size); a tap closes it.
+  - *Measured* (headless Chrome at 58-60 fps, the desktop town): the camera has turned 4.7 ms (mean; p95 6.6 ms,
+    max 10 ms; 5.0 / 7.9 ms upright) after the finger's event is handled, i.e. in the same frame; nothing waits for
+    a later frame. Speed after a full push: 1.8 m/s at 0.1 s, running from 0.32 s, 5 m/s at 0.9 s; after the lift
+    3.1 m/s at 0.2 s, 0.1 m/s at 0.52 s. (CDP's touch emulation gives every finger the first finger's element and
+    acknowledges each touch a frame late, so a button under a held stick and a flick's timing are checked with
+    pointer events and by the numbers; see the script.)
+  - *Desktop build:* every JS, font and data file of `vite build` is byte-identical to main's (8cc9948); `index.html`
+    and `_headers` differ only by the phone route switch (off) and the `/m/` cache lines carried over from the
+    pocket branch. 102 checks pass.
+- **3. Pause card:** no "Look speed". The volume is a bar (the desktop's five settings: drag it or tap along it, heard
+  at once, remembered), Resume, Back to the start, "Your postcard ✉" (a little postcard, glowing on every pause),
+  the Made by Tan row, credits. Two columns on its side, one upright; it never scrolls at 844x390 or 390x844.
+- **Postcard and selfie:** the desktop's postcard, opened from the pause card and by itself at the end of Hachi's tour
+  (`GUIDE.onTourEnd`). On a phone: on an insecure page (http on the LAN) the browser has no camera to give, so "Add
+  your selfie" says "The camera only works on a secure (https) page..." instead of failing; Save hands the picture to
+  the share sheet with the file (iOS ignores `download` on a blob link), where the sheet takes files, and is called
+  "Save or share"; the camera's blocked and missing words are a phone's. The live view was already `playsinline`,
+  muted and started inside the tap.
+- **4. Hachi parity:** the real guide runs unchanged. His hello's card is sized for a phone and says "tap the paw 🐾";
+  the paw tile whistles (a ring goes out when he hears it); "Take the tour again" is the context button
+  (`GUIDE.offer` / `again`, not while the postcard is due); the konbini's snack bits (`shop.onSnack`); the bench (the
+  context button seats you, then offers "Stand up"; a push on the stick stands too); the postcard at the tour's end;
+  the sounds' names with the desktop's own watcher and pill (`ui/soundLabels.js`; the old mobile copy is gone),
+  beside the map; "Next train · 0:25" above the bottom edge; the mochi shop through its spot's own label and action
+  (whatever the label says after the dot is the button: "Order a mochi ¥200" once that rework lands).
+- **Sound on iOS:** the context is made and resumed inside every tap (touchend and click), the audio session is set
+  to `playback` (the silent switch), streamed elements are unlocked in the tap; an interruption the phone will not
+  resume shows "Tap to bring the sound back" (now over the cards too); coming back from the lock screen or another
+  app, the context is suspended and resumed once more (iOS can return one that reads running and is silent).
+- **Not done / to check on Tan's iPhone:** the feel numbers were tuned by measurement, not by a thumb; the selfie's
+  camera and the share sheet were checked only as far as headless Chrome goes (no camera, no share sheet).

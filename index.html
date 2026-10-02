@@ -413,7 +413,10 @@
     var phone = (mq('(pointer: coarse)') && !mq('(any-pointer: fine)'))
       || (touch && Math.min(screen.width, screen.height) < 600)
       || (touch && !('requestPointerLock' in Element.prototype));
-    if (phone) { d.classList.add('gate-phone'); }
+    /* config.js MOBILE.route (off at launch): on, a phone goes to the lite
+     * version (m.html) instead of the card; the game here is never loaded */
+    if (phone && '%S:mobile.route%' === 'on') { d.classList.add('gate-m'); location.replace('m.html' + location.search + location.hash); }
+    else if (phone) { d.classList.add('gate-phone'); }
     else {
       var gl = null;
       try { gl = document.createElement('canvas').getContext('webgl2'); } catch (e) { gl = null; }

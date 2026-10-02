@@ -14,9 +14,15 @@
  *                 element it makes is noted here, and each later gesture
  *                 plays (and, if the engine had paused it, pauses again)
  *                 any element not yet unlocked, or wanted and refused.
- *   interruptions A call, Siri, the lock screen: the context is 'suspended'
- *                 or 'interrupted'.  resume() on return; if the phone
- *                 refuses it outside a gesture, the HUD asks for a tap.
+ *   interruptions A call, Siri, the lock screen, another app's sound: the
+ *                 context is 'suspended' or 'interrupted'.  resume() on
+ *                 return; if the phone refuses it outside a gesture, the
+ *                 HUD asks for a tap ("Tap to bring the sound back"), and
+ *                 that tap, like every tap, wakes it (unlockAudio).
+ *   coming back   iOS can hand back a context that says 'running' and is
+ *                 silent (after the lock screen or a long time away): on
+ *                 return the context is suspended and resumed again, which
+ *                 restarts its output (wakeAudio).
  * ------------------------------------------------------------------ */
 
 const elements = [];
@@ -72,35 +78,6 @@ export function audioState(sound) {
 }
 
 /**
- * The start card's sound check (pocket diorama, builder 5): inside the tap,
- * wake the sound (unlockAudio: the one context, the audio session, the
- * streams) and play a short, soft chime of our own, two bell notes, at the
- * game's volume.  Returns the context's state.
- */
-export function soundCheck(sound, volume = sound.volume) {
-  const state = unlockAudio(sound);
-  const ac = sound.graph()?.ac;
-  if (!ac) return state;
-  const t = ac.currentTime + 0.03;
-  const out = ac.createGain();
-  out.gain.value = 0.32 * Math.max(0.3, Math.min(1, volume || 0));
-  out.connect(ac.destination);
-  for (const [f, at] of [[1318.5, 0], [1760, 0.18]]) {          // E6, A6: a small "ding-dong", up
-    for (const [mult, lvl, dur] of [[1, 0.5, 1.4], [2.76, 0.08, 0.5], [5.4, 0.03, 0.25]]) {   // a bell's partials
-      const o = ac.createOscillator(), g = ac.createGain();
-      o.type = 'sine'; o.frequency.value = f * mult;
-      g.gain.setValueAtTime(0.0001, t + at);
-      g.gain.exponentialRampToValueAtTime(lvl, t + at + 0.008);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + at + dur);
-      o.connect(g).connect(out);
-      o.start(t + at); o.stop(t + at + dur + 0.05);
-    }
-  }
-  setTimeout(() => out.disconnect(), 2200);
-  return state;
-}
-
-/**
  * Interruptions while the page is in view (a call, Siri, an alarm, another
  * app's audio): the context goes 'interrupted' or 'suspended' without the
  * page hiding.  Try to resume; if the phone wants a tap for it,
@@ -125,4 +102,19 @@ export function watchInterruptions(sound, needTap) {
     seen = ac;
     ac.addEventListener('statechange', check);
   };
+}
+
+/**
+ * Back in view (visibilitychange, pageshow): wake the engine, and restart the context's output (iOS can return a
+ * context that reads 'running' and makes no sound).  Outside a gesture, so it may be refused: then
+ * `needTap(true)` a moment later, and the next tap brings it back.
+ */
+export function wakeAudio(sound, needTap) {
+  const ac = sound.graph()?.ac;
+  if (!ac || ac.state === 'closed') return;
+  const again = () => { sound.setAwake(true); ac.resume().catch(() => {}); };
+  if (ac.state === 'running') ac.suspend().then(again, again);
+  else again();
+  clearTimeout(wakeAudio.timer);
+  wakeAudio.timer = setTimeout(() => { if (!document.hidden) needTap(ac.state !== 'running'); }, 900);
 }

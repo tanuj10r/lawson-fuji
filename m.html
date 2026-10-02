@@ -17,154 +17,226 @@
 <link rel="icon" href="favicon.ico" sizes="48x48" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-<link rel="preload" as="image" href="keyart-1280.webp" imagesrcset="keyart-1280.webp 1280w, keyart-1920.webp 1920w" imagesizes="(orientation: landscape) min(60vw, 560px), min(100vw, 520px)" type="image/webp" fetchpriority="high" />
+<!-- the key art (scripts/keyart.mjs): the banner on its side, the portrait crop upright -->
+<link rel="preload" as="image" href="keyart-1280.webp" imagesrcset="keyart-1280.webp 1280w, keyart-1920.webp 1920w" imagesizes="100vw" type="image/webp" media="(orientation: landscape)" fetchpriority="high" />
+<link rel="preload" as="image" href="keyart-portrait.webp" type="image/webp" media="(orientation: portrait)" fetchpriority="high" />
 <style>
-  /* The phone build (src/mobile/; docs/decisions/mobile-lite.md): the desktop
-   * card's look (paper, ink, sakura rule, the key art), laid out for a thumb. */
+  /* The phone build (src/mobile/; docs/decisions/mobile-lite.md, "Mobile v3: UI"):
+   * the desktop cards' look (paper, ink, the sakura rule, the key art), laid
+   * out for thumbs.  The cards are here; the play screen's parts are in
+   * src/mobile/hud.js and touch.js. */
   *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   :root {
     --ink: #2b2542; --ink-soft: #6c6482; --paper: #fbf6f0; --sakura: #e59bb0; --action: #3b3263;
     --safe-t: env(safe-area-inset-top, 0px); --safe-r: env(safe-area-inset-right, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px); --safe-l: env(safe-area-inset-left, 0px);
-    --vh: 100dvh;
+    /* the screen's edge for the play screen's corners: a little in from the glass, past the notch */
+    --edge-t: max(10px, calc(var(--safe-t) + 4px)); --edge-r: max(12px, calc(var(--safe-r) + 2px));
+    --edge-b: max(12px, calc(var(--safe-b) + 4px)); --edge-l: max(12px, calc(var(--safe-l) + 2px));
+    --map: 96px;          /* the corner map (the desktop's is 196) */
+    --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
   }
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
-    background: #2c2346; color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #2c2346; color: var(--ink); font-family: var(--ui);
     /* no scroll, no pull-to-refresh, no selection or callouts over the game */
     overscroll-behavior: none; touch-action: none;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
     -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
   }
   #view { position: fixed; inset: 0; display: block; width: 100vw; height: 100vh; height: 100dvh; touch-action: none; }
-  /* paused, the game's own captions (Hachi's hello) wait under the card, as on desktop */
-  body.game-paused #hachi-card { visibility: hidden; }
-  /* Hachi's hello (animals/guide.js sizes it for a desktop): smaller, lower on a phone */
-  #hachi-card { max-width: min(440px, 64vw) !important; padding: 8px 14px !important; }
-  #hachi-card div { font-size: 13.5px !important; line-height: 1.35 !important; }
-  #hachi-card div:first-child { font-size: 15px !important; }
   [lang='ja'] { font-family: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+  button { font: inherit; color: inherit; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
 
-  /* ---------- the cards: loading, start, pause, gate ---------- */
+  /* ---------- the cards' shared parts ---------- */
   .scrim {
     position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
     padding: max(12px, var(--safe-t)) max(12px, var(--safe-r)) max(12px, var(--safe-b)) max(12px, var(--safe-l));
     background: radial-gradient(ellipse at 50% 40%, #6e5b8f, #2c2346);
     transition: opacity .45s ease, visibility .45s ease;
   }
-  .scrim.see-through { background: radial-gradient(ellipse at 50% 40%, rgba(40,30,62,.45), rgba(18,14,32,.78)); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  .scrim.see-through { background: radial-gradient(ellipse at 50% 40%, rgba(40,30,62,.42), rgba(18,14,32,.8)); -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px); }
   .scrim.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
   .card {
     position: relative; width: min(100%, 540px); max-height: 100%; overflow: hidden auto;
-    border-radius: 18px; background: var(--paper);
+    border-radius: 20px; background: var(--paper);
     box-shadow: 0 30px 80px -24px rgba(8,4,24,.8), 0 0 0 1px rgba(255,255,255,.08);
     display: flex; flex-direction: column;
   }
-  .art { position: relative; margin: 0; flex: none; aspect-ratio: 16 / 9; max-height: 44vh; background: #b98ab4; overflow: hidden; }
-  .art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 14%; }
-  .name { position: absolute; z-index: 1; right: 5%; top: 7%; text-align: right; }
-  /* on a phone the name covers more of the art: a paper wash behind it, top right,
-     so the Japanese line reads over ドンペン堂's signs */
-  .art::after { content: ''; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(ellipse 75% 70% at 88% 12%, rgba(251,246,240,.78), rgba(251,246,240,.4) 55%, rgba(251,246,240,0) 80%); }
-  .place { margin: 0 0 4px; font-size: 10px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: rgba(43,37,66,.72); }
+  .place { margin: 0 0 4px; font-size: 10px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: rgba(43,37,66,.74); }
   .place [lang='ja'] { letter-spacing: .1em; }
-  .name h1 {
-    margin: 0; font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
-    font-size: clamp(21px, 6.2vw, 30px); line-height: 1.05; font-weight: 600; color: #2a2140; white-space: nowrap;
-    text-shadow: 0 1px 0 rgba(255,236,230,.35);
-  }
-  .jp { margin: 5px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .3em; color: rgba(43,37,66,.8); }
-  .jp::before { content: ''; display: inline-block; width: 22px; height: 2px; margin: 0 8px 3px 0; vertical-align: middle; background: linear-gradient(90deg, transparent, var(--sakura)); }
-  .badge {
-    position: absolute; left: 12px; top: 12px; padding: 5px 11px; border-radius: 999px;
-    background: rgba(251,246,240,.92); color: var(--ink); font-size: 10.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
-    box-shadow: 0 6px 18px -8px rgba(20,10,40,.5);
-  }
-  .body { padding: 14px 18px 16px; border-top: 3px solid var(--sakura); background: linear-gradient(180deg, #fffaf5, var(--paper)); }
-  .tagline { margin: 0 0 4px; font-size: 14px; line-height: 1.4; color: var(--ink-soft); }
-  .note { margin: 6px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--ink-soft); }
-  .note.ios { display: none; }
-  .is-ios .note.ios { display: block; }
   .btn {
     display: block; width: 100%; min-height: 50px; margin: 12px 0 0; padding: 12px 16px;
-    border: 0; border-radius: 12px; background: var(--action); color: #fff;
-    font: inherit; font-size: 17px; font-weight: 700; letter-spacing: .06em; cursor: pointer;
-    box-shadow: 0 8px 22px -10px rgba(40,24,80,.7); touch-action: manipulation;
+    border: 0; border-radius: 13px; background: var(--action); color: #fff;
+    font-size: 17px; font-weight: 700; letter-spacing: .06em; cursor: pointer;
+    box-shadow: 0 10px 22px -10px rgba(40,24,80,.75), inset 0 -2px 0 rgba(0,0,0,.18);
+    transition: transform .08s ease, background .12s ease;
   }
-  .btn:active, .btn.down { transform: translateY(1px); background: #4b3f7c; }
-  .vol button.down { background: #e8e0f0; }
-  .btn.soft { background: transparent; color: var(--action); border: 1.5px solid var(--action); box-shadow: none; min-height: 44px; font-size: 15px; }
-  .row { display: flex; gap: 10px; }
-  .row .btn { flex: 1; }
-  .url { margin: 10px 0 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--ink-soft); }
-  .url a { color: inherit; }
-  .bar { position: relative; height: 6px; margin: 12px 0 2px; overflow: hidden; border-radius: 999px; background: #efe5e8; }
+  .btn:active, .btn.down { transform: translateY(1px) scale(.985); background: #4b3f7c; }
+  .btn.soft { background: transparent; color: var(--action); border: 1.5px solid rgba(59,50,99,.4); box-shadow: none; min-height: 42px; padding: 8px 14px; font-size: 14.5px; letter-spacing: .02em; }
+  .btn.soft.down, .btn.soft:active { background: #ece6f4; }
+  .url { margin: 10px 0 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--ink-soft); }
+  .url a { color: inherit; text-underline-offset: 2px; }
+  .url i { font-style: normal; margin: 0 .5em; opacity: .6; }
+
+  /* ---------- Made by Tan: the row on the start and pause cards (src/ui/maker.js) ---------- */
+%MAKER:css%
+  .mk-row { margin: 12px 0 0; padding: 11px 0 0; }
+  .mk-row .mk-row-top { gap: 10px; }
+  .mk-row .mk-face { width: 40px; height: 40px; }
+  .mk-row .mk-who { font-size: 13.5px; }
+  .mk-row .mk-who small { margin-top: 2px; font-size: 11.5px; line-height: 1.3; }
+  .mk-row .mk-links { gap: 7px; margin: 9px 0 0; }
+  .mk-row .mk-i { width: 40px; height: 40px; padding: 10.5px; }
+  .mk-row .mk-coffee { min-height: 40px; padding: 8px 10px; font-size: 14px; }
+  .mk-row a:active { transform: scale(.96); }
+
+  /* ---------- the start card: the key art over the whole screen, the name in its sky, a paper sheet ---------- */
+  .start { padding: 0; z-index: 30; background: #b98ab4; align-items: stretch; justify-content: stretch; }
+  .start .bg { position: absolute; inset: 0; margin: 0; overflow: hidden; }
+  .start .bg img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 86%; }
+  /* a paper wash behind the name, top right, so the Japanese line reads over ドンペン堂's signs; a soft foot under the sheet */
+  .start .bg::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 50% 70% at 92% 6%, rgba(251,246,240,.88), rgba(251,246,240,.55) 55%, rgba(251,246,240,0) 82%),
+      linear-gradient(0deg, rgba(30,20,52,.34), rgba(30,20,52,0) 34%); }
+  .name { position: absolute; z-index: 1; right: max(20px, calc(var(--safe-r) + 8px)); top: max(16px, calc(var(--safe-t) + 8px)); margin: 0; text-align: right; }
+  .name h1 { margin: 0; font-family: var(--serif); font-size: clamp(24px, 4.1vw, 36px); line-height: 1.05; font-weight: 600; color: #2a2140; white-space: nowrap;
+    text-shadow: 0 1px 0 rgba(255,236,230,.4); }
+  .jp { margin: 6px 0 0; font-size: 12.5px; font-weight: 700; letter-spacing: .3em; color: rgba(43,37,66,.82); }
+  .jp::before { content: ''; display: inline-block; width: 24px; height: 2px; margin: 0 8px 3px 0; vertical-align: middle; background: linear-gradient(90deg, transparent, var(--sakura)); }
+  .sheet {
+    position: absolute; z-index: 1; left: max(14px, calc(var(--safe-l) + 2px)); bottom: max(14px, calc(var(--safe-b) + 2px));
+    width: clamp(264px, 37vw, 312px); padding: 14px 16px 12px; border-radius: 20px;
+    background: rgba(251,246,240,.95); border-top: 3px solid var(--sakura);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2); backdrop-filter: blur(12px) saturate(1.2);
+    box-shadow: 0 24px 60px -22px rgba(8,4,24,.85), 0 0 0 1px rgba(255,255,255,.18);
+  }
+  .tagline { margin: 0; font-size: 15.5px; line-height: 1.32; font-weight: 700; color: var(--ink); text-wrap: balance; }
+  .bar { position: relative; height: 6px; margin: 14px 0 6px; overflow: hidden; border-radius: 999px; background: #efe5e8; }
   .bar > span { position: absolute; inset: 0 auto 0 0; width: var(--p, 12%); border-radius: inherit; background: var(--action); transition: width .5s ease; }
   .bar::after { content: ''; position: absolute; inset: 0; width: 30%; background: linear-gradient(90deg, transparent, rgba(229,155,176,.95), transparent); animation: glint 1.4s linear infinite; }
   @keyframes glint { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
-  .line { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+  .line { margin: 0; min-height: 30px; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
   #boot .start-only, #boot.ready .load-only { display: none; }
   #boot.ready .start-only { display: block; }
-  #boot.ready { cursor: pointer; }
+  #start { margin-top: 12px; }
+  /* the Start button breathes once it is ready: the one thing to press */
+  #boot.ready #start { animation: start-in .5s ease both, start-glow 2.6s ease-in-out .6s infinite; }
+  @keyframes start-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes start-glow { 0%, 100% { box-shadow: 0 10px 22px -10px rgba(40,24,80,.75), inset 0 -2px 0 rgba(0,0,0,.18), 0 0 0 0 rgba(229,155,176,0); }
+    50% { box-shadow: 0 10px 22px -10px rgba(40,24,80,.75), inset 0 -2px 0 rgba(0,0,0,.18), 0 0 0 6px rgba(229,155,176,.42); } }
 
-  /* the pause card's parts */
-  .vol { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; }
-  .vol > span { flex: none; min-width: 92px; font-size: 13px; font-weight: 700; }
-  .vol .steps { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-  .vol button {
-    min-height: 40px; border-radius: 9px; border: 1.5px solid #d9cfd8; background: #fff; color: var(--ink);
-    font: inherit; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; touch-action: manipulation;
-  }
-  .vol button[aria-pressed='true'] { background: var(--action); border-color: var(--action); color: #fff; }
-  .help { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 12px 0 0; padding: 0; list-style: none; font-size: 13px; }
-  .help dt { font-weight: 700; color: var(--ink); }
-  .help dd { margin: 0; color: var(--ink-soft); }
-
-  /* landscape phones: the art beside the words, both fit the short screen */
-  @media (orientation: landscape) and (max-height: 540px) {
-    .card { flex-direction: row; width: min(100%, 780px); max-height: calc(100% - 4px); }
-    .art { flex: 0 0 52%; aspect-ratio: auto; max-height: none; }
-    .body { flex: 1; display: flex; flex-direction: column; justify-content: center; border-top: 0; border-left: 3px solid var(--sakura); overflow-y: auto; padding: 14px 18px; }
-    .name h1 { font-size: clamp(19px, 3.2vw, 28px); }
-    .help { font-size: 12px; gap: 3px 10px; }
-  }
-
-  /* the start card's sound line: headphones, and the sound check (a soft chime; src/mobile/pocket/controls) */
-  .phones { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 0; }
-  .phones p { margin: 0; font-size: 14px; font-weight: 700; color: var(--ink); }
-  .check { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px 0 11px; border-radius: 999px;
-    border: 1.5px solid var(--action); background: transparent; color: var(--action); font: inherit; font-size: 14px; font-weight: 700;
-    touch-action: manipulation; cursor: pointer; }
-  .check svg, .turn svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
-  .check:active { background: #ece6f4; }
-  .check.done { background: var(--action); color: #fff; }
-  /* landscape first: in portrait, a word about turning the phone */
-  .note.turn { display: none; align-items: center; gap: 7px; }
+  /* a phone held upright: the portrait crop over the screen's top, Hachi sitting just above the sheet */
   @media (orientation: portrait) {
-    .note.turn { display: flex; }
-    /* portrait: the card a column, the art a little shorter so the words and the button sit within a thumb's reach */
-    .card { width: min(100%, 460px); }
-    .art { max-height: 36vh; }
-    .body { padding: 14px 18px 18px; }
+    :root { --map: 86px; }
+    .start { flex-direction: column; }
+    .start .bg { position: relative; inset: auto; flex: 1 1 0; min-height: 0; }
+    .start .bg img { object-position: 50% 97%; }
+    .start .bg::after { background: radial-gradient(ellipse 74% 34% at 86% 4%, rgba(251,246,240,.84), rgba(251,246,240,.46) 55%, rgba(251,246,240,0) 82%); }
+    .name { right: max(18px, calc(var(--safe-r) + 8px)); top: max(18px, calc(var(--safe-t) + 10px)); }
+    .name h1 { font-size: clamp(25px, 7.4vw, 34px); }
+    .sheet { position: relative; left: auto; bottom: auto; flex: none; width: 100%; margin: -20px 0 0; padding: 18px 20px max(16px, calc(var(--safe-b) + 10px));
+      border-radius: 22px 22px 0 0; background: var(--paper); box-shadow: 0 -18px 40px -22px rgba(8,4,24,.7); }
+    .tagline { font-size: 17px; }
     .btn { min-height: 54px; }
+  }
+  /* a short screen on its side (Safari's bars showing): the sheet a size down */
+  @media (orientation: landscape) { .sheet .mk-who small { display: none; } }
+  @media (orientation: landscape) and (max-height: 350px) {
+    .sheet { padding: 11px 14px 9px; }
+    .tagline { font-size: 14.5px; }
+    .sheet .mk-row { margin-top: 9px; padding-top: 8px; }
+    .sheet .mk-who small { display: none; }
+    .sheet .url { margin-top: 7px; }
+    #start { margin-top: 9px; min-height: 46px; padding: 9px 16px; }
+  }
+
+  /* ---------- the play screen's parts that the shared code makes (their own inline looks, set for a phone here) ---------- */
+  /* paused, the game's own captions (Hachi's hello) wait under the card, as on desktop */
+  body.game-paused #hachi-card, body.map-open #hachi-card { visibility: hidden; }
+  /* Hachi's hello (animals/guide.js sizes it for a desktop): between the thumbs on a phone */
+  #hachi-card { max-width: min(430px, calc(100vw - 2 * var(--edge-l) - 300px)) !important; bottom: 34% !important; padding: 9px 16px 10px !important;
+    border-radius: 16px !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  #hachi-card div { font-size: 13.5px !important; line-height: 1.38 !important; }
+  #hachi-card div:first-child { font-size: 15.5px !important; }
+  /* the corner map (ui/minimap.js): small, top left; hud.js lays its button over it (tap: the whole map) */
+  .minimap { left: var(--edge-l) !important; top: var(--edge-t) !important; right: auto !important; bottom: auto !important;
+    width: var(--map) !important; height: var(--map) !important; z-index: 5 !important; }
+  /* the whole map: drawn larger than the screen (shell.js drawMap) and panned with a finger */
+  .fullmap { background: rgba(24,20,38,.72) !important; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    align-items: flex-start !important; justify-content: flex-start !important; overflow: auto; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    padding: max(8px, var(--safe-t)) max(8px, var(--safe-r)) max(8px, var(--safe-b)) max(8px, var(--safe-l)); }
+  .fullmap.hidden { visibility: hidden; }
+  .fullmap canvas { flex: none; margin: auto; max-width: none !important; max-height: none !important; }
+  /* the sounds' names (ui/soundLabels.js; the desktop's pill): beside the map */
+  .snd { position: absolute; left: calc(var(--edge-l) + var(--map) + 10px); top: var(--edge-t); z-index: 2; display: flex; flex-direction: row; align-items: flex-start; gap: 6px; }
+  body.game-paused .snd, body.map-open .snd { visibility: hidden; }
+  .snd-pill {
+    display: flex; align-items: center; gap: 8px; max-width: min(250px, 30vw);
+    padding: 5px 13px 6px 6px; border-radius: 999px;
+    background: rgba(251,246,240,.92); color: #2b2542; border: 1.5px solid rgba(58,51,80,.2);
+    box-shadow: 0 6px 18px -8px rgba(20,10,40,.45);
+    font: 600 12.5px/1.25 var(--ui); white-space: nowrap;
+    animation: snd-in var(--snd-ms, 5600ms) ease both;
+  }
+  .snd-pill svg { flex: none; width: 13px; height: 13px; padding: 4.5px; border-radius: 50%; background: #f3d9e0;
+    fill: none; stroke: #3b3263; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; box-sizing: content-box; }
+  .snd-pill p { margin: 0; overflow: hidden; text-overflow: ellipsis; }
+  .snd-pill b { font-weight: 700; font-family: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+  .snd-pill i { font-style: normal; margin: 0 .4em; color: #6c6482; }
+  .snd-pill em { font-style: normal; }
+  @keyframes snd-in { 0% { opacity: 0; transform: translateX(-8px); } 7%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+  @keyframes snd-still { 0%, 99% { opacity: 1; } 100% { opacity: 0; } }
+  @media (orientation: portrait) {
+    #hachi-card { max-width: min(430px, 86vw) !important; bottom: 38% !important; }
+    .snd { flex-direction: column; left: var(--edge-l); top: calc(var(--edge-t) + var(--map) + 22px); }
+    .snd-pill { max-width: 76vw; }
+  }
+  /* the postcard (ui/postcard.js) over the pause card's place */
+  .mk-post-scrim { z-index: 24 !important; padding: max(12px, var(--safe-t)) max(12px, var(--safe-r)) max(12px, var(--safe-b)) max(12px, var(--safe-l)) !important;
+    -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px); overflow: hidden auto; }
+  .mk-post button, .mk-post a { touch-action: manipulation; }
+  /* the town's name in the picture's sky, clear of Hachi on the zebra */
+  .mk-post .pic figcaption { left: auto !important; bottom: auto !important; right: 9px; top: 9px; padding: 4px 9px !important; font-size: 8.5px !important; letter-spacing: .1em !important; }
+  .mk-post .m-note { margin: 8px 0 0; padding: 8px 10px; border-radius: 9px; background: #fff3d6; color: #5a4420; font-size: 12.5px; line-height: 1.4; font-weight: 600; }
+  @media (orientation: landscape) and (max-height: 540px) {
+    .mk-post { width: min(calc(100vw - var(--safe-l) - var(--safe-r) - 24px), calc((100dvh - 24px) * 1.62)) !important; }
+    .mk-post .pc-back { font-size: 13px !important; padding: 6px 13px 6px 10px !important; }
+    .mk-post .pc-add { font-size: 14.5px !important; padding: 9px 8px !important; }
+    .mk-post .share > *, .sf-acts > * { min-height: 34px; }
+    .mk-post .maker .mk-i { width: 32px !important; height: 32px !important; padding: 8px !important; }
+    .mk-post .maker .mk-coffee { min-height: 32px; }
+    /* the town's name in the picture's sky, clear of Hachi on the zebra */
+  .mk-post .pic figcaption { left: auto !important; bottom: auto !important; right: 9px; top: 9px; padding: 4px 9px !important; font-size: 8.5px !important; letter-spacing: .1em !important; }
+  .mk-post .m-note { font-size: 11.5px; padding: 6px 9px; }
+  }
+  @media (max-width: 700px) and (orientation: portrait) {
+    .mk-post-scrim { place-items: start center !important; }
+    .mk-post { margin: auto 0; }
+    .mk-post .share > *, .sf-acts > * { min-height: 44px; }
+    .mk-post .maker .mk-i { width: 40px !important; height: 40px !important; padding: 10.5px !important; }
+    .mk-post .maker .mk-coffee { min-height: 40px !important; }
   }
 
   .gate { display: none; }
-  .gate-nogl #gate, .gate-lost #gate { display: flex; }
+  .gate-nogl #gate, .gate-lost #gate { display: flex; z-index: 40; }
   .gate-nogl #boot { display: none; }
+  .gate .body { padding: 18px 20px 18px; border-top: 3px solid var(--sakura); }
   .gate .msg { display: none; }
   .gate-nogl .for-nogl, .gate-lost .for-lost { display: block; }
   .gate h2 { margin: 0 0 6px; font-size: 16px; font-weight: 700; }
-  .gate p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); }
+  .gate p.t { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); }
 
-  @media (prefers-reduced-motion: reduce) { .bar::after { animation: none; } .scrim { transition: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .bar::after, #boot.ready #start { animation: none; }
+    .scrim { transition: none; }
+    .snd-pill { animation-name: snd-still; animation-timing-function: step-end; }
+  }
 </style>
 <script>
   /* Before anything loads: can this phone draw the town?  WebGL 2 or the
-   * card (the game's code is never downloaded).  iOS gets the silent-switch
-   * note on its cards. */
+   * card (the game's code is never downloaded). */
   (function () {
     var d = document.documentElement, gl = null;
     try { gl = document.createElement('canvas').getContext('webgl2'); } catch (e) { gl = null; }
@@ -177,35 +249,29 @@
 <body class="notranslate">
   <canvas id="view"></canvas>
 
-  <!-- the loading card, which becomes the start card: one tap starts the town and its sound -->
-  <div id="boot" class="scrim" role="dialog" aria-modal="true" aria-labelledby="boot-title">
-    <section class="card">
-      <figure class="art">
-        <img src="keyart-1280.webp" srcset="keyart-1280.webp 1280w, keyart-1920.webp 1920w" sizes="(orientation: landscape) min(60vw, 560px), min(100vw, 520px)" width="1280" height="720" alt="%S:artAlt%" fetchpriority="high" />
-        <figcaption class="name">
-          <p class="place">%S:town.en% · <span lang="ja">%S:town.jp%</span></p>
-          <h1 id="boot-title">%S:title%</h1>
-          <p class="jp" lang="ja">%S:titleJp%</p>
-        </figcaption>
-      </figure>
-      <div class="body">
-        <p class="tagline">%S:m.tagline%</p>
-        <div class="load-only" role="status" aria-live="polite">
-          <div class="bar" aria-hidden="true"><span></span></div>
-          <p class="line">%S:m.loading%</p>
-        </div>
-        <div class="start-only">
-          <!-- the sound first (pocket diorama, builder 5): headphones, and a one-tap check that also wakes the sound -->
-          <div class="phones">
-            <p>%S:m.headphones%</p>
-            <button class="check" type="button" id="sound-check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><span>%S:m.soundCheck%</span></button>
-          </div>
-          <p class="note ios">%S:m.silent%</p>
-          <p class="note turn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M3.5 15.5a8.5 8.5 0 0 0 5 5M20.5 8.5a8.5 8.5 0 0 0-5-5"/><path d="M15.5 1.8l.2 1.9-1.9.3M8.5 22.2l-.2-1.9 1.9-.3"/></svg>%S:m.rotate%</p>
-          <button class="btn" type="button" id="start">%S:m.tapToStart%</button>
-          <p class="url">%S:m.edition%</p>
-        </div>
+  <!-- the loading card, which becomes the start card.  Only its Start button starts the town; a tap anywhere else
+       wakes the sound (the title song), as on desktop (src/mobile/shell.js) -->
+  <div id="boot" class="scrim start" role="dialog" aria-modal="true" aria-labelledby="boot-title">
+    <picture class="bg">
+      <source media="(orientation: portrait)" srcset="keyart-portrait.webp" width="900" height="1600" />
+      <img src="keyart-1280.webp" srcset="keyart-1280.webp 1280w, keyart-1920.webp 1920w" sizes="100vw" width="1280" height="720" alt="%S:artAlt%" fetchpriority="high" />
+    </picture>
+    <header class="name">
+      <p class="place">%S:town.en% · <span lang="ja">%S:town.jp%</span></p>
+      <h1 id="boot-title">%S:title%</h1>
+      <p class="jp" lang="ja">%S:titleJp%</p>
+    </header>
+    <section class="sheet">
+      <p class="tagline">%S:m.tagline%</p>
+      <div class="load-only" role="status" aria-live="polite">
+        <div class="bar" aria-hidden="true"><span></span></div>
+        <p class="line">%S:m.loading%</p>
       </div>
+      <div class="start-only">
+        <button class="btn" type="button" id="start">%S:m.start%</button>
+      </div>
+      %MAKER:row:start_card%
+      <p class="url">%S:m.desktop%<i>·</i><a href="credits.html" target="_blank" rel="noopener">%S:credits%</a></p>
     </section>
   </div>
 
@@ -214,9 +280,9 @@
     <section class="card">
       <div class="body">
         <p class="place">%S:town.en% · <span lang="ja">%S:town.jp%</span></p>
-        <h1 id="gate-title" style="margin:0 0 12px;font-family:'Iowan Old Style',Palatino,Georgia,serif;font-size:26px;font-weight:600">%S:title%</h1>
-        <div class="msg for-nogl"><h2>%S:m.gate.noglTitle%</h2><p>%S:m.gate.nogl%</p></div>
-        <div class="msg for-lost"><h2>%S:m.gate.lostTitle%</h2><p>%S:m.gate.lost%</p>
+        <h1 id="gate-title" style="margin:0 0 12px;font-family:var(--serif);font-size:26px;font-weight:600">%S:title%</h1>
+        <div class="msg for-nogl"><h2>%S:m.gate.noglTitle%</h2><p class="t">%S:m.gate.nogl%</p></div>
+        <div class="msg for-lost"><h2>%S:m.gate.lostTitle%</h2><p class="t">%S:m.gate.lost%</p>
           <button class="btn" type="button" onclick="location.reload()">%S:m.gate.reload%</button></div>
         <p class="url">%S:url%</p>
       </div>

@@ -5,8 +5,9 @@ import { PETTAN } from '../../data/town.js';
 /* ------------------------------------------------------------------ *
  * ぺったん堂's signs, drawn with Canvas2D (AGENTS.md), each the size it is
  * seen at: the roof board 384 x 96, the noren 384 x 96, a flag 64 x 256,
- * the price card 128 x 96.  The static ones are packed into the town's
- * atlas by the merge pass; about 0.2 MB of pixels in all.
+ * the price card 128 x 96, the order stand's sign 128 x 128.  The static
+ * ones are packed into the town's atlas by the merge pass; about 0.2 MB of
+ * pixels in all.  Your IC card (320 x 200) is drawn here too.
  *
  * The crest is ours: a white moon, in it a rabbit with a mallet over a
  * mortar (月の兎), drawn from circles and a few strokes so it reads at 30 px.
@@ -153,4 +154,40 @@ export const clothTex = () => canvasTex('pettan:cloth', 128, 96, (c, w, h) => {
   c.fillStyle = INDIGO; c.fillRect(0, 0, w, h);
   c.fillStyle = CREAM; c.fillRect(0, h - 7, w, 3);
   crest(c, w / 2, h * 0.47, 30, CREAM, INDIGO);
+});
+
+/** The order stand's sign: order here, by IC card. */
+export const orderTex = () => canvasTex('pettan:order', 128, 128, (c, w, h) => {
+  c.fillStyle = INDIGO; c.fillRect(0, 0, w, h);
+  c.strokeStyle = CREAM; c.lineWidth = 3; c.strokeRect(6, 6, w - 12, h - 12);
+  crest(c, w / 2, 40, 23, CREAM, INDIGO);
+  fit(c, PETTAN.order, w / 2, 84, w - 24, 30, CREAM, JP_ROUND);
+  fit(c, PETTAN.orderSub, w / 2, 110, w - 30, 13, '#cfd6ee', JP, { weight: 600 });
+});
+
+/**
+ * Your transit card (an IC card like the ones every station sells; no real brand): the konbini's own "Fujica"
+ * (store/shop.js draws the same card for its till), here at the size it is seen held up: green, Fuji in white, the
+ * wordmark, the IC mark.  Rounded corners cut out.
+ */
+export const icCardTex = () => canvasTex('pettan:iccard', 320, 200, (c, w, h) => {
+  c.clearRect(0, 0, w, h);
+  const gr = c.createLinearGradient(0, 0, w, h);
+  gr.addColorStop(0, '#86dcae'); gr.addColorStop(0.55, '#46b983'); gr.addColorStop(1, '#27996a');
+  c.fillStyle = gr; c.beginPath(); c.roundRect(1, 1, w - 2, h - 2, 20); c.fill();
+  c.save(); c.beginPath(); c.roundRect(1, 1, w - 2, h - 2, 20); c.clip();
+  // Fuji: white, snow-capped (a darker cap line), a pale band of cloud
+  c.fillStyle = 'rgba(255,255,255,0.93)';
+  c.beginPath(); c.moveTo(118, 200); c.lineTo(212, 86); c.quadraticCurveTo(226, 80, 240, 86); c.lineTo(334, 200); c.closePath(); c.fill();
+  c.fillStyle = '#2f9f72';
+  c.beginPath(); c.moveTo(176, 130); c.lineTo(194, 120); c.lineTo(208, 132); c.lineTo(226, 118); c.lineTo(244, 132); c.lineTo(258, 122); c.lineTo(276, 130); c.lineTo(334, 200); c.lineTo(118, 200); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.28)'; c.fillRect(0, 160, w, 14);
+  c.restore();
+  c.fillStyle = '#ffffff'; c.textAlign = 'left'; c.textBaseline = 'top';
+  c.font = 'bold 54px "Avenir Next", "Helvetica Neue", sans-serif'; c.fillText('Fujica', 22, 18);
+  c.font = `bold 19px ${JP}`; c.fillText('フジカ', 26, 80);
+  // the IC mark: a white pill
+  c.fillStyle = '#ffffff'; c.beginPath(); c.roundRect(24, 148, 58, 30, 15); c.fill();
+  c.fillStyle = '#27996a'; c.font = 'bold 22px "Avenir Next", "Helvetica Neue", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('IC', 53, 164);
+  c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 2.5; c.beginPath(); c.roundRect(2.5, 2.5, w - 5, h - 5, 19); c.stroke();
 });

@@ -367,6 +367,7 @@ export function buildStation(ctx, { kit, service, sets }) {
     // the edge: a darker coping and a line nobody may stand beyond
     const ez = P.edge - P.face * 0.2;
     g.add(box(PL.x1 - PL.x0, 0.03, 0.4, m.edge, (PL.x0 + PL.x1) / 2, PH + 0.005, ez));
+    ctx.surface?.({ x0: PL.x0, x1: PL.x1, z0: ez - 0.2, z1: ez + 0.2, top: PH + 0.02 });      // (the coping stands 2 cm proud: Hachi's paws rest on it, ctx.js surfaceAt)
     ctx.collide(PL.x0, P.edge - P.face * 0.05 - 0.05, PL.x1, P.edge - P.face * 0.05 + 0.05, PH + 1.2);
     // yellow tactile line, a metre in from the edge
     for (let x = PL.x0 + 0.3; x < PL.x1 - 0.15; x += 0.3) {

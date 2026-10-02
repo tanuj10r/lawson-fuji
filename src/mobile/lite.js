@@ -232,9 +232,23 @@ export function packBatches(scene) {
   };
   scene.traverse((o) => {
     // (and the trees' trunks and limbs: one static mesh per kind, 170 K vertices for the sakura)
-    if (!o.isMesh || o.isInstancedMesh || !/^merged|Wood$/.test(o.name) || o.geometry.userData.packed) return;
+    /* (and the konbini's standing stock, store/products.js `stock-page-N`: 0.6 M vertices that never move.  The
+     * desktop lets their CPU arrays go once uploaded; here the packed copies are kept, so the stock can give its
+     * GPU copy back when you are away from the store and take it again) */
+    const stock = /^stock-page/.test(o.name);
+    if (!o.isMesh || o.isInstancedMesh || !(/^merged|Wood$/.test(o.name) || stock) || o.geometry.userData.packed) return;
     const g = o.geometry;
     g.userData.packed = true;
+    if (stock) {
+      for (const a of Object.values(g.attributes)) if (a.array?.length) a.onUploadCallback = () => {};
+      if (g.index) g.index.onUploadCallback = () => {};
+      const uv = g.attributes.uv;
+      if (uv && uv.array instanceof Float32Array) {
+        let ok = true;
+        for (let i = 0; i < uv.array.length && ok; i++) ok = uv.array[i] >= 0 && uv.array[i] <= 1;
+        if (ok) pack(g, 'uv', Uint16Array);
+      }
+    }
     pack(g, 'normal', Int8Array);
     pack(g, 'color', Uint16Array);
     pack(g, 'aTint', Uint16Array);
@@ -349,7 +363,7 @@ export function mergeSiblings(scene) {
  */
 export function packStoreQuads(scene, { page = 2048 } = {}) {
   const store = scene.getObjectByName('lawson'), inside = scene.getObjectByName('lawson-interior');
-  if (!store || !inside) return 0;
+  if (!store || !inside) return null;
   store.updateMatrixWorld(true);
   const paged = new Set();
   for (const p of storePages) for (const m of p.mats) paged.add(m);
@@ -367,7 +381,7 @@ export function packStoreQuads(scene, { page = 2048 } = {}) {
     if (t.wrapS !== THREE.ClampToEdgeWrapping || t.wrapT !== THREE.ClampToEdgeWrapping || !t.flipY || t.repeat.x !== 1 || t.repeat.y !== 1 || t.offset.x || t.offset.y) return;
     list.push(o);
   });
-  if (list.length < 2) return 0;
+  if (list.length < 2) return null;
   // each picture once at its own size: shelf packing, tallest first, `page` wide and as tall as it takes
   const texs = [...new Set(list.map((o) => o.material.map))];
   const PAD = 4, slots = new Map();
@@ -426,7 +440,20 @@ export function packStoreQuads(scene, { page = 2048 } = {}) {
   const still = new Set();
   scene.traverse((o) => { for (const m of [o.material].flat()) if (m?.map) still.add(m.map); });
   for (const t of texs) if (!still.has(t)) { t.dispose(); t.image.width = 1; t.image.height = 1; }
-  return removed;
+  /* The page is 2048 x ~3700 (39 MB with its mipmaps): from the street the GPU only ever samples its small
+   * mipmaps (a poster on the glass is ~110 px tall from the famous view).  So away from the store it is a
+   * quarter-size copy (the same picture as its second mipmap: 2.4 MB), the whole page again as you walk up. */
+  const small = document.createElement('canvas');
+  small.width = Math.round(page / 4); small.height = Math.max(4, Math.round(pageH / 4));
+  { const k = small.getContext('2d'); k.imageSmoothingQuality = 'high'; k.drawImage(cv, 0, 0, small.width, small.height); }
+  let near = true;
+  const level = (want) => {
+    if (want === near) return;
+    near = want;
+    tex.dispose(); tex.image = near ? cv : small; tex.needsUpdate = true;
+  };
+  level(false);
+  return { removed, level, get near() { return near; } };
 }
 
 /**
@@ -587,7 +614,7 @@ export function makeCuller(scene) {
      * becomes what the game says AND near enough, so neither undoes the other. */
     let mine = o.visible;
     // (a kind's far set, and the far tree lines, are what is seen from afar: never cut at the detail distance)
-    const e = { o, near: true, detail: o.name === 'merged-detail' || (o.isInstancedMesh && sphere.radius < 40 && !/Far\d?$/.test(o.name)), moves: o.matrixAutoUpdate, inst: o.isInstancedMesh ? o.instanceMatrix.version : -1, x: sphere.center.x, z: sphere.center.z, r: sphere.radius, box: null, reach: stock ? MOBILE.store.goods : 0 };
+    const e = { o, near: true, detail: o.name === 'merged-detail' || (o.isInstancedMesh && sphere.radius < 40 && !/Far\d?$/.test(o.name)), small: !o.isInstancedMesh && !/^merged/.test(o.name) && sphere.radius < (MOBILE.small?.r ?? 0), moves: o.matrixAutoUpdate, inst: o.isInstancedMesh ? o.instanceMatrix.version : -1, x: sphere.center.x, z: sphere.center.z, r: sphere.radius, box: null, reach: stock ? MOBILE.store.goods : 0 };
     // what never moves is measured by its box (a batch's cell is square: its sphere reaches far past its corners)
     if (!e.moves && !o.isInstancedMesh) {
       if (!g.boundingBox) g.computeBoundingBox();
@@ -695,7 +722,7 @@ export function makeCuller(scene) {
           ? Math.hypot(Math.max(e.box.min.x - px, 0, px - e.box.max.x), Math.max(e.box.min.z - pz, 0, pz - e.box.max.z))
           : Math.hypot(e.x - px, e.z - pz) - e.r;
         const hidden = behind !== null && !e.store && (e.box ? e.box.max.z : e.z + e.r) < behind;
-        e.near = !hidden && d < (e.reach || (e.detail ? MOBILE.detail : MOBILE.far));   // (the konbini's goods: only within their reach)
+        e.near = !hidden && d < (e.reach || (e.detail ? MOBILE.detail : e.small ? MOBILE.small.far : MOBILE.far));   // (the konbini's goods: only within their reach)
         e.d = hidden ? Infinity : d;
         if (!streamNow || !e.streams) continue;
         // small props (the detail cells) stream just past where they stop being drawn

@@ -1079,6 +1079,7 @@ export const MOBILE = {
   far: 150,
   fog: { near: 55, far: 145 },
   detail: 42,                // small instanced things (clutter, flowers, weeds) only this close
+  small: { r: 2, far: 90 },  // a loose part under `r` m across (a gate machine, a lamp, a plate) is drawn only within `far` m
   cell: 64,                  // batches with a page of their own, per cell (m): small enough to shrink and stream by distance
   bulkCell: 256,             // ... and everything plain-coloured or skinned with the town's shared tiles: big cells, few draws
   detailCell: 32,            // ... and the small props' own cells (drawn within `detail`)
@@ -1095,10 +1096,10 @@ export const MOBILE = {
   texLod: { min: 256 * 256, near: 40, far: 48, k: 0.25, store: 0.5 },
   /* In the store, what lies wholly north of `behind` (world z: the glass; the walls hide the rest) is neither
    * drawn nor kept; its goods are drawn (and kept) only within `goods` m. */
-  store: { behind: -0.5, goods: 45 },
+  store: { behind: -0.5, goods: 45, quadsNear: 15, quadsFar: 17.5 },
   /* The town's sign atlas (mobile/town.js mergePocket): only pages of at most `max` texels that belong to one
    * region go in, packed per region of a grid cut at these world z and x lines; the rest keep their own. */
-  atlas: { max: 100000, z: [-35, -70], x: [0] },
+  atlas: { max: 100000, z: [-35, -70], x: [-45, 45] },
   keepCpu: true,             // keep the CPU copies (needed to stream, and to survive a lost GPU context)
   /* The light tier: iOS browsers that are not Safari (Chrome, the in-app ones: a tighter memory budget), the
    * 4 GB iPhones, small Android phones (main.js picks).  The same textures near you, so nothing near is
@@ -1107,7 +1108,7 @@ export const MOBILE = {
     light: {
       far: 80, fog: { near: 28, far: 76 }, detail: 26,
       texLod: { min: 256 * 256, near: 20, far: 26, k: 0.25, store: 0.5 },
-      store: { behind: -0.5, goods: 34 },
+      store: { behind: -0.5, goods: 34, quadsNear: 15, quadsFar: 17.5 },
       shadow: { size: 1024, half: 28, every: 2.5 },
       render: { maxDpr: 2, pixels: 1.9e6, minScale: 1.25, step: 0.25, fpsLow: 50, fpsHigh: 57 },
       stream: 5,

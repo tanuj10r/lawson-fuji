@@ -759,6 +759,8 @@ function frame(now = 0) {
   hud.setCrosshair(!choosing && !famousView);
   const inStore = !!shop?.inside(camera);
   culler.update(camera.position, 3, inStore ? MOBILE.store.behind : null);   // in the store, what is behind its walls goes
+  // the konbini's quad page (lite.js packStoreQuads): whole within reach of its glass, a small copy from the street
+  lite.storeQuads?.level(inStore || !!shop?.visiting || Math.hypot(camera.position.x - LAWSON.x, camera.position.z - LAWSON.frontZ + LAWSON.depth / 2) < (lite.storeQuads.near ? MOBILE.store.quadsFar : MOBILE.store.quadsNear));
   sound.update(dt, { camera, inside: inStore, look: lookName, cooler: shop?.coolerAt });
   walkAt.forEach(({ w }, i) => { walkList[i].on = w.walk(); });
   sound.walkSignals(walkList);
@@ -823,7 +825,7 @@ if (import.meta.env?.DEV || new URLSearchParams(location.search).has('stats')) {
   window.__m = {
     scene, camera, renderer, pipeline, world, player, sound, hud, THREE, marks, lite, perf, culler, applyLook, enterHero,
     census: () => census(scene, renderer), hanShow, diag, meter, tier,
-    get scale() { return renderScale; }, touch, controls, spots,
+    get scale() { return renderScale; }, touch, controls, spots, minimap,
     /** dev (scripts/_mini.mjs): stand at a spot and draw it: { x, z, yaw, pitch, look, lift, steps } */
     goto(o = {}) {
       if (o.look && o.look !== lookName) applyLook(o.look);

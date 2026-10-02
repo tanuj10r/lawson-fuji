@@ -42,10 +42,11 @@ import { makeNight } from '../world/kit/night.js';
  *           not one per 64 m square
  *   page    a big picture of its own (over MOBILE.atlas.max texels: ドンペン堂's boards), used in one part of
  *           town: its own texture, batched in small cells (MOBILE.cell), so it shrinks and leaves with them
- *   own     the smaller pictures that belong to one part of town (a shop's fascia, a house's name board):
- *           packed into that region's own atlas page (MOBILE.atlas.z, .x cut the town into regions), one batch
- *           a material a region
- *   shared  small pictures used all over (road signs, pole plates): one atlas, in the big cells
+ *   own     the smaller pictures (a shop's fascia, a house's name board, road signs, pole plates): packed into
+ *           the atlas page of the region they stand in (MOBILE.atlas.z, .x cut the town into regions), one batch
+ *           a material a region.  A region's page is whole only while you are near it (lite.js: a quarter-size
+ *           copy from afar), so the town's signs cost what the signs round you cost.  (One atlas for the pictures
+ *           used all over was tried: 38 MB, whole wherever you stood.)
  *
  * A pass sees only its own meshes; what a pass makes stays out of the passes after it. */
 function splitMulti(root) {
@@ -117,7 +118,8 @@ function mergeMini(root, { cell, bulkCell, detailCell }) {
     if (!m.packs) { m.pass = 'bulk'; continue; }
     const t = m.o.material.map, one = regionsOf.get(t.source).size === 1;
     const small = t.image.width * t.image.height <= max && Math.max(t.image.width, t.image.height) <= 1024;   // (merge.js packs nothing wider than 1024 at its own size)
-    m.pass = small ? (one ? 'own' + m.r : 'shared') : (one ? 'page' : 'bulk');
+    // (a small picture used in several regions is packed into each of them: a region's page is whole only near you)
+    m.pass = small ? 'own' + m.r : (one ? 'page' : 'bulk');
   }
   const known = new Set(), made = [];
   root.traverse((o) => { if (o.isMesh) known.add(o); });
@@ -125,7 +127,6 @@ function mergeMini(root, { cell, bulkCell, detailCell }) {
     ['bulk', { cell: bulkCell, detailCell }, false],
     ['page', { cell, detailCell }, false],
     ...Array.from({ length: count }, (_, r) => ['own' + r, { cell: 0, detailCell, atlas: true }, true]),
-    ['shared', { cell: bulkCell, detailCell, atlas: true }, true],
   ];
   let out = null;
   for (const [name, opts, atlas] of passes) {

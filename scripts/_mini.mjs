@@ -40,7 +40,7 @@ const rec = (name) => (report.shots[name] ??= {});
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
 try {
   /* ------------------------------ the phone page ------------------------------ */
-  if (only.has('mobile') || only.has('walk') || only.has('probe')) {
+  if (only.has('mobile') || only.has('walk') || only.has('probe') || only.has('map')) {
     const portrait = !!flags.portrait;
     const vp = portrait ? { width: 393, height: 852 } : { width: 852, height: 393 };
     const ctx = await browser.newContext({ viewport: vp, deviceScaleFactor: Number(flags.dpr ?? 3), isMobile: true, hasTouch: true, userAgent: IPHONE });
@@ -65,6 +65,12 @@ try {
         await (await page.$('#view')).screenshot({ path: `${out}/${s.name}${sfx}.jpg`, type: 'jpeg', quality: 88 });
         Object.assign(rec(s.name), { [portrait ? 'portrait' : 'mobile']: info, gpuFirst: first.gpu });
       }
+    }
+    if (only.has('map')) {
+      // the plan as the game's own town map draws it
+      const u = await page.evaluate(() => { const M = window.__m; M.goto({ x: 0, z: 16.5, yaw: 0 }); M.minimap.setFull(true, M.player.pos, 0); return document.querySelector('.fullmap canvas').toDataURL('image/png'); });
+      fs.writeFileSync(`${out}/plan-map.png`, Buffer.from(u.split(',')[1], 'base64'));
+      await page.evaluate(() => window.__m.minimap.setFull(false));
     }
     if (flags.eval) report.eval = await page.evaluate(fs.readFileSync(flags.eval, 'utf8'));
     if (only.has('walk')) {

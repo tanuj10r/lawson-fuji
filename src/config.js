@@ -1088,6 +1088,7 @@ export const MOBILE = {
   small: { r: 2, far: 90 },  // a loose part under `r` m across (a gate machine, a lamp, a plate) is drawn only within `far` m
   cell: 64,                  // batches with a page of their own, per cell (m): small enough to shrink and stream by distance
   bulkCell: 256,             // ... and everything plain-coloured or skinned with the town's shared tiles: big cells, few draws
+  plainCell: 0,              // ... what has no picture, and the town-wide sign atlas: one batch a style for the whole town (0: no cells)
   detailCell: 32,            // ... and the small props' own cells (drawn within `detail`)
   dt: 1 / 20,                // the longest step a frame may take (s)
   look: 0.0052,              // drag to look: radians per CSS pixel

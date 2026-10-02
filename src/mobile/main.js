@@ -609,9 +609,12 @@ function frame(now = 0) {
 
 /* ------------------------------ first frame ------------------------------ */
 // WORLD: the town made light (lite.js): merged, packed, its far parts ready to leave the GPU and come back
+globalThis.__sys?.('shell');
 diag.stage('lite');
 const lite = liteScene(scene, renderer, world);
+globalThis.__sys?.('lite-scene');
 culler = makeCuller(scene, world, renderer);
+globalThis.__sys?.('lite-culler');
 const mirrors = lazyMirrors(scene, renderer);        // WORLD: the water's mirrors drawn only while their water is on the screen
 viewW = 0;                                       // (the resize below hands the culler the screen's pixels a metre)
 world.fuji.ready?.then((m) => { lite.fuji = liteFuji(m); });
@@ -621,6 +624,7 @@ if (world.reflectRect) {
 }
 enterHero(SPAWN.view);
 resize();
+globalThis.__sys?.('lite-hero');
 world.update(0, camera);
 culler.update(camera.position, 1, null, true);   // WORLD: streamed at once: what is far never uploads at load, the far pages start small
 seatLights();
@@ -630,14 +634,18 @@ sky.clouds.position.copy(camera.position);
  * and the painting let go, before the next (store/pages.js would do all of them in the first frame that draws the
  * stock: three paintings at once, ~150 MB for a moment, which is the moment a phone takes the tab away) */
 pagesRenderer(renderer);
-for (const p of storePages) p.update('far', true);
+/* BUDGET: ... and not before the first frame at all: the start card is up, and the store's own update paints one page
+ * a frame behind it (mobile/pages.js; ~40 ms each, eight pages), so the load is a third of a second shorter. */
+globalThis.__sys?.('lite-pages');
 // the shaders compile and the textures upload behind the loading card, not on the first touch
 diag.stage('compiling');
 try { await renderer.compileAsync(scene, camera); } catch { /* compiled on first draw instead */ }
 mark('compiled');
+globalThis.__sys?.('compile');
 diag.stage('first frame');
 pipeline.render();
 mark('firstFrame');
+globalThis.__sys?.('first-frame');
 diag.stage('ready');
 await nextPaint();
 

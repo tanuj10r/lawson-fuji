@@ -117,7 +117,8 @@ function mergeMini(root, { cell, bulkCell, detailCell }) {
     meshes.push(m);
   });
   for (const m of meshes) {
-    if (!m.packs) { m.pass = 'bulk'; continue; }
+    // BUDGET: what has no picture at all in one batch a style for the whole town (`plain`): nothing of it can shrink or leave anyway
+    if (!m.packs) { m.pass = m.o.material?.map || Array.isArray(m.o.material) ? 'bulk' : 'plain'; continue; }
     const t = m.o.material.map, one = regionsOf.get(t.source).size === 1;
     const small = t.image.width * t.image.height <= max && Math.max(t.image.width, t.image.height) <= 1024;   // (merge.js packs nothing wider than 1024 at its own size)
     m.pass = small ? (one ? 'own' + m.r : 'shared') : (one ? 'page' : 'bulk');
@@ -125,10 +126,11 @@ function mergeMini(root, { cell, bulkCell, detailCell }) {
   const known = new Set(), made = [];
   root.traverse((o) => { if (o.isMesh) known.add(o); });
   const passes = [
+    ['plain', { cell: MOBILE.plainCell ?? bulkCell, detailCell }, false],
     ['bulk', { cell: bulkCell, detailCell }, false],
     ['page', { cell, detailCell }, false],
     ...Array.from({ length: count }, (_, r) => ['own' + r, { cell: 0, detailCell, atlas: true }, true]),
-    ['shared', { cell: bulkCell, detailCell, atlas: true }, true],
+    ['shared', { cell: MOBILE.plainCell ?? bulkCell, detailCell, atlas: true }, true],
   ];
   // (measuring: how many pictures and texels each pass holds)
   { const st = {}; const seen = new Set(); for (const m of meshes) { const t = m.o.material?.map; if (!m.packs || seen.has(m.pass + t.source.uuid)) continue; seen.add(m.pass + t.source.uuid); const e = (st[m.pass] ??= { n: 0, mtx: 0 }); e.n++; e.mtx += t.image.width * t.image.height / 1e6; } globalThis.__mergeStats = st; }

@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { MOBILE, TOWN, ANIMALS, LAWSON } from '../config.js';
 import { decalAtlas } from '../world/kit/tex.js';
 import { storePages } from '../world/store/pages.js';
+import { mergeStatic } from '../world/merge.js';
 
 /* ------------------------------------------------------------------ *
  * What makes the town light enough for a phone (docs/decisions/
@@ -29,7 +30,10 @@ export function liteConfig() {
   // Hachi's distance fields kept grown at once (2.6 MB each)
   ANIMALS.guide.fields = 3;
   // POCKET: the plain local trains only (the Pokémon wrap's 4096 x 1024 page is 21 MB on the GPU)
-  TOWN.rail.trains = TOWN.rail.trains.filter((t) => t !== 'poke');
+  /* BUDGET: one train set (Tan): the plain local, both ways.  The two runs never stand in sight together (the next
+   * comes in as the last has gone into the fog), so they share the one set (line/emu.js `lend`, phone build only):
+   * a second is built only if both are ever within 300 m of the platform at once. */
+  TOWN.rail.trains = ['box'];
 }
 
 /**
@@ -37,8 +41,16 @@ export function liteConfig() {
  * Returns what it did, for the report.
  */
 export function liteScene(scene, renderer, world) {
-  const siblings = mergeSiblings(scene), storeQuads = packStoreQuads(scene);
-  const out = { siblings, storeQuads, packed: packBatches(scene), decals: cropDecals(scene), atlasPages: cropAtlasPages(scene), mirrors: 0, freedTextures: 0, freedTextureMB: 0, freedGeometry: 0, freedGeometryMB: 0 };
+  const T = (n) => globalThis.__sys?.(n);
+  const siblings = mergeSiblings(scene), folded = foldPlain(scene);
+  T('lite-siblings');
+  const storeQuads = packStoreQuads(scene);
+  T('lite-quads');
+  const packed = packBatches(scene);
+  T('lite-pack');
+  const decals = cropDecals(scene), atlasPages = cropAtlasPages(scene);
+  T('lite-crop');
+  const out = { siblings, folded, storeQuads, packed, decals, atlasPages, mirrors: 0, freedTextures: 0, freedTextureMB: 0, freedGeometry: 0, freedGeometryMB: 0 };
 
   /* The mirrors (land/mirror.js: the pond, the river, the paddies) stay, as on the desktop (v3): each is a
    * small target drawn only while you stand by its water, and without them the water is a flat sheet (Tan:
@@ -401,6 +413,38 @@ export function mergeSiblings(scene) {
       for (const c of list) p.remove(c);
       saved += list.length - 1;
     }
+  }
+  return saved;
+}
+
+/**
+ * BUDGET: the places built as one mesh a material and kept out of the town's batches (the pond's grounds, the
+ * river's banks, the shrine: `userData.dynamic`, so a mirror can draw them alone) are still mostly plain colours:
+ * a lantern's stone, its cap, a post, a rail, each a draw.  world/merge.js folds plain colours into one
+ * vertex-coloured batch a lighting style; here it is run on each such group's own plain-coloured children, in the
+ * group's own frame (so the group can still be shown, hidden or mirrored whole).  Anything with a picture, a
+ * colour that changes (`live`), children, or a name the game may hold (`keep`) is left.  Returns the draws saved.
+ */
+const PLAIN_OWNERS = /^(land-pond|land-channel-reflect|shrine)$/;
+export function foldPlain(scene) {
+  const owners = [];
+  scene.traverse((o) => { if (PLAIN_OWNERS.test(o.name)) owners.push(o); });
+  let saved = 0;
+  for (const P of owners) {
+    const list = P.children.filter((c) => {
+      const m = c.material;
+      return c.isMesh && !c.isInstancedMesh && !c.isSkinnedMesh && c.visible && !c.children.length && !c.userData.keep && !c.userData.dynamic
+        && m && !Array.isArray(m) && (m.isMeshToonMaterial || m.isMeshBasicMaterial) && !m.map && !m.alphaMap && !m.vertexColors && !m.userData.live
+        && c.onBeforeRender === THREE.Object3D.prototype.onBeforeRender && !c.geometry.morphAttributes.position;
+    });
+    if (list.length < 3) continue;
+    const tmp = new THREE.Group();
+    P.add(tmp);
+    for (const c of list) tmp.add(c);
+    mergeStatic(tmp, { cell: 0 });
+    saved += list.length - tmp.children.length;
+    for (const c of [...tmp.children]) { if (c.name === 'merged') c.name = P.name + '-plain'; P.add(c); }
+    P.remove(tmp);
   }
   return saved;
 }

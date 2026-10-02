@@ -39,6 +39,7 @@ const MAX = +opt('max', 12);
 const KNOWN = {
   'pond-rail': 110, 'town-main-west': 100, 'town-spine-north': 80, 'carpark-paint': 50, 'tour-crossing': 45, 'town-lane-junction': 40,
   'main-shops-west': 35, 'train-poke-front': 25, 'tour-walk2': 25, 'donki-street': 22, 'tour-konbini': 20,
+  'bus-stop': 20,      // (the barber's gable behind the shelter, 14 m off: 16; the bus stop itself is clean)
 };
 
 /* ---------------------------------------------------------------- the poses */
@@ -114,6 +115,10 @@ spot('train-under');
 // the platforms and the station
 for (const n of ['platform-departures', 'platform-canopy', 'train-at-platform', 'crossing-path', 'station-concourse', 'station-gates', 'station-to-platform',
   'station-entrance', 'station-approach', 'station-plaza-clock', 'poster-station', 'town-plaza']) spot(n);
+// the plaza's bus stop (line/busstop.js): the shelter, the bay's paint and the tactile path, the hedge and the police box's wall
+stand('bus-stop', [-70, 130], [-76.4, 133.6], { frame: 'core', pitch: 0.02 });
+stand('bus-stop-paint', [-72.6, 126.6], [-74.2, 133], { frame: 'core', pitch: -0.35 });
+stand('bus-stop-inside', [-75.2, 135.2], [-77.2, 132.6], { frame: 'core', pitch: 0.05 });
 stand('platform-edge', [-40, 157.6], [-60, 158.6], { frame: 'core', pitch: -0.3, train: 'quiet' });      // the edge tiles and tactile strip, no train
 stand('platform-edge-close', [-36, 157.2], [-38.5, 158.9], { frame: 'core', pitch: -0.7, train: 'quiet' });
 stand('platform-track', [-52, 157.9], [-70, 161], { frame: 'core', pitch: -0.25, train: 'quiet' });      // the rails and sleepers from the edge

@@ -4,7 +4,8 @@ import { SEEN } from './seen-data.js';
  * What of the konbini is ever seen (DECISIONS.md, "The konbini, only
  * what is seen").
  *
- * You stand outside, or one of the five visits walks you through: every
+ * You stand outside, or one of the five visits walks you through (the view
+ * is the visit's from the door until you are outside again): every
  * pose a player can have is known, and scripts/_store-seen.mjs has looked
  * from all of them (src/dev/store-seen.js) and written seen-data.js:
  *   mask          per stock unit, which of its six sides were ever seen
@@ -16,6 +17,8 @@ import { SEEN } from './seen-data.js';
  *                 mipmap of its label ever sampled from beyond `near`
  *                 metres of the glass (0: the painting itself); the label
  *                 pages are made up by it (store/labels.js, store/pages.js)
+ *   labelNear     the same from anywhere at all (the page's level at the
+ *                 store itself; 0 for the five things you can take)
  *   tagLevel      the same of each product's price tag, from anywhere;
  *   tagFar        and from beyond `near`
  * It was measured on one store: it is used only on the same one (the same

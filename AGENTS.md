@@ -2,7 +2,7 @@
 
 First-person, anime-style browser game: Fujikawaguchikko (富士川口湖町),
 a compact town under Mt. Fuji, as experiences (docs/EXPERIENCES.md): to
-do (konbini, Han's RX-7, train, slow-life bench) and to hear (walk
+do (konbini, Han's RX-7, train, slow-life bench, ぺったん堂) and to hear (walk
 signals, ドンペン堂, station, level crossing, shrine), Osaka and Deer Park
 teasers. Full design: SPEC.md; read only the sections the work needs.
 

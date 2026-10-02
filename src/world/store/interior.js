@@ -431,7 +431,7 @@ export function buildInterior(group, { lit, colliders }) {
       p.cyl(xc + 0.3, 1.5, z, 0.1, 0.18, 0xdce8f0, 14);                               // the dome it blends under
       p.box(xc + 0.05, xc + 0.08, 1.02, 1.05, z + 0.14, z + 0.18, 0x58e08a);          // a lit button
     }
-    p.quad(smallSign('smoothie'), xw - 0.01, 2.25, -10.5, 1.1, 0.55, { ry: -Math.PI / 2 });
+    p.quad(smallSign('smoothie'), xw - 0.04, 2.25, -10.5, 1.1, 0.55, { ry: -Math.PI / 2 });      // (1 cm off the wall's face at X1 - 0.03: it was behind it)
     block(xc - 0.06, xw, -11.95, -8.85, 1.6);
   }
 

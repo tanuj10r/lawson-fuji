@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { STATION, LINE, TAXI, RIDE, NAME_BOARD, CAR_ADS } from '../../data/town.js';
+import { BUS } from '../../data/bus.js';
 import { JP, JP_ROUND, JP_BRUSH } from '../kit/tex.js';
 import { pikachu, pokeball, bolt, pawprint, cloud, eevee, piplup, bulbasaur, PIKA } from './art.js';
 
@@ -484,6 +485,53 @@ export const taxiSignTex = () =>
   tex('taxiSign', 256, 96, (c, w, h) => {
     c.fillStyle = '#f5c428'; c.fillRect(0, 0, w, h);
     fit(c, TAXI, w / 2, h * 0.5, w - 20, 40, INK);
+  });
+
+/* ---- the plaza's bus stop (busstop.js): each the size it is read at ---- */
+
+/** The board under the shelter's eave: バスのりば, the stop, the line. */
+export const busSignTex = () =>
+  tex('busSign', 512, 64, (c, w, h) => {
+    c.fillStyle = '#1f5a48'; c.fillRect(0, 0, w, h);
+    c.fillStyle = CREAM; c.fillRect(3, 3, w - 6, h - 6);
+    c.fillStyle = '#1f5a48'; c.fillRect(6, 6, 150, h - 12);
+    fit(c, 'バスのりば', 81, h / 2 + 1, 136, 28, CREAM, { font: JP_ROUND });
+    fit(c, BUS.stop, 268, h / 2 + 1, 200, 30, INK, { font: JP_ROUND });
+    fit(c, BUS.line, 444, h / 2 + 1, 110, 24, '#c8542c', { font: JP_ROUND });
+  });
+
+/** The small plate on the stop pole: the bay and the line. */
+export const busBayPlateTex = () =>
+  tex('busBay', 256, 72, (c, w, h) => {
+    c.fillStyle = '#1f5a48'; c.fillRect(0, 0, w, h);
+    c.fillStyle = CREAM; c.beginPath(); c.arc(36, h / 2, 24, 0, Math.PI * 2); c.fill();
+    fit(c, BUS.bay, 36, h / 2 + 2, 30, 36, '#1f5a48', { font: SANS });
+    fit(c, `${BUS.line} のりば`, 156, h / 2 + 1, 170, 32, CREAM, { font: JP_ROUND });
+  });
+
+/** The route map in the shelter: the loop round the town, this stop marked, the fare. */
+export const busRouteTex = () =>
+  tex('busRoute', 512, 320, (c, w, h) => {
+    c.fillStyle = '#fbf8ee'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#1f5a48'; c.fillRect(0, 0, w, 54);
+    fit(c, `${BUS.line}  路線図`, w / 2, 28, w - 150, 32, CREAM, { font: JP_ROUND });
+    fit(c, BUS.kind, w - 70, 30, 120, 16, '#cfe6d8', { weight: '600' });
+    const n = BUS.loop.length, cx = w / 2, cy = 168, rx = 176, ry = 70;
+    c.strokeStyle = '#2f8a66'; c.lineWidth = 10;
+    c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); c.stroke();
+    BUS.loop.forEach((name, i) => {
+      const a = -Math.PI / 2 + (i / n) * Math.PI * 2, x = cx + Math.cos(a) * rx, y = cy + Math.sin(a) * ry;
+      c.fillStyle = i ? '#fbf8ee' : '#d8302c'; c.strokeStyle = i ? '#2f8a66' : '#8a1f1c'; c.lineWidth = 5;
+      c.beginPath(); c.arc(x, y, i ? 11 : 14, 0, Math.PI * 2); c.fill(); c.stroke();
+      const out = Math.sin(a) < -0.3 ? -28 : Math.sin(a) > 0.3 ? 30 : 0;
+      const sideways = out ? 0 : Math.cos(a) > 0 ? -62 : 62;
+      fit(c, name, x + sideways, y + out + (out ? 0 : 0), 104, i ? 20 : 22, i ? INK : '#d8302c', { font: JP_ROUND });
+    });
+    fit(c, '現在地', cx, cy - ry + 32, 80, 15, '#d8302c', { weight: '600' });
+    // which way it goes round
+    c.fillStyle = '#2f8a66'; c.beginPath(); c.moveTo(cx + 12, cy + ry - 13); c.lineTo(cx - 12, cy + ry); c.lineTo(cx + 12, cy + ry + 13); c.closePath(); c.fill();
+    c.fillStyle = '#e9e2cc'; c.fillRect(0, h - 44, w, 44);
+    fit(c, BUS.fare, w / 2, h - 21, w - 40, 22, INK, { weight: '600' });
   });
 
 /** A plain label: a word on a coloured plate (待合室, お手洗い, 交番). */

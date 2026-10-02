@@ -398,13 +398,14 @@ export function makeShop(ctx, o) {
       const paneMat = lit
         ? flat({ color: 0xffffff, map: litWindowTex(i % 3), cache: false })
         : flat({ color: PAL.glassDark });
-      g.add(box(1.34, 1.14, 0.06, paneMat, px, H1 + 1.4, front - 0.14));
-      push('metal', new THREE.BoxGeometry(0.07, 1.14, 0.07), trs(px, H1 + 1.4, front - 0.12));
+      // (the pane 1 cm proud of the frame's face, the mullion over it: both were inside the frame's box, unseen)
+      g.add(box(1.34, 1.14, 0.06, paneMat, px, H1 + 1.4, front - 0.06));
+      push('metal', new THREE.BoxGeometry(0.07, 1.14, 0.07), trs(px, H1 + 1.4, front - 0.04));
       push('trim', new THREE.BoxGeometry(1.7, 0.09, 0.22), trs(px, H1 + 0.72, front - 0.16));
       if (rng.chance(0.5)) {
         const cur = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 1.06),
           flat({ color: 0xe8e0d2, map: curtainTex(i % 2), cache: false }));
-        cur.position.set(px + rng.sign() * 0.34, H1 + 1.4, front - 0.11);
+        cur.position.set(px + rng.sign() * 0.34, H1 + 1.4, front - 0.024);      // (on the pane, behind the mullion's face)
         cur.userData.noOutline = true;
         g.add(cur);
       }

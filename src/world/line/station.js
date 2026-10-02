@@ -5,7 +5,8 @@ import { hullOutline } from '../../core/outline.js';
 import { TOWN, ROADS, SOUND } from '../../config.js';
 import { steps, railing, meshFence } from '../ground.js';
 import { makeBench, makeBins, makePhoneBooth, makePlanter, makeBikeRack } from '../props.js';
-import { makeBusStop, makeVehicle } from '../vehicles.js';
+import { makeVehicle } from '../vehicles.js';
+import { buildBusStop } from './busstop.js';
 import { addVending } from '../vending.js';
 import { LAYER } from '../kit/decals.js';
 import { TRACK_Z, deckBoards } from './track.js';
@@ -161,9 +162,13 @@ function smallBuilding(ctx, g, { x0, z0, x1, z1, y = 0, h = 2.8, face, sign, wal
   }
   // windows down the sides
   for (const s of [-1, 1]) {
+    // a pale frame and a sill round the pane, so the side is a wall with a window in it, not a dark square
+    const fr = box(fx ? 1.14 : 0.05, 1.04, fx ? 0.05 : 1.14, m.cabinet, fx ? 0 : s * (W / 2), 1.6, fx ? s * (D / 2) : 0);
+    const sill = box(fx ? 1.26 : 0.12, 0.05, fx ? 0.12 : 1.26, m.cabinet, fx ? 0 : s * (W / 2), 1.07, fx ? s * (D / 2) : 0);
+    b.add(fr, sill);
     const wgl = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.9), cel({ color: 0x6f7c9c, bands: 2, tint: 0x4b4560 }));
-    if (fx) { wgl.position.set(0, 1.6, s * (D / 2 + 0.02)); wgl.rotation.y = s > 0 ? 0 : Math.PI; }
-    else { wgl.position.set(s * (W / 2 + 0.02), 1.6, 0); wgl.rotation.y = s > 0 ? Math.PI / 2 : -Math.PI / 2; }
+    if (fx) { wgl.position.set(0, 1.6, s * (D / 2 + 0.035)); wgl.rotation.y = s > 0 ? 0 : Math.PI; }
+    else { wgl.position.set(s * (W / 2 + 0.035), 1.6, 0); wgl.rotation.y = s > 0 ? Math.PI / 2 : -Math.PI / 2; }
     b.add(wgl);
   }
   g.add(b);
@@ -363,6 +368,7 @@ export function buildStation(ctx, { kit, service, sets }) {
     const ez = P.edge - P.face * 0.2;
     // (laid on the deck, not 1 cm into it: its edge lay in the platform's face and flickered along the whole edge)
     g.add(box(PL.x1 - PL.x0, 0.02, 0.4, m.edge, (PL.x0 + PL.x1) / 2, PH + 0.01, ez));
+    ctx.surface?.({ x0: PL.x0, x1: PL.x1, z0: ez - 0.2, z1: ez + 0.2, top: PH + 0.02 });      // (the coping stands 2 cm proud: Hachi's paws rest on it, ctx.js surfaceAt)
     ctx.collide(PL.x0, P.edge - P.face * 0.05 - 0.05, PL.x1, P.edge - P.face * 0.05 + 0.05, PH + 1.2);
     // yellow tactile line, a metre in from the edge
     for (let x = PL.x0 + 0.3; x < PL.x1 - 0.15; x += 0.3) {
@@ -513,27 +519,8 @@ export function buildStation(ctx, { kit, service, sets }) {
     for (const ry of [0, Math.PI]) clock(ctx, g, cp.x, y + 3.9, cp.z + (ry ? -0.06 : 0.06), ry, 0.42);
     ctx.collide(cp.x - 0.2, cp.z - 0.2, cp.x + 0.2, cp.z + 0.2, 4.3);
     reg(ctx, 'prop', cp.x, cp.z);
-    // bus stop with its shelter on the west side
-    const bs = { x: P.x0 + 2.2, z: P.z0 + 8 };
-    const stop = makeBusStop({ x: bs.x, y, z: bs.z - 2.4, ry: Math.PI / 2 });
-    g.add(stop);
-    ctx.collide(bs.x - 0.2, bs.z - 2.6, bs.x + 0.2, bs.z - 2.2, 2.5);
-    {
-      const sh = new THREE.Group();
-      for (const dz of [-1.6, 1.6]) sh.add(box(0.1, 2.4, 0.1, m.steel, 0.6, 1.2, dz));
-      sh.add(box(1.6, 0.1, 3.6, m.roof, 0.3, 2.45, 0));
-      const back = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.8), m.glass);
-      back.position.set(-0.35, 1.2, 0);
-      back.rotation.y = Math.PI / 2;
-      sh.add(back);
-      sh.add(box(0.4, 0.08, 2.6, m.wood, -0.1, 0.45, 0));
-      board(sh, posterTex(0), 0.7, 1.0, -0.3, 1.3, 1.2, Math.PI / 2, false);
-      sh.position.set(bs.x - 0.8, y, bs.z + 0.6);
-      sh.traverse((n) => { if (n.isMesh) n.castShadow = true; });
-      g.add(sh);
-      ctx.collide(bs.x - 1.25, bs.z - 1.2, bs.x - 1.05, bs.z + 2.4, 2.4);
-      reg(ctx, 'prop', bs.x, bs.z);
-    }
+    // the bus stop on the west side: shelter, stop pole, machine, hedge, the bay on the paving (busstop.js)
+    buildBusStop(ctx, g, kit, { P, y, kobanZ: P.z0 + 11.5, kobanX: P.x0 + 2.5, pathX: cxE - 2.5 });
     // the taxi, waiting on the east side, nose to the entrance
     const tx = { x: P.x1 - 4.5, z: B.z0 - 7 };
     const taxi = makeVehicle({ kind: 'sedan', color: 0xf0eadc });
@@ -614,10 +601,9 @@ export function buildStation(ctx, { kit, service, sets }) {
       const F = { at: (u, v) => ({ x: fx0 + v, z: P.z0 + 5.5 - u }), face: { x: -1, z: 0 }, faceKey: 'x-', ry: -Math.PI / 2 };
       buildShop(ctx, null, kit, lot, F, 'cafe', { maxFloors: 2 });
     }
-    // the guide path in yellow from the shopping street to the steps, and to the bus stop
-    const tz = y;      // on the plaza's top (as on the platforms: `y - asphaltY` was 14 mm under it, unseen, bleeding through)
+    // the guide path in yellow from the shopping street to the steps (the bus stop lays its own branch: busstop.js)
+    const tz = y;      // on the plaza's top (as on the platforms: `y - asphaltY` was under it, unseen, bleeding through)
     for (let z = P.z0 + 0.3; z < B.z0 - 2.3; z += 0.3) kit.decals.add('tactileLine', cxE - 2.5, z, 0.3, 0.3, { x: 0, z: 1 }, tz, LAYER.paint);
-    for (let x = bs.x + 1.0; x < cxE - 2.6; x += 0.3) kit.decals.add('tactileLine', x, bs.z - 0.6, 0.3, 0.3, { x: 1, z: 0 }, tz, LAYER.paint);
     // the taxi rank: a yellow box round the waiting cab
     for (const dx of [-1.3, 1.3]) kit.decals.add('yellow', tx.x + dx, tx.z, 0.15, 5.6, { x: 0, z: 1 }, tz, LAYER.paint);
     for (const dz of [-2.8, 2.8]) kit.decals.add('yellow', tx.x, tx.z + dz, 2.6, 0.15, { x: 0, z: 1 }, tz, LAYER.paint);

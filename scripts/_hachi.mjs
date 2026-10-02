@@ -172,6 +172,21 @@ try {
     console.log(r);
   }
 
+  if (ONLY?.includes('posture')) {
+    // (tuning: the pup's lowest point by posture, bow to lying, with the table at 0: what comes out, negated (less the
+    // 3 mm it stands at), is config.js ANIMALS.guide.postureUp; then again with the table on: all within a few mm of 0)
+    const r = await page.evaluate(() => {
+      const H = window.__hachi, g = window.__guide, S = g.G, U = g.A.postureUp, keep = [...U.up];
+      H.stand(7.5, 19.0, 3, 19.0);
+      const read = () => { const row = []; for (let p = -1; p <= 2.001; p += U.step) { g.stage('stand', window.__scene.player, 2.6); S.posture = p; S.y = g.ground(S.x, S.z); g.stage2(); row.push(`${p.toFixed(3)}:${g.lowest().low}`); } return row.join('  '); };
+      U.up.fill(0);
+      const raw = read();
+      keep.forEach((v, i) => { U.up[i] = v; });
+      return { raw, withTable: read() };
+    });
+    console.log(r);
+  }
+
   if (ONLY?.includes('rolltrace')) {
     const r = await page.evaluate(() => {
       const H = window.__hachi, g = window.__guide, S = g.G;

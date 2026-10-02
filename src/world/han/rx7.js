@@ -965,9 +965,13 @@ export function makeRX7() {
   ];
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(0, 0, 0, 'YZX');
   const v = new THREE.Vector3(), sc = new THREE.Vector3();
-  function setWheels(spin = 0, steer = 0) {
+  /** The wheels: `spin` the fronts' turn (rad, rolling forward), `steer` the fronts' angle (rad, positive toward
+   * the car's right, its +z, as drive.js has it), `rear` the rears' turn (they lock and spin on their own in a
+   * slide; default: as the fronts).  (Tan, 2026-10-02: "the tyres turn left while the car goes right": a turn
+   * about +y swings a wheel's nose toward -z, the car's left, so the steer angle goes in negated.) */
+  function setWheels(spin = 0, steer = 0, rear = spin) {
     wheels.forEach((w, i) => {
-      const st = w.front ? steer : 0;
+      const st = w.front ? -steer : 0, sp = w.front ? spin : rear;
       v.set(w.x, RX7.R, w.z);
       sc.set(1, 1, w.w);
       // the outer face points out: the left wheels are turned half round
@@ -975,7 +979,7 @@ export function makeRX7() {
       q.setFromEuler(e);
       m4.compose(v, q, sc);
       inst.steer.setMatrixAt(i, m4);
-      e.set(0, st + (w.s < 0 ? Math.PI : 0), -spin * w.s);
+      e.set(0, st + (w.s < 0 ? Math.PI : 0), -sp * w.s);
       q.setFromEuler(e);
       m4.compose(v, q, sc);
       inst.tyre.setMatrixAt(i, m4);
@@ -985,9 +989,22 @@ export function makeRX7() {
   }
   setWheels(0, 0);
 
+  /* the body on its springs: everything but the wheels, so it can roll and pitch over them (about the roll
+   * centre, a little above the road) while the tyres stay on the ground */
+  const sprung = new THREE.Group();
+  sprung.name = 'rx7-body';
+  for (const o of group.children.slice()) if (!o.isInstancedMesh) sprung.add(o);
+  group.add(sprung);
+  const PIVOT = 0.22;
+  /** Roll (rad, + = the roof toward the car's right) and pitch (rad, + = nose up). */
+  function setLean(roll = 0, pitch = 0) {
+    sprung.rotation.set(roll, 0, pitch);
+    sprung.position.set(PIVOT * Math.sin(pitch), PIVOT * (1 - Math.cos(roll) * Math.cos(pitch)), -PIVOT * Math.sin(roll));
+  }
+
   const base = mats.map((m) => m.envMapIntensity);
   return {
-    group, door, setWheels,
+    group, body: sprung, door, setWheels, setLean,
     setDoor(a) { door.rotation.y = a; doorInner.visible = a > 0.01; },
     /** The sky's reflections follow the light: 1 by day, down toward blue hour. */
     setEnv(k) { mats.forEach((m, i) => { m.envMapIntensity = base[i] * k; }); },

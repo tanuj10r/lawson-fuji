@@ -127,6 +127,7 @@ export function buildHachiHome(town) {
 
   /* ---- the lawn, mown in stripes ---- */
   box(H.x1 - H.x0, LY, H.z1 - zF - 0.15, (H.x0 + H.x1) / 2, LY / 2, (zF + 0.15 + H.z1) / 2, LAWN);
+  ctx.surface?.({ x0: H.x0, x1: H.x1, z0: zF + 0.15, z1: H.z1, top: y0 + LY });      // (3 cm over the ground: his paws rest on it, ctx.js surfaceAt)
   for (let x = H.x0 + 1.0; x < H.x1 - 0.6; x += 1.9) box(0.95, LY + 0.002, H.z1 - zF - 0.9, x, LY / 2 + 0.001, (zF + H.z1) / 2 + 0.2, LAWN2);
 
   /* ---- the picket fence, low and white: the sides and the back ---- */
@@ -223,6 +224,7 @@ export function buildHachiHome(town) {
     const path = [[gx, zF + 0.95], [gx + 0.12, zF + 1.8], [gx + 0.4, zF + 2.62], [gx + 0.82, zF + 3.4], [gx + 1.22, zF + 4.15], [kx - 0.1, kz - 2.1]];
     path.forEach(([x, z], i) => {
       const ry = i * 1.3, top = LY + 0.035;
+      ctx.surface?.({ x0: x - 0.23, x1: x + 0.23, z0: z - 0.2, z1: z + 0.2, top: y0 + top });      // (his paws rest on it: ctx.js surfaceAt)
       b.add(new THREE.CylinderGeometry(0.3, 0.33, 0.05, 10), { matrix: at(x, y0 + top - 0.025, z, 0, ry, 0, [1, 1, 0.84]), color: STONE[i % 2] });
       // the print: a pad and four toes, pressed in dark, pointing on along the path
       const nx = path[Math.min(i + 1, path.length - 1)], pv = path[Math.max(i - 1, 0)], a = Math.atan2(nx[0] - pv[0], nx[1] - pv[1]) + (i % 2 ? 0.25 : -0.25);
@@ -319,6 +321,7 @@ export function buildHachiHome(town) {
   {
     const [bx, bz] = H.bed, W = 1.5, D = 1.15, nx = 9, nz = 7, a = 0.2, c0 = Math.cos(a), s0 = Math.sin(a);
     box(W + 0.08, 0.014, D + 0.08, bx, LY + 0.007, bz, 0xf3e7cf, a);
+    ctx.surface?.({ x0: bx - 0.7, x1: bx + 0.7, z0: bz - 0.48, z1: bz + 0.48, top: y0 + LY + 0.024 });      // (the blanket, within its turn: his paws rest on it)
     for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
       const lx = (i + 0.5) / nx * W - W / 2, lz = (j + 0.5) / nz * D - D / 2;
       box(W / nx, 0.012, D / nz, bx + lx * c0 + lz * s0, LY + 0.018, bz - lx * s0 + lz * c0, (i + j) % 2 ? RED : (i % 2 ? 0xf0b8a8 : 0xfaf0e0), a);

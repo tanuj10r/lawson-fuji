@@ -414,7 +414,7 @@ export const SNACKS = {
  *   play(name | {a reaction}, o)   start one now (`o.dur` another length, `o.delay` s first, `o.at` s into it); returns when it ends (s from now)
  *   chain([[name, o], ...])        one after another
  *   step(dt, base, env)            the frame: base { look, nod, tilt, posture, perk, wag, wagA, wagRate, amp },
- *                                  env { toYou, nodYou, face, asleep }; returns the pose to draw (`out`)
+ *                                  env { toYou, nodYou, face, asleep, now }; returns the pose to draw (`out`)
  */
 export function makeReactions({ say }) {
   const live = [];
@@ -458,7 +458,9 @@ export function makeReactions({ say }) {
       // the base, and the mood eased over it
       for (const k of BASE) R[k] = B[k] ?? 0;
       const f = env.face, kf = Math.min(1, dt * 9);
-      for (const k of FACE) { face[k] += ((f?.[k] ?? 0) - face[k]) * kf; if (Math.abs(face[k]) < 1e-4) face[k] = 0; R[k] = face[k]; }
+      // (`env.now`: channels set this very frame, not eased: the crouch before a hop and the squash as it lands, guide.js)
+      const now = env.now;
+      for (const k of FACE) { face[k] += ((f?.[k] ?? 0) - face[k]) * kf; if (Math.abs(face[k]) < 1e-4) face[k] = 0; R[k] = face[k] + (now?.[k] ?? 0); }
       for (const k of EXTRA) R[k] = 0;
       R.blink = 1;
       // the reactions, blended over it in order; their sounds as the clock passes them

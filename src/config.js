@@ -825,7 +825,7 @@ export const MOCHI = {
    * (`finale` s: the fresh mochi held up, the bow); a pounder takes Hachi his dried sweet potato if he is watching
    * (`feed` s, your eyes eased to them); the turner brings yours to the plate (`serve` s; `take`: your hand has it;
    * `eat`: store/eat.js eats it); they wave, bow and hop back in (`bye` s before the first leaves). */
-  order: { at: [-0.12, 0.9], walk: 1.5, card: 0.6, tap: 1.55, away: 2.15, enter: 2.3, stagger: 0.8, hop: 0.29, finale: 2.4, feed: 3.0, serve: 2.2, take: 2.9, eat: 3.35, bye: 1.9 },
+  order: { at: [-0.12, 0.9], back: 1.15, walk: 1.5, card: 0.6, tap: 1.55, away: 2.15, enter: 2.3, stagger: 0.8, hop: 0.29, finale: 2.4, feed: 3.0, serve: 2.2, take: 2.9, eat: 3.35, bye: 1.9 },
 };
 
 /* Local sounds (SPEC section 9): anything that belongs to a place is heard
@@ -1069,7 +1069,7 @@ export const MOBILE = {
   /* The render: the phone's own pixels (its DPR, up to `maxDpr`; an iPhone 15 on its side is 2556 x 1179 at 3),
    * capped at `pixels`.  The scale steps down by `step` only while two seconds of frames average under
    * `fpsLow`, never below `minScale`, and back up over `fpsHigh`. */
-  render: { maxDpr: 3, pixels: 3.6e6, minScale: 1.5, step: 0.25, fpsLow: 50, fpsHigh: 57 },
+  render: { maxDpr: 3, pixels: 3.6e6, minScale: 2.25, step: 0.25, fpsLow: 42, fpsHigh: 55 },   // (Tan, 2026-10-02: never soft: the scale gives way late and little)
   maxTexture: 4096,          // the largest painted texture's side on the GPU: the desktop's own sizes
   storeTexture: 4096,
   wear: 1024,                // the painted weather's page (kit/paint.js wearAtlas: 2048 on the desktop; soft grime)
@@ -1112,13 +1112,12 @@ export const MOBILE = {
    * blurred: what goes is draw distance, far pages and some pixels.  ?tier=light / ?tier=full by hand. */
   tiers: {
     light: {
-      far: 80, fog: { near: 28, far: 76 }, detail: 26,
-      texLod: { min: 256 * 256, near: 20, far: 26, k: 0.25, store: 0.5, safe: 1.0, least: 8 },
+      far: 70, fog: { near: 24, far: 66 }, detail: 24,
+      texLod: { min: 256 * 256, near: 16, far: 22, k: 0.25, store: 0.5, safe: 1.0, least: 8 },
       store: { behind: -0.5, goods: 34, quadsNear: 15, quadsFar: 17.5, quadsDeep: 3 },
       shadow: { size: 1024, half: 28, every: 2.5 },
-      render: { maxDpr: 2, pixels: 1.9e6, minScale: 1.25, step: 0.25, fpsLow: 50, fpsHigh: 57 },
+      render: { maxDpr: 3, pixels: 2.7e6, minScale: 2, step: 0.25, fpsLow: 40, fpsHigh: 55 },   // (Tan, 2026-10-02: sharp here too; what pays is distance, below)
       stream: 5,
-      texScale: 0.75,          // every painting at this much of its size: the light frame has 0.7 of the full one's pixels each way
     },
   },
 };

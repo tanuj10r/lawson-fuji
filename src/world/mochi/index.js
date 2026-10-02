@@ -576,16 +576,25 @@ export function buildMochi(ctx, net, kit, lot) {
       return;
     }
     if (card.visible && hands.up < 0.05) card.visible = false;
+    /* (Tan, 2026-10-02: "the view is too zoomed in, which does not show Hachi and his reactions at all") for the
+     * pounding you stand `back` m off the order stand, the mortar and Hachi before it both in the picture; you step
+     * up to it again as the mallets are laid down (the treat, your mochi) */
+    {
+      const want = ph === 'show' || (ph === 'enter' && pt > T_ALL - 1.2) ? 1 : 0;
+      order.back = (order.back ?? 0) + (want - (order.back ?? 0)) * (1 - Math.exp(-dt * (want ? 2.4 : 3.2)));
+      const w = toWorld(OR.at[0], OR.at[1] + (OR.back ?? 0) * order.back);
+      player.pos.x = w.x; player.pos.z = w.z;
+    }
     if (ph === 'enter') {
       // your eyes follow them out and over to the mortar
       let n = 0, mx = 0, mz = 0;
       for (let i = 0; i < 3; i++) if (pt > START[i] - 0.3) { mx += P[i].x; mz += P[i].z; n++; }
       if (n) order.aim.set(mx / n, Y0 + 0.98, mz / n); else order.aim.set(gap + 1.1, Y0 + 1.15, zr);
       const late = ease((pt - T_ALL + 0.6) / 0.8);
-      gaze(player, mix(order.aim.x, ux + 0.1, late), mix(order.aim.y, Y0 + 0.94, late), mix(order.aim.z, uz, late), dt, 2.6);
+      gaze(player, mix(order.aim.x, ux + 0.24, late), mix(order.aim.y, Y0 + 0.78, late), mix(order.aim.z, uz + 0.2, late), dt, 2.6);
       return;
     }
-    if (ph === 'show') { gaze(player, ux + 0.1, Y0 + 0.94, uz, dt, 2.2); return; }
+    if (ph === 'show') { gaze(player, ux + 0.24, Y0 + 0.78, uz + 0.2, dt, 2.2); return; }
     if (ph !== 'after') return;
 
     /* ---- after the finale ---- */

@@ -57,7 +57,10 @@ const inApp = /CriOS|FxiOS|EdgiOS|OPiOS|GSA\/|Instagram|FBAN|FBAV|FB_IAB|FBIOS|L
 const bigIphone = Math.max(screen.width, screen.height) >= 852;
 let lostBefore = false;
 try { lostBefore = localStorage.getItem('takemebacktojapan-lost') === '1'; } catch { /* optional */ }
-const tier = params.get('tier') ?? (lostBefore || inApp || (ios ? !bigIphone : (navigator.deviceMemory ?? 8) <= 4) ? 'light' : 'full');
+/* (Tan, 2026-10-02, on Chrome on an iPhone 15: "details near the eye are blurry... this is not what is to be
+ * compromised") Chrome and the in-app browsers on a big iPhone are the same WebKit on the same 6 GB: the full tier
+ * there too.  Only a context lost here before still sends it to the light one. */
+const tier = params.get('tier') ?? (lostBefore || (ios ? !bigIphone : inApp || (navigator.deviceMemory ?? 8) <= 4) ? 'light' : 'full');
 if (MOBILE.tiers[tier]) Object.assign(MOBILE, MOBILE.tiers[tier]);
 // measuring: ?set=key:json;key:json overrides MOBILE tunables (a dev server, or any build with ?stats)
 if ((import.meta.env?.DEV || params.has('stats')) && params.get('set')) for (const kv of params.get('set').split(';')) { const i = kv.indexOf(':'); MOBILE[kv.slice(0, i)] = JSON.parse(kv.slice(i + 1)); }

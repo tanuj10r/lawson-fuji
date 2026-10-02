@@ -76,7 +76,7 @@ export function deckBoards({ x0, x1, z0, z1, top, thick = 0.1, panel = 1.2, seam
 }
 
 /**
- * @param o.gaps  [{ x0, x1, side? }] where the lineside fences stop (crossings, the station)
+ * @param o.gaps  [{ x0, x1, side?, wall? }] where the lineside fences stop (crossings, the station; `wall`: the collider stays)
  * @param o.decks [{ x0, x1 }] where boards lie over the tracks (the level crossing, the station's own): no sleepers
  *                under them (the boards own that ground; a sleeper's top would lie in the boards')
  */
@@ -153,8 +153,10 @@ export function buildTrack(ctx, o = {}) {
   for (const s of [-1, 1]) {
     const sideGaps = gaps.filter((gp) => !gp.side || gp.side === s);
     let from = x0;
-    for (const { x0: a, x1: b } of sideGaps) {
+    for (const { x0: a, x1: b, wall } of sideGaps) {
       if (a - from > 0.6) meshFence(ctx, { axis: 'x', from, to: a, at: R.z + s * FENCE_OFF, h: 1.5, spacing: 2.5 });
+      // `wall`: something solid stands in the fence's line here (a platform's back): no fence, the same collider
+      if (wall) ctx.collide(a, R.z + s * FENCE_OFF - 0.1, b, R.z + s * FENCE_OFF + 0.1, 1.5);
       from = Math.max(from, b);
     }
     if (x1 - from > 0.6) meshFence(ctx, { axis: 'x', from, to: x1, at: R.z + s * FENCE_OFF, h: 1.5, spacing: 2.5 });

@@ -174,9 +174,12 @@ function buildCoreEdge(ctx) {
   // (the lane over the level crossing ended at a guardrail here; it leads to the gate of Hachi's garden now:
   // the fence opens for it, TOWN.hachiHome, animals/home.js)
   const HG = TOWN.hachiHome.gate;
-  for (const [a, b] of [[C.x0, HG.x - HG.w / 2], [HG.x + HG.w / 2, C.x1]]) {
+  // (the fence stops at the gate posts' outer faces, animals/home.js: its end post stood inside each gate post
+  // with its inner face in the gate post's, and flickered in the opening)
+  const GP = 0.105;
+  for (const [a, b] of [[C.x0, HG.x - HG.w / 2 - GP], [HG.x + HG.w / 2 + GP, C.x1]]) {
     ctx.add(makeTimberFence({ x: (a + b) / 2, z: zEnd, y: 0, len: b - a, axis: 'x', h: 1.2 }));
-    ctx.collide(a, zEnd - 0.2, b, zEnd + 0.2, 1.2);
+    ctx.collide(Math.min(a, HG.x + HG.w / 2), zEnd - 0.2, Math.max(b, HG.x - HG.w / 2), zEnd + 0.2, 1.2);
   }
   // and so do the lanes that stop short (town pass)
   const P = TOWN.land.pond;

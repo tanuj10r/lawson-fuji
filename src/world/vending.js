@@ -212,10 +212,10 @@ export function makeVendingMachine(variant = 0, seed = 1) {
   /* ------------------------- controls and openings ------------------------- */
   // cold / hot label
   const cold = box(0.42, 0.1, 0.012, flat({ color: 0xffffff, map: vendCold(false), cache: false }),
-    -0.28, yBase + 0.36, front + 0.008);
+    -0.28, yBase + 0.36, front + 0.005);     // (3 mm behind the display's back panel, which its top runs under: their faces were one plane)
   g.add(cold);
   const hot = box(0.3, 0.1, 0.012, flat({ color: 0xffffff, map: vendCold(true), cache: false }),
-    0.2, yBase + 0.36, front + 0.008);
+    0.2, yBase + 0.36, front + 0.005);
   g.add(hot);
 
   /* Selection buttons.

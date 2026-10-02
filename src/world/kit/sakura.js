@@ -81,7 +81,7 @@ export const SAKURA = {
  */
 export function buildTownSakura(ctx, spots, { decals, classic = !decals } = {}) {
   if (classic || !spots.length) return buildCanopyTrees(ctx, spots, SAKURA_CLASSIC, { decals });
-  const seen = seenFromFamousViews(ctx, spots);
+  const seen = seenFromFamousViews(ctx, spots)/*@mini .map((s, i) => s && !spots[i].layered) @*//*@@*/;
   const keep = spots.filter((_, i) => seen[i]);
   const grow = spots.filter((_, i) => !seen[i]);
   const kept = keep.length ? buildCanopyTrees(ctx, keep, SAKURA_CLASSIC, { decals, name: 'townSakuraKept' }) : null;

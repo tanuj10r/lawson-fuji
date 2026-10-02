@@ -171,6 +171,7 @@ export function buildTown(scene, { cell = 128, bulkCell = 128, detailCell = 0, s
   const lawson = buildLawson(root);
   ctx.colliders.push(...lawson.colliders);
   ctx.platforms.push(...lawson.platforms);
+  for (const s of lawson.surfaces) ctx.surface(s);
   shrink?.(lawson.root, true);            // LITE: the konbini's pages, now
   stage('built: konbini');
 

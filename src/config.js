@@ -1080,7 +1080,7 @@ export const MOBILE = {
   fog: { near: 55, far: 145 },
   detail: 42,                // small instanced things (clutter, flowers, weeds) only this close
   cell: 64,                  // batches with a page of their own, per cell (m): small enough to shrink and stream by distance
-  bulkCell: 128,             // ... and everything plain-coloured or skinned with the town's shared tiles: big cells, few draws
+  bulkCell: 256,             // ... and everything plain-coloured or skinned with the town's shared tiles: big cells, few draws
   detailCell: 32,            // ... and the small props' own cells (drawn within `detail`)
   dt: 1 / 20,                // the longest step a frame may take (s)
   look: 0.0052,              // drag to look: radians per CSS pixel
@@ -1098,7 +1098,7 @@ export const MOBILE = {
   store: { behind: -0.5, goods: 45 },
   /* The town's sign atlas (mobile/town.js mergePocket): only pages of at most `max` texels that belong to one
    * region go in, packed per region of a grid cut at these world z and x lines; the rest keep their own. */
-  atlas: { max: 1024 * 400, z: [-35, -70], x: [0] },
+  atlas: { max: 100000, z: [-35, -70], x: [0] },
   keepCpu: true,             // keep the CPU copies (needed to stream, and to survive a lost GPU context)
   /* The light tier: iOS browsers that are not Safari (Chrome, the in-app ones: a tighter memory budget), the
    * 4 GB iPhones, small Android phones (main.js picks).  The same textures near you, so nothing near is

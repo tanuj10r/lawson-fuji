@@ -79,6 +79,22 @@ const frameAt = (x, y, z, p) => new THREE.Matrix4().makeBasis(x, y, z).setPositi
  * across the palm (its axis along x through y, z; radius r): what makes a finger close ROUND what it holds. */
 function wrapCurl(P, dir, ax, len, rad, round, max) {
   const q = new THREE.Quaternion(), d = new THREE.Vector3(), need = round.r + rad + 0.0012;
+  if (round.slab) {
+    /* a slab lying on the palm (a pack `t` thick, its back `zb` off the hand's plane, its far edge at `y`, its
+     * corners rounded by `r`): the finger lies behind it, bends up its edge and over onto its face */
+    const hz = round.t / 2 - round.r, cz = round.zb + round.t / 2, clear = rad + 0.001;
+    const out = (y, z) => {
+      const qy = y - (round.y - round.r), qz = Math.abs(z - cz) - hz;
+      return Math.hypot(Math.max(qy, 0), Math.max(qz, 0)) + Math.min(Math.max(qy, qz), 0) - round.r;
+    };
+    for (let c = max; c > 0; c -= 0.02) {
+      d.copy(dir).applyQuaternion(q.setFromAxisAngle(ax, c));
+      let ok = true;
+      for (let k = 1; k <= 8 && ok; k++) ok = out(P.y + d.y * len * k / 8, P.z + d.z * len * k / 8) >= clear;
+      if (ok) return c;
+    }
+    return 0;
+  }
   for (let c = max; c > 0; c -= 0.02) {
     d.copy(dir).applyQuaternion(q.setFromAxisAngle(ax, c));
     // the nearest point of the segment to the axis, in the plane across it
@@ -265,6 +281,25 @@ export const GRIP = {
       A: v(T[0] - (c * hold[0] + s * hold[1]), T[1] - (-s * hold[0] + c * hold[1]), ZB + t / 2),
     };
   },
+  /* (Tan, 2026-10-02: "fingers are supposed to wrap around products") a pack held in the hand: the palm behind it,
+   * the fingers over its `edge` (a point on it, from its centre, in its own frame; the fingers run `roll` rad left of
+   * up, square to that edge) and bent onto its face, the thumb's pad on the face too */
+  clasp({ t = 0.03, edge = [0, 0.04], roll = 0, reach = 0.071, x = 0.002, face = t, back = t / 2 }) {
+    // (`face`: how thick it is under the thumb; `back`: its centre from its back, where it is not a plain slab)
+    const ZB = 0.022, zf = ZB + face, u = clamp01(face / 0.044);
+    const T = [0.02 + 0.014 * u, 0.024 - 0.012 * u];
+    const c = Math.cos(roll), s = Math.sin(roll);
+    return {
+      geometry: cached(`clasp:${t}:${reach}:${face}`, () => rightHandGeometry({
+        curls: CASCADE.map((k) => [0.5, 1.75, 1.35 + k]), round: { slab: true, y: reach, zb: ZB, t, r: Math.min(0.007, t / 2) },
+        thumb: [[0.03, -0.04, 0.01], [0.056, -0.013 - 0.003 * u, 0.021 + 0.5 * t], [T[0] + 0.024 - 0.008 * u, T[1] - 0.015, zf + 0.0125], [T[0], T[1], zf + 0.0098]],
+        hold: [T[0], T[1], ZB + face / 2], wrist: { dev: 0.1, flex: 0.4 },
+      })),
+      q: basis([c, s, 0], [-s, c, 0], [0, 0, 1]),
+      // the thing's centre: its `edge` under the fingers' bend
+      A: v(x - (c * edge[0] + s * edge[1]), reach - (-s * edge[0] + c * edge[1]), ZB + back),
+    };
+  },
   under({ bottom = -0.03, yaw = 0.2, x = 0 }) {
     const c = Math.cos(yaw), s = Math.sin(yaw);
     return {
@@ -280,19 +315,19 @@ export const GRIP = {
 };
 /** How each thing is held: carried in its pack, and (`eat:`) out of it. */
 export const HOLDS = {
-  can: ['round', { r: 0.03 }],
-  onigiri: ['pinch', { t: 0.036, hold: [0.024, -0.024], roll: 0.5 }],
-  wafer: ['pinch', { t: 0.028, hold: [0.04, -0.012], roll: 0.8 }],             // its right end
-  sando: ['under', { bottom: -0.06, yaw: 0.15, x: -0.01 }],
+  can: ['round', { r: 0.033 }],
+  onigiri: ['clasp', { t: 0.036, edge: [-0.025, 0], roll: 1.07, x: 0.026 }],             // over its left slope
+  wafer: ['clasp', { t: 0.028, edge: [0.022, 0.034], roll: 0.12 }],            // over its top edge, toward its right end
+  sando: ['clasp', { t: 0.014, edge: [0.012, 0.06], roll: 0.2, face: 0.03, back: 0.0375 }],   // a wedge: over its ridge from behind, the thumb on its slope
   card: ['pinch', { t: 0.0016, hold: [0.024, -0.01], roll: 0.65 }],
-  'eat:onigiri': ['pinch', { t: 0.039, hold: [0.027, -0.035], roll: 0.45 }],
-  'eat:sando': ['pinch', { t: 0.044, hold: [-0.004, -0.037], roll: 0.3 }],
-  'eat:wafer': ['pinch', { t: 0.034, hold: [-0.036, -0.022], roll: 0.12 }],    // by its wrapper, the bitten end free
+  'eat:onigiri': ['clasp', { t: 0.039, edge: [-0.027, -0.012], roll: 1.07, x: 0.026 }],     // as it was carried, a little lower: the top is yours to bite
+  'eat:sando': ['clasp', { t: 0.03, edge: [-0.03, -0.02], roll: 1.25, x: 0.02 }],
+  'eat:wafer': ['clasp', { t: 0.034, edge: [-0.03, 0.036], roll: 0.12 }],                   // by its wrapper, the bitten end free
   mochi: ['under', { bottom: -0.02, yaw: 0.3 }],
 };
 /** The hold for a product of this shape (products.js), carried or eaten. */
 export function holdFor(shape, eating = false) {
-  const k = shape === 'can' || shape === 'pet' || shape === 'codd' ? 'can' : /sand/.test(shape) ? 'sando' : shape;
+  const k = /can$/.test(shape) || shape === 'pet' || shape === 'codd' ? 'can' : /sand/.test(shape) ? 'sando' : shape;
   return (eating && HOLDS[`eat:${k}`] ? `eat:${k}` : HOLDS[k] ? k : 'onigiri');
 }
 /* where what you hold sits in the camera's frame (as it always has: flights into the hand land here) */

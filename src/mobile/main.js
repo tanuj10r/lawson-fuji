@@ -7,7 +7,7 @@ import { setOutlineResolution } from '../core/outline.js';
 import { WALK_SIGNALS } from '../world/signals.js';
 import { buildTown } from './town.js';                      // WORLD: the mini town (the desktop's generator on plan.js's plan)
 import { liteConfig, liteScene, liteFuji, makeCuller, census, shrinkCanvases } from './lite.js';
-import { storePages } from '../world/store/pages.js';
+import { storePages, pagesRenderer } from '../world/store/pages.js';
 import { tagReflections } from '../world/land/mirror.js';
 import { STRINGS, MOBILE_STRINGS as M } from '../data/strings.js';
 import { PRODUCT } from '../data/catalog.js';
@@ -587,6 +587,11 @@ culler.update(camera.position, 1, null, true);   // WORLD: streamed at once: wha
 seatLights();
 sky.dome.position.copy(camera.position);
 sky.clouds.position.copy(camera.position);
+/* WORLD: the konbini's big painted pages one at a time, now: each painting goes to the GPU, its small copy is made
+ * and the painting let go, before the next (store/pages.js would do all of them in the first frame that draws the
+ * stock: three paintings at once, ~150 MB for a moment, which is the moment a phone takes the tab away) */
+pagesRenderer(renderer);
+for (const p of storePages) p.update('far', true);
 // the shaders compile and the textures upload behind the loading card, not on the first touch
 diag.stage('compiling');
 try { await renderer.compileAsync(scene, camera); } catch { /* compiled on first draw instead */ }

@@ -68,9 +68,9 @@ try {
     }
     if (only.has('map')) {
       // the plan as the game's own town map draws it
-      const u = await page.evaluate(() => { const M = window.__m; M.goto({ x: 0, z: 16.5, yaw: 0 }); M.minimap.setFull(true, M.player.pos, 0); return document.querySelector('.fullmap canvas').toDataURL('image/png'); });
+      const u = await page.evaluate(() => { const M = window.__m; M.goto({ x: 0, z: 16.5, yaw: 0 }); (M.minimap ?? M.shell.minimap).setFull(true, M.player.pos, 0); return document.querySelector('.fullmap canvas').toDataURL('image/png'); });
       fs.writeFileSync(`${out}/plan-map.png`, Buffer.from(u.split(',')[1], 'base64'));
-      await page.evaluate(() => window.__m.minimap.setFull(false));
+      await page.evaluate(() => (window.__m.minimap ?? window.__m.shell.minimap).setFull(false));
     }
     if (flags.eval) report.eval = await page.evaluate(fs.readFileSync(flags.eval, 'utf8'));
     if (only.has('walk')) {

@@ -1099,7 +1099,7 @@ export const MOBILE = {
   store: { behind: -0.5, goods: 45, quadsNear: 15, quadsFar: 17.5 },
   /* The town's sign atlas (mobile/town.js mergePocket): only pages of at most `max` texels that belong to one
    * region go in, packed per region of a grid cut at these world z and x lines; the rest keep their own. */
-  atlas: { max: 100000, z: [-35, -70], x: [-45, 45] },
+  atlas: { max: 256 * 256, z: [-35, -70], x: [-45, 45] },
   keepCpu: true,             // keep the CPU copies (needed to stream, and to survive a lost GPU context)
   /* The light tier: iOS browsers that are not Safari (Chrome, the in-app ones: a tighter memory budget), the
    * 4 GB iPhones, small Android phones (main.js picks).  The same textures near you, so nothing near is

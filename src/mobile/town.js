@@ -42,11 +42,13 @@ import { makeNight } from '../world/kit/night.js';
  *           not one per 64 m square
  *   page    a big picture of its own (over MOBILE.atlas.max texels: ドンペン堂's boards), used in one part of
  *           town: its own texture, batched in small cells (MOBILE.cell), so it shrinks and leaves with them
- *   own     the smaller pictures (a shop's fascia, a house's name board, road signs, pole plates): packed into
- *           the atlas page of the region they stand in (MOBILE.atlas.z, .x cut the town into regions), one batch
- *           a material a region.  A region's page is whole only while you are near it (lite.js: a quarter-size
- *           copy from afar), so the town's signs cost what the signs round you cost.  (One atlas for the pictures
- *           used all over was tried: 38 MB, whole wherever you stood.)
+ *   own     the smaller pictures that belong to one part of town (a shop's fascia, a house's name board):
+ *           packed into that region's own atlas page (MOBILE.atlas.z, .x cut the town into regions), one batch
+ *           a material a region; the page is whole only while you are near the region (lite.js: a quarter-size
+ *           copy from afar)
+ *   shared  small pictures used all over (road signs, pole plates): one atlas, in the big cells.  (Tried and
+ *           dropped: copying these into every region's page, 35 MB a region near you; and a higher size limit,
+ *           100 k texels: 38 MB of shared atlas, whole wherever you stand.)
  *
  * A pass sees only its own meshes; what a pass makes stays out of the passes after it. */
 function splitMulti(root) {
@@ -118,8 +120,7 @@ function mergeMini(root, { cell, bulkCell, detailCell }) {
     if (!m.packs) { m.pass = 'bulk'; continue; }
     const t = m.o.material.map, one = regionsOf.get(t.source).size === 1;
     const small = t.image.width * t.image.height <= max && Math.max(t.image.width, t.image.height) <= 1024;   // (merge.js packs nothing wider than 1024 at its own size)
-    // (a small picture used in several regions is packed into each of them: a region's page is whole only near you)
-    m.pass = small ? 'own' + m.r : (one ? 'page' : 'bulk');
+    m.pass = small ? (one ? 'own' + m.r : 'shared') : (one ? 'page' : 'bulk');
   }
   const known = new Set(), made = [];
   root.traverse((o) => { if (o.isMesh) known.add(o); });
@@ -127,7 +128,10 @@ function mergeMini(root, { cell, bulkCell, detailCell }) {
     ['bulk', { cell: bulkCell, detailCell }, false],
     ['page', { cell, detailCell }, false],
     ...Array.from({ length: count }, (_, r) => ['own' + r, { cell: 0, detailCell, atlas: true }, true]),
+    ['shared', { cell: bulkCell, detailCell, atlas: true }, true],
   ];
+  // (measuring: how many pictures and texels each pass holds)
+  { const st = {}; const seen = new Set(); for (const m of meshes) { const t = m.o.material?.map; if (!m.packs || seen.has(m.pass + t.source.uuid)) continue; seen.add(m.pass + t.source.uuid); const e = (st[m.pass] ??= { n: 0, mtx: 0 }); e.n++; e.mtx += t.image.width * t.image.height / 1e6; } globalThis.__mergeStats = st; }
   let out = null;
   for (const [name, opts, atlas] of passes) {
     for (const m of meshes) {
@@ -196,6 +200,10 @@ export function buildTown(scene, { cell = 128, bulkCell = 128, detailCell = 0, s
   // the Lawson counts toward the density budget like any building
   ctx.registry.push({ kind: 'building', x: 0, z: -5, rect: [-8.5, -LAWSON.depth, 11.1, 0] });
   const frame = buildFrame(ctx);
+  /* MINI: past the core's side fences (|x| > 97) the main road runs on 20 m between tree lines to its barricade.
+   * North of it there the ground is the open strip beside the town (bare ground, the railway's cutting end on):
+   * not a place to walk on a phone.  The pavement's back edge is the limit, under the trees. */
+  for (const sx of [-1, 1]) ctx.collide(Math.min(sx * 97.2, sx * 123), 6.6, Math.max(sx * 97.2, sx * 123), 7.0, 3);
   T.sakura = [];                 // the old town's trees join the town's batch
   buildOldTown(T);
   T.night = makeNight(T);        // before the land, so its lantern can light the ground

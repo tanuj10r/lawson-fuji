@@ -639,7 +639,18 @@ window.addEventListener('keydown', (e) => {
 
 /* Playing or paused: the card, the controls, the song (the engine's menu). */
 /* POCKET (builder 5): the places' spots (docs/pocket-diorama.md); a tap on the thing itself uses it too */
-const spots = world.spots ?? [];
+/* MINI: every thing to do in the town (world.interactables: the experiences' rings, the konbini's door, the bench)
+ * as a spot { id, x, z, r, y, label, enabled, use }: where it stands in the world, its words, and what using it does */
+const spots = world.interactables.filter((it) => it.hitbox && it.action).map((it) => {
+  const p = it.hitbox.getWorldPosition(new THREE.Vector3()), g = it.hitbox.geometry?.parameters;
+  return {
+    id: it.id ?? it.label, x: p.x, z: p.z, y: 1, r: Math.max(1.2, (g?.width ?? 2.4) / 2),
+    get label() { return String(it.label ?? '').replace(/^.*?·\s*/, ''); },
+    get enabled() { return it.hitbox.visible !== false && !!it.hitbox.parent; },
+    use: (ctx) => it.action(ctx),
+  };
+});
+world.spots = spots;
 let spotNow = null;
 function useSpot(s) { unlockAudio(sound); s.use?.({ player, hud, sound, soundBus, camera }); }
 touch = createTouch(player, {

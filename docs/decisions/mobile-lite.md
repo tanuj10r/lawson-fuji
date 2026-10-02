@@ -650,3 +650,123 @@ the south after the first frame.
   wait, Han's show, the whistle, time, pause: all pass, landscape and portrait, no console errors.
 - The gate: scripts/_mini.mjs draws the phone page and the desktop game at 69 spots (places, edges, the
   train followed out of sight both ways, night, morning) and a walk grid (175 reachable points x 8 ways).
+
+## Mobile v3: budget (2026-10-02)
+Tan: "Do smart work cutting the budget for the experiences, but not the experiences themselves ... Assess what's
+heaviest, prioritise, and cut or reduce."  Measured first, then cut by weight; nothing on Hachi's tour looks
+different up close (side-by-side sheets against the desktop at 69 spots, before and after).
+
+### Measured (scripts/_budget.mjs; emulated iPhone 15, Chrome, 2556 x 1179 at 3x; the page's own GPU count)
+What each system brings to the build before batching (its own pictures at full size with mipmaps, its vertices as
+built), and how long it takes to build on this laptop:
+
+| system | tris | buffers MB | pictures MB | build ms |
+|---|---:|---:|---:|---:|
+| konbini: stock and labels (5 label pages, 3 of price tags) | 397 k | 17.8 | 90 | 300-400 (the store) |
+| konbini: painted signs, POP (59) | 2 k | 0.1 | 76 | |
+| konbini: forecourt, sign band, shell, interior | 21 k | 1.5 | 23 | |
+| shops (33; the shopping street and the main road) | 93 k | 5.8 | 29 | 360-440 (all 63 lots) |
+| houses (30), their lots' fences, hedges, gardens | 156 k | 10.9 | 3 | |
+| station (building, two platforms, canopies, 38 boards) | 28 k | 1.2 | 26 | 110-140 |
+| line: track, catenary, fences, cuttings | 31 k | 0.8 | 1 | 35 |
+| trains: the local, the JR set | 51 k + 49 k | 3.4 + 3.1 | 2 | 115-140 |
+| level crossing | 4 k | 0.2 | 0.7 | 5 |
+| houses beyond the line (the row the platforms look at) | 79 k | 5.5 | 0.2 | 80 |
+| ドンペン堂 | 72 k | 3.6 | 12.7 | 125-150 (all specials) |
+| mochi shop | 13 k | 0.3 | 1 | |
+| shrine | 46 k | 3.7 | 2.3 | |
+| pond, teahouse, bench; river, bridge; paddies; gate; land | 93 k | 3.4 | 10 | 190-230 |
+| street furniture (poles, wires, signs, vending, bikes) | 167 k | 2.9 | 11.8 | 60 + 55 |
+| sakura (63 trees, fallen petals) | 1044 k | 10.8 | 1.7 | 800-880 |
+| other trees and shrubs, far groves | 398 k | 9.1 | 5.3 | 150-170 |
+| cars, parking; Han and the RX-7 | 118 k | 9.2 | 4 | |
+| animals, Hachi, his home | 135 k | 4 | 0.2 | 70 |
+| roads, decals, edge fences | 44 k | 3 | 3.1 | |
+| shared by several: the decal page (21), wear, tile skins | | | 47 | |
+| batching (mobile/town.js) | | | | 550-650 |
+| after the build: shell 360-470, pack 380-500, pages 250-340, compile 280-320, first frame 560-700 | | | | |
+
+On the GPU at the famous view (267 MB): the frame's three targets 34.5, the shadow map 18, the konbini's near
+label copies 24 (held all over town), the town-wide sign atlas 23.7, the decal page 16, the first region's own
+atlas 10, the store's quad page (39 at the door), buffers 68 (batches 39, small props 17, stock 12).
+
+### Cut, heaviest first
+- **The konbini's pages at the size they are seen** (mobile/pages.js, a mark in store/pages.js): painted straight at
+  their level (the far one behind the start card, the near one a few cells a frame as you walk up, let go as you
+  leave) instead of whole and copied down.  -24 MB everywhere but the store, no 150 MB of painting at load.
+- **Pages step by what the screen can show** (lite.js `density`, MOBILE.texLod.safe): a page's own texels a metre
+  against the screen's pixels a metre give the distance for its half and its quarter.  The plaza: -30 MB (the
+  station's 38 boards are whole only within reach).
+- **Static batches indexed** (lite.js indexLocal): -11 MB of buffers.
+- **Ink and grade in one pass**: a whole frame's target less (-11.5 MB) and one full-screen pass less.
+- **Atlas pages as wide as packs them tightest** (a mark in merge.js; the konbini's quad page too): -9 MB.
+- **The konbini's signs on two pages** (by the glass / deep inside: the deep one a half on the forecourt): -13 MB at
+  the door.
+- **Mirrors only while their water is on the screen** (lite.js lazyMirrors: an occlusion query): the pond's was
+  drawn at the konbini's door, 66 m off through the whole town.  -100 to -230 draws at eleven stops, their targets
+  given back.
+- **Plain colours and the town-wide atlas: one batch a style for the whole town** (MOBILE.plainCell 0): -60 draws
+  at the famous view.  Positions keep their floats in batches over 80 m (16 bits there were 4 mm a step, and 16
+  poses flickered: `_zfight.mjs --phone`): +6 MB back.
+- **One train set**, the plain local, both ways (emu.js `lend`): the JR set is not built (-3 MB, -60 ms).
+- **Light tier: every painting at 0.75** (its frame has 0.7 of the pixels each way): -45 MB.
+- **Load:** which cherries the famous views see is kept (sakura-seen-data.js, -0.3 s), the konbini's far pages
+  painted behind the start card (-0.3 s).
+
+### Not cut, and why
+- **Single track, one platform, the station moved** (Tan's example): after the cuts above the station is not what
+  costs (platform 225 MB, 345 draws; its pictures are whole only near them).  A single track would save ~60
+  draws and ~0.15 s and make the station and the crossing differ from the desktop in every frame they are in.
+- **Fewer lots, simpler houses off the tour:** 11 MB of buffers town-wide, but most of it streams by distance
+  already; the row beyond the line is what the platforms and the crossing look at.
+- **The konbini's stock and fixtures:** already only what a visit or the glass ever shows (store/seen.js).
+- **The decal page (16 MB), the shadow map (18 MB), the frame's colour and depth (23 MB):** each would soften
+  something underfoot or on every pixel.
+
+### After (same harness; before -> after)
+| place | full: GPU MB | draws | light: GPU MB | draws |
+|---|---|---|---|---|
+| famous view | 267 -> 213 | 521 -> 460 | 219 -> 136 | 423 -> 352 |
+| konbini door (near pages in) | 313 -> 276 | 603 -> 442 | 265 -> 172 | 512 -> 349 |
+| in a visit | 244-254 -> 222-231 | | -> 145 | |
+| zebra and signals | 284 -> 224 | 690 -> 472 | 226 -> 140 | 609 -> 392 |
+| Han, car park | 285 -> 219 | 538 -> 279 | 219 -> 134 | 511 -> 254 |
+| mochi shop | 270 -> 210 | 202 -> 146 | 215 -> 128 | 200 -> 149 |
+| shopping street | 296-300 -> 229-241 | 372-436 -> 344-393 | 224-244 -> 131-140 | 347-354 -> 292-303 |
+| ドンペン堂 | 299 -> 237 | 342 -> 300 | 233 -> 140 | 306 -> 252 |
+| plaza / station | 307-313 -> 230-238 | 289-493 -> 263-416 | 221-235 -> 129-142 | 249-333 -> 214-282 |
+| platform | 299 -> 225 | 379 -> 345 | 207 -> 123 | 312 -> 272 |
+| crossing | 298-316 -> 223-229 | 231-423 -> 213-358 | 192-206 -> 122-125 | 217-305 -> 201-270 |
+| shrine | 279-290 -> 221-238 | 329-543 -> 272-472 | 208-235 -> 128-149 | 308-449 -> 241-372 |
+| pond gate, bench | 272-287 -> 217-227 | 478-497 -> 316-319 | 208-227 -> 141-147 | 451-467 -> 293-296 |
+| junction, bridge, gate bench | 268-286 -> 207-222 | 99-310 -> 101-209 | 201-219 -> 128-147 | 99-302 -> 102-203 |
+| peak in the flow test | 333 -> 271-285 | | 270 -> 171 | |
+Town built 3.3-3.9 s -> 2.9-3.5 s, ready 6.0-6.9 s -> 5.1-6.3 s (this laptop, other agents' browsers running).
+
+**Still over, said plainly.**  GPU: under 250 MB everywhere on the full tier but the konbini's door (276: the
+front sign page 18, near labels and tags 32, the town outside still whole) and the moments of walking in and out
+(peak 271-285); the light tier is under 180 everywhere.  Draws: 100-472 against 300 (famous view 460): what is
+left is the konbini (70), each tree species' three tones as three draws (60), the big shop signs one picture each
+(40), a style's shadow variants.  Getting to 300 means one draw a species (per-instance tone), region atlases for
+the big signs (+5-10 MB near you), and the konbini's fixtures folded: a day's work each, none a visible cut.
+Load: ~5 s to the Start button against 3: the build is one pass (2.9 s), then packing, compiling and the first
+upload (2.2 s); 3 s needs the town built in two parts (the famous view first, the south behind the start card).
+
+### Checked
+- Sheets against the desktop, 69 spots (scripts/_mini.mjs), full and light; a walk grid (175 points x 8 ways): no
+  holes.  The konbini's labels and tags in a visit: as before.
+- Hachi's whole tour on the mini town (a dev probe driving the guide with a follower): 40 legs, every place,
+  both visits (his home, the shrine's fox), the nap at the gate after 451 s, never stuck, never through a wall;
+  "the tour again" offered and taken.
+- `scripts/_zfight.mjs --phone` (65 poses): 11021 solid flickering pixels and 21 poses over the limit -> 101 and
+  none.  Besides the 16-bit positions: ドンペン堂's entrance end walls and floor, the bus shelter's bargeboards and
+  the kennel's eaves stood in one plane with their neighbours (the last two flicker on the desktop too, 594 and
+  35 px at the same poses, which its own pose list does not have): a few mm apart in the phone build only.
+- Flow by touch (scripts/_mini-flow.mjs), landscape, portrait and the light tier: all pass, no console errors.
+- UI (scripts/_mobile-ui.mjs, 65 checks pass): the title's face (TMBJ Title) on the start, pause and gate cards;
+  the portrait start card shows Fuji's peak and Hachi's paws; the whole map opens on "you are here"; the
+  postcard's share buttons at 390 px.
+- `npm run build`; every file of dist/assets is byte for byte main's (83d4223); phone download 4.99 MB, 1.61 before
+  the tap.
+- To see on desktop one day: ドンペン堂's south side wall is a dark panel there and a pale one on the phone (as it
+  was before this pass), and the two seams above.

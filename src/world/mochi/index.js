@@ -163,7 +163,7 @@ export function buildMochi(ctx, net, kit, lot) {
   let tray = null;
   function makeFood() {
     served.geometry = mochiGeometry();
-    const list = [[-0.13, 0.015, 0.4], [0.0, -0.02, -0.7], [0.13, 0.02, 1.9]].map(([dx, dz, ry]) => mochiGeometry({ detail: 0.5 }).rotateY(ry).translate(shop.tray[0] + dx, shop.tray[1], shop.tray[2] + dz));
+    const list = [[-0.13, 0.015, 0.4], [0.0, -0.02, -0.7], [0.13, 0.02, 1.9]].map(([dx, dz, ry]) => mochiGeometry({ detail: 0.36 }).rotateY(ry).translate(shop.tray[0] + dx, shop.tray[1], shop.tray[2] + dz));
     tray = new THREE.Mesh(mergeAll(list), foodMat);
     tray.name = 'pettan-tray';
     dyn.add(tray);

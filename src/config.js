@@ -758,7 +758,7 @@ export const MOCHI = {
   spot: [0.05, 1.2, 1.2],                    // the engagement's ring on the pavement: x, z, radius: world (39.2, 19.4)
   stand: [-1.95, -0.5],                      // the display table: the day's mochi on their tray, the price, the dogs' jar
   counter: [-0.29, 0.2],                     // the order stand at the stage's edge: the card reader, the plate yours is served on
-  hachi: [0.78, -0.7],                       // where Hachi sits to watch: before the mortar, on your right
+  hachi: [0.62, -0.45],                      // where Hachi sits to watch: before the mortar, on your right
   near: 9,                                   // within this of the mortar the rabbits peek at you over the counter (m)
   live: 26,                                  // their ears twitch within this; beyond it only the steamer steams
   hide: 60,                                  // and beyond this nothing of the shop's is drawn or moved

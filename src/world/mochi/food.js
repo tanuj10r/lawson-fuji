@@ -12,7 +12,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
  * round shoulders tapering to the point, deep red and paler at the
  * shoulder, seeds in their dimples, a fresh calyx of seven leaves and the
  * stem, a crisp highlight and a soft sheen.  6.8 cm across, 7.5 cm tall,
- * about 6,400 triangles.
+ * about 7,400 triangles.
  *
  * The form is geometry (smooth, enough of it for a close look); the fine
  * things are drawn by its own material (`foodMaterial`), in the fragment
@@ -166,7 +166,7 @@ function berryParts(d) {
   for (let k = 0; k < LEAVES; k++) {
     const a0 = (k / LEAVES) * Math.PI * 2 + 0.25 + 0.22 * Math.sin(k * 2.7), L = 0.0105 + 0.0035 * ((k * 0.618) % 1), W = 0.0038 + 0.001 * ((k * 0.37) % 1);
     const lift = 0.004 + 0.005 * ((k * 0.53 + 0.2) % 1), curl = 0.5 * Math.sin(k * 1.9 + 1);
-    const na = Math.max(4, Math.round(8 * d)), nb = 4;
+    const na = Math.max(4, Math.round(8 * d)), nb = d < 0.8 ? 2 : 4;
     const leaf = (flip) => surf(nb, na, (u, v) => {
       const s = v, w = W * Math.pow(Math.sin(Math.PI * Math.pow(0.04 + 0.96 * s, 0.72)), 0.85) * (s > 0.999 ? 0 : 1), ac = (u - 0.5) * 2;
       const r = 0.0012 + L * s, a = a0 + curl * s * s * 0.5;
@@ -185,7 +185,7 @@ function berryParts(d) {
 }
 
 function creamRing(d) {
-  const nu = Math.round(40 * d), nv = 8;
+  const nu = Math.round(32 * d), nv = 6;
   return seam(surf(nu, nv, (u, v) => {
     const th = u * Math.PI * 2, ph = v * Math.PI * 2, Rm = CR.R(th), rt = CR.r(th);
     const r = Rm + Math.cos(ph) * rt;
@@ -196,7 +196,7 @@ function creamRing(d) {
 /** The pleated paper cup it sits in. */
 const CUP = { h: 0.0165, r0: 0.0262, r1: 0.0372, pleats: 22 };
 function paperCup(d) {
-  const per = d < 0.8 ? 2 : 4, nu = CUP.pleats * per, parts = [];
+  const per = 2, nu = CUP.pleats * per, parts = [];
   const zig = (u) => { const x = (u * CUP.pleats) % 1; return Math.abs(x * 2 - 1) * 2 - 1; };       // -1..1, a pleat a period
   for (const side of [1, -1]) {
     parts.push(surf(nu, 3, (u, v) => {

@@ -1,0 +1,1 @@
+/private/tmp/claude-501/-Users-tanujr-DevSpace-takemebacktojapan/a68fe900-411a-4400-b6e6-a7230fe711a7/scratchpad/mochi2

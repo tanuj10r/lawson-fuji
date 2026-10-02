@@ -825,7 +825,7 @@ export const MOCHI = {
    * (`finale` s: the fresh mochi held up, the bow); a pounder takes Hachi his dried sweet potato if he is watching
    * (`feed` s, your eyes eased to them); the turner brings yours to the plate (`serve` s; `take`: your hand has it;
    * `eat`: store/eat.js eats it); they wave, bow and hop back in (`bye` s before the first leaves). */
-  order: { at: [-0.12, 0.9], back: 1.15, walk: 1.5, card: 0.6, tap: 1.55, away: 2.15, enter: 2.3, stagger: 0.8, hop: 0.29, finale: 2.4, feed: 3.0, serve: 2.2, take: 2.9, eat: 3.35, bye: 1.9 },
+  order: { at: [-0.12, 0.9], back: 1.15, side: 0.55, walk: 1.5, card: 0.6, tap: 1.55, away: 2.15, enter: 2.3, stagger: 0.8, hop: 0.29, finale: 2.4, feed: 3.0, serve: 2.2, take: 2.9, eat: 3.35, bye: 1.9 },
 };
 
 /* Local sounds (SPEC section 9): anything that belongs to a place is heard
@@ -1060,7 +1060,7 @@ export const ANIMALS = {
  *           flips it once the phone version is approved.
  * ------------------------------------------------------------------ */
 export const MOBILE = {
-  route: false,
+  route: true,
   /* The mini town (src/mobile/plan.js): the desktop's plan with the block row south of lane 112 taken out;
    * everything south of it (the plaza, the station, the line, the crossing, Hachi's home, 鏡池, the bench)
    * stands `dz` m further north.  Numbers written into the shared builders are moved by the phone build
@@ -1107,9 +1107,9 @@ export const MOBILE = {
    * region go in, packed per region of a grid cut at these world z and x lines; the rest keep their own. */
   atlas: { max: 256 * 256, z: [-35, -70], x: [-45, 45] },
   keepCpu: true,             // keep the CPU copies (needed to stream, and to survive a lost GPU context)
-  /* The light tier: iOS browsers that are not Safari (Chrome, the in-app ones: a tighter memory budget), the
-   * 4 GB iPhones, small Android phones (main.js picks).  The same textures near you, so nothing near is
-   * blurred: what goes is draw distance, far pages and some pixels.  ?tier=light / ?tier=full by hand. */
+  /* The light tier: the 4 GB iPhones, small Android phones and their web views, and any phone that lost the GPU
+   * context here before (main.js picks).  The same textures and the same sharp frame near you (Tan, 2026-10-02:
+   * sharpness is never what pays): what goes is draw distance and far pages.  ?tier=light / ?tier=full by hand. */
   tiers: {
     light: {
       far: 70, fog: { near: 24, far: 66 }, detail: 24,

@@ -86,7 +86,7 @@ async function phone(base, way, { query = '' } = {}) {
     await page.screenshot({ path: f });
     console.log('  ' + f);
   };
-  const ready = () => page.waitForFunction(() => document.getElementById('boot')?.classList.contains('ready') && window.__m, null, { timeout: 180000 });
+  const ready = () => page.waitForFunction(() => { const b = document.getElementById('boot'); return (b?.classList.contains('ready') || /\bready\b/.test(b?.dataset.was ?? '')) && window.__m; }, null, { timeout: 180000 });
   const start = async () => { await ready(); await tapOn('#start'); await page.waitForFunction(() => window.__m.player.locked); await page.waitForTimeout(700); };
   /** stand somewhere, facing something */
   const stand = (x, z, tx, tz) => page.evaluate(([x, z, tx, tz]) => {
@@ -101,7 +101,7 @@ try {
   let base = process.env.BASE;
   if (!base) {
     const { createServer } = await import('vite');
-    server = await createServer({ root: ROOT, logLevel: 'error', server: { port: PORT, strictPort: true, host: '127.0.0.1' } });
+    server = await createServer({ root: ROOT, mode: 'mobile', logLevel: 'error', server: { port: PORT, strictPort: true, host: '127.0.0.1' } });
     await server.listen();
     base = `http://127.0.0.1:${PORT}/`;
   }
@@ -267,6 +267,11 @@ try {
       }
       // "Take the tour again": on offer when the guide says so (the tour over, Hachi by you and looked at)
       await P.stand(0, 14, 0, 0);
+      // (Tan, 2026-10-02: only once the tour's postcard has been up and put away)
+      await page.evaluate(() => { const G = window.__m.GUIDE; G.__offer = G.offer; G.offer = () => true; });
+      await page.waitForTimeout(400);
+      check(`${way}: before the postcard has been up, the tour is not on offer`, await page.evaluate(() => window.__m.hud.action) !== 'Take the tour again');
+      await page.evaluate(() => { window.__m.shell.postcardSeen = true; window.__m.GUIDE.offer = window.__m.GUIDE.__offer; });
       await page.evaluate(() => { const G = window.__m.GUIDE; G.__offer = G.offer; G.__again = G.again; G.offer = () => true; G.again = () => { window.__again = (window.__again ?? 0) + 1; G.onTour?.(); return true; }; });
       await page.waitForTimeout(500);
       const tour = await page.evaluate(() => window.__m.hud.action);
@@ -313,7 +318,7 @@ try {
       check(`${way}: the labels, the toast, the tiles, the map, the countdown and the sound pill keep clear of each other`, over.length === 0, over);
       await page.evaluate(() => window.__m.hud.askForSound(false));
       // the postcard comes by itself when Hachi's tour is over (GUIDE.onTourEnd), over a held pause card
-      await page.evaluate(() => window.__m.GUIDE.onTourEnd?.());
+      await page.evaluate(() => { window.__m.shell.postcardSeen = false; window.__m.GUIDE.onTourEnd?.(); });
       await page.waitForFunction(() => document.querySelector('.mk-post-scrim.on'), null, { timeout: 20000 }).catch(() => {});
       await page.waitForTimeout(600);
       const came = await page.evaluate(() => ({ post: !!document.querySelector('.mk-post-scrim.on'), locked: window.__m.player.locked, pauseHidden: document.querySelector('.mh-pause').classList.contains('hidden'), msg: document.querySelector('.mk-post .msg')?.textContent }));

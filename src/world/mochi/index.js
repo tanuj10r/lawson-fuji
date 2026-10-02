@@ -583,7 +583,7 @@ export function buildMochi(ctx, net, kit, lot) {
     {
       const want = ph === 'show' || (ph === 'enter' && pt > T_ALL - 1.2) ? 1 : 0;
       order.back = (order.back ?? 0) + (want - (order.back ?? 0)) * (1 - Math.exp(-dt * (want ? 2.4 : 3.2)));
-      const w = toWorld(OR.at[0], OR.at[1] + (OR.back ?? 0) * order.back);
+      const w = toWorld(OR.at[0] + (OR.side ?? 0) * order.back, OR.at[1] + (OR.back ?? 0) * order.back);   // (and `side` m to the right: the order stand out of the pounders' way)
       player.pos.x = w.x; player.pos.z = w.z;
     }
     if (ph === 'enter') {
@@ -592,10 +592,10 @@ export function buildMochi(ctx, net, kit, lot) {
       for (let i = 0; i < 3; i++) if (pt > START[i] - 0.3) { mx += P[i].x; mz += P[i].z; n++; }
       if (n) order.aim.set(mx / n, Y0 + 0.98, mz / n); else order.aim.set(gap + 1.1, Y0 + 1.15, zr);
       const late = ease((pt - T_ALL + 0.6) / 0.8);
-      gaze(player, mix(order.aim.x, ux + 0.24, late), mix(order.aim.y, Y0 + 0.78, late), mix(order.aim.z, uz + 0.2, late), dt, 2.6);
+      gaze(player, mix(order.aim.x, ux + 0.24, late), mix(order.aim.y, Y0 + 0.62, late), mix(order.aim.z, uz + 0.2, late), dt, 2.6);
       return;
     }
-    if (ph === 'show') { gaze(player, ux + 0.24, Y0 + 0.78, uz + 0.2, dt, 2.2); return; }
+    if (ph === 'show') { gaze(player, ux + 0.24, Y0 + 0.62, uz + 0.2, dt, 2.2); return; }
     if (ph !== 'after') return;
 
     /* ---- after the finale ---- */

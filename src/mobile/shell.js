@@ -157,7 +157,7 @@ export function createShell({ canvas, camera, world, held = () => false, famous 
   });
 
   /* ---- the postcard (ui/postcard.js, the desktop's): from the pause card, and by itself when Hachi's tour is over ---- */
-  let postcard = null, toured = false, postcardCame = false, postcardDue = -1;
+  let postcard = null, toured = false, postcardCame = false, postcardSeen = false, postcardDue = -1;
   const closePostcard = () => { postcard?.hide(); hud.holdCard = false; };
   const loadPostcard = () => import('../ui/postcard.js').then(({ createPostcard }) => {
     if (!postcard) {
@@ -167,18 +167,20 @@ export function createShell({ canvas, camera, world, held = () => false, famous 
     }
     return postcard;
   });
-  /* the tour's ending (desktop's main.js): a moment after Hachi hops up onto his bench (GUIDE.onTourEnd), and the
-   * tour is not on offer again while it is due */
+  /* the tour's ending, in the desktop's order (Tan, 2026-10-02: "the postcard appears before Hachi puts a show on the
+   * bench"): his bench bit plays in full, then (GUIDE.onTourEnd: he has settled) the postcard, then, once it has
+   * been up and put away, "Take the tour again" */
   GUIDE.onTourEnd = () => {
     toured = true;
-    if (postcardCame) return;
+    if (postcardCame || postcardSeen) return;
     postcardDue = MAKER.postcardAfter;
-    loadPostcard().catch(() => { postcardDue = -1; });   // (offline: no postcard, no harm)
+    loadPostcard().catch(() => { postcardDue = -1; postcardSeen = true; });   // (offline: no postcard, no harm)
   };
   function openPostcard() {
     loadPostcard().then(() => {
       if (player.locked || postcard.open) return;
       hud.holdCard = true;
+      postcardSeen = true;
       postcard.show(true, toured);
     }).catch(() => {});
   }
@@ -188,7 +190,7 @@ export function createShell({ canvas, camera, world, held = () => false, famous 
     // never over something that holds you: the konbini's scene, the whole map, Han's drive, a staged view
     if (postcardDue > 0 || !player.locked || shop?.visiting || minimap.fullOpen || player.suspended || player.scripted || held()) return;
     postcardDue = -1;
-    postcardCame = true;
+    postcardCame = postcardSeen = true;
     hud.holdCard = true;
     postcard.show(false, true);
     player.unlock();
@@ -297,6 +299,8 @@ export function createShell({ canvas, camera, world, held = () => false, famous 
   let menuShown = null, lastW = 0, lastH = 0;
   const api = {
     player, hud, sound, touch, minimap, labels,
+    /** the postcard has been up this page load (the tour is offered again only after it; the checks set it) */
+    get postcardSeen() { return postcardSeen; }, set postcardSeen(v) { postcardSeen = !!v; },
     /** main.js's: (locked) => {} when play starts or stops; () => {} once, at Start. */
     onPlaying: null, onStart: null,
     get started() { return started; },
@@ -334,7 +338,7 @@ export function createShell({ canvas, camera, world, held = () => false, famous 
       const free = player.locked && !shop?.busy && !open && !held();
       if (free && !player.seat && !inStore) hovered = pickAction(player, world.interactables, camera);
       player.hovered = hovered;
-      pupOffer = !hovered && free && !player.seat && !shop?.visiting && !player.suspended && postcardDue < 0 && GUIDE.offer();
+      pupOffer = !hovered && free && !player.seat && !shop?.visiting && !player.suspended && postcardDue < 0 && postcardSeen && GUIDE.offer();
       const seated = free && player.seat?.dir > 0 && player.seat.k > 0.98;
       hud.setAction(hovered ? actionWords(hovered.label) : pupOffer ? STRINGS.hachi.again : seated ? STRINGS.keys.standUp : null);
       trainWait.update(world.line?.station?.wait, player.locked && !open && !choosing);

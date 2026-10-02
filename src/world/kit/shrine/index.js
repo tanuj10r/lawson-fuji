@@ -120,6 +120,8 @@ export function buildShrine(ctx, net, kit, s, F) {
     const plat = (x0, z0, x1, z1, top) => { const a = town(x0, z0), b = town(x1, z1); ctx.platform({ x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), z0: Math.min(a.z, b.z), z1: Math.max(a.z, b.z), top }); };
     plat(-W / 2, 0, W / 2, D, 0.04);
     plat(-0.82, 0.05, 0.82, L.hallF - 0.55, 0.075);
+    // (the path's kerb stones stand 2 cm over it: Hachi sits by the fox on one: ctx.js surfaceAt)
+    for (const sx of [-1, 1]) { const a = town(sx * 0.77 - 0.05, 0.05), b = town(sx * 0.77 + 0.05, L.hallF - 0.55); ctx.surface?.({ x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), z0: Math.min(a.z, b.z), z1: Math.max(a.z, b.z), top: 0.09 }); }
   }
 
   /* ---- the front: stone fence either side of the gate, the name pillar ---- */
